@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.2092
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyGameEngine", "build\MyGameEngine\MyGameEngine.vcxproj", "{3C9CE216-6FE0-4025-9B77-3505D11473C2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DxDebug|x64 = DxDebug|x64
+		DxRelease|x64 = DxRelease|x64
+		VkDebug|x64 = VkDebug|x64
+		VkRelease|x64 = VkRelease|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.DxDebug|x64.ActiveCfg = DxDebug|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.DxDebug|x64.Build.0 = DxDebug|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.DxRelease|x64.ActiveCfg = DxRelease|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.DxRelease|x64.Build.0 = DxRelease|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.VkDebug|x64.ActiveCfg = VkDebug|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.VkDebug|x64.Build.0 = VkDebug|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.VkRelease|x64.ActiveCfg = VkRelease|x64
+		{3C9CE216-6FE0-4025-9B77-3505D11473C2}.VkRelease|x64.Build.0 = VkRelease|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {78F0B17F-0BEC-428D-A4D5-B1349538EBC8}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,17 @@
+# ingore asset files
+assets/
+
+# ignore binary files
+bin/
+
+# ignore project files
+build/
+
+# ignore library files
+lib/
+
+# ignore object files
+obj/
+
+# 
+.vs/
