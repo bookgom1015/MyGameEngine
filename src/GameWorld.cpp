@@ -382,8 +382,15 @@ bool GameWorld::InitMainWindow() {
 }
 
 void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
-	if (msg == WM_KEYDOWN && wParam == VK_ESCAPE) {
-		PostQuitMessage(0);
+	if (msg == WM_KEYDOWN) {
+		switch (wParam) {
+		case VK_ESCAPE:
+			PostQuitMessage(0);
+			return;
+		case VK_F1:
+			mRenderer->EnableShadow(!mRenderer->ShadowEnabled());
+			return;
+		}
 	}
 }
 

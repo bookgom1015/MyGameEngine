@@ -26,7 +26,7 @@ protected:
 	UINT64 IncreaseFence();
 
 	void NextBackBuffer();
-
+		
 	ID3D12Resource* CurrentBackBuffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
@@ -34,7 +34,6 @@ protected:
 	HRESULT GetDeviceRemovedReason() const;
 
 	bool FlushCommandQueue();
-
 
 private:
 	bool InitDirect3D(UINT width, UINT height);
@@ -58,7 +57,7 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap;
 
-	Microsoft::WRL::ComPtr<ID3D12InfoQueue> mInfoQueue;
+	Microsoft::WRL::ComPtr<ID3D12InfoQueue1> mInfoQueue;
 	
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;
@@ -77,6 +76,7 @@ private:
 	HWND mhMainWnd;
 
 	Microsoft::WRL::ComPtr<ID3D12Debug> mDebugController;
+	DWORD mCallbakCookie;
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4> mdxgiFactory;
 	UINT mdxgiFactoryFlags;

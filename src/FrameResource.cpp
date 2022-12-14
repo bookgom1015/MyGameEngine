@@ -1,11 +1,11 @@
 #include "FrameResource.h"
 #include "Logger.h"
 
-FrameResource::FrameResource(ID3D12Device* inDevice, UINT inPassCount, UINT inObjectCount, UINT inMaterialCount) :
-	PassCount(inPassCount),
-	ObjectCount(inObjectCount),
-	MaterialCount(inMaterialCount) {
-	Device = inDevice;
+FrameResource::FrameResource(ID3D12Device* pDevice, UINT passCount, UINT objectCount, UINT materialCount) :
+	PassCount(passCount),
+	ObjectCount(objectCount),
+	MaterialCount(materialCount) {
+	Device = pDevice;
 	Fence = 0;
 }
 

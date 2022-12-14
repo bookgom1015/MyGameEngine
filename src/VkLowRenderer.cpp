@@ -231,11 +231,9 @@ bool VkLowRenderer::CreateSwapChain() {
 
 	std::uint32_t imageCount = SwapChainImageCount;
 
-	if (imageCount < swapChainSupport.Capabilities.minImageCount) {
-		imageCount = swapChainSupport.Capabilities.minImageCount;
-	}
-	else if (swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount) {
-		imageCount = swapChainSupport.Capabilities.maxImageCount;
+	if (imageCount < swapChainSupport.Capabilities.minImageCount ||
+			(swapChainSupport.Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.Capabilities.maxImageCount)) {
+		ReturnFalse(L"Swap-chain does not support the specified number of images");
 	}
 
 	VkSwapchainCreateInfoKHR createInfo = {};
@@ -275,8 +273,6 @@ bool VkLowRenderer::CreateSwapChain() {
 		ReturnFalse(L"Failed to create swap chain");
 	}
 
-	vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, nullptr);
-	mSwapChainImages.resize(imageCount);
 	vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mSwapChainImages.data());
 
 	mSwapChainImageFormat = surfaceFormat.format;
@@ -286,8 +282,6 @@ bool VkLowRenderer::CreateSwapChain() {
 }
 
 bool VkLowRenderer::CreateImageViews() {
-	mSwapChainImageViews.resize(mSwapChainImages.size());
-
 	for (size_t i = 0, end = mSwapChainImages.size(); i < end; ++i) {
 		CheckReturn(VulkanHelper::CreateImageView(mDevice, mSwapChainImages[i], mSwapChainImageFormat, 1, VK_IMAGE_ASPECT_COLOR_BIT, mSwapChainImageViews[i]));
 	}

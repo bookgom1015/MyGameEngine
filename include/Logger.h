@@ -92,23 +92,23 @@
 #endif
 
 #ifndef CheckHRESULT
-#define CheckHRESULT(__statement)															\
-	{																						\
-		try {																				\
-			HRESULT __result = __statement;													\
-			if (FAILED(__result)) {															\
-				std::wstringstream __wsstream_CR;											\
-				__wsstream_CR << __FILE__ << L"; line: " << __LINE__ << L"; ";				\
-				WLogln(__wsstream_CR.str());												\
-				return false;																\
-			}																				\
-		}																					\
-		catch (const std::exception& e) {													\
-			std::wstringstream __wsstream_CR;												\
-				__wsstream_CR << __FILE__ << L"; line: " << __LINE__ << L"; " << e.what();	\
-				WLogln(__wsstream_CR.str());												\
-			return false;																	\
-		}																					\
+#define CheckHRESULT(__statement)																					\
+	{																												\
+		try {																										\
+			HRESULT __result = __statement;																			\
+			if (FAILED(__result)) {																					\
+				std::wstringstream __wsstream_CR;																	\
+				__wsstream_CR << __FILE__ << L"; line: " << __LINE__ << L"; HRESULT: 0x" << std::hex << __result;	\
+				WLogln(__wsstream_CR.str());																		\
+				return false;																						\
+			}																										\
+		}																											\
+		catch (const std::exception& e) {																			\
+			std::wstringstream __wsstream_CR;																		\
+				__wsstream_CR << __FILE__ << L"; line: " << __LINE__ << L"; " << e.what();							\
+				WLogln(__wsstream_CR.str());																		\
+			return false;																							\
+		}																											\
 	}
 #endif
 

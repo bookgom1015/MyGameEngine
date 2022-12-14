@@ -69,17 +69,26 @@ public:
 
 	void SetCamera(Camera* cam);
 
+	void EnableShadow(bool state);
+	__forceinline constexpr bool ShadowEnabled() const;
+
 	__forceinline constexpr bool IsInitialized() const;
 	__forceinline constexpr float AspectRatio() const;
 
 protected:
-	bool bInitialized;
+	bool bInitialized = false;
 
 	UINT mClientWidth;
 	UINT mClientHeight;
 
 	Camera* mCamera;
+
+	bool bShadowEnabled = true;
 };
+
+constexpr bool Renderer::ShadowEnabled() const {
+	return bShadowEnabled;
+}
 
 constexpr bool Renderer::IsInitialized() const {
 	return bInitialized;

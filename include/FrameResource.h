@@ -2,17 +2,7 @@
 
 #include "UploadBuffer.h"
 #include "MathHelper.h"
-
-#define MaxLights 16
-
-struct Light {
-	DirectX::XMFLOAT3 Strength = { 0.5f, 0.5f, 0.5f };
-	float FalloffStart = 1.0f;						// point/spot light only
-	DirectX::XMFLOAT3 Direction = { 0.0f, -1.0f, 0.0f };	// directional/spot light only
-	float FalloffEnd = 10.0f;					// point/spot light only
-	DirectX::XMFLOAT3 Position = { 0.0f, 0.0f, 0.0f };		// point/spot light only
-	float SpotPower = 64.0f;					// spot light only
-};
+#include "Light.h"
 
 struct ObjectConstants {
 	DirectX::XMFLOAT4X4 World;
@@ -26,6 +16,7 @@ struct PassConstants {
 	DirectX::XMFLOAT4X4	InvProj;
 	DirectX::XMFLOAT4X4	ViewProj;
 	DirectX::XMFLOAT4X4	InvViewProj;
+	DirectX::XMFLOAT4X4 ShadowTransform;
 	DirectX::XMFLOAT3	EyePosW;
 	float				PassConstantsPad1;
 	DirectX::XMFLOAT4	AmbientLight;
@@ -46,10 +37,10 @@ struct MaterialConstants {
 struct FrameResource {
 public:
 	FrameResource(
-		ID3D12Device* inDevice,
-		UINT inPassCount,
-		UINT inObjectCount,
-		UINT inMaterialCount);
+		ID3D12Device* pDevice,
+		UINT passCount,
+		UINT objectCount,
+		UINT materialCount);
 	virtual ~FrameResource() = default;
 
 private:

@@ -1,10 +1,49 @@
 #include "DxLowRenderer.h"
 #include "Logger.h"
 
+namespace {
+	void D3D12MessageCallback(
+			D3D12_MESSAGE_CATEGORY category,
+			D3D12_MESSAGE_SEVERITY severity,
+			D3D12_MESSAGE_ID id,
+			LPCSTR pDescription,
+			void *pContext) {
+		std::string str(pDescription);
+
+		std::string sevStr;
+		switch (severity) {
+		case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+			sevStr = "Corruption";
+			break;
+		case D3D12_MESSAGE_SEVERITY_ERROR:
+			sevStr = "Error";
+			break;
+		case D3D12_MESSAGE_SEVERITY_WARNING:
+			sevStr = "Warning";
+			break;
+		case D3D12_MESSAGE_SEVERITY_INFO:
+			return;
+			sevStr = "Info";
+			break;
+		case D3D12_MESSAGE_SEVERITY_MESSAGE:
+			return;
+			sevStr = "Message";
+			break;
+		}
+
+		std::stringstream sstream;
+		sstream << '[' << sevStr << "] " << pDescription;
+
+		Logln(sstream.str());
+	}
+}
+
 DxLowRenderer::DxLowRenderer() {
 	bIsCleanedUp = false;
 
 	mhMainWnd = NULL;
+
+	mCallbakCookie = 0x01010101;
 
 	mdxgiFactoryFlags = 0;
 
@@ -33,7 +72,13 @@ bool DxLowRenderer::LowInitialize(HWND hwnd, UINT width, UINT height) {
 }
 
 void DxLowRenderer::LowCleanUp() {
-	if (md3dDevice != nullptr) {
+	if (mInfoQueue != nullptr) {
+		if (FAILED(mInfoQueue->UnregisterMessageCallback(mCallbakCookie))) {
+			WLogln(L"Failed to unregister message call-back");
+		}
+	}
+
+	if (md3dDevice != nullptr && mCommandQueue != nullptr) {
 		if (!FlushCommandQueue())
 			WLogln(L"Failed to flush command queue during cleaning up");
 	}
@@ -193,10 +238,10 @@ bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 #ifdef _DEBUG
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&mDebugController)))) {
 		mDebugController->EnableDebugLayer();
-		mdxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+		mdxgiFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 	}
 #endif
-
+	
 	CheckHRESULT(CreateDXGIFactory2(mdxgiFactoryFlags, IID_PPV_ARGS(&mdxgiFactory)));
 
 	Adapters adapters;
@@ -237,7 +282,9 @@ bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 	mDsvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	mCbvSrvUavDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
+#if _DEBUG
 	CheckReturn(CreateDebugObjects());
+#endif
 	CheckReturn(CreateCommandObjects());
 	CheckReturn(CreateSwapChain(width, height));
 	CheckReturn(CreateRtvAndDsvDescriptorHeaps());
@@ -276,6 +323,8 @@ void DxLowRenderer::SortAdapters(Adapters& adapters) {
 bool DxLowRenderer::CreateDebugObjects() {
 	CheckHRESULT(md3dDevice->QueryInterface(IID_PPV_ARGS(&mInfoQueue)));
 
+	CheckHRESULT(mInfoQueue->RegisterMessageCallback(D3D12MessageCallback, D3D12_MESSAGE_CALLBACK_IGNORE_FILTERS, NULL, &mCallbakCookie));
+
 	return true;
 }
 
@@ -288,7 +337,7 @@ bool DxLowRenderer::CreateCommandObjects() {
 	CheckHRESULT(md3dDevice->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(mDirectCmdListAlloc.GetAddressOf()))
 	);
-
+	
 	CheckHRESULT(md3dDevice->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,

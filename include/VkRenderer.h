@@ -2,14 +2,7 @@
 
 #include "VkLowRenderer.h"
 #include "MeshImporter.h"
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_LEFT_HANDED
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include "Light.h"
 
 class VkRenderer : public Renderer, public VkLowRenderer {
 public:
@@ -34,15 +27,27 @@ public:
 
 	struct UniformBufferObject {
 		DirectX::XMFLOAT4X4 Model;
-		DirectX::XMFLOAT4X4 View;
-		DirectX::XMFLOAT4X4 Proj;
+	};
+
+	struct UniformBufferPass {
+		DirectX::XMFLOAT4X4	View;
+		DirectX::XMFLOAT4X4	InvView;
+		DirectX::XMFLOAT4X4	Proj;
+		DirectX::XMFLOAT4X4	InvProj;
+		DirectX::XMFLOAT4X4	ViewProj;
+		DirectX::XMFLOAT4X4	InvViewProj;
+		DirectX::XMFLOAT4X4 ShadowTransform;
+		DirectX::XMFLOAT3	EyePosW;
+		float				PassConstantsPad1;
+		DirectX::XMFLOAT4	AmbientLight;
+		Light				Lights[MaxLights];
 	};
 
 	struct RenderItem {
-		std::vector<VkDescriptorSet> DescriptorSets;
+		std::array<VkDescriptorSet, SwapChainImageCount> DescriptorSets;
 
-		std::vector<VkBuffer>		UniformBuffers;
-		std::vector<VkDeviceMemory>	UniformBufferMemories;
+		std::array<VkBuffer, SwapChainImageCount>		UniformBuffers;
+		std::array<VkDeviceMemory, SwapChainImageCount>	UniformBufferMemories;
 
 		std::string MeshName;
 		std::string MatName;
@@ -51,7 +56,17 @@ public:
 		DirectX::XMVECTOR Rotation;
 		DirectX::XMVECTOR Position;
 
+		int NumFramesDirty = SwapChainImageCount;
+
 		bool Visible = true;
+	};
+
+	enum EDescriptorSetLayout {
+		EDSL_Object = 0,
+		EDSL_Pass,
+		EDSL_Output,
+		EDSL_Shadow,
+		EDSL_Count
 	};
 
 public:
@@ -84,10 +99,17 @@ private:
 	bool CreateDepthResources();
 	bool CreateFramebuffers();
 	bool CreateDescriptorSetLayout();
-	bool CreateGraphicsPipeline();
+	bool CreateGraphicsPipelineLayouts();
+	bool CreateGraphicsPipelines();
 	bool CreateDescriptorPool();
+	bool CreatePassBuffers();
 	bool CreateCommandBuffers();
 	bool CreateSyncObjects();
+
+	bool RecreateColorResources();
+	bool RecreateDepthResources();
+	bool RecreateFramebuffers();
+	bool RecreateGraphicsPipelines();
 
 	bool AddGeometry(const std::string& file);
 	bool AddMaterial(const std::string& file, const Material& material);
@@ -103,21 +125,24 @@ private:
 	bool UpdateUniformBuffer(float delta);
 	bool UpdateDescriptorSet(const RenderItem* ritem);
 
-	bool RecreateUniformBuffers();
-	bool RecreateDescriptorSets();
+	bool DrawShadowMap();
+	bool DrawBackBuffer();
 
 protected:
-	const VkFormat ImageFormat;
+	const VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+
+	const std::uint32_t ShadowMapSize = 2048;
 
 private:
 	bool bIsCleanedUp;
 
 	bool bFramebufferResized;
-
+	
 	VkRenderPass mRenderPass;
+	VkRenderPass mShadowRenderPass;
 
 	VkCommandPool mCommandPool;
-	std::vector<VkCommandBuffer> mCommandBuffers;
+	std::array<VkCommandBuffer, SwapChainImageCount> mCommandBuffers;
 
 	VkImage mColorImage;
 	VkDeviceMemory mColorImageMemory;
@@ -127,18 +152,24 @@ private:
 	VkDeviceMemory mDepthImageMemory;
 	VkImageView mDepthImageView;
 
-	std::vector<VkFramebuffer> mSwapChainFramebuffers;
+	VkImage mShadowImage;
+	VkDeviceMemory mShadowImageMemory;
+	VkImageView mShadowDepthImageView;
+	VkSampler mShadowImageSampler;
+
+	std::array<VkFramebuffer, SwapChainImageCount> mSwapChainFramebuffers;
+	VkFramebuffer mShadowFramebuffer;
 
 	VkDescriptorSetLayout mDescriptorSetLayout;
 	VkDescriptorPool mDescriptorPool;
 
-	VkPipelineLayout mPipelineLayout;
-	VkPipeline mGraphicsPipeline;
+	std::unordered_map<std::string, VkPipelineLayout> mPipelineLayouts;
+	std::unordered_map<std::string, VkPipeline> mGraphicsPipelines;
 
-	std::vector<VkSemaphore> mImageAvailableSemaphores;
-	std::vector<VkSemaphore> mRenderFinishedSemaphores;
-	std::vector<VkFence> mInFlightFences;
-	std::vector<VkFence> mImagesInFlight;
+	std::array<VkSemaphore, SwapChainImageCount> mImageAvailableSemaphores;
+	std::array<VkSemaphore, SwapChainImageCount> mRenderFinishedSemaphores;
+	std::array<VkFence, SwapChainImageCount> mInFlightFences;
+	std::array<VkFence, SwapChainImageCount> mImagesInFlight;
 	std::uint32_t mCurentImageIndex;
 	size_t mCurrentFrame;
 
@@ -147,4 +178,13 @@ private:
 
 	std::vector<std::unique_ptr<RenderItem>> mRitems;
 	std::vector<RenderItem*> mRitemRefs[ERenderTypes::ENumTypes];
+
+	std::vector<VkBuffer> mMainPassBuffers;
+	std::vector<VkDeviceMemory> mMainPassMemories;
+
+	std::vector<VkBuffer> mShadowPassBuffers;
+	std::vector<VkDeviceMemory> mShadowPassMemories;
+
+	DirectX::BoundingSphere mSceneBounds;
+	DirectX::XMFLOAT3 mLightDir;
 };

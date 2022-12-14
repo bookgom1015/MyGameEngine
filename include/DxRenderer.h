@@ -6,6 +6,7 @@ struct FrameResource;
 struct PassConstants;
 
 class ShaderManager;
+class ShadowMap;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -102,8 +103,8 @@ public:
 
 		// Material constant buffer data used for shading.
 		DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-		float Roughness = .25f;
+		DirectX::XMFLOAT3 FresnelR0 = { 0.5f, 0.5f, 0.5f };
+		float Roughness = 0.5f;
 		DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 	};
 
@@ -138,11 +139,17 @@ public:
 	};
 
 	enum EDefaultRootSignatureParams {
-		EObjectCB = 0,
-		EPassCB,
-		EMatCB,
-		ETexMap,
-		Count
+		EDRS_ObjectCB = 0,
+		EDRS_PassCB,
+		EDRS_MatCB,
+		EDRS_ShadowMap,
+		EDRS_TexMaps,
+		EDRS_Count
+	};
+
+	enum EReservedDescriptors {
+		ED_Shadow = 0,
+		ED_Count
 	};
 
 public:
@@ -164,25 +171,33 @@ public:
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
 
+	virtual bool CreateRtvAndDsvDescriptorHeaps();
+
 	bool AddGeometry(const std::string& file);
 	bool AddMaterial(const std::string& file, const Material& material);
 	void* AddRenderItem(const std::string& file, const Transform& trans, ERenderTypes type);
 
 	UINT AddTexture(const std::string& file, const Material& material);
 
-	bool DrawRenderItems(const std::vector<RenderItem*>& ritems);
-
 private:
 	bool CompileShaders();
 
 	bool BuildFrameResources();
 	bool BuildDescriptorHeaps();
+	bool BuildDescriptors();
 	bool BuildRootSignatures();
 	bool BuildPSOs();
 
-	bool UpdateObjectCBs(float delta);
+	bool UpdateShadowPassCB(float delta);
 	bool UpdateMainPassCB(float delta);
+	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
+
+	bool DrawRenderItems(const std::vector<RenderItem*>& ritems);
+
+	bool DrawShadowMap();
+	bool DrawBackBuffer();
+	bool DrawDebug();
 
 protected:
 	static const int gNumFrameResources = 3;
@@ -194,7 +209,7 @@ private:
 	FrameResource* mCurrFrameResource;
 	int mCurrFrameResourceIndex;
 
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDescriptorHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mCbvSrvUavHeap;
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 
@@ -210,6 +225,13 @@ private:
 	UINT mCurrDescriptorIndex;
 
 	std::unique_ptr<PassConstants> mMainPassCB;
+	std::unique_ptr<PassConstants> mShadowPassCB;
 	
 	std::unique_ptr<ShaderManager> mShaderManager;
+
+	std::unique_ptr<ShadowMap> mShadowMap;
+	DirectX::BoundingSphere mSceneBounds;
+	DirectX::XMFLOAT3 mLightDir;
+
+	bool bShadowMapCleanedUp;
 };

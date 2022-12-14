@@ -29,16 +29,21 @@ protected:
 	static const std::uint32_t SwapChainImageCount = 2;
 
 	VkInstance mInstance;
+
 	VkSurfaceKHR mSurface;
+
 	VkPhysicalDevice mPhysicalDevice;
 	VkDevice mDevice;
+
 	VkQueue mGraphicsQueue;
 	VkQueue mPresentQueue;
+
 	VkSwapchainKHR mSwapChain;
-	std::vector<VkImage> mSwapChainImages;
 	VkFormat mSwapChainImageFormat;
 	VkExtent2D mSwapChainExtent;
-	std::vector<VkImageView> mSwapChainImageViews;
+
+	std::array<VkImage, SwapChainImageCount> mSwapChainImages;
+	std::array<VkImageView, SwapChainImageCount> mSwapChainImageViews;
 
 private:
 	bool bIsCleanedUp;
