@@ -31,7 +31,7 @@ private:
 	bool BuildResource();
 
 public:
-	static const UINT NumShadowMaps = 1;
+	static const UINT NumDepthStenciles = 1;
 
 protected:
 	const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R24G8_TYPELESS;

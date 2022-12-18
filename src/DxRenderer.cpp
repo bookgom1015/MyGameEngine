@@ -6,6 +6,7 @@
 #include "DDSTextureLoader.h"
 #include "ShaderManager.h"
 #include "ShadowMap.h"
+#include "GBuffer.h"
 
 using namespace DirectX;
 
@@ -91,12 +92,14 @@ namespace {
 	}
 
 	const std::wstring ShaderFilePath = L".\\..\\..\\assets\\shaders\\hlsl\\";
+
+	const DXGI_FORMAT NormalMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 }
 
 DxRenderer::DxRenderer() {
 	bIsCleanedUp = false;
 
-	mCurrDescriptorIndex = EReservedDescriptors::ED_Count;
+	mCurrDescriptorIndex = EReservedDescriptors::ERD_Count;
 
 	mMainPassCB = std::make_unique<PassConstants>();
 	mShadowPassCB = std::make_unique<PassConstants>();
@@ -108,8 +111,9 @@ DxRenderer::DxRenderer() {
 	float widthSquared = 32.0f * 32.0f;
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
 	mLightDir = { 0.57735f, -0.57735f, 0.57735f };
-
 	bShadowMapCleanedUp = false;
+
+	mGBuffer = std::make_unique<GBuffer>();
 }
 
 DxRenderer::~DxRenderer() {
@@ -123,6 +127,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(LowInitialize(hwnd, width, height));
 
 	CheckReturn(mShadowMap->Initialize(md3dDevice.Get(), 2048, 2048));
+	CheckReturn(mGBuffer->Initialize(md3dDevice.Get(), width, height, BackBufferFormat, NormalMapFormat, DXGI_FORMAT_R24_UNORM_X8_TYPELESS));
 
 	CheckReturn(CompileShaders());
 
@@ -167,8 +172,9 @@ bool DxRenderer::Draw() {
 	CheckHRESULT(mCurrFrameResource->CmdListAlloc->Reset());
 
 	CheckReturn(DrawShadowMap());
+	CheckReturn(DrawGBuffer());
 	CheckReturn(DrawBackBuffer());
-	CheckReturn(DrawDebug());
+	CheckReturn(DrawDebuggingInfo());
 
 	CheckHRESULT(mSwapChain->Present(0, 0));
 	NextBackBuffer();
@@ -184,6 +190,8 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	mClientHeight = height;
 
 	CheckReturn(LowOnResize(width, height));
+
+	CheckReturn(mGBuffer->OnResize(width, height, mDepthStencilBuffer.Get()));
 
 	return true;
 }
@@ -226,14 +234,14 @@ void DxRenderer::SetModelVisibility(void* model, bool visible) {
 
 bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = SwapChainBufferCount;
+	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + GBuffer::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
 	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 1 + ShadowMap::NumShadowMaps;
+	dsvHeapDesc.NumDescriptors = 1 + ShadowMap::NumDepthStenciles;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -249,9 +257,14 @@ bool DxRenderer::CompileShaders() {
 	};
 
 	{
-		const std::wstring filePath = ShaderFilePath + L"Default.hlsl";
-		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "VS", "vs_5_1", "defaultVS"));
-		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "PS", "ps_5_1", "defaultPS"));
+		const std::wstring filePath = ShaderFilePath + L"DrawBackBuffer.hlsl";
+		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "VS", "vs_5_1", "backBufferVS"));
+		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "PS", "ps_5_1", "backBufferPS"));
+	}
+	{
+		const std::wstring filePath = ShaderFilePath + L"DrawGBuffer.hlsl";
+		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "VS", "vs_5_1", "gbufferVS"));
+		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "PS", "ps_5_1", "gbufferPS"));
 	}
 	{
 		const std::wstring filePath = ShaderFilePath + L"Shadow.hlsl";
@@ -289,34 +302,44 @@ bool DxRenderer::BuildDescriptorHeaps() {
 bool DxRenderer::BuildDescriptors() {
 	auto cpuStart = mCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
 	auto gpuStart = mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
+	auto rtvCpuStart = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
 	auto dsvCpuStart = mDsvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	auto descSize = GetCbvSrvUavDescriptorSize();
+	auto rtvDescSize = GetRtvDescriptorSize();
 	auto dsvDescSize = GetDsvDescriptorSize();
 
 	mShadowMap->BuildDescriptors(
-		CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuStart, EReservedDescriptors::ED_Shadow, descSize),
-		CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, EReservedDescriptors::ED_Shadow, descSize),
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuStart, EReservedDescriptors::ERD_Shadow, descSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, EReservedDescriptors::ERD_Shadow, descSize),
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, dsvDescSize)
+	);
+
+	mGBuffer->BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuStart, EReservedDescriptors::ERD_Color, descSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, EReservedDescriptors::ERD_Color, descSize),
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, ERtvHeapLayout::ERHL_Color, rtvDescSize),
+		descSize, rtvDescSize,
+		mDepthStencilBuffer.Get()
 	);
 
 	return true;
 }
 
 bool DxRenderer::BuildRootSignatures() {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[static_cast<int>(EDefaultRootSignatureParams::EDRS_Count)];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[EDefaultRootSignatureLayout::EDRS_Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTable0;
-	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, EReservedDescriptors::ERD_Count, 0, 0);
 
 	CD3DX12_DESCRIPTOR_RANGE texTable1;
-	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 32, 1, 0);
+	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 32, EReservedDescriptors::ERD_Count, 0);
 
-	slotRootParameter[EDefaultRootSignatureParams::EDRS_ObjectCB].InitAsConstantBufferView(0);
-	slotRootParameter[EDefaultRootSignatureParams::EDRS_PassCB].InitAsConstantBufferView(1);
-	slotRootParameter[EDefaultRootSignatureParams::EDRS_MatCB].InitAsConstantBufferView(2);
-	slotRootParameter[EDefaultRootSignatureParams::EDRS_ShadowMap].InitAsDescriptorTable(1, &texTable0);
-	slotRootParameter[EDefaultRootSignatureParams::EDRS_TexMaps].InitAsDescriptorTable(1, &texTable1);
+	slotRootParameter[EDefaultRootSignatureLayout::EDRS_ObjectCB].InitAsConstantBufferView(0);
+	slotRootParameter[EDefaultRootSignatureLayout::EDRS_PassCB].InitAsConstantBufferView(1);
+	slotRootParameter[EDefaultRootSignatureLayout::EDRS_MatCB].InitAsConstantBufferView(2);
+	slotRootParameter[EDefaultRootSignatureLayout::EDRS_ReservedTexMaps].InitAsDescriptorTable(1, &texTable0);
+	slotRootParameter[EDefaultRootSignatureLayout::EDRS_AllocatedTexMaps].InitAsDescriptorTable(1, &texTable1);
 
 	auto samplers = GetStaticSamplers();
 
@@ -341,34 +364,54 @@ bool DxRenderer::BuildPSOs() {
 	ZeroMemory(&defaultPsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	defaultPsoDesc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 	defaultPsoDesc.pRootSignature = mRootSignatures["default"].Get();
+	defaultPsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	defaultPsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	defaultPsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	defaultPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	defaultPsoDesc.SampleMask = UINT_MAX;
+	defaultPsoDesc.SampleDesc.Count = 1;
+	defaultPsoDesc.SampleDesc.Quality = 0;
+	defaultPsoDesc.DSVFormat = DepthStencilFormat;
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC backBufferPsoDesc = defaultPsoDesc;
+	backBufferPsoDesc.InputLayout = { nullptr,0 };
 	{
-		auto vs = mShaderManager->GetShader("defaultVS");
-		auto ps = mShaderManager->GetShader("defaultPS");
-		defaultPsoDesc.VS = {
+		auto vs = mShaderManager->GetShader("backBufferVS");
+		auto ps = mShaderManager->GetShader("backBufferPS");
+		backBufferPsoDesc.VS = {
 			reinterpret_cast<BYTE*>(vs->GetBufferPointer()),
 			vs->GetBufferSize()
 		};
-		defaultPsoDesc.PS = {
+		backBufferPsoDesc.PS = {
 			reinterpret_cast<BYTE*>(ps->GetBufferPointer()),
 			ps->GetBufferSize()
 		};
 	}
-	defaultPsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	defaultPsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	defaultPsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	defaultPsoDesc.SampleMask = UINT_MAX;
-	defaultPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	defaultPsoDesc.NumRenderTargets = 1;
-	defaultPsoDesc.RTVFormats[0] = BackBufferFormat;
-	defaultPsoDesc.SampleDesc.Count = 1;
-	defaultPsoDesc.SampleDesc.Quality = 0;
-	defaultPsoDesc.DSVFormat = DepthStencilFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&defaultPsoDesc, IID_PPV_ARGS(&mPSOs["default"])));
+	backBufferPsoDesc.NumRenderTargets = 1;
+	backBufferPsoDesc.RTVFormats[0] = BackBufferFormat;
+	backBufferPsoDesc.DepthStencilState.DepthEnable = FALSE;
+	backBufferPsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&backBufferPsoDesc, IID_PPV_ARGS(&mPSOs["backBuffer"])));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC gbufferPsoDesc = defaultPsoDesc;
+	{
+		auto vs = mShaderManager->GetShader("gbufferVS");
+		auto ps = mShaderManager->GetShader("gbufferPS");
+		gbufferPsoDesc.VS = {
+			reinterpret_cast<BYTE*>(vs->GetBufferPointer()),
+			vs->GetBufferSize()
+		};
+		gbufferPsoDesc.PS = {
+			reinterpret_cast<BYTE*>(ps->GetBufferPointer()),
+			ps->GetBufferSize()
+		};
+	}
+	gbufferPsoDesc.NumRenderTargets = GBuffer::NumRenderTargets;
+	gbufferPsoDesc.RTVFormats[0] = BackBufferFormat;
+	gbufferPsoDesc.RTVFormats[1] = NormalMapFormat;
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&gbufferPsoDesc, IID_PPV_ARGS(&mPSOs["gbuffer"])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC shadowPsoDesc = defaultPsoDesc;
-	shadowPsoDesc.RasterizerState.DepthBias = 100000;
-	shadowPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
-	shadowPsoDesc.RasterizerState.DepthBiasClamp = 0.1f;
 	{
 		auto vs = mShaderManager->GetShader("shadowVS");
 		auto ps = mShaderManager->GetShader("shadowPS");
@@ -381,8 +424,10 @@ bool DxRenderer::BuildPSOs() {
 			ps->GetBufferSize()
 		};
 	}
-	shadowPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 	shadowPsoDesc.NumRenderTargets = 0;
+	shadowPsoDesc.RasterizerState.DepthBias = 100000;
+	shadowPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+	shadowPsoDesc.RasterizerState.DepthBiasClamp = 0.1f;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&shadowPsoDesc, IID_PPV_ARGS(&mPSOs["shadow"])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC debugPsoDesc = defaultPsoDesc;
@@ -399,6 +444,8 @@ bool DxRenderer::BuildPSOs() {
 			ps->GetBufferSize()
 		};
 	}
+	debugPsoDesc.NumRenderTargets = 1;
+	debugPsoDesc.RTVFormats[0] = BackBufferFormat;
 	debugPsoDesc.DepthStencilState.DepthEnable = FALSE;
 	debugPsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&debugPsoDesc, IID_PPV_ARGS(&mPSOs["debug"])));
@@ -737,8 +784,8 @@ bool DxRenderer::DrawRenderItems(const std::vector<RenderItem*>& ritems) {
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB.Resource()->GetGPUVirtualAddress() + ri->ObjCBIndex * objCBByteSize;
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB.Resource()->GetGPUVirtualAddress() + ri->Material->MatCBIndex * matCBByteSize;
 
-		mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureParams::EDRS_ObjectCB, objCBAddress);
-		mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureParams::EDRS_MatCB, matCBAddress);
+		mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_ObjectCB, objCBAddress);
+		mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_MatCB, matCBAddress);
 
 		mCommandList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
@@ -755,7 +802,7 @@ bool DxRenderer::DrawShadowMap() {
 				1,
 				&CD3DX12_RESOURCE_BARRIER::Transition(
 					mShadowMap->Resource(),
-					D3D12_RESOURCE_STATE_GENERIC_READ,
+					D3D12_RESOURCE_STATE_DEPTH_READ,
 					D3D12_RESOURCE_STATE_DEPTH_WRITE
 				)
 			);
@@ -767,7 +814,7 @@ bool DxRenderer::DrawShadowMap() {
 				&CD3DX12_RESOURCE_BARRIER::Transition(
 					mShadowMap->Resource(),
 					D3D12_RESOURCE_STATE_DEPTH_WRITE,
-					D3D12_RESOURCE_STATE_GENERIC_READ
+					D3D12_RESOURCE_STATE_DEPTH_READ
 				)
 			);
 
@@ -782,7 +829,7 @@ bool DxRenderer::DrawShadowMap() {
 	}
 	bShadowMapCleanedUp = false;
 
-	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["default"].Get()));
+	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["shadow"].Get()));
 
 	mCommandList->SetGraphicsRootSignature(mRootSignatures["default"].Get());
 
@@ -796,7 +843,7 @@ bool DxRenderer::DrawShadowMap() {
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(
 			mShadowMap->Resource(),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_DEPTH_READ,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE
 		)
 	);
@@ -807,9 +854,7 @@ bool DxRenderer::DrawShadowMap() {
 	auto passCB = mCurrFrameResource->PassCB.Resource();
 	UINT passCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(PassConstants));
 	D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + 1 * passCBByteSize;
-	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureParams::EDRS_PassCB, passCBAddress);
-
-	mCommandList->SetPipelineState(mPSOs["shadow"].Get());
+	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_PassCB, passCBAddress);
 
 	CheckReturn(DrawRenderItems(mRitemRefs[ERenderTypes::EOpaque]));
 
@@ -818,7 +863,99 @@ bool DxRenderer::DrawShadowMap() {
 		&CD3DX12_RESOURCE_BARRIER::Transition(
 			mShadowMap->Resource(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE,
-			D3D12_RESOURCE_STATE_GENERIC_READ
+			D3D12_RESOURCE_STATE_DEPTH_READ
+		)
+	);
+
+	CheckHRESULT(mCommandList->Close());
+	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
+bool DxRenderer::DrawGBuffer() {
+	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["gbuffer"].Get()));
+
+	mCommandList->SetGraphicsRootSignature(mRootSignatures["default"].Get());
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mCommandList->RSSetViewports(1, &mScreenViewport);
+	mCommandList->RSSetScissorRects(1, &mScissorRect);
+
+	const auto pColorMap = mGBuffer->ColorMapResource();
+	mCommandList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			pColorMap,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		)
+	);
+
+	const auto pNormalMap = mGBuffer->NormalMapResource();
+	mCommandList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			pNormalMap,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		)
+	);
+
+	mCommandList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			mDepthStencilBuffer.Get(),
+			D3D12_RESOURCE_STATE_DEPTH_READ,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE
+		)
+	);
+
+	const auto colorRtv = mGBuffer->ColorMapRtv();
+	const auto normalRtv = mGBuffer->NormalMapRtv();
+	mCommandList->ClearRenderTargetView(colorRtv, GBuffer::ColorMapClearValues, 0, nullptr);
+	mCommandList->ClearRenderTargetView(normalRtv, GBuffer::NormalMapClearValues, 0, nullptr);
+
+	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, GBuffer::NumRenderTargets> renderTargets = { colorRtv, normalRtv };
+	mCommandList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &DepthStencilView());
+	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	auto passCB = mCurrFrameResource->PassCB.Resource();
+	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_PassCB, passCB->GetGPUVirtualAddress());
+
+	auto hDesc = mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
+	mCommandList->SetGraphicsRootDescriptorTable(EDefaultRootSignatureLayout::EDRS_ReservedTexMaps, hDesc);
+	mCommandList->SetGraphicsRootDescriptorTable(EDefaultRootSignatureLayout::EDRS_AllocatedTexMaps, hDesc);
+
+	CheckReturn(DrawRenderItems(mRitemRefs[ERenderTypes::EOpaque]));
+
+	mCommandList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			mDepthStencilBuffer.Get(),
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			D3D12_RESOURCE_STATE_DEPTH_READ
+		)
+	);
+
+	mCommandList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			pNormalMap,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+		)
+	);
+
+	mCommandList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			pColorMap,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 		)
 	);
 
@@ -830,7 +967,7 @@ bool DxRenderer::DrawShadowMap() {
 }
 
 bool DxRenderer::DrawBackBuffer() {
-	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["default"].Get()));
+	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["backBuffer"].Get()));
 
 	mCommandList->SetGraphicsRootSignature(mRootSignatures["default"].Get());
 
@@ -846,48 +983,33 @@ bool DxRenderer::DrawBackBuffer() {
 		&CD3DX12_RESOURCE_BARRIER::Transition(
 			pCurrBackBuffer,
 			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_RENDER_TARGET)
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		)
 	);
 
 	auto pCurrBackBufferView = CurrentBackBufferView();
 	mCommandList->ClearRenderTargetView(pCurrBackBufferView, Colors::AliceBlue, 0, nullptr);
-	mCommandList->OMSetRenderTargets(1, &pCurrBackBufferView, true, &DepthStencilView());
-	mCommandList->ClearDepthStencilView(
-		DepthStencilView(),
-		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-		1.0f,
-		0,
-		0,
-		nullptr
-	);
+	mCommandList->OMSetRenderTargets(1, &pCurrBackBufferView, true, nullptr);
 
 	auto passCB = mCurrFrameResource->PassCB.Resource();
-	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureParams::EDRS_PassCB, passCB->GetGPUVirtualAddress());
+	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_PassCB, passCB->GetGPUVirtualAddress());
 
-	mCommandList->SetGraphicsRootDescriptorTable(
-		EDefaultRootSignatureParams::EDRS_ShadowMap,
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(),
-			EReservedDescriptors::ED_Shadow,
-			GetCbvSrvUavDescriptorSize()
-		)
-	);
-
-	mCommandList->SetGraphicsRootDescriptorTable(
-		EDefaultRootSignatureParams::EDRS_TexMaps,
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(),
-			0,
-			GetCbvSrvUavDescriptorSize()
-		)
-	);
-
-	CheckReturn(DrawRenderItems(mRitemRefs[ERenderTypes::EOpaque]));
+	auto hDesc = mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
+	mCommandList->SetGraphicsRootDescriptorTable(EDefaultRootSignatureLayout::EDRS_ReservedTexMaps, hDesc);
+	mCommandList->SetGraphicsRootDescriptorTable(EDefaultRootSignatureLayout::EDRS_AllocatedTexMaps, hDesc);
+	
+	mCommandList->IASetVertexBuffers(0, 0, nullptr);
+	mCommandList->IASetIndexBuffer(nullptr);
+	mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mCommandList->DrawInstanced(6, 1, 0, 0);
 
 	mCommandList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(
 			pCurrBackBuffer,
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PRESENT)
+			D3D12_RESOURCE_STATE_PRESENT
+		)
 	);
 
 	CheckHRESULT(mCommandList->Close());
@@ -897,7 +1019,7 @@ bool DxRenderer::DrawBackBuffer() {
 	return true;
 }
 
-bool DxRenderer::DrawDebug() {
+bool DxRenderer::DrawDebuggingInfo() {
 	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["debug"].Get()));
 
 	mCommandList->SetGraphicsRootSignature(mRootSignatures["default"].Get());
@@ -921,20 +1043,14 @@ bool DxRenderer::DrawDebug() {
 	mCommandList->OMSetRenderTargets(1, &pCurrBackBufferView, true, &DepthStencilView());
 
 	const auto& passCB = mCurrFrameResource->PassCB;
-	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureParams::EDRS_PassCB, passCB.Resource()->GetGPUVirtualAddress());
+	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_PassCB, passCB.Resource()->GetGPUVirtualAddress());
 
-	mCommandList->SetGraphicsRootDescriptorTable(
-		EDefaultRootSignatureParams::EDRS_ShadowMap,
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(),
-			EReservedDescriptors::ED_Shadow,
-			GetCbvSrvUavDescriptorSize()
-		)
-	);
+	mCommandList->SetGraphicsRootDescriptorTable(EDefaultRootSignatureLayout::EDRS_ReservedTexMaps, mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart());
 
 	mCommandList->IASetVertexBuffers(0, 0, nullptr);
 	mCommandList->IASetIndexBuffer(nullptr);
 	mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	mCommandList->DrawInstanced(6, 1, 0, 0);
+	mCommandList->DrawInstanced(6, 5, 0, 0);
 
 	mCommandList->ResourceBarrier(
 		1,

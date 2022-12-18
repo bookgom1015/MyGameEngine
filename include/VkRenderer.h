@@ -69,6 +69,13 @@ public:
 		EDSL_Count
 	};
 
+	enum ECommandBufferLayout {
+		ECBL_Shadow = 0,
+		ECBL_BackBuffer,
+		ECBL_Debug,
+		ECBL_Count
+	};
+
 public:
 	VkRenderer();
 	virtual ~VkRenderer();
@@ -95,6 +102,7 @@ protected:
 private:
 	bool CreateRenderPass();
 	bool CreateCommandPool();
+	bool CreateCommandBuffers();
 	bool CreateColorResources();
 	bool CreateDepthResources();
 	bool CreateFramebuffers();
@@ -102,8 +110,8 @@ private:
 	bool CreateGraphicsPipelineLayouts();
 	bool CreateGraphicsPipelines();
 	bool CreateDescriptorPool();
+	bool CreateDescriptorSets();
 	bool CreatePassBuffers();
-	bool CreateCommandBuffers();
 	bool CreateSyncObjects();
 
 	bool RecreateColorResources();
@@ -127,22 +135,24 @@ private:
 
 	bool DrawShadowMap();
 	bool DrawBackBuffer();
+	bool DrawDebuggingInfo();
 
 protected:
 	const VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
 	const std::uint32_t ShadowMapSize = 2048;
 
+	static const std::uint32_t CommandPoolCount = 3;
+
 private:
 	bool bIsCleanedUp;
 
 	bool bFramebufferResized;
 	
-	VkRenderPass mRenderPass;
-	VkRenderPass mShadowRenderPass;
+	std::unordered_map<std::string, VkRenderPass> mRenderPasses;
 
-	VkCommandPool mCommandPool;
-	std::array<VkCommandBuffer, SwapChainImageCount> mCommandBuffers;
+	std::array<VkCommandPool, CommandPoolCount> mCommandPools;
+	std::array<std::array<VkCommandBuffer, ECommandBufferLayout::ECBL_Count>, CommandPoolCount> mCommandBuffers;
 
 	VkImage mColorImage;
 	VkDeviceMemory mColorImageMemory;
@@ -157,11 +167,12 @@ private:
 	VkImageView mShadowDepthImageView;
 	VkSampler mShadowImageSampler;
 
-	std::array<VkFramebuffer, SwapChainImageCount> mSwapChainFramebuffers;
-	VkFramebuffer mShadowFramebuffer;
+	std::unordered_map < std::string, std::vector<VkFramebuffer>> mFramebuffers;
 
 	VkDescriptorSetLayout mDescriptorSetLayout;
 	VkDescriptorPool mDescriptorPool;
+
+	std::array<VkDescriptorSet, SwapChainImageCount> mDebugDescriptorSets;
 
 	std::unordered_map<std::string, VkPipelineLayout> mPipelineLayouts;
 	std::unordered_map<std::string, VkPipeline> mGraphicsPipelines;
@@ -187,4 +198,8 @@ private:
 
 	DirectX::BoundingSphere mSceneBounds;
 	DirectX::XMFLOAT3 mLightDir;
+
+	VkExtent2D mShadowExtent;
+
+	std::uint32_t mCurrCommandPoolIndex;
 };

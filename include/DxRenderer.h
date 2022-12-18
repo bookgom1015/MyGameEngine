@@ -7,6 +7,7 @@ struct PassConstants;
 
 class ShaderManager;
 class ShadowMap;
+class GBuffer;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -138,18 +139,35 @@ public:
 		UINT BaseVertexLocation = 0;
 	};
 
-	enum EDefaultRootSignatureParams {
+	enum EDefaultRootSignatureLayout {
 		EDRS_ObjectCB = 0,
 		EDRS_PassCB,
 		EDRS_MatCB,
-		EDRS_ShadowMap,
-		EDRS_TexMaps,
+		EDRS_ReservedTexMaps,
+		EDRS_AllocatedTexMaps,
 		EDRS_Count
 	};
 
+	enum ERtvHeapLayout {
+		ERHL_BackBuffer0 = 0,
+		ERHL_BackBuffer1,
+		ERHL_Color,
+		ERHL_Normal,
+		ERHL_Count
+	};
+
+	enum EDsvHeapLayout {
+		EDHL_Default = 0,
+		EDHL_Shadow,
+		EDHL_Count
+	};
+
 	enum EReservedDescriptors {
-		ED_Shadow = 0,
-		ED_Count
+		ERD_Color = 0,
+		ERD_Normal,
+		ERD_Depth,
+		ERD_Shadow,
+		ERD_Count
 	};
 
 public:
@@ -196,8 +214,9 @@ private:
 	bool DrawRenderItems(const std::vector<RenderItem*>& ritems);
 
 	bool DrawShadowMap();
+	bool DrawGBuffer();
 	bool DrawBackBuffer();
-	bool DrawDebug();
+	bool DrawDebuggingInfo();
 
 protected:
 	static const int gNumFrameResources = 3;
@@ -232,6 +251,7 @@ private:
 	std::unique_ptr<ShadowMap> mShadowMap;
 	DirectX::BoundingSphere mSceneBounds;
 	DirectX::XMFLOAT3 mLightDir;
-
 	bool bShadowMapCleanedUp;
+
+	std::unique_ptr<GBuffer> mGBuffer;
 };
