@@ -24,8 +24,6 @@ public:
 		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
 
-	bool OnResize(UINT width, UINT height);
-
 private:
 	void BuildDescriptors();
 	bool BuildResource();

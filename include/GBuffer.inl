@@ -10,23 +10,39 @@ constexpr UINT GBuffer::Height() const {
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::ColorMapSrv() const {
-	return mhColorGpuSrv;
+	return mhColorMapGpuSrv;
+}
+
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::AlbedoMapSrv() const {
+	return mhAlbedoMapGpuSrv;
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::NormalMapSrv() const {
-	return mhNormalGpuSrv;
+	return mhNormalMapGpuSrv;
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::DepthMapSrv() const {
-	return mhDepthGpuSrv;
+	return mhDepthMapGpuSrv;
+}
+
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::SpecularMapSrv() const {
+	return mhSpecularMapGpuSrv;
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::ColorMapRtv() const {
-	return mhColorCpuRtv;
+	return mhColorMapCpuRtv;
+}
+
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::AlbedoMapRtv() const {
+	return mhAlbedoMapCpuRtv;
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::NormalMapRtv() const {
-	return mhNormalCpuRtv;
+	return mhNormalMapCpuRtv;
+}
+
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::SpecularMapRtv() const {
+	return mhSpecularMapCpuRtv;
 }
 
 #endif // __GBUFFER_INL__

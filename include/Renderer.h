@@ -48,6 +48,7 @@
 enum ERenderTypes {
 	EOpaque = 0,
 	EBlend,
+	ESky,
 	ENumTypes,
 };
 
@@ -69,8 +70,14 @@ public:
 
 	void SetCamera(Camera* cam);
 
+	void EnableDebugging(bool state);
+	__forceinline constexpr bool DebuggingEnabled() const;
+
 	void EnableShadow(bool state);
 	__forceinline constexpr bool ShadowEnabled() const;
+
+	void EnableSsao(bool state);
+	__forceinline constexpr bool SsaoEnabled() const;
 
 	__forceinline constexpr bool IsInitialized() const;
 	__forceinline constexpr float AspectRatio() const;
@@ -83,11 +90,21 @@ protected:
 
 	Camera* mCamera;
 
+	bool bDebuggingEnabled = true;
 	bool bShadowEnabled = true;
+	bool bSsaoEnabled = true;
 };
+
+constexpr bool Renderer::DebuggingEnabled() const {
+	return bDebuggingEnabled;
+}
 
 constexpr bool Renderer::ShadowEnabled() const {
 	return bShadowEnabled;
+}
+
+constexpr bool Renderer::SsaoEnabled() const {
+	return bSsaoEnabled;
 }
 
 constexpr bool Renderer::IsInitialized() const {

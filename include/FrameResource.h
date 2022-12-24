@@ -16,6 +16,7 @@ struct PassConstants {
 	DirectX::XMFLOAT4X4	InvProj;
 	DirectX::XMFLOAT4X4	ViewProj;
 	DirectX::XMFLOAT4X4	InvViewProj;
+	DirectX::XMFLOAT4X4 ViewProjTex;
 	DirectX::XMFLOAT4X4 ShadowTransform;
 	DirectX::XMFLOAT3	EyePosW;
 	float				PassConstantsPad1;
@@ -32,6 +33,28 @@ struct MaterialConstants {
 	INT					NormalSrvIndex;
 	INT					AlphaSrvIndex;
 	float				MatConstPad0;
+};
+
+struct SsaoConstants {
+	DirectX::XMFLOAT4X4	View;
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4X4	InvProj;
+	DirectX::XMFLOAT4X4	ProjTex;
+	DirectX::XMFLOAT4	OffsetVectors[14];
+	float				OcclusionRadius;
+	float				OcclusionFadeStart;
+	float				OcclusionFadeEnd;
+	float				SurfaceEpsilon;
+};
+
+struct BlurConstants {
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4	BlurWeights[3];
+	float				BlurRadius;
+	float				ConstantPad0;
+	float				ConstantPad1;
+	float				ConstantPad2;
+
 };
 
 struct FrameResource {
@@ -58,6 +81,8 @@ public:
 	UploadBuffer<PassConstants> PassCB;
 	UploadBuffer<ObjectConstants> ObjectCB;
 	UploadBuffer<MaterialConstants> MaterialCB;
+	UploadBuffer<SsaoConstants> SsaoCB;
+	UploadBuffer<BlurConstants> BlurCB;
 
 	UINT64 Fence;
 

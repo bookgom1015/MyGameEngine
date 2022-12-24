@@ -384,12 +384,10 @@ bool GameWorld::InitMainWindow() {
 void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 	if (msg == WM_KEYDOWN) {
 		switch (wParam) {
-		case VK_ESCAPE:
-			PostQuitMessage(0);
-			return;
-		case VK_F1:
-			mRenderer->EnableShadow(!mRenderer->ShadowEnabled());
-			return;
+		case VK_ESCAPE:	PostQuitMessage(0);	return;
+		case VK_F1:	mRenderer->EnableDebugging(!mRenderer->DebuggingEnabled()); return;
+		case VK_F2:	mRenderer->EnableShadow(!mRenderer->ShadowEnabled()); return;
+		case VK_F3: mRenderer->EnableSsao(!mRenderer->SsaoEnabled()); return;
 		}
 	}
 }
@@ -420,7 +418,9 @@ bool GameWorld::LoadData() {
 	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVectors::UpVector, XM_PI));
 
 	new FreeLookActor("free_look_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -5.0f));
-	new SphereActor("sphere_actor", DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f), rot);
+	new SphereActor("sphere_actor_1", DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f), rot);
+	new SphereActor("sphere_actor_2", DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
+	new SphereActor("sphere_actor_3", DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
 	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(100.0f, 1.0f, 100.0f));
 
 	return true;

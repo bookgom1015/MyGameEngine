@@ -2,21 +2,26 @@
 #include "Logger.h"
 
 const float GBuffer::ColorMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+const float GBuffer::AlbedoMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 const float GBuffer::NormalMapClearValues[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
+const float GBuffer::SpecularMapClearValues[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
 
 GBuffer::GBuffer() {}
 
 GBuffer::~GBuffer() {}
 
-bool GBuffer::Initialize(ID3D12Device* device, UINT width, UINT height, DXGI_FORMAT colorFormat, DXGI_FORMAT normalFormat, DXGI_FORMAT depthFormat) {
+bool GBuffer::Initialize(
+		ID3D12Device* device, UINT width, UINT height, 
+		DXGI_FORMAT colorMapFormat, DXGI_FORMAT normalMapFormat, DXGI_FORMAT depthMapFormat, DXGI_FORMAT specularMapFormat) {
 	md3dDevice = device;
 
 	mWidth = width;
 	mHeight = height;
 
-	mColorFormat = colorFormat;
-	mNormalFormat = normalFormat;
-	mDepthFormat = depthFormat;
+	mColorMapFormat = colorMapFormat;
+	mNormalMapFormat = normalMapFormat;
+	mDepthMapFormat = depthMapFormat;
+	mSpecularMapFormat = specularMapFormat;
 
 	CheckReturn(BuildResource());
 
@@ -27,26 +32,42 @@ ID3D12Resource* GBuffer::ColorMapResource() {
 	return mColorMap.Get();
 }
 
+ID3D12Resource* GBuffer::AlbedoMapResource() {
+	return mAlbedoMap.Get();
+}
+
 ID3D12Resource* GBuffer::NormalMapResource() {
 	return mNormalMap.Get();
 }
 
+ID3D12Resource* GBuffer::SpecularMapResource() {
+	return mSpecularMap.Get();
+}
+
 void GBuffer::BuildDescriptors(
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
-	UINT descSize, UINT rtvDescSize,
-	ID3D12Resource* depth) {
-	mhColorCpuSrv = hCpuSrv;
-	mhColorGpuSrv = hGpuSrv;
-	mhColorCpuRtv = hCpuRtv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
+		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
+		UINT descSize, UINT rtvDescSize,
+		ID3D12Resource* depth) {
+	mhColorMapCpuSrv = hCpuSrv;
+	mhColorMapGpuSrv = hGpuSrv;
+	mhColorMapCpuRtv = hCpuRtv;
 
-	mhNormalCpuSrv = hCpuSrv.Offset(1, descSize);
-	mhNormalGpuSrv = hGpuSrv.Offset(1, descSize);
-	mhNormalCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+	mhAlbedoMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhAlbedoMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhAlbedoMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
-	mhDepthCpuSrv = hCpuSrv.Offset(1, descSize);
-	mhDepthGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhNormalMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhNormalMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhNormalMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
+	mhDepthMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhDepthMapGpuSrv = hGpuSrv.Offset(1, descSize);
+
+	mhSpecularMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhSpecularMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhSpecularMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	BuildDescriptors(depth);
 }
@@ -77,24 +98,36 @@ void GBuffer::BuildDescriptors(ID3D12Resource* depth) {
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
 	// Creates a shader resource view for color map.
-	srvDesc.Format = mColorFormat;
-	md3dDevice->CreateShaderResourceView(mColorMap.Get(), &srvDesc, mhColorCpuSrv);
+	srvDesc.Format = mColorMapFormat;
+	md3dDevice->CreateShaderResourceView(mColorMap.Get(), &srvDesc, mhColorMapCpuSrv);
 
 	// Creates a render target view for color map.
-	rtvDesc.Format = mColorFormat;
-	md3dDevice->CreateRenderTargetView(mColorMap.Get(), &rtvDesc, mhColorCpuRtv);
+	rtvDesc.Format = mColorMapFormat;
+	md3dDevice->CreateRenderTargetView(mColorMap.Get(), &rtvDesc, mhColorMapCpuRtv);
+
+	// Creates a shader resource and render target views for albedo map.
+	md3dDevice->CreateShaderResourceView(mAlbedoMap.Get(), &srvDesc, mhAlbedoMapCpuSrv);
+	md3dDevice->CreateRenderTargetView(mAlbedoMap.Get(), &rtvDesc, mhAlbedoMapCpuRtv);
 
 	// Create a shader resource view for normal map.
-	srvDesc.Format = mNormalFormat;
-	md3dDevice->CreateShaderResourceView(mNormalMap.Get(), &srvDesc, mhNormalCpuSrv);
+	srvDesc.Format = mNormalMapFormat;
+	md3dDevice->CreateShaderResourceView(mNormalMap.Get(), &srvDesc, mhNormalMapCpuSrv);
 
 	// Create a render target view for normal map.
-	rtvDesc.Format = mNormalFormat;
-	md3dDevice->CreateRenderTargetView(mNormalMap.Get(), &rtvDesc, mhNormalCpuRtv);
+	rtvDesc.Format = mNormalMapFormat;
+	md3dDevice->CreateRenderTargetView(mNormalMap.Get(), &rtvDesc, mhNormalMapCpuRtv);
 
 	// Create a shader resource view for depth map.
-	srvDesc.Format = mDepthFormat;
-	md3dDevice->CreateShaderResourceView(depth, &srvDesc, mhDepthCpuSrv);
+	srvDesc.Format = mDepthMapFormat;
+	md3dDevice->CreateShaderResourceView(depth, &srvDesc, mhDepthMapCpuSrv);
+
+	// Create a shader resource view for specular map.
+	srvDesc.Format = mSpecularMapFormat;
+	md3dDevice->CreateShaderResourceView(mSpecularMap.Get(), &srvDesc, mhSpecularMapCpuSrv);
+
+	// Create a render target view for normal map.
+	rtvDesc.Format = mSpecularMapFormat;
+	md3dDevice->CreateRenderTargetView(mSpecularMap.Get(), &rtvDesc, mhSpecularMapCpuRtv);
 }
 
 bool GBuffer::BuildResource() {
@@ -116,9 +149,9 @@ bool GBuffer::BuildResource() {
 	//
 	// Creates a resource for color map.
 	//
-	rscDesc.Format = mColorFormat;
+	rscDesc.Format = mColorMapFormat;
 
-	CD3DX12_CLEAR_VALUE optClear(mColorFormat, ColorMapClearValues);
+	CD3DX12_CLEAR_VALUE optClear(mColorMapFormat, ColorMapClearValues);
 
 	CheckHRESULT(md3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -128,14 +161,27 @@ bool GBuffer::BuildResource() {
 		&optClear,
 		IID_PPV_ARGS(mColorMap.GetAddressOf())
 	));
+
+	//
+	// Creates a resource for albedo map.
+	//
+	optClear = CD3DX12_CLEAR_VALUE(mColorMapFormat, AlbedoMapClearValues);
+
+	CheckHRESULT(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&rscDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		&optClear,
+		IID_PPV_ARGS(mAlbedoMap.GetAddressOf())
+	));
 	
 	//
 	// Creates a resource for normal map.
 	//
-	rscDesc.Format = mNormalFormat;
+	rscDesc.Format = mNormalMapFormat;
 
-	float normalClearColor[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-	optClear = CD3DX12_CLEAR_VALUE(mNormalFormat, NormalMapClearValues);
+	optClear = CD3DX12_CLEAR_VALUE(mNormalMapFormat, NormalMapClearValues);
 
 	CheckHRESULT(md3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -144,6 +190,22 @@ bool GBuffer::BuildResource() {
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		&optClear,
 		IID_PPV_ARGS(mNormalMap.GetAddressOf())
+	));
+
+	//
+	// Creates a resource for normal map.
+	//
+	rscDesc.Format = mSpecularMapFormat;
+
+	optClear = CD3DX12_CLEAR_VALUE(mSpecularMapFormat, SpecularMapClearValues);
+
+	CheckHRESULT(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&rscDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		&optClear,
+		IID_PPV_ARGS(mSpecularMap.GetAddressOf())
 	));
 
 	return true;

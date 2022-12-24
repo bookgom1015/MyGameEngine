@@ -8,6 +8,7 @@ struct PassConstants;
 class ShaderManager;
 class ShadowMap;
 class GBuffer;
+class Ssao;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -148,11 +149,37 @@ public:
 		EDRS_Count
 	};
 
+	enum ESsaoRootSignatureLayout {
+		ESRS_PassCB = 0,
+		ESRS_NormalDepth,
+		ESRS_RandomVector,
+		ESRS_Count
+	};
+
+	enum EBlurRootSignatureLayout {
+		EBRS_PassCB = 0,
+		EBRS_Consts,
+		EBRS_NormalDepth,
+		EBRS_Input,
+		EBRS_Count
+	};
+
+	enum EBlurRootConstantsLayout {
+		EBRC_InvWidth = 0,
+		EBRC_InvHeight,
+		EBRC_HorizontalBlur,
+		EBRC_Count
+	};
+
 	enum ERtvHeapLayout {
 		ERHL_BackBuffer0 = 0,
 		ERHL_BackBuffer1,
 		ERHL_Color,
+		ERHL_Albedo,
 		ERHL_Normal,
+		ERHL_Specular,
+		ERHL_Ambient0,
+		ERHL_Ambient1,
 		ERHL_Count
 	};
 
@@ -163,10 +190,16 @@ public:
 	};
 
 	enum EReservedDescriptors {
-		ERD_Color = 0,
+		ERD_Cube = 0,
+		ERD_Color,
+		ERD_Albedo,
 		ERD_Normal,
 		ERD_Depth,
+		ERD_Specular,
 		ERD_Shadow,
+		ERD_Ambient0,
+		ERD_Ambient1,
+		ERD_RandomVector,
 		ERD_Count
 	};
 
@@ -199,15 +232,19 @@ public:
 
 private:
 	bool CompileShaders();
+	bool BuildGeometries();
 
 	bool BuildFrameResources();
 	bool BuildDescriptorHeaps();
 	bool BuildDescriptors();
 	bool BuildRootSignatures();
 	bool BuildPSOs();
+	bool BuildRenderItems();
 
 	bool UpdateShadowPassCB(float delta);
 	bool UpdateMainPassCB(float delta);
+	bool UpdateSsaoPassCB(float delta);
+	bool UpdateBlurPassCB(float delta);
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
 
@@ -215,7 +252,9 @@ private:
 
 	bool DrawShadowMap();
 	bool DrawGBuffer();
+	bool DrawSsao();
 	bool DrawBackBuffer();
+	bool DrawSkyCube();
 	bool DrawDebuggingInfo();
 
 protected:
@@ -251,7 +290,12 @@ private:
 	std::unique_ptr<ShadowMap> mShadowMap;
 	DirectX::BoundingSphere mSceneBounds;
 	DirectX::XMFLOAT3 mLightDir;
-	bool bShadowMapCleanedUp;
 
 	std::unique_ptr<GBuffer> mGBuffer;
+	std::unique_ptr<Ssao> mSsao;
+
+	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
+
+	bool bShadowMapCleanedUp;
+	bool bSsaoMapCleanedUp;
 };
