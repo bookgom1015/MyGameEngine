@@ -10,7 +10,7 @@ FreeLookActor::FreeLookActor(const std::string& name, XMFLOAT3 pos, XMFLOAT4 rot
 	mForwardSpeed = 0.0f;
 	mStrapeSpeed = 0.0f;
 
-	mWalkSpeed = 2.0f;
+	mWalkSpeed = 4.0f;
 
 	mLookUpSpeed = 0.0f;
 	mTurnSpeed = 0.0f;

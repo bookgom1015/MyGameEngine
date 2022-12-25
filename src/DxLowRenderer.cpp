@@ -200,6 +200,11 @@ void DxLowRenderer::NextBackBuffer() {
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
 }
 
+ID3D12Resource* DxLowRenderer::BackBuffer(int index) const {
+	assert(index < SwapChainBufferCount);
+	return mSwapChainBuffer[index].Get();
+}
+
 ID3D12Resource* DxLowRenderer::CurrentBackBuffer() const { return mSwapChainBuffer[mCurrBackBuffer].Get(); }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DxLowRenderer::CurrentBackBufferView() const {

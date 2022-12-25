@@ -9,6 +9,7 @@ class ShaderManager;
 class ShadowMap;
 class GBuffer;
 class Ssao;
+class TemporalAA;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -171,6 +172,13 @@ public:
 		EBRC_Count
 	};
 
+	enum ETaaRootSignatureLayout {
+		ETRS_Input = 0,
+		ETRS_History,
+		ETRS_Velocity,
+		ETRS_Count
+	};
+
 	enum ERtvHeapLayout {
 		ERHL_BackBuffer0 = 0,
 		ERHL_BackBuffer1,
@@ -178,8 +186,10 @@ public:
 		ERHL_Albedo,
 		ERHL_Normal,
 		ERHL_Specular,
+		ERHL_Velocity,
 		ERHL_Ambient0,
 		ERHL_Ambient1,
+		ERHL_Resolve,
 		ERHL_Count
 	};
 
@@ -196,10 +206,15 @@ public:
 		ERD_Normal,
 		ERD_Depth,
 		ERD_Specular,
+		ERD_Velocity,
 		ERD_Shadow,
 		ERD_Ambient0,
 		ERD_Ambient1,
 		ERD_RandomVector,
+		ERD_Resolve,
+		ERD_History,
+		ERD_BackBuffer0,
+		ERD_BackBuffer1,
 		ERD_Count
 	};
 
@@ -236,10 +251,11 @@ private:
 
 	bool BuildFrameResources();
 	bool BuildDescriptorHeaps();
-	bool BuildDescriptors();
+	void BuildDescriptors();
+	void BuildBackBufferDescriptors();
 	bool BuildRootSignatures();
 	bool BuildPSOs();
-	bool BuildRenderItems();
+	void BuildRenderItems();
 
 	bool UpdateShadowPassCB(float delta);
 	bool UpdateMainPassCB(float delta);
@@ -248,13 +264,14 @@ private:
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
 
-	bool DrawRenderItems(const std::vector<RenderItem*>& ritems);
+	void DrawRenderItems(const std::vector<RenderItem*>& ritems);
 
 	bool DrawShadowMap();
 	bool DrawGBuffer();
 	bool DrawSsao();
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
+	bool ApplyTAA();
 	bool DrawDebuggingInfo();
 
 protected:
@@ -293,9 +310,13 @@ private:
 
 	std::unique_ptr<GBuffer> mGBuffer;
 	std::unique_ptr<Ssao> mSsao;
+	std::unique_ptr<TemporalAA> mTaa;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
 	bool bShadowMapCleanedUp;
 	bool bSsaoMapCleanedUp;
+
+	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
+	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
 };

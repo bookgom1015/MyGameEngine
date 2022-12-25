@@ -79,6 +79,9 @@ public:
 	void EnableSsao(bool state);
 	__forceinline constexpr bool SsaoEnabled() const;
 
+	void EnableTaa(bool state);
+	__forceinline constexpr bool TaaEnabled() const;
+
 	__forceinline constexpr bool IsInitialized() const;
 	__forceinline constexpr float AspectRatio() const;
 
@@ -93,6 +96,8 @@ protected:
 	bool bDebuggingEnabled = true;
 	bool bShadowEnabled = true;
 	bool bSsaoEnabled = true;
+	bool bTaaEnabled = true;
+	bool bInitiatingTaa = true;
 };
 
 constexpr bool Renderer::DebuggingEnabled() const {
@@ -105,6 +110,10 @@ constexpr bool Renderer::ShadowEnabled() const {
 
 constexpr bool Renderer::SsaoEnabled() const {
 	return bSsaoEnabled;
+}
+
+constexpr bool Renderer::TaaEnabled() const {
+	return bTaaEnabled;
 }
 
 constexpr bool Renderer::IsInitialized() const {

@@ -188,7 +188,7 @@ bool Ssao::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
 		IID_PPV_ARGS(&mRandomVectorMap)
 	));
@@ -205,7 +205,7 @@ bool Ssao::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_COPY_SOURCE,
 		nullptr,
 		IID_PPV_ARGS(mRandomVectorMapUploadBuffer.GetAddressOf())
 	));
@@ -235,7 +235,7 @@ bool Ssao::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(
 			mRandomVectorMap.Get(),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			D3D12_RESOURCE_STATE_COPY_DEST
 		)
 	);
@@ -253,7 +253,7 @@ bool Ssao::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 		&CD3DX12_RESOURCE_BARRIER::Transition(
 			mRandomVectorMap.Get(),
 			D3D12_RESOURCE_STATE_COPY_DEST,
-			D3D12_RESOURCE_STATE_GENERIC_READ
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 		)
 	);
 

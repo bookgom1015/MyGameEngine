@@ -26,10 +26,12 @@ protected:
 	UINT64 IncreaseFence();
 
 	void NextBackBuffer();
-		
+	
+	ID3D12Resource* BackBuffer(int index) const;
 	ID3D12Resource* CurrentBackBuffer() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
+	__forceinline constexpr int CurrentBackBufferIndex() const;
 
 	HRESULT GetDeviceRemovedReason() const;
 
@@ -46,6 +48,7 @@ private:
 
 protected:
 	static const int SwapChainBufferCount = 2;
+
 	static const D3D_DRIVER_TYPE D3DDriverType = D3D_DRIVER_TYPE_HARDWARE;
 	static const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	static const DXGI_FORMAT DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;

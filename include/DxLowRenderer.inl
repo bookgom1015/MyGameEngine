@@ -13,9 +13,12 @@ constexpr UINT DxLowRenderer::GetCbvSrvUavDescriptorSize() const {
 	return mCbvSrvUavDescriptorSize;
 }
 
-__forceinline constexpr UINT64 DxLowRenderer::GetCurrentFence() const {
+constexpr UINT64 DxLowRenderer::GetCurrentFence() const {
 	return mCurrentFence;
 }
 
+constexpr int DxLowRenderer::CurrentBackBufferIndex() const {
+	return mCurrBackBuffer;
+}
 
 #endif // __DXLOWRENDERER_INL__

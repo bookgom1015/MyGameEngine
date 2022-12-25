@@ -388,6 +388,7 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		case VK_F1:	mRenderer->EnableDebugging(!mRenderer->DebuggingEnabled()); return;
 		case VK_F2:	mRenderer->EnableShadow(!mRenderer->ShadowEnabled()); return;
 		case VK_F3: mRenderer->EnableSsao(!mRenderer->SsaoEnabled()); return;
+		case VK_F4: mRenderer->EnableTaa(!mRenderer->TaaEnabled()); return;
 		}
 	}
 }

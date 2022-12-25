@@ -15,3 +15,8 @@ void Renderer::EnableShadow(bool state) {
 void Renderer::EnableSsao(bool state) {
 	bSsaoEnabled = state;
 }
+
+void Renderer::EnableTaa(bool state) {
+	if (!bTaaEnabled && state) bInitiatingTaa = true;
+	bTaaEnabled = state;
+}
