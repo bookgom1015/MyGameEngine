@@ -65,8 +65,9 @@ public:
 	virtual void* AddModel(const std::string& file, const Transform& trans, ERenderTypes type = ERenderTypes::EOpaque) = 0;
 	virtual void RemoveModel(void* model) = 0;
 	virtual void UpdateModel(void* model, const Transform& trans) = 0;
-
 	virtual void SetModelVisibility(void* model, bool visible) = 0;
+
+	virtual bool SetCubeMap(const std::string& file) = 0;
 
 	void SetCamera(Camera* cam);
 
@@ -81,6 +82,9 @@ public:
 
 	void EnableTaa(bool state);
 	__forceinline constexpr bool TaaEnabled() const;
+
+	void EnableMotionBlur(bool state);
+	__forceinline constexpr bool MotionBlurEnabled() const;
 
 	__forceinline constexpr bool IsInitialized() const;
 	__forceinline constexpr float AspectRatio() const;
@@ -98,6 +102,7 @@ protected:
 	bool bSsaoEnabled = true;
 	bool bTaaEnabled = true;
 	bool bInitiatingTaa = true;
+	bool bMotionBlurEnabled = true;
 };
 
 constexpr bool Renderer::DebuggingEnabled() const {
@@ -114,6 +119,10 @@ constexpr bool Renderer::SsaoEnabled() const {
 
 constexpr bool Renderer::TaaEnabled() const {
 	return bTaaEnabled;
+}
+
+constexpr bool Renderer::MotionBlurEnabled() const {
+	return bMotionBlurEnabled;
 }
 
 constexpr bool Renderer::IsInitialized() const {

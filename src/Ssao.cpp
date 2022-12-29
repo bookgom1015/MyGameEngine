@@ -30,18 +30,6 @@ bool Ssao::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, 
 	return true;
 }
 
-ID3D12Resource* Ssao::AmbientMap0Resource() {
-	return mAmbientMap0.Get();
-}
-
-ID3D12Resource* Ssao::AmbientMap1Resource() {
-	return mAmbientMap1.Get();
-}
-
-ID3D12Resource* Ssao::RandomVectorMapResource() {
-	return mRandomVectorMap.Get();
-}
-
 void Ssao::GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]) {
 	std::copy(&mOffsets[0], &mOffsets[14], &offsets[0]);
 }

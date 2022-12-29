@@ -4,6 +4,7 @@
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 #include <DirectXColors.h>
+#include <string>
 
 namespace UnitVectors {
 	const DirectX::XMVECTOR RightVector = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
@@ -65,6 +66,9 @@ namespace MathHelper {
 	DirectX::XMFLOAT4X4 Identity4x4();
 	DirectX::XMVECTOR RandUnitVec3();
 	DirectX::XMVECTOR RandHemisphereUnitVec3(DirectX::XMVECTOR n);
+
+	std::string to_string(DirectX::XMFLOAT4 vec);
+	std::string to_string(DirectX::XMFLOAT4X4 mat);
 };
 
 #include "MathHelper.inl"

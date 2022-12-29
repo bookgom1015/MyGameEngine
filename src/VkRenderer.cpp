@@ -212,6 +212,10 @@ void VkRenderer::SetModelVisibility(void* model, bool visible) {
 	iter->get()->Visible = visible;
 }
 
+bool VkRenderer::SetCubeMap(const std::string& file) {
+	return true;
+}
+
 bool VkRenderer::CreateRenderPass() {
 	auto msaaSamples = GetMSAASamples();
 

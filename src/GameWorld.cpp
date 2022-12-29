@@ -8,6 +8,7 @@
 #include "FreeLookActor.h"
 #include "SphereActor.h"
 #include "PlaneActor.h"
+#include "RotatingMonkey.h"
 
 #ifdef _DirectX
 #include "DxRenderer.h"
@@ -389,6 +390,7 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		case VK_F2:	mRenderer->EnableShadow(!mRenderer->ShadowEnabled()); return;
 		case VK_F3: mRenderer->EnableSsao(!mRenderer->SsaoEnabled()); return;
 		case VK_F4: mRenderer->EnableTaa(!mRenderer->TaaEnabled()); return;
+		case VK_F5: mRenderer->EnableMotionBlur(!mRenderer->MotionBlurEnabled()); return;
 		}
 	}
 }
@@ -415,14 +417,16 @@ bool GameWorld::Draw() {
 }
 
 bool GameWorld::LoadData() {
+	CheckReturn(mRenderer->SetCubeMap("./../../assets/textures/sky_cube.dds"));
+
 	XMFLOAT4 rot;
 	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVectors::UpVector, XM_PI));
 
 	new FreeLookActor("free_look_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -5.0f));
-	new SphereActor("sphere_actor_1", DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f), rot);
-	new SphereActor("sphere_actor_2", DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
-	new SphereActor("sphere_actor_3", DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
-	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(100.0f, 1.0f, 100.0f));
+	new RotatingMonkey("monkey_1", XM_PIDIV2, DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f), rot);
+	new RotatingMonkey("monkey_2", 2.0f * XM_2PI, DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
+	new RotatingMonkey("monkey_3", XM_PI, DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
+	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(1000.0f, 1.0f, 1000.0f));
 
 	return true;
 }

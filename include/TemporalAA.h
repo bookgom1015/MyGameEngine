@@ -14,8 +14,8 @@ public:
 	__forceinline constexpr UINT Width() const;
 	__forceinline constexpr UINT Height() const;
 
-	ID3D12Resource* ResolveMapResource();
-	ID3D12Resource* HistoryMapResource();
+	__forceinline ID3D12Resource* ResolveMapResource();
+	__forceinline ID3D12Resource* HistoryMapResource();
 
 	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolveMapSrv() const;
 	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResolveMapRtv() const;
@@ -58,21 +58,4 @@ private:
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhHistoryMapGpuSrv;
 };
 
-constexpr UINT TemporalAA::Width() const {
-	return mWidth;
-}
-
-constexpr UINT TemporalAA::Height() const {
-	return mHeight;
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TemporalAA::ResolveMapSrv() const {
-	return mhResolveMapGpuSrv;
-}
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE TemporalAA::ResolveMapRtv() const {
-	return mhResolveMapCpuRtv;
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TemporalAA::HistoryMapSrv() const {
-	return mhHistoryMapGpuSrv;
-}
+#include "TemporalAA.inl"

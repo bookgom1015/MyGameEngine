@@ -1,5 +1,7 @@
 #include "MathHelper.h"
 
+#include <sstream>
+
 using namespace DirectX;
 
 float MathHelper::AngleFromXY(float x, float y) {
@@ -94,4 +96,23 @@ XMVECTOR MathHelper::RandHemisphereUnitVec3(XMVECTOR n) {
 
 		return XMVector3Normalize(v);
 	}
+}
+
+std::string MathHelper::to_string(DirectX::XMFLOAT4 vec) {
+	std::stringstream sstream;
+
+	sstream << "[ " << vec.x << ", " << vec.y << ", " << vec.z << ", " << vec.w << " ]";
+
+	return sstream.str();
+}
+
+std::string MathHelper::to_string(DirectX::XMFLOAT4X4 mat) {
+	std::stringstream sstream;
+
+	sstream << "| " << mat.m[0][0] << ' ' << mat.m[0][1] << ' ' << mat.m[0][2] << ' ' << mat.m[0][3] << " |" << std::endl;
+	sstream << "| " << mat.m[1][0] << ' ' << mat.m[1][1] << ' ' << mat.m[1][2] << ' ' << mat.m[1][3] << " |" << std::endl;
+	sstream << "| " << mat.m[2][0] << ' ' << mat.m[2][1] << ' ' << mat.m[2][2] << ' ' << mat.m[2][3] << " |" << std::endl;
+	sstream << "| " << mat.m[3][0] << ' ' << mat.m[3][1] << ' ' << mat.m[3][2] << ' ' << mat.m[3][3] << " |";
+
+	return sstream.str();
 }

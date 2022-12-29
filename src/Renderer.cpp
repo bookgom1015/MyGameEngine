@@ -20,3 +20,7 @@ void Renderer::EnableTaa(bool state) {
 	if (!bTaaEnabled && state) bInitiatingTaa = true;
 	bTaaEnabled = state;
 }
+
+void Renderer::EnableMotionBlur(bool state) {
+	bMotionBlurEnabled = state;
+}

@@ -20,14 +20,6 @@ bool TemporalAA::Initialize(ID3D12Device* device, UINT width, UINT height, DXGI_
 	return true;
 }
 
-ID3D12Resource* TemporalAA::ResolveMapResource() {
-	return mResolveMap.Get();
-}
-
-ID3D12Resource* TemporalAA::HistoryMapResource() {
-	return mHistoryMap.Get();
-}
-
 void TemporalAA::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
@@ -77,9 +69,6 @@ void TemporalAA::BuildDescriptors() {
 }
 
 bool TemporalAA::BuildResource() {
-	mResolveMap = nullptr;
-	mHistoryMap = nullptr;
-
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = mFormat;

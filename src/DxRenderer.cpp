@@ -11,6 +11,7 @@
 #include "Ssao.h"
 #include "Blur.h"
 #include "TemporalAA.h"
+#include "MotionBlur.h"
 
 using namespace DirectX;
 
@@ -134,6 +135,7 @@ DxRenderer::DxRenderer() {
 	mGBuffer = std::make_unique<GBuffer>();
 	mSsao = std::make_unique<Ssao>();
 	mTaa = std::make_unique<TemporalAA>();
+	mMotionBlur = std::make_unique<MotionBlur>();
 
 	auto blurWeights = Blur::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
@@ -181,6 +183,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mGBuffer->Initialize(pDevice, width, height, BackBufferFormat, NormalMapFormat, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, SpecularMapFormat, VelocityMapFormat));
 	CheckReturn(mSsao->Initialize(pDevice, mCommandList.Get(), width / 2, height / 2, AmbientMapFormat));
 	CheckReturn(mTaa->Initialize(pDevice, width, height, BackBufferFormat));
+	CheckReturn(mMotionBlur->Initialize(pDevice, width, height, BackBufferFormat));
 
 	CheckHRESULT(mCommandList->Close());
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
@@ -244,6 +247,7 @@ bool DxRenderer::Draw() {
 	CheckReturn(DrawSsao());
 	CheckReturn(DrawBackBuffer());
 	CheckReturn(DrawSkyCube());
+	if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 	if (bTaaEnabled) CheckReturn(ApplyTAA());
 	if (bDebuggingEnabled) CheckReturn(DrawDebuggingInfo());
 
@@ -266,6 +270,7 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 
 	CheckReturn(mGBuffer->OnResize(width, height, mDepthStencilBuffer.Get()));
 	CheckReturn(mTaa->OnResize(width, height));
+	CheckReturn(mMotionBlur->OnResize(width, height));
 
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
@@ -304,16 +309,66 @@ void DxRenderer::UpdateModel(void* model, const Transform& trans) {
 			trans.Position
 		)
 	);
-	ptr->NumFramesDirty = gNumFrameResources;
+	ptr->NumFramesDirty = gNumFrameResources << 1;
 }
 
 void DxRenderer::SetModelVisibility(void* model, bool visible) {
 
 }
 
+bool DxRenderer::SetCubeMap(const std::string& file) {
+	ID3D12GraphicsCommandList* cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+	auto texMap = std::make_unique<Texture>();
+	texMap->DescriptorIndex = EReservedDescriptors::ERD_Cube;
+
+	std::wstring filename;
+	filename.assign(file.begin(), file.end());
+
+	auto index = filename.rfind(L'.');
+	filename = filename.replace(filename.begin() + index, filename.end(), L".dds");
+
+	HRESULT status = DirectX::CreateDDSTextureFromFile12(
+		md3dDevice.Get(),
+		cmdList,
+		filename.c_str(),
+		texMap->Resource,
+		texMap->UploadHeap
+	);
+	if (FAILED(status)) {
+		std::wstringstream wsstream;
+		wsstream << "Returned " << std::hex << status << "; when creating texture:  " << filename;
+		WLogln(wsstream.str());
+		return false;
+	}
+
+	const auto& resource = texMap->Resource;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	srvDesc.TextureCube.MostDetailedMip = 0;
+	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+	srvDesc.TextureCube.MipLevels = resource->GetDesc().MipLevels;
+	srvDesc.Format = resource->GetDesc().Format;
+
+	md3dDevice->CreateShaderResourceView(resource.Get(), &srvDesc, D3D12Util::GetCpuHandle(mCbvSrvUavHeap.Get(), EReservedDescriptors::ERD_Cube, GetCbvSrvUavDescriptorSize()));
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	CheckReturn(FlushCommandQueue());
+
+	mTextures[file] = std::move(texMap);
+
+	return true;
+}
+
 bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + GBuffer::NumRenderTargets + Ssao::NumRenderTargets + TemporalAA::NumRenderTargets;
+	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + GBuffer::NumRenderTargets + Ssao::NumRenderTargets + TemporalAA::NumRenderTargets + MotionBlur::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -374,6 +429,11 @@ bool DxRenderer::CompileShaders() {
 		const std::wstring filePath = ShaderFilePath + L"TemporalAA.hlsl";
 		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "VS", "vs_5_1", "taaVS"));
 		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "PS", "ps_5_1", "taaPS"));
+	}
+	{
+		const std::wstring filePath = ShaderFilePath + L"MotionBlur.hlsl";
+		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "VS", "vs_5_1", "motionBlurVS"));
+		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "PS", "ps_5_1", "motionBlurPS"));
 	}
 
 	return true;
@@ -508,6 +568,8 @@ void DxRenderer::BuildDescriptors() {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, ERtvHeapLayout::ERHL_Resolve, rtvDescSize),
 		descSize, rtvDescSize
 	);
+
+	mMotionBlur->BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, ERtvHeapLayout::ERHL_MotionBlur, rtvDescSize));
 }
 
 void DxRenderer::BuildBackBufferDescriptors() {
@@ -623,6 +685,7 @@ bool DxRenderer::BuildRootSignatures() {
 		slotRootParameter[ETaaRootSignatureLayout::ETRS_Input].InitAsDescriptorTable(1, &texTable0);
 		slotRootParameter[ETaaRootSignatureLayout::ETRS_History].InitAsDescriptorTable(1, &texTable1);
 		slotRootParameter[ETaaRootSignatureLayout::ETRS_Velocity].InitAsDescriptorTable(1, &texTable2);
+		slotRootParameter[ETaaRootSignatureLayout::ERTS_Factor].InitAsConstants(1, 0);
 
 		auto staticSamplers = GetStaticSamplers();
 
@@ -634,6 +697,35 @@ bool DxRenderer::BuildRootSignatures() {
 		);
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice.Get(), rootSigDesc, mRootSignatures["taa"].GetAddressOf()));
+	}
+	// For motion blur
+	{
+		CD3DX12_ROOT_PARAMETER slotRootParameter[EMotionBlurRootSignatureLayout::EMBRS_Count];
+
+		CD3DX12_DESCRIPTOR_RANGE texTable0;
+		texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+
+		CD3DX12_DESCRIPTOR_RANGE texTable1;
+		texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+
+		CD3DX12_DESCRIPTOR_RANGE texTable2;
+		texTable2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+
+		slotRootParameter[EMotionBlurRootSignatureLayout::EMBRS_Input].InitAsDescriptorTable(1, &texTable0);
+		slotRootParameter[EMotionBlurRootSignatureLayout::EMBRS_Depth].InitAsDescriptorTable(1, &texTable1);
+		slotRootParameter[EMotionBlurRootSignatureLayout::EMBRS_Velocity].InitAsDescriptorTable(1, &texTable2);
+		slotRootParameter[EMotionBlurRootSignatureLayout::EMBRS_Consts].InitAsConstants(EMotionBlurRootConstantsLayout::EMBRC_Count, 0);
+
+		auto staticSamplers = GetStaticSamplers();
+
+		// A root signature is an array of root parameters.
+		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
+			_countof(slotRootParameter), slotRootParameter,
+			static_cast<UINT>(staticSamplers.size()), staticSamplers.data(),
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+		);
+
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice.Get(), rootSigDesc, mRootSignatures["motionBlur"].GetAddressOf()));
 	}
 
 	return true;
@@ -755,8 +847,6 @@ bool DxRenderer::BuildPSOs() {
 	skyPsoDesc.NumRenderTargets = 1;
 	skyPsoDesc.RTVFormats[0] = BackBufferFormat;
 	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
-	//skyPsoDesc.DepthStencilState.DepthEnable = FALSE;
-	//skyPsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	skyPsoDesc.DepthStencilState.StencilEnable = FALSE;
@@ -824,6 +914,27 @@ bool DxRenderer::BuildPSOs() {
 	taaPsoDesc.DepthStencilState.DepthEnable = false;
 	taaPsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&taaPsoDesc, IID_PPV_ARGS(&mPSOs["taa"])));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC motionBlurPsoDesc = defaultPsoDesc;
+	motionBlurPsoDesc.InputLayout = { nullptr, 0 };
+	motionBlurPsoDesc.pRootSignature = mRootSignatures["motionBlur"].Get();
+	{
+		auto vs = mShaderManager->GetShader("motionBlurVS");
+		auto ps = mShaderManager->GetShader("motionBlurPS");
+		motionBlurPsoDesc.VS = {
+			reinterpret_cast<BYTE*>(vs->GetBufferPointer()),
+			vs->GetBufferSize()
+		};
+		motionBlurPsoDesc.PS = {
+			reinterpret_cast<BYTE*>(ps->GetBufferPointer()),
+			ps->GetBufferSize()
+		};
+	}
+	motionBlurPsoDesc.NumRenderTargets = 1;
+	motionBlurPsoDesc.RTVFormats[0] = BackBufferFormat;
+	motionBlurPsoDesc.DepthStencilState.DepthEnable = false;
+	motionBlurPsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&motionBlurPsoDesc, IID_PPV_ARGS(&mPSOs["motionBlur"])));
 
 	return true;
 }
@@ -980,7 +1091,7 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	std::wstring filename;
 	filename.assign(material.DiffuseMapFileName.begin(), material.DiffuseMapFileName.end());
 
-	auto index = filename.find(L'.');
+	auto index = filename.rfind(L'.');
 	filename = filename.replace(filename.begin() + index, filename.end(), L".dds");
 
 	HRESULT status = DirectX::CreateDDSTextureFromFile12(
@@ -1168,14 +1279,17 @@ bool DxRenderer::UpdateObjectCBs(float delta) {
 			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
 
 			ObjectConstants objConstants;
-			objConstants.PrevWorld = objConstants.World;
+			objConstants.PrevWorld = e->PrevWolrd;
 			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+
+			e->PrevWolrd = objConstants.World;
 
 			currObjectCB.CopyData(e->ObjCBIndex, objConstants);
 
 			// Next FrameResource need to be updated too.
 			e->NumFramesDirty--;
+
 		}
 	}
 
@@ -1666,18 +1780,17 @@ bool DxRenderer::DrawSkyCube() {
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
-	const auto pCurrBackBuffer = CurrentBackBuffer();
+	const auto pBackBuffer = CurrentBackBuffer();
 	mCommandList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(
-			pCurrBackBuffer,
+			pBackBuffer,
 			D3D12_RESOURCE_STATE_PRESENT,
 			D3D12_RESOURCE_STATE_RENDER_TARGET
 		)
 	);
 
-	auto pCurrBackBufferView = CurrentBackBufferView();
-	mCommandList->OMSetRenderTargets(1, &pCurrBackBufferView, true, &DepthStencilView());
+	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
 	auto passCB = mCurrFrameResource->PassCB.Resource();
 	mCommandList->SetGraphicsRootConstantBufferView(EDefaultRootSignatureLayout::EDRS_PassCB, passCB->GetGPUVirtualAddress());
@@ -1686,14 +1799,113 @@ bool DxRenderer::DrawSkyCube() {
 	mCommandList->SetGraphicsRootDescriptorTable(EDefaultRootSignatureLayout::EDRS_ReservedTexMaps, hDesc);
 
 	DrawRenderItems(mRitemRefs[ERenderTypes::ESky]);
-
+	
 	mCommandList->ResourceBarrier(
 		1,
 		&CD3DX12_RESOURCE_BARRIER::Transition(
-			pCurrBackBuffer,
+			pBackBuffer,
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			D3D12_RESOURCE_STATE_PRESENT
 		)
+	);
+
+	CheckHRESULT(mCommandList->Close());
+	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
+bool DxRenderer::ApplyMotionBlur() {
+	CheckHRESULT(mCommandList->Reset(mCurrFrameResource->CmdListAlloc.Get(), mPSOs["motionBlur"].Get()));
+
+	mCommandList->SetGraphicsRootSignature(mRootSignatures["motionBlur"].Get());
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mCommandList->RSSetViewports(1, &mScreenViewport);
+	mCommandList->RSSetScissorRects(1, &mScissorRect);
+
+	const auto pMotionBlurMap = mMotionBlur->MotionMapResource();
+	const auto pBackBuffer = CurrentBackBuffer();
+
+	D3D12_RESOURCE_BARRIER beginBarriers[] = {
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			pBackBuffer,
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+		),
+	};
+	
+	mCommandList->ResourceBarrier(
+		_countof(beginBarriers),
+		beginBarriers
+	);
+	
+	const auto motionBlurRtv = mMotionBlur->MotionMapRtv();
+	mCommandList->ClearRenderTargetView(motionBlurRtv, MotionBlur::ClearValues, 0, nullptr);
+	
+	mCommandList->OMSetRenderTargets(1, &motionBlurRtv, true, nullptr);
+	
+	auto pCbvSrvUavHeap = mCbvSrvUavHeap.Get();
+	UINT descSize = GetCbvSrvUavDescriptorSize();
+	mCommandList->SetGraphicsRootDescriptorTable(
+		EMotionBlurRootSignatureLayout::EMBRS_Input,
+		D3D12Util::GetGpuHandle(pCbvSrvUavHeap, EReservedDescriptors::ERD_BackBuffer0 + CurrentBackBufferIndex(), descSize)
+	);
+	mCommandList->SetGraphicsRootDescriptorTable(
+		EMotionBlurRootSignatureLayout::EMBRS_Depth,
+		D3D12Util::GetGpuHandle(pCbvSrvUavHeap, EReservedDescriptors::ERD_Depth, descSize)
+	);
+	mCommandList->SetGraphicsRootDescriptorTable(
+		EMotionBlurRootSignatureLayout::EMBRS_Velocity,
+		D3D12Util::GetGpuHandle(pCbvSrvUavHeap, EReservedDescriptors::ERD_Velocity, descSize)
+	);
+	float values[EMotionBlurRootConstantsLayout::EMBRC_Count] = { 10.0f, 0.01f };
+	mCommandList->SetGraphicsRoot32BitConstants(EMotionBlurRootSignatureLayout::EMBRS_Consts, EMotionBlurRootConstantsLayout::EMBRC_Count, values, 0);
+	
+	mCommandList->IASetVertexBuffers(0, 0, nullptr);
+	mCommandList->IASetIndexBuffer(nullptr);
+	mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	mCommandList->DrawInstanced(6, 1, 0, 0);
+	
+	D3D12_RESOURCE_BARRIER middleBarriers[] = {
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			pBackBuffer,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_COPY_DEST
+		),
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			pMotionBlurMap,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_COPY_SOURCE
+		)
+	};
+
+	mCommandList->ResourceBarrier(
+		_countof(middleBarriers),
+		middleBarriers
+	);
+
+	mCommandList->CopyResource(pBackBuffer, pMotionBlurMap);
+
+	D3D12_RESOURCE_BARRIER endBarriers[] = {
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			pMotionBlurMap,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		),
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			pBackBuffer,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			D3D12_RESOURCE_STATE_PRESENT
+		)
+	};
+
+	mCommandList->ResourceBarrier(
+		_countof(endBarriers),
+		endBarriers
 	);
 
 	CheckHRESULT(mCommandList->Close());
@@ -1781,18 +1993,22 @@ bool DxRenderer::ApplyTAA() {
 	mCommandList->ClearRenderTargetView(resolveRtv, TemporalAA::ClearValues, 0, nullptr);
 	mCommandList->OMSetRenderTargets(1, &resolveRtv, true, nullptr);
 	
+	auto pCbvSrvUavHeap = mCbvSrvUavHeap.Get();
+	UINT descSize = GetCbvSrvUavDescriptorSize();
 	mCommandList->SetGraphicsRootDescriptorTable(
 		ETaaRootSignatureLayout::ETRS_Input,
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(), EReservedDescriptors::ERD_BackBuffer0 + CurrentBackBufferIndex(), GetCbvSrvUavDescriptorSize())
+		D3D12Util::GetGpuHandle(pCbvSrvUavHeap, EReservedDescriptors::ERD_BackBuffer0 + CurrentBackBufferIndex(), descSize)
 	);
 	mCommandList->SetGraphicsRootDescriptorTable(
 		ETaaRootSignatureLayout::ETRS_History, 
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(), EReservedDescriptors::ERD_History, GetCbvSrvUavDescriptorSize())
+		D3D12Util::GetGpuHandle(pCbvSrvUavHeap, EReservedDescriptors::ERD_History, descSize)
 	);
 	mCommandList->SetGraphicsRootDescriptorTable(
 		ETaaRootSignatureLayout::ETRS_Velocity,
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(), EReservedDescriptors::ERD_Velocity, GetCbvSrvUavDescriptorSize())
+		D3D12Util::GetGpuHandle(pCbvSrvUavHeap, EReservedDescriptors::ERD_Velocity, descSize)
 	);
+	float factor = 0.9f;
+	mCommandList->SetGraphicsRoot32BitConstants(ETaaRootSignatureLayout::ERTS_Factor, 1, &factor, 0);
 	
 	mCommandList->IASetVertexBuffers(0, 0, nullptr);
 	mCommandList->IASetIndexBuffer(nullptr);

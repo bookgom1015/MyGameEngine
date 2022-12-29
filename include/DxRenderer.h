@@ -10,6 +10,7 @@ class ShadowMap;
 class GBuffer;
 class Ssao;
 class TemporalAA;
+class MotionBlur;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -119,13 +120,14 @@ public:
 		// relative to the world space, which defines the position, orientation,
 		// and scale of the object in thw world.
 		DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
+		DirectX::XMFLOAT4X4 PrevWolrd = MathHelper::Identity4x4();
 		DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 
 		// Dirty flag indicating the object data has changed and we need to update the constant buffer.
 		// Because we have an object cbuffer for each FrameResource, we have to apply the
 		// update to each FrameResource. Thus, when we modify object data we should set
 		// NumFrameDirty = gNumFrameResources so that each frame resource gets the update.
-		int NumFramesDirty = gNumFrameResources;
+		int NumFramesDirty = gNumFrameResources << 1;
 
 		MaterialData* Material = nullptr;
 		MeshGeometry* Geometry = nullptr;
@@ -176,7 +178,22 @@ public:
 		ETRS_Input = 0,
 		ETRS_History,
 		ETRS_Velocity,
+		ERTS_Factor,
 		ETRS_Count
+	};
+
+	enum EMotionBlurRootSignatureLayout {
+		EMBRS_Input = 0,
+		EMBRS_Depth,
+		EMBRS_Velocity,
+		EMBRS_Consts,
+		EMBRS_Count
+	};
+
+	enum EMotionBlurRootConstantsLayout {
+		EMBRC_Attenuation = 0,
+		EMBRC_Limit,
+		EMBRC_Count
 	};
 
 	enum ERtvHeapLayout {
@@ -190,6 +207,7 @@ public:
 		ERHL_Ambient0,
 		ERHL_Ambient1,
 		ERHL_Resolve,
+		ERHL_MotionBlur,
 		ERHL_Count
 	};
 
@@ -233,9 +251,10 @@ public:
 
 	virtual void* AddModel(const std::string& file, const Transform& trans, ERenderTypes type = ERenderTypes::EOpaque) override;
 	virtual void RemoveModel(void* model) override;
-
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
+
+	virtual bool SetCubeMap(const std::string& file) override;
 
 	virtual bool CreateRtvAndDsvDescriptorHeaps();
 
@@ -271,6 +290,7 @@ private:
 	bool DrawSsao();
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
+	bool ApplyMotionBlur();
 	bool ApplyTAA();
 	bool DrawDebuggingInfo();
 
@@ -311,6 +331,7 @@ private:
 	std::unique_ptr<GBuffer> mGBuffer;
 	std::unique_ptr<Ssao> mSsao;
 	std::unique_ptr<TemporalAA> mTaa;
+	std::unique_ptr<MotionBlur> mMotionBlur;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

@@ -84,9 +84,10 @@ public:
 
 	virtual void* AddModel(const std::string& file, const Transform& trans, ERenderTypes type = ERenderTypes::EOpaque) override;
 	virtual void RemoveModel(void* model) override;
-
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
+
+	virtual bool SetCubeMap(const std::string& file) override;
 
 protected:
 	virtual bool RecreateSwapChain() override;
