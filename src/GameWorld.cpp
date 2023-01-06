@@ -16,9 +16,15 @@
 #include "VkRenderer.h"
 #endif
 
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_win32.h>
+
 #include <exception>
 
 using namespace DirectX;
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd) {
 	try {
@@ -91,6 +97,8 @@ GameWorld::GameWorld() {
 	mRenderer = std::make_unique<VkRenderer>();
 #endif
 	mActorManager = std::make_unique<ActorManager>();
+
+	mGameState = EGameStates::EGS_Play;
 }
 
 GameWorld::~GameWorld() {
@@ -102,6 +110,9 @@ bool GameWorld::Initialize() {
 
 	CheckReturn(mInputManager->Initialize(mhMainWnd));
 	CheckReturn(mRenderer->Initialize(mhMainWnd, mGlfwWnd, InitClientWidth, InitClientHeight));
+
+	mInputManager->SetMouseRelative(true);
+	mInputManager->SetCursorVisibility(false);
 
 	return true;
 }
@@ -134,9 +145,11 @@ bool GameWorld::RunLoop() {
 			if (elapsedTime >= mTimer->GetLimitFrameRate()) {
 				beginTime = endTime;
 
-				if (!bAppPaused) CheckReturn(ProcessInput());
-				CheckReturn(Update());
-				CheckReturn(Draw());
+				if (!bAppPaused) {
+					CheckReturn(ProcessInput());
+					CheckReturn(Update());
+					CheckReturn(Draw());
+				}
 			}
 		}
 	}
@@ -152,9 +165,11 @@ bool GameWorld::RunLoop() {
 		if (elapsedTime >= mTimer->GetLimitFrameRate()) {
 			beginTime = endTime;
 
-			if (!bAppPaused) CheckReturn(ProcessInput());
-			CheckReturn(Update());
-			CheckReturn(Draw());
+			if (!bAppPaused) {
+				CheckReturn(ProcessInput());
+				CheckReturn(Update());
+				CheckReturn(Draw());
+			}
 		}
 	}
 #endif
@@ -184,6 +199,8 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	static UINT width = InitClientWidth;
 	static UINT height = InitClientHeight;
 
+	if ((mGameState == EGameStates::EGS_UI) && ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) return 0;
+
 	switch (msg) {
 		// WM_ACTIVATE is sent when the window is activated or deactivated.  
 		// We pause the game when the window is deactivated and unpause it 
@@ -195,6 +212,7 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		}
 		else {
 			mTimer->Start();
+			mInputManager->IgnoreMouseInput();
 			bAppPaused = false;
 		}
 		return 0;
@@ -386,18 +404,29 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 	if (msg == WM_KEYDOWN) {
 		switch (wParam) {
 		case VK_ESCAPE:	PostQuitMessage(0);	return;
-		case VK_F1:	mRenderer->EnableDebugging(!mRenderer->DebuggingEnabled()); return;
-		case VK_F2:	mRenderer->EnableShadow(!mRenderer->ShadowEnabled()); return;
-		case VK_F3: mRenderer->EnableSsao(!mRenderer->SsaoEnabled()); return;
-		case VK_F4: mRenderer->EnableTaa(!mRenderer->TaaEnabled()); return;
-		case VK_F5: mRenderer->EnableMotionBlur(!mRenderer->MotionBlurEnabled()); return;
+		case VK_T: {
+			if (mGameState == EGameStates::EGS_Play) {
+				mGameState = EGameStates::EGS_UI;
+				mInputManager->SetMouseRelative(false);
+				mInputManager->SetCursorVisibility(true);
+				mRenderer->ShowImGui(true);
+			}
+			else {
+				mGameState = EGameStates::EGS_Play;
+				mInputManager->SetMouseRelative(true);
+				mInputManager->SetCursorVisibility(false);
+				mInputManager->IgnoreMouseInput();
+				mRenderer->ShowImGui(false);
+			}
+			return;
+		}
 		}
 	}
 }
 
 bool GameWorld::ProcessInput() {
 	mInputManager->Update();
-	CheckReturn(mActorManager->ProcessInput(mInputManager->GetInputState()));
+	if (mGameState == EGameStates::EGS_Play) CheckReturn(mActorManager->ProcessInput(mInputManager->GetInputState()));
 
 	return true;
 }
@@ -426,6 +455,7 @@ bool GameWorld::LoadData() {
 	new RotatingMonkey("monkey_1", XM_PIDIV2, DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f), rot);
 	new RotatingMonkey("monkey_2", 2.0f * XM_2PI, DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
 	new RotatingMonkey("monkey_3", XM_PI, DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
+	new RotatingMonkey("monkey_4", XM_PIDIV4, DirectX::XMFLOAT3(0.0f, 0.0f, -20.0f), rot);
 	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(1000.0f, 1.0f, 1000.0f));
 
 	return true;

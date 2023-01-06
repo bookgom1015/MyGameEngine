@@ -73,10 +73,10 @@ protected:
 	D3D12_VIEWPORT mScreenViewport;
 	D3D12_RECT mScissorRect;
 
+	HWND mhMainWnd;
+
 private:
 	bool bIsCleanedUp;
-
-	HWND mhMainWnd;
 
 	Microsoft::WRL::ComPtr<ID3D12Debug> mDebugController;
 	DWORD mCallbakCookie;

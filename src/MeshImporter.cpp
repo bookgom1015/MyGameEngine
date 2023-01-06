@@ -3,10 +3,10 @@
 #include "Mesh.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include <tinyobjloader/tiny_obj_loader.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <stb/stb_image.h>
 
 using namespace DirectX;
 

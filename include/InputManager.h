@@ -87,6 +87,7 @@ public:
 
 	void SetCursorVisibility(BOOL visible);
 	void IgnoreMouseInput();
+	void SetMouseRelative(bool state);
 
 	const InputState& GetInputState() const;
 

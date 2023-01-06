@@ -62,6 +62,15 @@ struct BlurConstants {
 
 };
 
+struct CocConstants {
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4X4	InvProj;
+	float				FocusDistance;
+	float				FocusRange;
+	float				ConstantPad0;
+	float				ConstantPad1;
+};
+
 struct FrameResource {
 public:
 	FrameResource(
@@ -88,6 +97,7 @@ public:
 	UploadBuffer<MaterialConstants> MaterialCB;
 	UploadBuffer<SsaoConstants> SsaoCB;
 	UploadBuffer<BlurConstants> BlurCB;
+	UploadBuffer<CocConstants> CocCB;
 
 	UINT64 Fence;
 

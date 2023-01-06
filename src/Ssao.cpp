@@ -53,6 +53,21 @@ void Ssao::BuildDescriptors(
 	BuildDescriptors();
 }
 
+bool Ssao::OnResize(UINT width, UINT height) {
+	if ((mWidth != width) || (mHeight != height)) {
+		mWidth = width;
+		mHeight = height;
+
+		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+
+		CheckReturn(BuildResource());
+		BuildDescriptors();
+	}
+
+	return true;
+}
+
 void Ssao::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

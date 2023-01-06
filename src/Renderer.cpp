@@ -1,5 +1,10 @@
 #include "Renderer.h"
 
+#include <assert.h>
+#include <algorithm>
+#include <memory>
+#include <wrl.h>
+
 void Renderer::SetCamera(Camera* cam) {
 	mCamera = cam;
 }
@@ -23,4 +28,12 @@ void Renderer::EnableTaa(bool state) {
 
 void Renderer::EnableMotionBlur(bool state) {
 	bMotionBlurEnabled = state;
+}
+
+void Renderer::EnableDepthOfField(bool state) {
+	bDepthOfFieldEnabled = state;
+}
+
+void Renderer::ShowImGui(bool state) {
+	bShowImGui = state;
 }

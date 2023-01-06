@@ -20,6 +20,7 @@ bool FrameResource::Initialize() {
 	CheckReturn(MaterialCB.Initialize(Device, MaterialCount, true));
 	CheckReturn(SsaoCB.Initialize(Device, 1, true));
 	CheckReturn(BlurCB.Initialize(Device, 1, true));
+	CheckReturn(CocCB.Initialize(Device, 1, true));
 
 	return true;
 }

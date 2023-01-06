@@ -3,7 +3,7 @@
 #include "VulkanHelper.h"
 
 #include <fstream>
-#include <stb_image.h>
+#include <stb/stb_image.h>
 
 #undef min
 #undef max

@@ -18,6 +18,7 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "vulkan-1.lib")
+#pragma comment(lib, "DirectXTK12.lib")
 
 //
 // DirectX header files.
@@ -28,6 +29,10 @@
 #include <dxgi1_6.h>
 #include "d3dx12.h"
 #include <DirectXCollision.h>
+
+#include <GraphicsMemory.h>
+#include <DDSTextureLoader.h>
+#include <ResourceUploadBatch.h>
 //
 
 //
@@ -86,6 +91,11 @@ public:
 	void EnableMotionBlur(bool state);
 	__forceinline constexpr bool MotionBlurEnabled() const;
 
+	void EnableDepthOfField(bool state);
+	__forceinline constexpr bool DepthOfFieldEnabled() const;
+
+	void ShowImGui(bool state);
+
 	__forceinline constexpr bool IsInitialized() const;
 	__forceinline constexpr float AspectRatio() const;
 
@@ -97,12 +107,15 @@ protected:
 
 	Camera* mCamera;
 
+	bool bShowImGui = false;
+
 	bool bDebuggingEnabled = true;
 	bool bShadowEnabled = true;
 	bool bSsaoEnabled = true;
 	bool bTaaEnabled = true;
 	bool bInitiatingTaa = true;
 	bool bMotionBlurEnabled = true;
+	bool bDepthOfFieldEnabled = true;
 };
 
 constexpr bool Renderer::DebuggingEnabled() const {
@@ -123,6 +136,10 @@ constexpr bool Renderer::TaaEnabled() const {
 
 constexpr bool Renderer::MotionBlurEnabled() const {
 	return bMotionBlurEnabled;
+}
+
+constexpr bool Renderer::DepthOfFieldEnabled() const {
+	return bDepthOfFieldEnabled;
 }
 
 constexpr bool Renderer::IsInitialized() const {

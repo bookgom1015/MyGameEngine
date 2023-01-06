@@ -38,6 +38,8 @@ public:
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
 		UINT descSize, UINT rtvDescSize);
 
+	bool OnResize(UINT width, UINT height);
+
 private:
 	void BuildDescriptors();
 	bool BuildResource();

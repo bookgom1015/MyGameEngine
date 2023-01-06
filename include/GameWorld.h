@@ -13,7 +13,11 @@ class Camera;
 struct GLFWwindow;
 
 class GameWorld {
-private:
+public:
+	enum EGameStates {
+		EGS_Play,
+		EGS_UI
+	};
 
 public:
 	GameWorld();
@@ -59,11 +63,13 @@ private:
 	bool bMinimized;			// Is the application minimized?
 	bool bMaximized;			// Is the application maximized?
 	bool bResizing;				// Are the resize bars being dragged?
-	bool bFullscreenState;		// Fullscreen enabled
+	bool bFullscreenState;		// Fullscreen enabled 
 
 	std::unique_ptr<GameTimer> mTimer;
 	std::unique_ptr<InputManager> mInputManager;
 	std::unique_ptr<Renderer> mRenderer;
 
 	std::unique_ptr<ActorManager> mActorManager;
+
+	EGameStates mGameState;
 };

@@ -11,6 +11,7 @@ class GBuffer;
 class Ssao;
 class TemporalAA;
 class MotionBlur;
+class DepthOfField;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -191,9 +192,39 @@ public:
 	};
 
 	enum EMotionBlurRootConstantsLayout {
-		EMBRC_Attenuation = 0,
+		EMBRC_Intensity = 0,
 		EMBRC_Limit,
+		EMBRS_DepthBias,
+		EMBRS_NumSamples,
 		EMBRC_Count
+	};
+
+	enum EMappingRootSignatureLayout {
+		EMRS_Input = 0,
+		EMRS_Count
+	};
+
+	enum ECocRootSignatureLayout {
+		ECRS_PassCB = 0,
+		ECRS_Depth,
+		ECRS_Count
+	};
+
+	enum EBokehRootSignatureLayout {
+		EBKHRS_Input = 0,
+		EBKHRS_Consts,
+		EBKHRS_Count
+	};
+
+	enum EBokehRootConstantsLayout {
+		EBKHRCS_BokehRadius = 0,
+		EBKHRCS_Count
+	};
+
+	enum EDofRootSignatureLayout {
+		EDOFRS_BackBuffer = 0,
+		EDOFRS_CocAndBokeh,
+		EDOFRS_Count
 	};
 
 	enum ERtvHeapLayout {
@@ -208,6 +239,9 @@ public:
 		ERHL_Ambient1,
 		ERHL_Resolve,
 		ERHL_MotionBlur,
+		ERHL_Coc,
+		ERHL_Bokeh,
+		ERHL_Dof,
 		ERHL_Count
 	};
 
@@ -233,6 +267,9 @@ public:
 		ERD_History,
 		ERD_BackBuffer0,
 		ERD_BackBuffer1,
+		ERD_Coc,
+		ERD_Bokeh,
+		ERD_Font,
 		ERD_Count
 	};
 
@@ -265,6 +302,9 @@ public:
 	UINT AddTexture(const std::string& file, const Material& material);
 
 private:
+	bool InitImGui();
+	void CleanUpImGui();
+
 	bool CompileShaders();
 	bool BuildGeometries();
 
@@ -280,6 +320,7 @@ private:
 	bool UpdateMainPassCB(float delta);
 	bool UpdateSsaoPassCB(float delta);
 	bool UpdateBlurPassCB(float delta);
+	bool UpdateDofCB(float delta);
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
 
@@ -290,9 +331,11 @@ private:
 	bool DrawSsao();
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
-	bool ApplyMotionBlur();
 	bool ApplyTAA();
+	bool ApplyDepthOfField();
+	bool ApplyMotionBlur();
 	bool DrawDebuggingInfo();
+	bool DrawImGui();
 
 protected:
 	static const int gNumFrameResources = 3;
@@ -332,6 +375,7 @@ private:
 	std::unique_ptr<Ssao> mSsao;
 	std::unique_ptr<TemporalAA> mTaa;
 	std::unique_ptr<MotionBlur> mMotionBlur;
+	std::unique_ptr<DepthOfField> mDof;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
@@ -340,4 +384,20 @@ private:
 
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
+
+	float mTaaModulationFactor;
+
+	float mMotionBlurIntensity;
+	float mMotionBlurLimit;
+	float mMotionBlurDepthBias;
+	UINT mMotionBlurNumSamples;
+
+	float mBokehRadius;
+	float mFocusDistance;
+	float mFocusRange;
+
+	//
+	// DirectXTK12
+	//
+	std::unique_ptr<DirectX::GraphicsMemory> mGraphicsMemory;	
 };

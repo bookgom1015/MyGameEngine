@@ -128,6 +128,10 @@ void InputManager::IgnoreMouseInput() {
 	mInputState.Mouse.mIsIgnored = true;
 }
 
+void InputManager::SetMouseRelative(bool state) {
+	mInputState.Mouse.mIsRelative = state;
+}
+
 const InputState& InputManager::GetInputState() const {
 	return mInputState;
 }
