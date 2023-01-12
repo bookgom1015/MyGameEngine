@@ -109,7 +109,7 @@ protected:
 
 	bool bShowImGui = false;
 
-	bool bDebuggingEnabled = true;
+	bool bDebuggingEnabled = false;
 	bool bShadowEnabled = true;
 	bool bSsaoEnabled = true;
 	bool bTaaEnabled = true;

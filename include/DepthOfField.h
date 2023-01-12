@@ -26,18 +26,28 @@ public:
 
 	__forceinline ID3D12Resource* CocMapResource();
 	__forceinline ID3D12Resource* BokehMapResource();
+	__forceinline ID3D12Resource* BokehBlurMapResource();
 	__forceinline ID3D12Resource* DofMapResource();
+	__forceinline ID3D12Resource* FocusDistanceBufferResource();
 
 	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CocMapSrv() const;
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE BokehMapSrv() const;
-
 	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CocMapRtv() const;
+
+	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE BokehMapSrv() const;
 	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE BokehMapRtv() const;
+
+	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE BokehBlurMapSrv() const;
+	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE BokehBlurMapRtv() const;
+
 	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DofMapRtv() const;
+
+	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocusDistanceBufferUav() const;
 
 	void BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuUav,
+		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuUav,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
 		UINT descSize, UINT rtvDescSize);
 
@@ -48,7 +58,7 @@ public:
 	bool BuildResource();
 
 public:
-	static const UINT NumRenderTargets = 3;
+	static const UINT NumRenderTargets = 4;
 
 	static const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 
@@ -73,7 +83,11 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mCocMap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> mBokehMap;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mBokehBlurMap;
 	Microsoft::WRL::ComPtr<ID3D12Resource> mDofMap;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mFocusDistanceBuffer;
+
+	BYTE* mMappedBuffer;
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuSrv;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhCocMapGpuSrv;
@@ -83,75 +97,34 @@ private:
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhBokehMapGpuSrv;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhBokehMapCpuRtv;
 
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhBokehBlurMapCpuSrv;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE mhBokehBlurMapGpuSrv;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhBokehBlurMapCpuRtv;
+
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofMapCpuRtv;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhFocusDistanceCpuUav;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE mhFocusDistanceGpuUav;
 };
 
-constexpr UINT DepthOfField::CocMapWidth() const {
-	return mWidth;
+ID3D12Resource* DepthOfField::BokehBlurMapResource() {
+	return mBokehBlurMap.Get();
 }
 
-constexpr UINT DepthOfField::CocMapHeight() const {
-	return mHeight;
+ID3D12Resource* DepthOfField::FocusDistanceBufferResource() {
+	return mFocusDistanceBuffer.Get();
 }
 
-constexpr UINT DepthOfField::BokehMapWidth() const {
-	return mReducedWidth;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::BokehBlurMapSrv() const {
+	return mhBokehBlurMapGpuSrv;
 }
 
-constexpr UINT DepthOfField::BokehMapHeight() const {
-	return mReducedHeight;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::BokehBlurMapRtv() const {
+	return mhBokehBlurMapCpuRtv;
 }
 
-constexpr UINT DepthOfField::DofMapWidth() const {
-	return mWidth;
-}
-
-constexpr UINT DepthOfField::DofMapHeight() const {
-	return mHeight;
-}
-
-constexpr D3D12_VIEWPORT DepthOfField::Viewport() const {
-	return mViewport;
-}
-
-constexpr D3D12_RECT DepthOfField::ScissorRect() const {
-	return mScissorRect;
-}
-
-constexpr DXGI_FORMAT DepthOfField::BokehMapFormat() const {
-	return mBackBufferFormat;
-}
-
-ID3D12Resource* DepthOfField::CocMapResource() {
-	return mCocMap.Get();
-}
-
-ID3D12Resource* DepthOfField::BokehMapResource() {
-	return mBokehMap.Get();
-}
-
-ID3D12Resource* DepthOfField::DofMapResource() {
-	return mDofMap.Get();
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::CocMapSrv() const {
-	return mhCocMapGpuSrv;
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::BokehMapSrv() const {
-	return mhBokehMapGpuSrv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::CocMapRtv() const {
-	return mhCocMapCpuRtv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::BokehMapRtv() const {
-	return mhBokehMapCpuRtv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::DofMapRtv() const {
-	return mhDofMapCpuRtv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::FocusDistanceBufferUav() const {
+	return mhFocusDistanceGpuUav;
 }
 
 #include "DepthOfField.inl"

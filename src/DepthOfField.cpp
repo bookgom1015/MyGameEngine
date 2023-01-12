@@ -32,6 +32,8 @@ bool DepthOfField::Initialize(ID3D12Device* device, UINT width, UINT height, UIN
 void DepthOfField::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuUav,
+		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuUav,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
 	mhCocMapCpuSrv = hCpuSrv;
@@ -42,7 +44,14 @@ void DepthOfField::BuildDescriptors(
 	mhBokehMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhBokehMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
+	mhBokehBlurMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhBokehBlurMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhBokehBlurMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
 	mhDofMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
+	mhFocusDistanceCpuUav = hCpuUav;
+	mhFocusDistanceGpuUav = hGpuUav;
 
 	BuildDescriptors();
 }
@@ -74,6 +83,14 @@ void DepthOfField::BuildDescriptors() {
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
 
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uavDesc.Buffer.FirstElement = 0;
+	uavDesc.Buffer.NumElements = 1;
+	uavDesc.Buffer.StructureByteStride = sizeof(float);
+	uavDesc.Buffer.CounterOffsetInBytes = 0;
+
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Format = CocMapFormat;
@@ -88,7 +105,12 @@ void DepthOfField::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mBokehMap.Get(), &srvDesc, mhBokehMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mBokehMap.Get(), &rtvDesc, mhBokehMapCpuRtv);
 
+	md3dDevice->CreateShaderResourceView(mBokehBlurMap.Get(), &srvDesc, mhBokehBlurMapCpuSrv);
+	md3dDevice->CreateRenderTargetView(mBokehBlurMap.Get(), &rtvDesc, mhBokehBlurMapCpuRtv);
+
 	md3dDevice->CreateRenderTargetView(mDofMap.Get(), &rtvDesc, mhDofMapCpuRtv);
+
+	md3dDevice->CreateUnorderedAccessView(mFocusDistanceBuffer.Get(), nullptr, &uavDesc, mhFocusDistanceCpuUav);
 }
 
 bool DepthOfField::BuildResource() {
@@ -131,6 +153,14 @@ bool DepthOfField::BuildResource() {
 			&optClear,
 			IID_PPV_ARGS(mBokehMap.GetAddressOf())
 		));
+		CheckHRESULT(md3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&optClear,
+			IID_PPV_ARGS(mBokehBlurMap.GetAddressOf())
+		));
 	}
 	{
 		CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, DofMapClearValues);
@@ -145,6 +175,19 @@ bool DepthOfField::BuildResource() {
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			&optClear,
 			IID_PPV_ARGS(mDofMap.GetAddressOf())
+		));
+	}
+	{
+		CheckHRESULT(md3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(
+				sizeof(float),
+				D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
+			),
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(mFocusDistanceBuffer.GetAddressOf())
 		));
 	}
 

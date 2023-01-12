@@ -161,7 +161,7 @@ public:
 	};
 
 	enum EBlurRootSignatureLayout {
-		EBRS_PassCB = 0,
+		EBRS_BlurCB = 0,
 		EBRS_Consts,
 		EBRS_NormalDepth,
 		EBRS_Input,
@@ -169,9 +169,7 @@ public:
 	};
 
 	enum EBlurRootConstantsLayout {
-		EBRC_InvWidth = 0,
-		EBRC_InvHeight,
-		EBRC_HorizontalBlur,
+		EBRC_HorizontalBlur = 0,
 		EBRC_Count
 	};
 
@@ -205,11 +203,12 @@ public:
 	};
 
 	enum ECocRootSignatureLayout {
-		ECRS_PassCB = 0,
+		ECRS_DofCB = 0,
 		ECRS_Depth,
+		ECRS_FocalDist,
 		ECRS_Count
 	};
-
+	
 	enum EBokehRootSignatureLayout {
 		EBKHRS_Input = 0,
 		EBKHRS_Consts,
@@ -227,6 +226,13 @@ public:
 		EDOFRS_Count
 	};
 
+	enum EFocalDistanceRootSignatureLayout {
+		EFDRS_DofCB = 0,
+		EFDRS_Depth,
+		EFDRS_FocalDist,
+		EFDRS_Count
+	};
+
 	enum ERtvHeapLayout {
 		ERHL_BackBuffer0 = 0,
 		ERHL_BackBuffer1,
@@ -241,6 +247,7 @@ public:
 		ERHL_MotionBlur,
 		ERHL_Coc,
 		ERHL_Bokeh,
+		ERHL_BokehBlur,
 		ERHL_Dof,
 		ERHL_Count
 	};
@@ -251,26 +258,38 @@ public:
 		EDHL_Count
 	};
 
-	enum EReservedDescriptors {
-		ERD_Cube = 0,
-		ERD_Color,
-		ERD_Albedo,
-		ERD_Normal,
-		ERD_Depth,
-		ERD_Specular,
-		ERD_Velocity,
-		ERD_Shadow,
-		ERD_Ambient0,
-		ERD_Ambient1,
-		ERD_RandomVector,
-		ERD_Resolve,
-		ERD_History,
-		ERD_BackBuffer0,
-		ERD_BackBuffer1,
-		ERD_Coc,
-		ERD_Bokeh,
-		ERD_Font,
-		ERD_Count
+	enum ECbvSrvUavHeapLayout {
+		ECSUHL_Srvs = 0,
+		ECSUHL_Uavs = 64,
+		ECSUHL_Count = 128
+	};
+
+	enum EReservedSrvs {
+		ERS_Cube = ECbvSrvUavHeapLayout::ECSUHL_Srvs,
+		ERS_Color,
+		ERS_Albedo,
+		ERS_Normal,
+		ERS_Depth,
+		ERS_Specular,
+		ERS_Velocity,
+		ERS_Shadow,
+		ERS_Ambient0,
+		ERS_Ambient1,
+		ERS_RandomVector,
+		ERS_Resolve,
+		ERS_History,
+		ERS_BackBuffer0,
+		ERS_BackBuffer1,
+		ERS_Coc,
+		ERS_Bokeh,
+		ERS_BokehBlur,
+		ERS_Font,
+		ERS_Count = (EReservedSrvs::ERS_Font - EReservedSrvs::ERS_Cube) + 1
+	};
+
+	enum EReservedUavs {
+		ERU_FocalDist = ECbvSrvUavHeapLayout::ECSUHL_Uavs,
+		ERU_Count = (EReservedUavs::ERU_FocalDist - EReservedUavs::ERU_FocalDist) + 1
 	};
 
 public:
@@ -393,8 +412,8 @@ private:
 	UINT mMotionBlurNumSamples;
 
 	float mBokehRadius;
-	float mFocusDistance;
 	float mFocusRange;
+	float mFocusingSpeed;
 
 	//
 	// DirectXTK12
