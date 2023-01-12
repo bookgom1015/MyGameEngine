@@ -9,14 +9,6 @@ constexpr UINT DepthOfField::CocMapHeight() const {
 	return mHeight;
 }
 
-constexpr UINT DepthOfField::BokehMapWidth() const {
-	return mReducedWidth;
-}
-
-constexpr UINT DepthOfField::BokehMapHeight() const {
-	return mReducedHeight;
-}
-
 constexpr UINT DepthOfField::DofMapWidth() const {
 	return mWidth;
 }
@@ -33,20 +25,20 @@ constexpr D3D12_RECT DepthOfField::ScissorRect() const {
 	return mScissorRect;
 }
 
-constexpr DXGI_FORMAT DepthOfField::BokehMapFormat() const {
-	return mBackBufferFormat;
-}
-
 ID3D12Resource* DepthOfField::CocMapResource() {
 	return mCocMap.Get();
 }
 
-ID3D12Resource* DepthOfField::BokehMapResource() {
-	return mBokehMap.Get();
-}
-
 ID3D12Resource* DepthOfField::DofMapResource() {
 	return mDofMap.Get();
+}
+
+ID3D12Resource* DepthOfField::DofBlurMapResource() {
+	return mDofBlurMap.Get();
+}
+
+ID3D12Resource* DepthOfField::FocusDistanceBufferResource() {
+	return mFocusDistanceBuffer.Get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::CocMapSrv() const {
@@ -57,16 +49,24 @@ constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::CocMapRtv() const {
 	return mhCocMapCpuRtv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::BokehMapSrv() const {
-	return mhBokehMapGpuSrv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::BokehMapRtv() const {
-	return mhBokehMapCpuRtv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::DofMapSrv() const {
+	return mhDofMapGpuSrv;
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::DofMapRtv() const {
 	return mhDofMapCpuRtv;
+}
+
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::DofBlurMapSrv() const {
+	return mhDofBlurMapGpuSrv;
+}
+
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::DofBlurMapRtv() const {
+	return mhDofBlurMapCpuRtv;
+}
+
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::FocusDistanceBufferUav() const {
+	return mhFocusDistanceGpuUav;
 }
 
 #endif // __DEPTHOFFIELD_INL__

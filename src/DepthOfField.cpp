@@ -40,15 +40,13 @@ void DepthOfField::BuildDescriptors(
 	mhCocMapGpuSrv = hGpuSrv;
 	mhCocMapCpuRtv = hCpuRtv;
 
-	mhBokehMapCpuSrv = hCpuSrv.Offset(1, descSize);
-	mhBokehMapGpuSrv = hGpuSrv.Offset(1, descSize);
-	mhBokehMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
-
-	mhBokehBlurMapCpuSrv = hCpuSrv.Offset(1, descSize);
-	mhBokehBlurMapGpuSrv = hGpuSrv.Offset(1, descSize);
-	mhBokehBlurMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
-
+	mhDofMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhDofMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhDofMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
+	mhDofBlurMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhDofBlurMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhDofBlurMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhFocusDistanceCpuUav = hCpuUav;
 	mhFocusDistanceGpuUav = hGpuUav;
@@ -102,13 +100,11 @@ void DepthOfField::BuildDescriptors() {
 
 	srvDesc.Format = mBackBufferFormat;
 	rtvDesc.Format = mBackBufferFormat;
-	md3dDevice->CreateShaderResourceView(mBokehMap.Get(), &srvDesc, mhBokehMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mBokehMap.Get(), &rtvDesc, mhBokehMapCpuRtv);
-
-	md3dDevice->CreateShaderResourceView(mBokehBlurMap.Get(), &srvDesc, mhBokehBlurMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mBokehBlurMap.Get(), &rtvDesc, mhBokehBlurMapCpuRtv);
-
+	md3dDevice->CreateShaderResourceView(mDofMap.Get(), &srvDesc, mhDofMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mDofMap.Get(), &rtvDesc, mhDofMapCpuRtv);
+
+	md3dDevice->CreateShaderResourceView(mDofBlurMap.Get(), &srvDesc, mhDofBlurMapCpuSrv);
+	md3dDevice->CreateRenderTargetView(mDofBlurMap.Get(), &rtvDesc, mhDofBlurMapCpuRtv);
 
 	md3dDevice->CreateUnorderedAccessView(mFocusDistanceBuffer.Get(), nullptr, &uavDesc, mhFocusDistanceCpuUav);
 }
@@ -140,29 +136,6 @@ bool DepthOfField::BuildResource() {
 		));
 	}
 	{
-		CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, BokehMapClearValues);
-
-		rscDesc.Width = mReducedWidth;
-		rscDesc.Height = mReducedHeight;
-		rscDesc.Format = mBackBufferFormat;
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			IID_PPV_ARGS(mBokehMap.GetAddressOf())
-		));
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			IID_PPV_ARGS(mBokehBlurMap.GetAddressOf())
-		));
-	}
-	{
 		CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, DofMapClearValues);
 
 		rscDesc.Width = mWidth;
@@ -172,9 +145,17 @@ bool DepthOfField::BuildResource() {
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
 			IID_PPV_ARGS(mDofMap.GetAddressOf())
+		));
+		CheckHRESULT(md3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&optClear,
+			IID_PPV_ARGS(mDofBlurMap.GetAddressOf())
 		));
 	}
 	{

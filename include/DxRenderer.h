@@ -221,9 +221,31 @@ public:
 	};
 
 	enum EDofRootSignatureLayout {
-		EDOFRS_BackBuffer = 0,
-		EDOFRS_CocAndBokeh,
+		EDOFRS_Consts = 0,
+		EDOFRS_BackBuffer,
+		EDOFRS_Coc,
 		EDOFRS_Count
+	};
+
+	enum EDofRootConstantLayout {
+		EDRC_BokehRadius = 0,
+		EDRC_CocThreshold,
+		EDRC_HighlightPower,
+		EDRC_NumSamples,
+		EDRC_Count
+	};
+
+	enum EDofBlurRootSignatureLayout {
+		EDBRS_BlurCB = 0,
+		EDBRS_Consts,
+		EDBRS_Input,
+		EDBRS_Coc,
+		EDBRS_Count
+	};
+	
+	enum EDofBlurRootConstantLayout {
+		EDBRC_HorizontalBlur = 0,
+		EDBRC_Count
 	};
 
 	enum EFocalDistanceRootSignatureLayout {
@@ -246,9 +268,8 @@ public:
 		ERHL_Resolve,
 		ERHL_MotionBlur,
 		ERHL_Coc,
-		ERHL_Bokeh,
-		ERHL_BokehBlur,
 		ERHL_Dof,
+		ERHL_DofBlur,
 		ERHL_Count
 	};
 
@@ -281,8 +302,8 @@ public:
 		ERS_BackBuffer0,
 		ERS_BackBuffer1,
 		ERS_Coc,
-		ERS_Bokeh,
-		ERS_BokehBlur,
+		ERS_Dof,
+		ERS_DofBlur,
 		ERS_Font,
 		ERS_Count = (EReservedSrvs::ERS_Font - EReservedSrvs::ERS_Cube) + 1
 	};
@@ -404,16 +425,23 @@ private:
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
 
+	int mNumSsaoBlurs;
+
 	float mTaaModulationFactor;
 
 	float mMotionBlurIntensity;
 	float mMotionBlurLimit;
 	float mMotionBlurDepthBias;
-	UINT mMotionBlurNumSamples;
+	int mNumMotionBlurSamples;
 
-	float mBokehRadius;
 	float mFocusRange;
 	float mFocusingSpeed;
+
+	float mBokehRadius;
+	float mCocThreshold;
+	float mHighlightPower;
+	int mNumDofSamples;
+	int mNumDofBlurs;
 
 	//
 	// DirectXTK12
