@@ -230,6 +230,7 @@ public:
 	enum EDofRootConstantLayout {
 		EDRC_BokehRadius = 0,
 		EDRC_CocThreshold,
+		EDRC_CocDiffThreshold,
 		EDRC_HighlightPower,
 		EDRC_NumSamples,
 		EDRC_Count
@@ -439,6 +440,7 @@ private:
 
 	float mBokehRadius;
 	float mCocThreshold;
+	float mCocDiffThreshold;
 	float mHighlightPower;
 	int mNumDofSamples;
 	int mNumDofBlurs;

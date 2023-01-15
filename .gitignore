@@ -1,5 +1,6 @@
 # ingore asset files
-assets/
+assets/meshes/
+assets/textures/
 
 # ignore binary files
 bin/

@@ -21,6 +21,9 @@
 
 #include <exception>
 
+#undef min
+#undef max
+
 using namespace DirectX;
 
 // Forward declare message handler from imgui_impl_win32.cpp
@@ -99,6 +102,8 @@ GameWorld::GameWorld() {
 	mActorManager = std::make_unique<ActorManager>();
 
 	mGameState = EGameStates::EGS_Play;
+
+	mTimeSlowDown = 1.0f;
 }
 
 GameWorld::~GameWorld() {
@@ -420,6 +425,12 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 			}
 			return;
 		}
+		case VK_UP:
+			mTimeSlowDown = std::min(1.0f, mTimeSlowDown + 0.1f);
+			return;
+		case VK_DOWN:
+			mTimeSlowDown = std::max(0.0f, mTimeSlowDown - 0.1f);
+			return;
 		}
 	}
 }
@@ -433,8 +444,8 @@ bool GameWorld::ProcessInput() {
 
 bool GameWorld::Update() {
 	float dt = mTimer->DeltaTime();
-	CheckReturn(mActorManager->Update(dt));
-	CheckReturn(mRenderer->Update(dt));
+	CheckReturn(mActorManager->Update(dt * mTimeSlowDown));
+	CheckReturn(mRenderer->Update(dt * mTimeSlowDown));
 
 	return true;
 }

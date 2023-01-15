@@ -1,0 +1,50 @@
+#ifndef _COMMON_GLSLI_
+#define _COMMON_GLSLI_
+
+#include "LightingUtil.glsli"
+
+layout (binding = 0) uniform UniformBufferObject {
+	mat4 model;
+} ubo;
+
+layout (binding = 1) uniform UniformBufferPass {
+	mat4	View;
+	mat4	InvView;
+	mat4	Proj;
+	mat4	InvProj;
+	mat4	ViewProj;
+	mat4	InvViewProj;
+	mat4	ShadowTransform;
+	vec3	EyePosW;
+	float	PassPad1;
+	vec4	AmbientLight;
+	Light	Lights[MaxLights];
+} ubp;
+
+layout (binding = 2) uniform sampler2D sOutputMap;
+layout (binding = 3) uniform sampler2D sShadowMap;
+
+float CalcShadowFactor(vec4 shadowPosH) {
+	shadowPosH.xyz /= shadowPosH.w;
+
+	float depth = shadowPosH.z;
+
+	ivec2 size = textureSize(sShadowMap, 0);
+
+	float dx = 1.0f / float(size.x);
+
+	float percentLit = 0.0f;
+	const vec2 offsets[9] = {
+		vec2(-dx,  -dx), vec2(0.0f,  -dx), vec2(dx,  -dx),
+		vec2(-dx, 0.0f), vec2(0.0f, 0.0f), vec2(dx, 0.0f),
+		vec2(-dx,  +dx), vec2(0.0f,  +dx), vec2(dx,  +dx)
+	};
+
+	for (int i = 0; i < 9; ++i) {
+		percentLit += texture(sShadowMap, shadowPosH.xy + offsets[i]).r;
+	}
+
+	return percentLit / 9.0f;
+}
+
+#endif // _COMMON_GLSLI_

@@ -72,4 +72,6 @@ private:
 	std::unique_ptr<ActorManager> mActorManager;
 
 	EGameStates mGameState;
+
+	float mTimeSlowDown;
 };

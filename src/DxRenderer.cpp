@@ -162,8 +162,10 @@ DxRenderer::DxRenderer() {
 
 	mFocusRange = 8.0f;
 	mFocusingSpeed = 8.0f;
+
 	mBokehRadius = 2.0f;
-	mCocThreshold = 0.8f;
+	mCocThreshold = 0.3f;
+	mCocDiffThreshold = 0.8f;
 	mHighlightPower = 4.0f;
 	mNumDofSamples = 4;
 	mNumDofBlurs = 1;
@@ -2473,7 +2475,7 @@ bool DxRenderer::ApplyDepthOfField() {
 	const auto dofMapRtv = mDof->DofMapRtv();
 	mCommandList->OMSetRenderTargets(1, &dofMapRtv, true, nullptr);
 
-	float dofConstValues[EDofRootConstantLayout::EDRC_Count] = { mBokehRadius, mCocThreshold, mHighlightPower, static_cast<float>(mNumDofSamples) };
+	float dofConstValues[EDofRootConstantLayout::EDRC_Count] = { mBokehRadius, mCocThreshold, mCocDiffThreshold, mHighlightPower, static_cast<float>(mNumDofSamples) };
 	mCommandList->SetGraphicsRoot32BitConstants(EDofRootSignatureLayout::EDOFRS_Consts, _countof(dofConstValues), dofConstValues, 0);
 
 	mCommandList->SetGraphicsRootDescriptorTable(
@@ -2659,11 +2661,8 @@ bool DxRenderer::ApplyMotionBlur() {
 		D3D12Util::GetGpuHandle(pDescHeap, EReservedSrvs::ERS_Velocity, descSize)
 	);
 
-	float floatingValues[EMotionBlurRootConstantsLayout::EMBRC_Count - 1] = { mMotionBlurIntensity, mMotionBlurLimit, mMotionBlurDepthBias };
+	float floatingValues[EMotionBlurRootConstantsLayout::EMBRC_Count] = { mMotionBlurIntensity, mMotionBlurLimit, mMotionBlurDepthBias, static_cast<float>(mNumMotionBlurSamples) };
 	mCommandList->SetGraphicsRoot32BitConstants(EMotionBlurRootSignatureLayout::EMBRS_Consts, _countof(floatingValues), floatingValues, 0);
-
-	UINT integerValues[1] = { static_cast<UINT>(mNumMotionBlurSamples) };
-	mCommandList->SetGraphicsRoot32BitConstants(EMotionBlurRootSignatureLayout::EMBRS_Consts, _countof(integerValues), integerValues, EMotionBlurRootConstantsLayout::EMBRS_NumSamples);
 
 	mCommandList->IASetVertexBuffers(0, 0, nullptr);
 	mCommandList->IASetIndexBuffer(nullptr);
@@ -2814,7 +2813,7 @@ bool DxRenderer::DrawImGui() {
 
 		if (ImGui::CollapsingHeader("Post Pass")) {
 			if (ImGui::TreeNode("SSAO")) {
-				ImGui::SliderInt("Number of Blurs", &mNumSsaoBlurs, 1, 8);
+				ImGui::SliderInt("Number of Blurs", &mNumSsaoBlurs, 0, 8);
 
 				ImGui::TreePop();
 			}
@@ -2835,10 +2834,11 @@ bool DxRenderer::DrawImGui() {
 				ImGui::SliderFloat("Focus Range", &mFocusRange, 0.1f, 100.0f);
 				ImGui::SliderFloat("Focusing Speed", &mFocusingSpeed, 1.0f, 10.0f);
 				ImGui::SliderFloat("Bokeh Radius", &mBokehRadius, 1.0f, 8.0f);
-				ImGui::SliderFloat("CoC Threshold", &mCocThreshold, 0.1f, 0.9f);
+				ImGui::SliderFloat("CoC Threshold", &mCocThreshold, 0.01f, 0.9f);
+				ImGui::SliderFloat("CoC Diff Threshold", &mCocDiffThreshold, 0.1f, 0.9f);
 				ImGui::SliderFloat("Highlight Power", &mHighlightPower, 1.0f, 32.0f);
 				ImGui::SliderInt("Number of Samples", &mNumDofSamples, 1, 8);
-				ImGui::SliderInt("Number of Blurs", &mNumDofBlurs, 1, 8);
+				ImGui::SliderInt("Number of Blurs", &mNumDofBlurs, 0, 8);
 
 				ImGui::TreePop();
 			}
