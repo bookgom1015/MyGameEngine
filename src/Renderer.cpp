@@ -34,6 +34,10 @@ void Renderer::EnableDepthOfField(bool state) {
 	bDepthOfFieldEnabled = state;
 }
 
+void Renderer::EnableBloom(bool state) {
+	bBloomEnabled = state;
+}
+
 void Renderer::ShowImGui(bool state) {
 	bShowImGui = state;
 }

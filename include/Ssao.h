@@ -11,7 +11,7 @@ public:
 	virtual ~Ssao();
 
 public:
-	bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, DXGI_FORMAT ambientMapFormat);
+	bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, UINT divider, DXGI_FORMAT ambientMapFormat);
 
 	__forceinline constexpr UINT Width() const;
 	__forceinline constexpr UINT Height() const;
@@ -57,6 +57,8 @@ private:
 
 	UINT mWidth;
 	UINT mHeight;
+
+	UINT mDivider;
 
 	DXGI_FORMAT mAmbientMapFormat;
 

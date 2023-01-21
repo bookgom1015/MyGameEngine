@@ -12,14 +12,16 @@ Ssao::Ssao() {}
 
 Ssao::~Ssao() {}
 
-bool Ssao::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, DXGI_FORMAT ambientMapFormat) {
+bool Ssao::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, UINT divider, DXGI_FORMAT ambientMapFormat) {
 	md3dDevice = device;
 
-	mWidth = width;
-	mHeight = height;
+	mWidth = width / divider;
+	mHeight = height / divider;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+	mDivider = divider;
+
+	mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
 
 	mAmbientMapFormat = ambientMapFormat;
 
@@ -54,6 +56,8 @@ void Ssao::BuildDescriptors(
 }
 
 bool Ssao::OnResize(UINT width, UINT height) {
+	width /= mDivider;
+	height /= mDivider;
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;

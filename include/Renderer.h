@@ -94,6 +94,9 @@ public:
 	void EnableDepthOfField(bool state);
 	__forceinline constexpr bool DepthOfFieldEnabled() const;
 
+	void EnableBloom(bool state);
+	__forceinline constexpr bool BloomEnabled() const;
+
 	void ShowImGui(bool state);
 
 	__forceinline constexpr bool IsInitialized() const;
@@ -116,6 +119,7 @@ protected:
 	bool bInitiatingTaa = true;
 	bool bMotionBlurEnabled = true;
 	bool bDepthOfFieldEnabled = true;
+	bool bBloomEnabled = true;
 };
 
 constexpr bool Renderer::DebuggingEnabled() const {
@@ -140,6 +144,10 @@ constexpr bool Renderer::MotionBlurEnabled() const {
 
 constexpr bool Renderer::DepthOfFieldEnabled() const {
 	return bDepthOfFieldEnabled;
+}
+
+constexpr bool Renderer::BloomEnabled() const {
+	return bBloomEnabled;
 }
 
 constexpr bool Renderer::IsInitialized() const {

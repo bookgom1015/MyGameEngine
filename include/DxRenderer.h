@@ -12,6 +12,7 @@ class Ssao;
 class TemporalAA;
 class MotionBlur;
 class DepthOfField;
+class Bloom;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -249,6 +250,23 @@ public:
 		EDBRC_Count
 	};
 
+	enum EExtHlightsRootSignatureLayout {
+		EEHRS_BackBuffer = 0,
+		EEHRS_Consts,
+		EEHRS_Count
+	};
+
+	enum EExtHlightsRootConstatLayout {
+		EEHRC_Threshold = 0,
+		EEHRC_Count
+	};
+
+	enum EBloomRootSignatureLayout {
+		EBLMRS_BackBuffer = 0,
+		EBLMRS_Bloom,
+		EBLMRS_Count
+	};
+
 	enum EFocalDistanceRootSignatureLayout {
 		EFDRS_DofCB = 0,
 		EFDRS_Depth,
@@ -271,6 +289,9 @@ public:
 		ERHL_Coc,
 		ERHL_Dof,
 		ERHL_DofBlur,
+		ERHL_Bloom0,
+		ERHL_Bloom1,
+		ERHL_BloomTemp,
 		ERHL_Count
 	};
 
@@ -305,6 +326,8 @@ public:
 		ERS_Coc,
 		ERS_Dof,
 		ERS_DofBlur,
+		ERS_Bloom0,
+		ERS_Bloom1,
 		ERS_Font,
 		ERS_Count = (EReservedSrvs::ERS_Font - EReservedSrvs::ERS_Cube) + 1
 	};
@@ -373,6 +396,7 @@ private:
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
 	bool ApplyTAA();
+	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();
 	bool DrawDebuggingInfo();
@@ -417,6 +441,7 @@ private:
 	std::unique_ptr<TemporalAA> mTaa;
 	std::unique_ptr<MotionBlur> mMotionBlur;
 	std::unique_ptr<DepthOfField> mDof;
+	std::unique_ptr<Bloom> mBloom;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
@@ -444,6 +469,9 @@ private:
 	float mHighlightPower;
 	int mNumDofSamples;
 	int mNumDofBlurs;
+
+	int mNumBloomBlurs;
+	float mHighlightThreshold;
 
 	//
 	// DirectXTK12

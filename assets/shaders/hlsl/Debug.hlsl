@@ -55,7 +55,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	case 4: return float4(gSpecularMap.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
 	case 5: return float4(gShadowMap.Sample(gsamLinearWrap, pin.TexC).rrr, 1.0f);
 	case 6: return float4(gAmbientMap0.Sample(gsamLinearWrap, pin.TexC).rrr, 1.0f);
-	case 7: return float4(gVelocityMap.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
+	case 7: return float4(gBloomMap0.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
 	case 8: {
 		float coc = gCocMap.Sample(gsamLinearWrap, pin.TexC).r;
 		if (coc < 0.0f) return float4(-coc, 0.0f, 0.0f, 1.0f);

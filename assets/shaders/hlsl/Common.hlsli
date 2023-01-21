@@ -60,8 +60,10 @@ Texture2D	gBackBuffer1						: register(t14);
 Texture2D	gCocMap								: register(t15);
 Texture2D	gDofMap								: register(t16);
 Texture2D	gDofBlurMap							: register(t17);
-Texture2D	gFont								: register(t18);
-Texture2D	gTextureMap[NUM_TEXTURE_MAPS]		: register(t19);
+Texture2D	gBloomMap0							: register(t18);
+Texture2D	gBloomMap1							: register(t19);
+Texture2D	gFont								: register(t20);
+Texture2D	gTextureMap[NUM_TEXTURE_MAPS]		: register(t21);
 
 float CalcShadowFactor(float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
