@@ -38,6 +38,10 @@ void Renderer::EnableBloom(bool state) {
 	bBloomEnabled = state;
 }
 
+void Renderer::EnableSsr(bool state) {
+	bSsrEnabled = state;
+}
+
 void Renderer::ShowImGui(bool state) {
 	bShowImGui = state;
 }

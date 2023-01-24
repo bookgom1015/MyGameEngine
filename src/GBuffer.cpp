@@ -2,9 +2,9 @@
 #include "Logger.h"
 
 const float GBuffer::ColorMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-const float GBuffer::AlbedoMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+const float GBuffer::AlbedoMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 const float GBuffer::NormalMapClearValues[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
-const float GBuffer::SpecularMapClearValues[4] = { 0.5f, 0.5f, 0.5f, 0.5f };
+const float GBuffer::SpecularMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 const float GBuffer::VelocityMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 GBuffer::GBuffer() {}

@@ -119,6 +119,8 @@ bool GameWorld::Initialize() {
 	mInputManager->SetMouseRelative(true);
 	mInputManager->SetCursorVisibility(false);
 
+	mTimer->SetLimitFrameRate(GameTimer::ELimitFrameRateNone);
+
 	return true;
 }
 
@@ -150,12 +152,12 @@ bool GameWorld::RunLoop() {
 			if (elapsedTime >= mTimer->GetLimitFrameRate()) {
 				beginTime = endTime;
 
-				if (!bAppPaused) {
-					CheckReturn(ProcessInput());
-					CheckReturn(Update());
-					CheckReturn(Draw());
-				}
+				if (!bAppPaused) CheckReturn(ProcessInput());
+				CheckReturn(Update());
+				if (!bAppPaused) CheckReturn(Draw());
 			}
+
+			if (bAppPaused) Sleep(33);
 		}
 	}
 #else
@@ -170,12 +172,12 @@ bool GameWorld::RunLoop() {
 		if (elapsedTime >= mTimer->GetLimitFrameRate()) {
 			beginTime = endTime;
 
-			if (!bAppPaused) {
-				CheckReturn(ProcessInput());
-				CheckReturn(Update());
-				CheckReturn(Draw());
-			}
+			if (!bAppPaused) CheckReturn(ProcessInput());
+			CheckReturn(Update());
+			if (!bAppPaused) CheckReturn(Draw());
 		}
+
+		if (bAppPaused) Sleep(33);
 	}
 #endif
 
@@ -212,11 +214,9 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		// when it becomes active.
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE) {
-			mTimer->Stop();
 			bAppPaused = true;
 		}
 		else {
-			mTimer->Start();
 			mInputManager->IgnoreMouseInput();
 			bAppPaused = false;
 		}

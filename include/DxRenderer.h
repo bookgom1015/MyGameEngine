@@ -13,6 +13,7 @@ class TemporalAA;
 class MotionBlur;
 class DepthOfField;
 class Bloom;
+class Ssr;
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -221,6 +222,13 @@ public:
 		EBKHRCS_Count
 	};
 
+	enum EFocalDistanceRootSignatureLayout {
+		EFDRS_DofCB = 0,
+		EFDRS_Depth,
+		EFDRS_FocalDist,
+		EFDRS_Count
+	};
+
 	enum EDofRootSignatureLayout {
 		EDOFRS_Consts = 0,
 		EDOFRS_BackBuffer,
@@ -267,11 +275,20 @@ public:
 		EBLMRS_Count
 	};
 
-	enum EFocalDistanceRootSignatureLayout {
-		EFDRS_DofCB = 0,
-		EFDRS_Depth,
-		EFDRS_FocalDist,
-		EFDRS_Count
+	enum EBuildingSsrRootSignatureLayout {
+		EBSRS_SsrCB,
+		EBSRS_BackBuffer,
+		EBSRS_NormDepthSpec,
+		EBSRS_Count
+	};
+
+	enum EApplyingSsrRootSignatureLayout {
+		EASRS_SsrCB = 0,
+		EASRS_Cube,
+		EASRS_BackBuffer,
+		EASRS_NormDepthSpec,
+		EASRS_Ssr,
+		EASRS_Count
 	};
 
 	enum ERtvHeapLayout {
@@ -292,6 +309,9 @@ public:
 		ERHL_Bloom0,
 		ERHL_Bloom1,
 		ERHL_BloomTemp,
+		ERHL_Ssr0,
+		ERHL_Ssr1,
+		ERHL_SsrTemp,
 		ERHL_Count
 	};
 
@@ -328,6 +348,8 @@ public:
 		ERS_DofBlur,
 		ERS_Bloom0,
 		ERS_Bloom1,
+		ERS_Ssr0,
+		ERS_Ssr1,
 		ERS_Font,
 		ERS_Count = (EReservedSrvs::ERS_Font - EReservedSrvs::ERS_Cube) + 1
 	};
@@ -385,6 +407,7 @@ private:
 	bool UpdateSsaoPassCB(float delta);
 	bool UpdateBlurPassCB(float delta);
 	bool UpdateDofCB(float delta);
+	bool UpdateSsrCB(float delta);
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
 
@@ -396,6 +419,7 @@ private:
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
 	bool ApplyTAA();
+	bool ApplySsr();
 	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();
@@ -442,11 +466,13 @@ private:
 	std::unique_ptr<MotionBlur> mMotionBlur;
 	std::unique_ptr<DepthOfField> mDof;
 	std::unique_ptr<Bloom> mBloom;
+	std::unique_ptr<Ssr> mSsr;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
 	bool bShadowMapCleanedUp;
 	bool bSsaoMapCleanedUp;
+	bool bSsrMapCleanedUp;
 
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
@@ -472,6 +498,14 @@ private:
 
 	int mNumBloomBlurs;
 	float mHighlightThreshold;
+
+	float mSsrMaxDistance;
+	float mSsrRayLength;
+	float mSsrNoiseIntensity;
+	int mSsrNumSteps;
+	int mSsrNumBackSteps;
+	int mNumSsrBlurs;
+	float mSsrDepthThreshold;
 
 	//
 	// DirectXTK12

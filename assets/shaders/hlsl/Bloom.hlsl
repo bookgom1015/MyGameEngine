@@ -33,8 +33,8 @@ VertexOut VS(uint vid : SV_VertexID) {
 }
 
 float4 PS(VertexOut pin) : SV_Target {
-	float3 color = gBackBuffer.Sample(gsamLinearWrap, pin.TexC).rgb;
-	float3 bloom = gBloomMap.Sample(gsamLinearWrap, pin.TexC).rgb;	
+	float3 color = gBackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
+	float3 bloom = gBloomMap.Sample(gsamLinearClamp, pin.TexC).rgb;
 	return float4(color + bloom, 1.0f);
 }
 

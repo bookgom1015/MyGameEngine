@@ -1,7 +1,7 @@
 #ifndef __EXTRACTHIGHLIGHTS_HLSL__
 #define __EXTRACTHIGHLIGHTS_HLSL__
 
-#include "Common.hlsli"
+#include "Samplers.hlsli"
 
 Texture2D gBackBuffer : register(t0);
 
@@ -20,7 +20,6 @@ static const float2 gTexCoords[6] = {
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
-	float3 PosV		: POSITION;
 	float2 TexC		: TEXCOORD;
 };
 

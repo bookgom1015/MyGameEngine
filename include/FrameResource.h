@@ -71,6 +71,23 @@ struct DofConstants {
 	float				ConstantPad0;
 };
 
+struct SsrConstants {
+	DirectX::XMFLOAT4X4	View;
+	DirectX::XMFLOAT4X4	InvView;
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4X4	InvProj;
+	DirectX::XMFLOAT3	EyePosW;
+	float				MaxDistance;
+	float				RayLength;
+	float				NoiseIntensity;
+	int					NumSteps;
+	int					NumBackSteps;
+	float				DepthThreshold;
+	float				ConstantPad0;
+	float				ConstantPad1;
+	float				ConstantPad2;
+};
+
 struct FrameResource {
 public:
 	FrameResource(
@@ -98,6 +115,7 @@ public:
 	UploadBuffer<SsaoConstants> SsaoCB;
 	UploadBuffer<BlurConstants> BlurCB;
 	UploadBuffer<DofConstants> DofCB;
+	UploadBuffer<SsrConstants> SsrCB;
 
 	UINT64 Fence;
 

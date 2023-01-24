@@ -29,7 +29,6 @@ static const float2 gTexCoords[6] = {
 
 struct VertexOut {
 	float4 PosH	: SV_POSITION;
-	float3 PosV	: POSITION;
 	float2 TexC	: TEXCOORD;
 };
 

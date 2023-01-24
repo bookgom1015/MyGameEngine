@@ -97,6 +97,9 @@ public:
 	void EnableBloom(bool state);
 	__forceinline constexpr bool BloomEnabled() const;
 
+	void EnableSsr(bool state);
+	__forceinline constexpr bool SsrEnabled() const;
+
 	void ShowImGui(bool state);
 
 	__forceinline constexpr bool IsInitialized() const;
@@ -120,6 +123,7 @@ protected:
 	bool bMotionBlurEnabled = true;
 	bool bDepthOfFieldEnabled = true;
 	bool bBloomEnabled = true;
+	bool bSsrEnabled = true;
 };
 
 constexpr bool Renderer::DebuggingEnabled() const {
@@ -148,6 +152,10 @@ constexpr bool Renderer::DepthOfFieldEnabled() const {
 
 constexpr bool Renderer::BloomEnabled() const {
 	return bBloomEnabled;
+}
+
+constexpr bool Renderer::SsrEnabled() const {
+	return bSsrEnabled;
 }
 
 constexpr bool Renderer::IsInitialized() const {

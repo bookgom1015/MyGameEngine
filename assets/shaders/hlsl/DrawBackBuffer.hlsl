@@ -84,11 +84,6 @@ float4 PS(VertexOut pin) : SV_Target{
 	float4 directLight = ComputeLighting(gLights, mat, posW, normalW, toEyeW, shadowFactor);
 	
 	float4 litColor = ambient + directLight;
-
-	//float3 r = reflect(-toEyeW, normalW);
-	//float3 fresnelFactor = SchlickFresnel(specular.rgb, normalW, r);
-	//litColor.rgb += shiness * fresnelFactor;
-
 	litColor.a = diffuseAlbedo.a;
 
 	return litColor;

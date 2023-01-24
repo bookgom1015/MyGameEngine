@@ -61,6 +61,7 @@ float4 PS(VertexOut pin) : SV_Target {
 		if (coc < 0.0f) return float4(-coc, 0.0f, 0.0f, 1.0f);
 		else return float4((float3)coc, 1.0f);
 	}
+	case 9: return float4(gSsrMap0.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
 	default: return (float4)1.0f;
 	}		
 }

@@ -21,6 +21,7 @@ bool FrameResource::Initialize() {
 	CheckReturn(SsaoCB.Initialize(Device, 1, true));
 	CheckReturn(BlurCB.Initialize(Device, 1, true));
 	CheckReturn(DofCB.Initialize(Device, 1, true));
+	CheckReturn(SsrCB.Initialize(Device, 1, true));
 
 	return true;
 }
