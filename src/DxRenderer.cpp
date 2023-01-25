@@ -328,7 +328,8 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckReturn(mTaa->OnResize(width, height));
 	CheckReturn(mMotionBlur->OnResize(width, height));
 	CheckReturn(mDof->OnResize(width, height));
-	CheckReturn(mBloom->OnResize(width, height))
+	CheckReturn(mBloom->OnResize(width, height));
+	CheckReturn(mSsr->OnResize(width, height));
 
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
