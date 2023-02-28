@@ -174,7 +174,7 @@ bool GameWorld::RunLoop() {
 
 			if (!bAppPaused) CheckReturn(ProcessInput());
 			CheckReturn(Update());
-			if (!bAppPaused) CheckReturn(Draw());
+			CheckReturn(Draw());
 		}
 
 		if (bAppPaused) Sleep(33);

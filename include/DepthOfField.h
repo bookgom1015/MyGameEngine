@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <wrl.h>
 
 class DepthOfField {
 public:
@@ -8,7 +9,7 @@ public:
 	virtual ~DepthOfField();
 
 public:
-	bool Initialize(ID3D12Device* device, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
+	bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
 	
 	__forceinline constexpr UINT CocMapWidth() const;
 	__forceinline constexpr UINT CocMapHeight() const;
@@ -43,11 +44,11 @@ public:
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
 		UINT descSize, UINT rtvDescSize);
 
-	bool OnResize(UINT width, UINT height);
+	bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 public:
 	void BuildDescriptors();
-	bool BuildResource();
+	bool BuildResource(ID3D12GraphicsCommandList* cmdList);
 
 public:
 	static const UINT NumRenderTargets = 3;

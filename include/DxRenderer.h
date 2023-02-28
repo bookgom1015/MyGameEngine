@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DxLowRenderer.h"
+#include "HlslCompaction.h"
 
 struct FrameResource;
 struct PassConstants;
@@ -14,6 +15,260 @@ class MotionBlur;
 class DepthOfField;
 class Bloom;
 class Ssr;
+
+namespace EDefaultRootSignatureLayout {
+	enum {
+		EObjectCB = 0,
+		EPassCB,
+		EMatCB,
+		EReservedSrvs,
+		EAllocatedTexMaps,
+		EReservedUavs,
+		Count
+	};
+}
+
+namespace ESsaoRootSignatureLayout {
+	enum {
+		EPassCB = 0,
+		ENormalDepth,
+		ERandomVector,
+		Count
+	};
+}
+
+namespace EBlurRootSignatureLayout {
+	enum {
+		EBlurCB = 0,
+		EConsts,
+		ENormalDepth,
+		EInput,
+		Count
+	};
+}
+
+namespace EBlurRootConstantsLayout {
+	enum {
+		EHorizontalBlur = 0,
+		Count
+	};
+}
+
+namespace ETaaRootSignatureLayout{
+	enum {
+		EInput = 0,
+		EHistory,
+		EVelocity,
+		EFactor,
+		Count
+	};
+}
+
+namespace EMotionBlurRootSignatureLayout {
+	enum {
+		EInput = 0,
+		EDepth,
+		EVelocity,
+		EConsts,
+		Count
+	};
+}
+
+namespace EMotionBlurRootConstantsLayout {
+	enum {
+		EIntensity = 0,
+		ELimit,
+		EDepthBias,
+		ENumSamples,
+		Count
+	};
+}
+
+namespace EMappingRootSignatureLayout {
+	enum {
+		EInput = 0,
+		Count
+	};
+}
+
+namespace ECocRootSignatureLayout {
+	enum {
+		EDofCB = 0,
+		EDepth,
+		EFocalDist,
+		Count
+	};
+}
+
+namespace EBokehRootSignatureLayout {
+	enum {
+		EInput = 0,
+		EConsts,
+		Count
+	};
+}
+
+namespace EBokehRootConstantsLayout {
+	enum {
+		EBokehRadius = 0,
+		Count
+	};
+}
+
+namespace EFocalDistanceRootSignatureLayout {
+	enum {
+		EDofCB = 0,
+		EDepth,
+		EFocalDist,
+		Count
+	};
+}
+
+namespace EDofRootSignatureLayout {
+	enum {
+		EConsts = 0,
+		EBackBuffer,
+		ECoc,
+		Count
+	};
+}
+
+namespace EDofRootConstantLayout {
+	enum {
+		EBokehRadius = 0,
+		ECocThreshold,
+		ECocDiffThreshold,
+		EHighlightPower,
+		ENumSamples,
+		Count
+	};
+}
+
+namespace EDofBlurRootSignatureLayout {
+	enum {
+		EBlurCB = 0,
+		EConsts,
+		EInput,
+		ECoc,
+		Count
+	};
+}
+
+namespace EDofBlurRootConstantLayout {
+	enum {
+		EHorizontalBlur = 0,
+		Count
+	};
+}
+
+namespace EExtHlightsRootSignatureLayout {
+	enum {
+		EBackBuffer = 0,
+		EConsts,
+		Count
+	};
+}
+
+namespace EExtHlightsRootConstatLayout {
+	enum {
+		EThreshold = 0,
+		Count
+	};
+}
+
+namespace EBloomRootSignatureLayout {
+	enum {
+		EBackBuffer = 0,
+		EBloom,
+		Count
+	};
+}
+
+namespace EBuildingSsrRootSignatureLayout {
+	enum {
+		ESsrCB,
+		EBackBuffer,
+		ENormDepthSpec,
+		Count
+	};
+}
+
+namespace EApplyingSsrRootSignatureLayout {
+	enum {
+		ESsrCB = 0,
+		ECube,
+		EBackBuffer,
+		ENormDepthSpec,
+		ESsr,
+		Count
+	};
+}
+
+namespace ERtvHeapLayout {
+	enum {
+		EBackBuffer0 = 0,
+		EBackBuffer1,
+		EColor,
+		EAlbedo,
+		ENormal,
+		ESpecular,
+		EVelocity,
+		EAmbient0,
+		EAmbient1,
+		EResolve,
+		EMotionBlur,
+		ECoc,
+		EDof,
+		EDofBlur,
+		EBloom0,
+		EBloom1,
+		EBloomTemp,
+		ESsr0,
+		ESsr1,
+		ESsrTemp,
+		Count
+	};
+}
+
+namespace EDsvHeapLayout {
+	enum {
+		EDefault = 0,
+		EShadow,
+		Count
+	};
+}
+
+namespace EReservedDescriptors {
+	enum {
+		ES_Cube = 0, Srv_Start = ES_Cube,
+		ES_Color,
+		ES_Albedo,
+		ES_Normal,
+		ES_Depth,
+		ES_Specular,
+		ES_Velocity,
+		ES_Shadow,
+		ES_Ambient0,
+		ES_Ambient1,
+		ES_RandomVector,
+		ES_Resolve,
+		ES_History,
+		ES_BackBuffer0,
+		ES_BackBuffer1,
+		ES_Coc,
+		ES_Dof,
+		ES_DofBlur,
+		ES_Bloom0,
+		ES_Bloom1,
+		ES_Ssr0,
+		ES_Ssr1,
+		ES_Font, Srv_End = ES_Font,
+
+		EU_FocalDist = NUM_TEXTURE_MAPS, Uav_Start = EU_FocalDist, Uav_End = EU_FocalDist,
+
+		Count
+	};
+}
 
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
@@ -144,219 +399,6 @@ public:
 		UINT IndexCount = 0;
 		UINT StartIndexLocation = 0;
 		UINT BaseVertexLocation = 0;
-	};
-
-	enum EDefaultRootSignatureLayout {
-		EDRS_ObjectCB = 0,
-		EDRS_PassCB,
-		EDRS_MatCB,
-		EDRS_ReservedTexMaps,
-		EDRS_AllocatedTexMaps,
-		EDRS_Count
-	};
-
-	enum ESsaoRootSignatureLayout {
-		ESRS_PassCB = 0,
-		ESRS_NormalDepth,
-		ESRS_RandomVector,
-		ESRS_Count
-	};
-
-	enum EBlurRootSignatureLayout {
-		EBRS_BlurCB = 0,
-		EBRS_Consts,
-		EBRS_NormalDepth,
-		EBRS_Input,
-		EBRS_Count
-	};
-
-	enum EBlurRootConstantsLayout {
-		EBRC_HorizontalBlur = 0,
-		EBRC_Count
-	};
-
-	enum ETaaRootSignatureLayout {
-		ETRS_Input = 0,
-		ETRS_History,
-		ETRS_Velocity,
-		ERTS_Factor,
-		ETRS_Count
-	};
-
-	enum EMotionBlurRootSignatureLayout {
-		EMBRS_Input = 0,
-		EMBRS_Depth,
-		EMBRS_Velocity,
-		EMBRS_Consts,
-		EMBRS_Count
-	};
-
-	enum EMotionBlurRootConstantsLayout {
-		EMBRC_Intensity = 0,
-		EMBRC_Limit,
-		EMBRS_DepthBias,
-		EMBRS_NumSamples,
-		EMBRC_Count
-	};
-
-	enum EMappingRootSignatureLayout {
-		EMRS_Input = 0,
-		EMRS_Count
-	};
-
-	enum ECocRootSignatureLayout {
-		ECRS_DofCB = 0,
-		ECRS_Depth,
-		ECRS_FocalDist,
-		ECRS_Count
-	};
-	
-	enum EBokehRootSignatureLayout {
-		EBKHRS_Input = 0,
-		EBKHRS_Consts,
-		EBKHRS_Count
-	};
-
-	enum EBokehRootConstantsLayout {
-		EBKHRCS_BokehRadius = 0,
-		EBKHRCS_Count
-	};
-
-	enum EFocalDistanceRootSignatureLayout {
-		EFDRS_DofCB = 0,
-		EFDRS_Depth,
-		EFDRS_FocalDist,
-		EFDRS_Count
-	};
-
-	enum EDofRootSignatureLayout {
-		EDOFRS_Consts = 0,
-		EDOFRS_BackBuffer,
-		EDOFRS_Coc,
-		EDOFRS_Count
-	};
-
-	enum EDofRootConstantLayout {
-		EDRC_BokehRadius = 0,
-		EDRC_CocThreshold,
-		EDRC_CocDiffThreshold,
-		EDRC_HighlightPower,
-		EDRC_NumSamples,
-		EDRC_Count
-	};
-
-	enum EDofBlurRootSignatureLayout {
-		EDBRS_BlurCB = 0,
-		EDBRS_Consts,
-		EDBRS_Input,
-		EDBRS_Coc,
-		EDBRS_Count
-	};
-	
-	enum EDofBlurRootConstantLayout {
-		EDBRC_HorizontalBlur = 0,
-		EDBRC_Count
-	};
-
-	enum EExtHlightsRootSignatureLayout {
-		EEHRS_BackBuffer = 0,
-		EEHRS_Consts,
-		EEHRS_Count
-	};
-
-	enum EExtHlightsRootConstatLayout {
-		EEHRC_Threshold = 0,
-		EEHRC_Count
-	};
-
-	enum EBloomRootSignatureLayout {
-		EBLMRS_BackBuffer = 0,
-		EBLMRS_Bloom,
-		EBLMRS_Count
-	};
-
-	enum EBuildingSsrRootSignatureLayout {
-		EBSRS_SsrCB,
-		EBSRS_BackBuffer,
-		EBSRS_NormDepthSpec,
-		EBSRS_Count
-	};
-
-	enum EApplyingSsrRootSignatureLayout {
-		EASRS_SsrCB = 0,
-		EASRS_Cube,
-		EASRS_BackBuffer,
-		EASRS_NormDepthSpec,
-		EASRS_Ssr,
-		EASRS_Count
-	};
-
-	enum ERtvHeapLayout {
-		ERHL_BackBuffer0 = 0,
-		ERHL_BackBuffer1,
-		ERHL_Color,
-		ERHL_Albedo,
-		ERHL_Normal,
-		ERHL_Specular,
-		ERHL_Velocity,
-		ERHL_Ambient0,
-		ERHL_Ambient1,
-		ERHL_Resolve,
-		ERHL_MotionBlur,
-		ERHL_Coc,
-		ERHL_Dof,
-		ERHL_DofBlur,
-		ERHL_Bloom0,
-		ERHL_Bloom1,
-		ERHL_BloomTemp,
-		ERHL_Ssr0,
-		ERHL_Ssr1,
-		ERHL_SsrTemp,
-		ERHL_Count
-	};
-
-	enum EDsvHeapLayout {
-		EDHL_Default = 0,
-		EDHL_Shadow,
-		EDHL_Count
-	};
-
-	enum ECbvSrvUavHeapLayout {
-		ECSUHL_Srvs = 0,
-		ECSUHL_Uavs = 64,
-		ECSUHL_Count = 128
-	};
-
-	enum EReservedSrvs {
-		ERS_Cube = ECbvSrvUavHeapLayout::ECSUHL_Srvs,
-		ERS_Color,
-		ERS_Albedo,
-		ERS_Normal,
-		ERS_Depth,
-		ERS_Specular,
-		ERS_Velocity,
-		ERS_Shadow,
-		ERS_Ambient0,
-		ERS_Ambient1,
-		ERS_RandomVector,
-		ERS_Resolve,
-		ERS_History,
-		ERS_BackBuffer0,
-		ERS_BackBuffer1,
-		ERS_Coc,
-		ERS_Dof,
-		ERS_DofBlur,
-		ERS_Bloom0,
-		ERS_Bloom1,
-		ERS_Ssr0,
-		ERS_Ssr1,
-		ERS_Font,
-		ERS_Count = (EReservedSrvs::ERS_Font - EReservedSrvs::ERS_Cube) + 1
-	};
-
-	enum EReservedUavs {
-		ERU_FocalDist = ECbvSrvUavHeapLayout::ECSUHL_Uavs,
-		ERU_Count = (EReservedUavs::ERU_FocalDist - EReservedUavs::ERU_FocalDist) + 1
 	};
 
 public:

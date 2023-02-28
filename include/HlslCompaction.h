@@ -1,0 +1,12 @@
+#ifndef __HLSLCOMPACTION_HLSL__
+#define __HLSLCOMPACTION_HLSL__
+
+#ifndef NUM_TEXTURE_MAPS 
+#define NUM_TEXTURE_MAPS 64
+#endif
+
+#ifndef MAX_DESCRIPTOR_SIZE
+#define MAX_DESCRIPTOR_SIZE 256
+#endif
+
+#endif // __HLSLCOMPACTION_HLSL__

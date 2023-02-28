@@ -1,5 +1,6 @@
 #include "DepthOfField.h"
 #include "Logger.h"
+#include "D3D12Util.h"
 
 const float DepthOfField::CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 const float DepthOfField::BokehMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -9,7 +10,7 @@ DepthOfField::DepthOfField() {}
 
 DepthOfField::~DepthOfField() {}
 
-bool DepthOfField::Initialize(ID3D12Device* device, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat) {
+bool DepthOfField::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat) {
 	md3dDevice = device;
 
 	mWidth = width;
@@ -24,7 +25,7 @@ bool DepthOfField::Initialize(ID3D12Device* device, UINT width, UINT height, UIN
 	mViewport = { 0.0f, 0.0f, static_cast<float>(mReducedWidth), static_cast<float>(mReducedHeight), 0.0f, 1.0f };
 	mScissorRect = { 0, 0, static_cast<int>(mReducedWidth), static_cast<int>(mReducedHeight) };
 
-	CheckReturn(BuildResource());
+	CheckReturn(BuildResource(cmdList));
 
 	return true;
 }
@@ -54,7 +55,7 @@ void DepthOfField::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool DepthOfField::OnResize(UINT width, UINT height) {
+bool DepthOfField::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -65,7 +66,7 @@ bool DepthOfField::OnResize(UINT width, UINT height) {
 		mViewport = { 0.0f, 0.0f, static_cast<float>(mReducedWidth), static_cast<float>(mReducedHeight), 0.0f, 1.0f };
 		mScissorRect = { 0, 0, static_cast<int>(mReducedWidth), static_cast<int>(mReducedHeight) };
 
-		CheckReturn(BuildResource());
+		CheckReturn(BuildResource(cmdList));
 		BuildDescriptors();
 	}
 
@@ -109,7 +110,7 @@ void DepthOfField::BuildDescriptors() {
 	md3dDevice->CreateUnorderedAccessView(mFocusDistanceBuffer.Get(), nullptr, &uavDesc, mhFocusDistanceCpuUav);
 }
 
-bool DepthOfField::BuildResource() {
+bool DepthOfField::BuildResource(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -171,6 +172,17 @@ bool DepthOfField::BuildResource() {
 			IID_PPV_ARGS(mFocusDistanceBuffer.GetAddressOf())
 		));
 	}
+
+	const auto pFocusDistBuffer = mFocusDistanceBuffer.Get();
+	cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			pFocusDistBuffer,
+			D3D12_RESOURCE_STATE_COMMON,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+		)
+	);
+	D3D12Util::UavBarrier(cmdList, pFocusDistBuffer);
 
 	return true;
 }

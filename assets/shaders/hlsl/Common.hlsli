@@ -1,10 +1,9 @@
 #ifndef __COMMON_HLSLI__
 #define __COMMON_HLSLI__
 
+#include "./../../../include/HlslCompaction.h"
 #include "LightingUtil.hlsli"
 #include "Samplers.hlsli"
-
-#define NUM_TEXTURE_MAPS 64
 
 cbuffer cbPerObject : register(b0) {
 	float4x4 gWorld;
@@ -66,6 +65,8 @@ Texture2D	gSsrMap0							: register(t20);
 Texture2D	gSsrMap1							: register(t21);
 Texture2D	gFont								: register(t22);
 Texture2D	gTextureMap[NUM_TEXTURE_MAPS]		: register(t23);
+
+RWTexture2D<float> uFocalDistance : register(u0);
 
 float CalcShadowFactor(float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;

@@ -65,6 +65,9 @@ public:
 		return static_cast<UINT>((sizeof(T) - 1) / SizeOfUint + 1);
 	}
 
+	static void UavBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource);
+	static void UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource[], size_t length);
+
 private:
 	static const size_t SizeOfUint;
 };
