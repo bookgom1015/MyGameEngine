@@ -70,7 +70,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	else texOffset = float2(0.0f, dy);
 
 	// The center value always contributes to the sum.
-	float4 color = blurWeights[gBlurRadius] * gInputMap.SampleLevel(gsamPointClamp, pin.TexC, 0.0);
+	float4 color = blurWeights[gBlurRadius] * gInputMap.SampleLevel(gsamLinearClamp, pin.TexC, 0.0);
 	float totalWeight = blurWeights[gBlurRadius];
 
 #ifndef NON_BILATERAL
@@ -93,18 +93,18 @@ float4 PS(VertexOut pin) : SV_Target {
 		// normal or depth), then we assume we are sampling across a discontinuity.
 		// We discard such samples from the blur.
 		//
-		if (dot(neighborNormal, centerNormal) >= 0.8f && abs(neighborDepth - centerDepth) <= 0.2f) {
+		if (dot(neighborNormal, centerNormal) >= 0.75f && abs(neighborDepth - centerDepth) <= 1.0f) {
 			float weight = blurWeights[i + gBlurRadius];
 
 			// Add neighbor pixel to blur.
-			color += weight * gInputMap.SampleLevel(gsamPointClamp, tex, 0.0);
+			color += weight * gInputMap.SampleLevel(gsamLinearClamp, tex, 0.0);
 
 			totalWeight += weight;
 		}
 #else
 		float weight = blurWeights[i + gBlurRadius];
 
-		color += weight * gInputMap.SampleLevel(gsamPointClamp, tex, 0.0);
+		color += weight * gInputMap.SampleLevel(gsamLinearClamp, tex, 0.0);
 
 		totalWeight += weight;
 #endif

@@ -225,7 +225,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 
 	CheckReturn(mShadowMap->Initialize(pDevice, 2048, 2048));
 	CheckReturn(mGBuffer->Initialize(pDevice, width, height, BackBufferFormat, NormalMapFormat, DXGI_FORMAT_R24_UNORM_X8_TYPELESS, SpecularMapFormat, VelocityMapFormat));
-	CheckReturn(mSsao->Initialize(pDevice, cmdList, width, height, 4, AmbientMapFormat));
+	CheckReturn(mSsao->Initialize(pDevice, cmdList, width, height, 1, AmbientMapFormat));
 	CheckReturn(mTaa->Initialize(pDevice, width, height, BackBufferFormat));
 	CheckReturn(mMotionBlur->Initialize(pDevice, width, height, BackBufferFormat));
 	CheckReturn(mDof->Initialize(pDevice, cmdList, width, height, 4, BackBufferFormat));
