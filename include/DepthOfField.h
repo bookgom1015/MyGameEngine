@@ -2,99 +2,210 @@
 
 #include <d3dx12.h>
 #include <wrl.h>
+#include <unordered_map>
 
-class DepthOfField {
-public:
-	DepthOfField();
-	virtual ~DepthOfField();
+#include "Samplers.h"
 
-public:
-	bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
-	
-	__forceinline constexpr UINT CocMapWidth() const;
-	__forceinline constexpr UINT CocMapHeight() const;
+class ShaderManager;
 
-	__forceinline constexpr UINT DofMapWidth() const;
-	__forceinline constexpr UINT DofMapHeight() const;
+namespace DepthOfField {
+	namespace CircleOfConfusion {
+		namespace RootSignatureLayout {
+			enum {
+				ECB_Dof = 0,
+				ESI_Depth,
+				EUI_FocalDist,
+				Count
+			};
+		}
+	}
 
-	__forceinline constexpr D3D12_VIEWPORT Viewport() const;
-	__forceinline constexpr D3D12_RECT ScissorRect() const;
+	namespace Bokeh {
+		namespace RootSignatureLayout {
+			enum {
+				ESI_Input = 0,
+				EC_Consts,
+				Count
+			};
+		}
 
-	__forceinline ID3D12Resource* CocMapResource();
-	__forceinline ID3D12Resource* DofMapResource();
-	__forceinline ID3D12Resource* DofBlurMapResource();
-	__forceinline ID3D12Resource* FocusDistanceBufferResource();
+		namespace RootConstantsLayout {
+			enum {
+				EBokehRadius = 0,
+				Count
+			};
+		}
+	}
 
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CocMapSrv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CocMapRtv() const;
+	namespace FocalDistance {
+		namespace RootSignatureLayout {
+			enum {
+				ECB_Dof = 0,
+				ESI_Depth,
+				EUO_FocalDist,
+				Count
+			};
+		}
+	}
 
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DofMapSrv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DofMapRtv() const;
+	namespace ApplyingDof {
+		namespace RootSignatureLayout {
+			enum {
+				EC_Consts = 0,
+				ESI_BackBuffer,
+				ESI_Coc,
+				Count
+			};
+		}
 
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DofBlurMapSrv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DofBlurMapRtv() const;
+		namespace RootConstantLayout {
+			enum {
+				EBokehRadius = 0,
+				ECocThreshold,
+				ECocDiffThreshold,
+				EHighlightPower,
+				ENumSamples,
+				Count
+			};
+		}
+	}
 
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocusDistanceBufferUav() const;
+	namespace DofBlur {
+		namespace RootSignatureLayout {
+			enum {
+				ECB_Blur = 0,
+				EC_Consts,
+				ESI_Input,
+				ESI_Coc,
+				Count
+			};
+		}
 
-	void BuildDescriptors(
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuUav,
-		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuUav,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
-		UINT descSize, UINT rtvDescSize);
+		namespace RootConstantLayout {
+			enum {
+				EHorizontalBlur = 0,
+				Count
+			};
+		}
+	}
 
-	bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
-public:
-	void BuildDescriptors();
-	bool BuildResource(ID3D12GraphicsCommandList* cmdList);
+	const UINT NumRenderTargets = 3;
 
-public:
-	static const UINT NumRenderTargets = 3;
+	const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 
-	static const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
+	const float CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float BokehMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const float DofMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	static const float CocMapClearValues[4];
-	static const float BokehMapClearValues[4];
-	static const float DofMapClearValues[4];
+	class DepthOfFieldClass {
+	public:
+		DepthOfFieldClass() = default;
+		virtual ~DepthOfFieldClass() = default;
 
-private:
-	ID3D12Device* md3dDevice;
+	public:
+		__forceinline constexpr UINT CocMapWidth() const;
+		__forceinline constexpr UINT CocMapHeight() const;
 
-	UINT mWidth;
-	UINT mHeight;
+		__forceinline constexpr UINT DofMapWidth() const;
+		__forceinline constexpr UINT DofMapHeight() const;
 
-	UINT mDivider;
-	UINT mReducedWidth;
-	UINT mReducedHeight;
+		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
+		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-	DXGI_FORMAT mBackBufferFormat;
+		__forceinline ID3D12Resource* CocMapResource();
+		__forceinline ID3D12Resource* DofMapResource();
+		__forceinline ID3D12Resource* FocalDistanceBufferResource();
 
-	D3D12_VIEWPORT mViewport;
-	D3D12_RECT mScissorRect;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CocMapSrv() const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CocMapRtv() const;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> mCocMap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDofMap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDofBlurMap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mFocusDistanceBuffer;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DofMapSrv() const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DofMapRtv() const;
 
-	BYTE* mMappedBuffer;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocalDistanceBufferUav() const;
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhCocMapGpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuRtv;
+	public:
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager, ID3D12GraphicsCommandList* cmdList, 
+			UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
+		bool CompileShaders(const std::wstring& filePath);
+		bool BuildRootSignature(const StaticSamplers& samplers);
+		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofMapCpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhDofMapGpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofMapCpuRtv;
+		void CalcFocalDist(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
+		void CalcCoc(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
+		void ApplyDof(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			float bokehRadius,
+			float cocThreshold,
+			float cocDiffThreshold,
+			float highlightPower,
+			int numSamples);
+		void BlurDof(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			UINT blurCount);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofBlurMapCpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhDofBlurMapGpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofBlurMapCpuRtv;
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
+			UINT descSize, UINT rtvDescSize);
+		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhFocusDistanceCpuUav;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhFocusDistanceGpuUav;
-};
+	public:
+		void BuildDescriptors();
+		bool BuildResource(ID3D12GraphicsCommandList* cmdList);
+
+		void Blur(ID3D12GraphicsCommandList*const cmdList, bool horzBlur);
+
+	private:
+		ID3D12Device* md3dDevice;
+		ShaderManager* mShaderManager;
+
+		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
+		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+
+		UINT mWidth;
+		UINT mHeight;
+
+		UINT mDivider;
+		UINT mReducedWidth;
+		UINT mReducedHeight;
+
+		DXGI_FORMAT mBackBufferFormat;
+
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
+
+		Microsoft::WRL::ComPtr<ID3D12Resource> mCocMap;
+		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mDofMaps;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mFocalDistanceBuffer;
+
+		BYTE* mMappedBuffer;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCocMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuRtv;
+
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhDofMapCpuSrvs;
+		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhDofMapGpuSrvs;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhDofMapCpuRtvs;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFocalDistanceCpuUav;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhFocalDistanceGpuUav;
+	};
+}
 
 #include "DepthOfField.inl"

@@ -12,10 +12,11 @@
 //
 // Link necessary libraries.
 //
+#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "dxcompiler.lib")
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "vulkan-1.lib")
 #pragma comment(lib, "DirectXTK12.lib")
@@ -49,13 +50,7 @@
 #include "Transform.h"
 #include "Mesh.h"
 #include "Camera.h"
-
-enum ERenderTypes {
-	EOpaque = 0,
-	EBlend,
-	ESky,
-	ENumTypes,
-};
+#include "RenderType.h"
 
 class Renderer {
 public:
@@ -67,7 +62,7 @@ public:
 
 	virtual bool OnResize(UINT width, UINT height) = 0;
 
-	virtual void* AddModel(const std::string& file, const Transform& trans, ERenderTypes type = ERenderTypes::EOpaque) = 0;
+	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::EOpaque) = 0;
 	virtual void RemoveModel(void* model) = 0;
 	virtual void UpdateModel(void* model, const Transform& trans) = 0;
 	virtual void SetModelVisibility(void* model, bool visible) = 0;

@@ -13,7 +13,21 @@
 #define NUM_SPOT_LIGHTS 0
 #endif
 
-#include "Common.hlsli"
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
+#include "Samplers.hlsli"
+
+ConstantBuffer<PassConstants> cb		: register(b0);
+
+Texture2D<float4>	gi_Color			: register(t0);
+Texture2D<float4>	gi_Albedo			: register(t1);
+Texture2D<float3>	gi_Normal			: register(t2);
+Texture2D<float>	gi_Depth			: register(t3);
+Texture2D<float4>	gi_Specular			: register(t4);
+Texture2D<float>	gi_AOCoefficient	: register(t5);
 
 static const float2 gTexCoords[6] = {
 	float2(0.0f, 1.0f),
@@ -31,15 +45,15 @@ struct VertexOut {
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
 
 	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	// Transform quad corners to view space near plane.
-	float4 ph = mul(vout.PosH, gInvProj);
+	float4 ph = mul(vout.PosH, cb.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -47,8 +61,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target{
 	// Get viewspace normal and z-coord of this pixel.  
-	//float3 n = normalize(gNormalMap.Sample(gsamPointClamp, pin.TexC).xyz);
-	float pz = gDepthMap.Sample(gsamDepthMap, pin.TexC).r;
+	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 	pz = NdcDepthToViewDepth(pz);
 
 	//
@@ -58,30 +71,30 @@ float4 PS(VertexOut pin) : SV_Target{
 	// t = p.z / pin.PosV.z
 	//
 	float3 posV = (pz / pin.PosV.z) * pin.PosV;
-	float4 posW = mul(float4(posV, 1.0f), gInvView);
+	float4 posW = mul(float4(posV, 1), cb.InvView);
 	
-	float3 normalW = normalize(gNormalMap.Sample(gsamAnisotropicWrap, pin.TexC).rgb);	
-	float3 toEyeW = normalize(gEyePosW - posW.xyz);
+	float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));	
+	float3 toEyeW = normalize(cb.EyePosW - posW.xyz);
 	
-	float4 colorSample = gColorMap.Sample(gsamAnisotropicWrap, pin.TexC);
-	float4 albedoSample = gAlbedoMap.Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 colorSample = gi_Color.Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 albedoSample = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
 	float4 diffuseAlbedo = colorSample * albedoSample;
 
-	float4 ssaoPosH = mul(posW, gViewProjTex);
+	float4 ssaoPosH = mul(posW, cb.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
-	float ambientAccess = gAmbientMap0.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0.0f).r;
+	float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
 
 	float4 ambient = ambientAccess * gAmbientLight * diffuseAlbedo;
 	
-	float4 specular = gSpecularMap.Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 specular = gi_Specular.Sample(gsamAnisotropicWrap, pin.TexC);
 	const float shiness = 1.0f - specular.a;
 	Material mat = { albedoSample, specular.rgb, shiness };
 	
-	float3 shadowFactor = (float3)1.0f;
-	float4 shadowPosH = mul(posW, gShadowTransform);
+	float3 shadowFactor = 0;
+	float4 shadowPosH = mul(posW, cb.ShadowTransform);
 	shadowFactor[0] = CalcShadowFactor(shadowPosH);
 	
-	float4 directLight = ComputeLighting(gLights, mat, posW, normalW, toEyeW, shadowFactor);
+	float4 directLight = ComputeLighting(cb.Lights, mat, posW, normalW, toEyeW, shadowFactor);
 	
 	float4 litColor = ambient + directLight;
 	litColor.a = diffuseAlbedo.a;

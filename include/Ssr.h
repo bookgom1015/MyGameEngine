@@ -1,142 +1,159 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <array>
+#include <unordered_map>
 
-class Ssr {
-public:
-	Ssr();
-	virtual ~Ssr();
+#include "Samplers.h"
 
-public:
-	bool Initialize(ID3D12Device* device, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
+class ShaderManager;
 
-	__forceinline constexpr UINT SsrMapWidth() const;
-	__forceinline constexpr UINT SsrMapHeight() const;
+namespace Ssr {
+	namespace Building {
+		namespace RootSignatureLayout {
+			enum {
+				ECB_Ssr = 0,
+				ESI_BackBuffer,
+				ESI_Normal,
+				ESI_Depth,
+				ESI_Spec,
+				Count
+			};
+		}
+	}
 
-	__forceinline constexpr UINT SsrTempMapWidth() const;
-	__forceinline constexpr UINT SsrTempMapHeight() const;
+	namespace Applying {
+		namespace RootSignatureLayout {
+			enum {
+				ECB_Ssr = 0,
+				ESI_Cube,
+				ESI_BackBuffer,
+				ESI_Normal,
+				ESI_Depth,
+				ESI_Spec,
+				ESI_Ssr,
+				Count
+			};
+		}
+	}
 
-	__forceinline constexpr D3D12_VIEWPORT Viewport() const;
-	__forceinline constexpr D3D12_RECT ScissorRect() const;
-
-	__forceinline constexpr DXGI_FORMAT Format() const;
-
-	__forceinline ID3D12Resource* SsrMap0Resource();
-	__forceinline ID3D12Resource* SsrMap1Resource();
-	__forceinline ID3D12Resource* SsrTempMapResource();
-
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SsrMap0Srv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMap0Rtv() const;
-
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SsrMap1Srv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMap1Rtv() const;
-
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrTempMapRtv() const;
-
-	void BuildDescriptors(
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
-		UINT descSize, UINT rtvDescSize);
-
-	bool OnResize(UINT width, UINT height);
-
-public:
-	void BuildDescriptors();
-	bool BuildResource();
-
-public:
 	static const UINT NumRenderTargets = 3;
+	
+	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	static const float ClearValues[4];
+	class SsrClass {
+	public:
+		SsrClass() = default;
+		virtual ~SsrClass() = default;
 
-private:
-	ID3D12Device* md3dDevice;
+	public:
+		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
+		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-	UINT mSsrMapWidth;
-	UINT mSsrMapHeight;
+		__forceinline constexpr DXGI_FORMAT Format() const;
 
-	UINT mSsrTempMapWidth;
-	UINT mSsrTempMapHeight;
+		__forceinline ID3D12Resource* SsrMapResource(UINT index);
+		__forceinline ID3D12Resource* ResultMapResource();
 
-	UINT mDivider;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SsrMapSrv(UINT index) const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMapRtv(UINT index) const;
 
-	D3D12_VIEWPORT mViewport;
-	D3D12_RECT mScissorRect;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResultMapRtv() const;
 
-	DXGI_FORMAT mBackBufferFormat;
+	public:
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
+		bool CompileShaders(const std::wstring& filePath);
+		bool BuildRootSignature(const StaticSamplers& samplers);
+		bool BuildPso();
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSsrMap0;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSsrMap1;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSsrTempMap;
+		void BuildSsr(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
+		void ApplySsr(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhSsrMap0CpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhSsrMap0GpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhSsrMap0CpuRtv;
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
+			UINT descSize, UINT rtvDescSize);
+		bool OnResize(UINT width, UINT height);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhSsrMap1CpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhSsrMap1GpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhSsrMap1CpuRtv;
+	public:
+		void BuildDescriptors();
+		bool BuildResource();
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhSsrTempMapCpuRtv;
-};
+	private:
+		ID3D12Device* md3dDevice;
+		ShaderManager* mShaderManager;
 
-constexpr UINT Ssr::SsrMapWidth() const {
-	return mSsrMapWidth;
+		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
+		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+
+		UINT mSsrMapWidth;
+		UINT mSsrMapHeight;
+
+		UINT mResultMapWidth;
+		UINT mResultMapHeight;
+
+		UINT mDivider;
+
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
+
+		DXGI_FORMAT mBackBufferFormat;
+
+		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mSsrMaps;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mResultMap;
+
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuSrvs;
+		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhSsrMapGpuSrvs;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuRtvs;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResultMapCpuRtv;
+	};
 }
 
-constexpr UINT Ssr::SsrMapHeight() const {
-	return mSsrMapHeight;
-}
-
-constexpr UINT Ssr::SsrTempMapWidth() const {
-	return mSsrTempMapWidth;
-}
-
-constexpr UINT Ssr::SsrTempMapHeight() const {
-	return mSsrTempMapHeight;
-}
-
-constexpr D3D12_VIEWPORT Ssr::Viewport() const {
+constexpr D3D12_VIEWPORT Ssr::SsrClass::Viewport() const {
 	return mViewport;
 }
 
-constexpr D3D12_RECT Ssr::ScissorRect() const {
+constexpr D3D12_RECT Ssr::SsrClass::ScissorRect() const {
 	return mScissorRect;
 }
 
-constexpr DXGI_FORMAT Ssr::Format() const {
+constexpr DXGI_FORMAT Ssr::SsrClass::Format() const {
 	return mBackBufferFormat;
 }
 
-ID3D12Resource* Ssr::SsrMap0Resource() {
-	return mSsrMap0.Get();
+ID3D12Resource* Ssr::SsrClass::SsrMapResource(UINT index) {
+	return mSsrMaps[index].Get();
 }
 
-ID3D12Resource* Ssr::SsrMap1Resource() {
-	return mSsrMap1.Get();
+ID3D12Resource* Ssr::SsrClass::ResultMapResource() {
+	return mResultMap.Get();
 }
 
-ID3D12Resource* Ssr::SsrTempMapResource() {
-	return mSsrTempMap.Get();
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapSrv(UINT index) const {
+	return mhSsrMapGpuSrvs[index];
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrMap0Srv() const {
-	return mhSsrMap0GpuSrv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapRtv(UINT index) const {
+	return mhSsrMapCpuRtvs[index];
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrMap0Rtv() const {
-	return mhSsrMap0CpuRtv;
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrMap1Srv() const {
-	return mhSsrMap1GpuSrv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrMap1Rtv() const {
-	return mhSsrMap1CpuRtv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrTempMapRtv() const {
-	return mhSsrTempMapCpuRtv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrClass::ResultMapRtv() const {
+	return mhResultMapCpuRtv;
 }

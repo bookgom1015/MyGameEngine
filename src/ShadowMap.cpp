@@ -1,12 +1,16 @@
 #include "ShadowMap.h"
 #include "Logger.h"
+#include "ShaderManager.h"
+#include "RenderItem.h"
+#include "DxMesh.h"
+#include "HlslCompaction.h"
+#include "D3D12Util.h"
 
-ShadowMap::ShadowMap() {}
+using namespace ShadowMap;
 
-ShadowMap::~ShadowMap() {}
-
-bool ShadowMap::Initialize(ID3D12Device* device, UINT width, UINT height) {
+bool ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
+	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
@@ -19,19 +23,101 @@ bool ShadowMap::Initialize(ID3D12Device* device, UINT width, UINT height) {
 	return true;
 }
 
-ID3D12Resource* ShadowMap::Resource() {
-	return mShadowMap.Get();
+bool ShadowMapClass::CompileShaders(const std::wstring& filePath) {
+	const std::wstring actualPath = filePath + L"Shadow.hlsl";
+	auto vsInfo = D3D12ShaderInfo(actualPath .c_str(), L"VS", L"vs_6_3");
+	auto psInfo = D3D12ShaderInfo(actualPath .c_str(), L"PS", L"ps_6_3");
+	CheckReturn(mShaderManager->CompileShader(vsInfo, "ShadowVS"));
+	CheckReturn(mShaderManager->CompileShader(psInfo, "ShadowPS"));
+
+	return true;
 }
 
-void ShadowMap::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv) {
-	mhCpuSrv = hCpuSrv;
-	mhGpuSrv = hGpuSrv;
+bool ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+
+	CD3DX12_DESCRIPTOR_RANGE texTables[1];
+	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0, 0);
+
+	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
+	slotRootParameter[RootSignatureLayout::ECB_Obj].InitAsConstantBufferView(1);
+	slotRootParameter[RootSignatureLayout::ECB_Mat].InitAsConstantBufferView(2);
+	slotRootParameter[RootSignatureLayout::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[0]);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
+		_countof(slotRootParameter), slotRootParameter,
+		static_cast<UINT>(samplers.size()), samplers.data(),
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+	);
+
+	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
+
+	return true;
+}
+
+bool ShadowMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
+	psoDesc.pRootSignature = mRootSignature.Get();
+	{
+		auto vs = mShaderManager->GetShader("ShadowVS");
+		auto ps = mShaderManager->GetShader("ShadowPS");
+		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+	}
+	psoDesc.NumRenderTargets = 0;
+	psoDesc.RasterizerState.DepthBias = 100000;
+	psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+	psoDesc.RasterizerState.DepthBiasClamp = 0.1f;
+
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+
+	return true;
+}
+
+void ShadowMapClass::Run(
+		ID3D12GraphicsCommandList*const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
+		const std::vector<RenderItem*>& ritems) {
+	cmdList->SetPipelineState(mPSO.Get());
+	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	cmdList->RSSetViewports(1, &mViewport);
+	cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap.Get(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+
+	cmdList->ClearDepthStencilView(mhCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	cmdList->OMSetRenderTargets(0, nullptr, false, &mhCpuDsv);
+
+	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, passCBAddress);
+
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_TexMaps, si_texMaps);
+
+	DrawRenderItems(cmdList, ritems, objCBAddress, matCBAddress);
+
+	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ));
+}
+
+void ShadowMapClass::BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, 
+		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, 
+		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
+		UINT descSize, UINT dsvDescSize) {
+	mhCpuSrv = hCpu;
+	mhGpuSrv = hGpu;
 	mhCpuDsv = hCpuDsv;
+
+	hCpu.Offset(1, descSize);
+	hGpu.Offset(1, descSize);
+	hCpuDsv.Offset(1, dsvDescSize);
 
 	BuildDescriptors();
 }
 
-void ShadowMap::BuildDescriptors() {
+void ShadowMapClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -50,7 +136,7 @@ void ShadowMap::BuildDescriptors() {
 	md3dDevice->CreateDepthStencilView(mShadowMap.Get(), &dsvDesc, mhCpuDsv);
 }
 
-bool ShadowMap::BuildResource() {
+bool ShadowMapClass::BuildResource() {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -78,6 +164,15 @@ bool ShadowMap::BuildResource() {
 		&optClear,
 		IID_PPV_ARGS(&mShadowMap))
 	);
+	mShadowMap->SetName(L"ShadowMap");
 
 	return true;
+}
+
+void ShadowMapClass::DrawRenderItems(
+		ID3D12GraphicsCommandList* cmdList, 
+		const std::vector<RenderItem*>& ritems,
+		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, 
+		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress) {
+
 }

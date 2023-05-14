@@ -1,28 +1,34 @@
 #ifndef __DEBUG_HLSL__
 #define __DEBUG_HLSL__
 
-#include "Common.hlsli"
+#ifndef HLSL
+#define HLSL
+#endif
 
-static const float2 gTexCoords[6] = {
-	float2(0.0f, 1.0f),
-	float2(0.0f, 0.0f),
-	float2(1.0f, 0.0f),
-	float2(0.0f, 1.0f),
-	float2(1.0f, 0.0f),
-	float2(1.0f, 1.0f)
-};
+#include "./../../../include/HlslCompaction.h"
+#include "Samplers.hlsli"
+#include "CoordinatesFittedToScreen.hlsli"
 
-static const float2 gOffsets[10] = {
+cbuffer gRootConstants : register(b0) {
+	uint gSampleMask0;
+	uint gSampleMask1;
+	uint gSampleMask2;
+	uint gSampleMask3;
+	uint gSampleMask4;
+}
+
+Texture2D gi_Debug1	: register(t0);
+Texture2D gi_Debug2	: register(t1);
+Texture2D gi_Debug3	: register(t2);
+Texture2D gi_Debug4	: register(t3);
+Texture2D gi_Debug5	: register(t4);
+
+static const float2 gOffsets[DebugShaderParams::MapCount] = {
 	float2(0.8f, 0.8f),
 	float2(0.8f, 0.4f),
 	float2(0.8f, 0.0f),
 	float2(0.8f, -0.4f),
-	float2(0.8f, -0.8f),
-	float2(-0.8f, 0.8f),
-	float2(-0.8f, 0.4f),
-	float2(-0.8f, 0.0f),
-	float2(-0.8f, -0.4f),
-	float2(-0.8f, -0.8f)
+	float2(0.8f, -0.8f)
 };
 
 struct VertexOut {
@@ -46,24 +52,53 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 	return vout;
 }
 
+uint GetSampleMask(int index) {
+	switch (index) {
+	case 0: return gSampleMask0;
+	case 1: return gSampleMask1;
+	case 2: return gSampleMask2;
+	case 3: return gSampleMask3;
+	case 4: return gSampleMask4;
+	}
+	return 0;
+}
+
+float4 SampleColor(in Texture2D map, int index, float2 tex) {
+	uint mask = GetSampleMask(index);
+	switch (mask) {
+	case DebugShaderParams::SampleMask::RGB: {
+		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).rgb;
+		return float4(samp, 1);
+	}
+	case DebugShaderParams::SampleMask::RG: {
+		float2 samp = map.SampleLevel(gsamPointClamp, tex, 0).rg;
+		return float4(samp, 0, 1);
+	}
+	case DebugShaderParams::SampleMask::RRR: {
+		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).rrr;
+		return float4(samp, 1);
+	}
+	case DebugShaderParams::SampleMask::GGG: {
+		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).ggg;
+		return float4(samp, 1);
+	}
+	case DebugShaderParams::SampleMask::AAA: {
+		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).aaa;
+		return float4(samp, 1);
+	}
+	}
+	return 1;
+}
+
 float4 PS(VertexOut pin) : SV_Target {
 	switch (pin.InstID) {
-	case 0: return float4(gColorMap.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
-	case 1: return float4(gAlbedoMap.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
-	case 2: return float4(gNormalMap.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
-	case 3: return float4(gDepthMap.Sample(gsamLinearWrap, pin.TexC).rrr, 1.0f);
-	case 4: return float4(gSpecularMap.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
-	case 5: return float4(gShadowMap.Sample(gsamLinearWrap, pin.TexC).rrr, 1.0f);
-	case 6: return float4(gAmbientMap0.Sample(gsamLinearWrap, pin.TexC).rrr, 1.0f);
-	case 7: return float4(gBloomMap0.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
-	case 8: {
-		float coc = gCocMap.Sample(gsamLinearWrap, pin.TexC).r;
-		if (coc < 0.0f) return float4(-coc, 0.0f, 0.0f, 1.0f);
-		else return float4((float3)coc, 1.0f);
+	case 0: return SampleColor(gi_Debug0, 0, pin.TexC);
+	case 1: return SampleColor(gi_Debug1, 1, pin.TexC);
+	case 2: return SampleColor(gi_Debug2, 2, pin.TexC);
+	case 3: return SampleColor(gi_Debug3, 3, pin.TexC);
+	case 4: return SampleColor(gi_Debug4, 4, pin.TexC);
 	}
-	case 9: return float4(gSsrMap0.Sample(gsamLinearWrap, pin.TexC).rgb, 1.0f);
-	default: return (float4)1.0f;
-	}		
+	return 0;
 }
 
 #endif // __DEBUG_HLSL__

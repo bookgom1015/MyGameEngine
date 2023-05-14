@@ -1,88 +1,107 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <array>
 
 #include "MathHelper.h"
 #include "FrameResource.h"
+#include "Samplers.h"
 
-class Ssao {
-public:
-	Ssao();
-	virtual ~Ssao();
+class ShaderManager;
 
-public:
-	bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height, UINT divider, DXGI_FORMAT ambientMapFormat);
+namespace Ssao {
+	namespace RootSignatureLayout {
+		enum {
+			ECB_Pass = 0,
+			ESI_Normal,
+			ESI_Depth,
+			ESI_RandomVector,
+			Count
+		};
+	}
 
-	__forceinline constexpr UINT Width() const;
-	__forceinline constexpr UINT Height() const;
+	const UINT NumRenderTargets = 2;
 
-	__forceinline constexpr D3D12_VIEWPORT Viewport() const;
-	__forceinline constexpr D3D12_RECT ScissorRect() const;
+	const DXGI_FORMAT AOCoefficientMapFormat = DXGI_FORMAT_R16_UNORM;
 
-	__forceinline ID3D12Resource* AmbientMap0Resource();
-	__forceinline ID3D12Resource* AmbientMap1Resource();
-	__forceinline ID3D12Resource* RandomVectorMapResource();
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AmbientMap0Srv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE AmbientMap0Rtv() const;
+	const float AOCoefficientMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AmbientMap1Srv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE AmbientMap1Rtv() const;
+	class SsaoClass {
+	public:
+		SsaoClass();
+		virtual ~SsaoClass();
 
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RandomVectorMapSrv() const;
+	public:
+		__forceinline constexpr UINT Width() const;
+		__forceinline constexpr UINT Height() const;
 
-	void GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]);
+		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
+		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-	void BuildDescriptors(
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
-		UINT descSize, UINT rtvDescSize);
+		__forceinline ID3D12Resource* AOCoefficientMapResource(UINT index);
+		__forceinline ID3D12Resource* RandomVectorMapResource();
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AOCoefficientMapSrv(UINT index) const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE AOCoefficientMapRtv(UINT index) const;
 
-	bool OnResize(UINT width, UINT height);
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RandomVectorMapSrv() const;
 
-private:
-	void BuildDescriptors();
-	bool BuildResource();
+	public:
+		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, 
+			UINT width, UINT height, UINT divider, ShaderManager*const manager);
+		bool CompileShaders(const std::wstring& filePath);
+		bool BuildRootSignature(const StaticSamplers& samplers);
+		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout);
+		void Run(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
 
-	void BuildOffsetVectors();
-	bool BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
+		void GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]);
 
-public:
-	static const UINT NumRenderTargets = 2;
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
+			UINT descSize, UINT rtvDescSize);
+		bool OnResize(UINT width, UINT height);
 
-	static const float AmbientMapClearValues[4];
+	private:
+		void BuildDescriptors();
+		bool BuildResource();
 
-private:
-	ID3D12Device* md3dDevice;
+		void BuildOffsetVectors();
+		bool BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
+		
+	private:
+		ID3D12Device* md3dDevice;
+		ShaderManager* mShaderManager;
 
-	UINT mWidth;
-	UINT mHeight;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-	UINT mDivider;
+		UINT mWidth;
+		UINT mHeight;
 
-	DXGI_FORMAT mAmbientMapFormat;
+		UINT mDivider;
+		
+		Microsoft::WRL::ComPtr<ID3D12Resource> mRandomVectorMap;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mRandomVectorMapUploadBuffer;
+		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mAOCoefficientMaps;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> mRandomVectorMap;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mRandomVectorMapUploadBuffer;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mAmbientMap0;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mAmbientMap1;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhRandomVectorMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhRandomVectorMapGpuSrv;
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhRandomVectorMapCpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhRandomVectorMapGpuSrv;
+		// Need two for ping-ponging during blur.
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhAOCoefficientMapCpuSrvs;
+		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhAOCoefficientMapGpuSrvs;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhAOCoefficientMapCpuRtvs;
 
-	// Need two for ping-ponging during blur.
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhAmbientMap0CpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhAmbientMap0GpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhAmbientMap0CpuRtv;
+		DirectX::XMFLOAT4 mOffsets[14];
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhAmbientMap1CpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhAmbientMap1GpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhAmbientMap1CpuRtv;
-
-	DirectX::XMFLOAT4 mOffsets[14];
-
-	D3D12_VIEWPORT mViewport;
-	D3D12_RECT mScissorRect;
-};
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
+	};
+}
 
 #include "Ssao.inl"

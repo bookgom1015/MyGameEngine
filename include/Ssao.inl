@@ -1,51 +1,39 @@
 #ifndef __SSAO_INL__
 #define __SSAO_INL__
 
-constexpr UINT Ssao::Width() const {
+constexpr UINT Ssao::SsaoClass::Width() const {
 	return mWidth;
 }
 
-constexpr UINT Ssao::Height() const {
+constexpr UINT Ssao::SsaoClass::Height() const {
 	return mHeight;
 }
 
-constexpr D3D12_VIEWPORT Ssao::Viewport() const {
+constexpr D3D12_VIEWPORT Ssao::SsaoClass::Viewport() const {
 	return mViewport;
 }
 
-constexpr D3D12_RECT Ssao::ScissorRect() const {
+constexpr D3D12_RECT Ssao::SsaoClass::ScissorRect() const {
 	return mScissorRect;
 }
 
-ID3D12Resource* Ssao::AmbientMap0Resource() {
-	return mAmbientMap0.Get();
+ID3D12Resource* Ssao::SsaoClass::AOCoefficientMapResource(UINT index) {
+	return mAOCoefficientMaps[index].Get();
 }
 
-ID3D12Resource* Ssao::AmbientMap1Resource() {
-	return mAmbientMap1.Get();
-}
-
-ID3D12Resource* Ssao::RandomVectorMapResource() {
+ID3D12Resource* Ssao::SsaoClass::RandomVectorMapResource() {
 	return mRandomVectorMap.Get();
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssao::AmbientMap0Srv() const {
-	return mhAmbientMap0GpuSrv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssao::SsaoClass::AOCoefficientMapSrv(UINT index) const {
+	return mhAOCoefficientMapGpuSrvs[index];
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssao::AmbientMap0Rtv() const {
-	return mhAmbientMap0CpuRtv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssao::SsaoClass::AOCoefficientMapRtv(UINT index) const {
+	return mhAOCoefficientMapCpuRtvs[index];
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssao::AmbientMap1Srv() const {
-	return mhAmbientMap1GpuSrv;
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssao::AmbientMap1Rtv() const {
-	return mhAmbientMap1CpuRtv;
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssao::RandomVectorMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssao::SsaoClass::RandomVectorMapSrv() const {
 	return mhRandomVectorMapGpuSrv;
 }
 

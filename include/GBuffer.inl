@@ -1,75 +1,75 @@
 #ifndef __GBUFFER_INL__
 #define __GBUFFER_INL__
 
-constexpr UINT GBuffer::Width() const {
+constexpr UINT GBuffer::GBufferClass::Width() const {
 	return mWidth;
 }
 
-constexpr UINT GBuffer::Height() const {
+constexpr UINT GBuffer::GBufferClass::Height() const {
 	return mHeight;
 }
 
-ID3D12Resource* GBuffer::ColorMapResource() {
+ID3D12Resource* GBuffer::GBufferClass::ColorMapResource() {
 	return mColorMap.Get();
 }
 
-ID3D12Resource* GBuffer::AlbedoMapResource() {
+ID3D12Resource* GBuffer::GBufferClass::AlbedoMapResource() {
 	return mAlbedoMap.Get();
 }
 
-ID3D12Resource* GBuffer::NormalMapResource() {
+ID3D12Resource* GBuffer::GBufferClass::NormalMapResource() {
 	return mNormalMap.Get();
 }
 
-ID3D12Resource* GBuffer::SpecularMapResource() {
+ID3D12Resource* GBuffer::GBufferClass::SpecularMapResource() {
 	return mSpecularMap.Get();
 }
 
-ID3D12Resource* GBuffer::VelocityMapResource() {
+ID3D12Resource* GBuffer::GBufferClass::VelocityMapResource() {
 	return mVelocityMap.Get();
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::ColorMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ColorMapSrv() const {
 	return mhColorMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::AlbedoMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapSrv() const {
 	return mhAlbedoMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::NormalMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalMapSrv() const {
 	return mhNormalMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::DepthMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::DepthMapSrv() const {
 	return mhDepthMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::SpecularMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::SpecularMapSrv() const {
 	return mhSpecularMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::VelocityMapSrv() const {
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::VelocityMapSrv() const {
 	return mhVelocityMapGpuSrv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::ColorMapRtv() const {
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ColorMapRtv() const {
 	return mhColorMapCpuRtv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::AlbedoMapRtv() const {
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapRtv() const {
 	return mhAlbedoMapCpuRtv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::NormalMapRtv() const {
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalMapRtv() const {
 	return mhNormalMapCpuRtv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::SpecularMapRtv() const {
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::SpecularMapRtv() const {
 	return mhSpecularMapCpuRtv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::VelocityMapRtv() const {
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::VelocityMapRtv() const {
 	return mhVelocityMapCpuRtv;
 }
 

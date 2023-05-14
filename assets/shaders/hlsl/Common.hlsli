@@ -68,13 +68,13 @@ Texture2D	gTextureMap[NUM_TEXTURE_MAPS]		: register(t23);
 
 RWTexture2D<float> uFocalDistance : register(u0);
 
-float CalcShadowFactor(float4 shadowPosH) {
+float CalcShadowFactor(Texture2D shadowMap, float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
 
 	float depth = shadowPosH.z;
 
 	uint width, height, numMips;
-	gShadowMap.GetDimensions(0, width, height, numMips);
+	shadowMap.GetDimensions(0, width, height, numMips);
 
 	float dx = 1.0f / (float)width;
 
@@ -87,7 +87,7 @@ float CalcShadowFactor(float4 shadowPosH) {
 
 	[unroll]
 	for (int i = 0; i < 9; ++i) {
-		percentLit += gShadowMap.SampleCmpLevelZero(gsamShadow, shadowPosH.xy + offsets[i], depth).r;
+		percentLit += shadowMap.SampleCmpLevelZero(gsamShadow, shadowPosH.xy + offsets[i], depth).r;
 	}
 
 	return percentLit / 9.0f;

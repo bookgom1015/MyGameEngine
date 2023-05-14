@@ -1,0 +1,86 @@
+#pragma once
+
+#include <d3dx12.h>
+#include <unordered_map>
+
+#include "Samplers.h"
+
+class ShaderManager;
+
+namespace BlurFilter {
+	namespace RootSignatureLayout {
+		enum {
+			ECB_BlurPass = 0,
+			EC_Consts,
+			ESI_Normal,
+			ESI_Depth,
+			ESI_Input,
+			Count
+		};
+	}
+
+	namespace RootConstantsLayout {
+		enum {
+			EHorizontal = 0,
+			EBilateral,
+			Count
+		};
+	}
+
+	enum FilterType {
+		R8G8B8A8,
+		R16,
+		Count
+	};
+
+	class BlurFilterClass {
+	public:
+		BlurFilterClass() = default;
+		virtual ~BlurFilterClass() = default;
+
+	public:
+		bool Initialize(ID3D12Device*const device, ShaderManager*const manager);
+		bool CompileShaders(const std::wstring& filePath);
+		bool BuildRootSignature(const StaticSamplers& samplers);
+		bool BuildPso();
+		void Run(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			ID3D12Resource*const primary,
+			ID3D12Resource*const secondary,
+			D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
+			D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
+			D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
+			D3D12_GPU_DESCRIPTOR_HANDLE secondarySrv,
+			FilterType type,
+			size_t blurCount = 3);
+		void Run(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE normalSrv,
+			D3D12_GPU_DESCRIPTOR_HANDLE depthSrv,
+			ID3D12Resource*const primary,
+			ID3D12Resource*const secondary,
+			D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
+			D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
+			D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
+			D3D12_GPU_DESCRIPTOR_HANDLE secondarySrv,
+			FilterType type,
+			size_t blurCount = 3);
+
+	private:
+		void Blur(
+			ID3D12GraphicsCommandList* cmdList,
+			ID3D12Resource*const output,
+			D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
+			D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
+			bool horzBlur);
+
+	private:
+		ID3D12Device* md3dDevice;
+		ShaderManager* mShaderManager;
+
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+		std::unordered_map<FilterType, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+	};
+}

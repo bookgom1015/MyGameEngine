@@ -2,52 +2,89 @@
 
 #include <d3dx12.h>
 
-class ShadowMap {
-public:
-	ShadowMap();
-	virtual ~ShadowMap();
+#include "Samplers.h"
 
-public:
-	bool Initialize(ID3D12Device* device, UINT width, UINT height);
+class ShaderManager;
 
-	__forceinline constexpr UINT Width() const;
-	__forceinline constexpr UINT Height() const;
+struct RenderItem;
 
-	__forceinline constexpr D3D12_VIEWPORT Viewport() const;
-	__forceinline constexpr D3D12_RECT ScissorRect() const;
+namespace ShadowMap {
+	namespace RootSignatureLayout {
+		enum {
+			ECB_Pass = 0,
+			ECB_Obj,
+			ECB_Mat,
+			ESI_TexMaps,
+			Count
+		};
+	}
 
-	ID3D12Resource* Resource();
-	__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Srv() const;
-	__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
+	const UINT NumDepthStenciles = 1;
 
-	void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
+	class ShadowMapClass {
+	public:
+		ShadowMapClass() = default;
+		virtual ~ShadowMapClass() = default;
 
-private:
-	void BuildDescriptors();
-	bool BuildResource();
+	public:
+		__forceinline constexpr UINT Width() const;
+		__forceinline constexpr UINT Height() const;
 
-public:
-	static const UINT NumDepthStenciles = 1;
+		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
+		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-protected:
-	const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R24G8_TYPELESS;
+		__forceinline ID3D12Resource* Resource();
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Srv() const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
 
-private:
-	ID3D12Device* md3dDevice;
+	public:
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
+		bool CompileShaders(const std::wstring& filePath);
+		bool BuildRootSignature(const StaticSamplers& samplers);
+		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
+		void Run(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
+			const std::vector<RenderItem*>& ritems);
 
-	UINT mWidth;
-	UINT mHeight;
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
+			UINT descSize, UINT dsvDescSize);
 
-	D3D12_VIEWPORT mViewport;
-	D3D12_RECT mScissorRect;
+	private:
+		void BuildDescriptors();
+		bool BuildResource();
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> mShadowMap = nullptr;
+		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
+			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
+	protected:
+		const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R24G8_TYPELESS;
+
+	private:
+		ID3D12Device* md3dDevice;
+		ShaderManager* mShaderManager;
+
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
+
+		UINT mWidth;
+		UINT mHeight;
+
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
+
+		Microsoft::WRL::ComPtr<ID3D12Resource> mShadowMap = nullptr;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
+	};
 };
 
 #include "ShadowMap.inl"

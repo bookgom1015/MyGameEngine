@@ -1,7 +1,19 @@
 #ifndef __SHADOW_HLSL__
 #define __SHADOW_HLSL__
 
-#include "Common.hlsli"
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
+#include "ShadingHelpers.hlsli"
+#include "Samplers.hlsli"
+
+ConstantBuffer<PassConstants>		cbPass	: register(b0);
+ConstantBuffer<ObjectConstants>		cbObj	: register(b1);
+ConstantBuffer<MaterialConstants>	cbMat	: register(b2);
+
+Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t0);
 
 struct VertexIn {
 	float3 PosL		: POSITION;
@@ -15,20 +27,20 @@ struct VertexOut {
 };
 
 VertexOut VS(VertexIn vin) {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout = (VertexOut)0;
 	
-	float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
-	vout.PosH = mul(posW, gViewProj);
+	float4 posW = mul(float4(vin.PosL, 1), cbObj.World);
+	vout.PosH = mul(posW, cbPass.ViewProj);
 
-	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
-	vout.TexC = mul(texC, gMatTransform).xy;
+	float4 texC = mul(float4(vin.TexC, 0, 1), cbObj.TexTransform);
+	vout.TexC = mul(texC, cbMat.MatTransform).xy;
 
 	return vout;
 }
 
 void PS(VertexOut pin) {
-	float4 diffuseAlbedo = gDiffuseAlbedo;
-	if (gDiffuseSrvIndex != -1) diffuseAlbedo *= gTextureMap[gDiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 diffuseAlbedo = cbMat.DiffuseAlbedo;
+	if (cbMat.DiffuseSrvIndex != -1) diffuseAlbedo *= gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
 #ifdef ALPHA_TEST
 	// Discard pixel if texture alpha < 0.1.  We do this test as soon 
