@@ -82,7 +82,7 @@ public:
 
 	virtual bool OnResize(UINT width, UINT height) override;
 
-	virtual void* AddModel(const std::string& file, const Transform& trans, ERenderTypes type = ERenderTypes::EOpaque) override;
+	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::EOpaque) override;
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
@@ -114,7 +114,7 @@ private:
 
 	bool AddGeometry(const std::string& file);
 	bool AddMaterial(const std::string& file, const Material& material);
-	void* AddRenderItem(const std::string& file, const Transform& trans, ERenderTypes type);
+	void* AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type);
 
 	bool CreateTextureImage(int width, int height, void* data, MaterialData* mat);
 	bool CreateTextureImageView(MaterialData* mat);
@@ -178,7 +178,7 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<MaterialData>> mMaterials;
 
 	std::vector<std::unique_ptr<RenderItem>> mRitems;
-	std::vector<RenderItem*> mRitemRefs[ERenderTypes::ENumTypes];
+	std::vector<RenderItem*> mRitemRefs[RenderType::Type::Count];
 
 	std::vector<VkBuffer> mMainPassBuffers;
 	std::vector<VkDeviceMemory> mMainPassMemories;

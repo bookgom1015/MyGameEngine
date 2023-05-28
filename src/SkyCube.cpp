@@ -4,20 +4,23 @@
 #include "D3D12Util.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
+#include "DDSTextureLoader.h"
+#include "ResourceUploadBatch.h"
 
+using namespace DirectX;
 using namespace SkyCube;
 
-bool SkyCubeClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
+bool SkyCubeClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList,
+		ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
-
 	mBackBufferFormat = backBufferFormat;
+
+	CheckReturn(BuildResource(cmdList));
 
 	return true;
 }
@@ -73,32 +76,166 @@ bool SkyCubeClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsv
 
 void SkyCubeClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
+		D3D12_VIEWPORT viewport,
+		D3D12_RECT scissorRect,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
-	
-	cmdList->RSSetViewports(1, &mViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	cmdList->RSSetViewports(1, &viewport);
+	cmdList->RSSetScissorRects(1, &scissorRect);
 	
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Cube, si_cube);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Cube, mhGpuSrv);
 
 	DrawRenderItems(cmdList, ritems);
 }
 
-bool SkyCubeClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
+bool SkyCubeClass::SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file) {
+	auto tex = std::make_unique<Texture>();
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+	std::wstring filename;
+	filename.assign(file.begin(), file.end());
+
+	auto index = filename.rfind(L'.');
+	filename = filename.replace(filename.begin() + index, filename.end(), L".dds");
+
+	ResourceUploadBatch resourceUpload(md3dDevice);
+
+	resourceUpload.Begin();
+
+	HRESULT status = DirectX::CreateDDSTextureFromFile(
+		md3dDevice,
+		resourceUpload,
+		filename.c_str(),
+		tex->Resource.ReleaseAndGetAddressOf()
+	);
+
+	auto finished = resourceUpload.End(queue);
+	finished.wait();
+
+	if (FAILED(status)) {
+		std::wstringstream wsstream;
+		wsstream << "Returned " << std::hex << status << "; when creating texture:  " << filename;
+		WLogln(wsstream.str());
+		return false;
+	}
+
+	auto& resource = tex->Resource;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	srvDesc.TextureCube.MostDetailedMip = 0;
+	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+	srvDesc.TextureCube.MipLevels = resource->GetDesc().MipLevels;
+	srvDesc.Format = resource->GetDesc().Format;
+
+	resource.Swap(mCubeMap);
+	resource.Reset();
+
+	md3dDevice->CreateShaderResourceView(mCubeMap.Get(), &srvDesc, mhCpuSrv);
+	
+	return true;
+}
+
+void SkyCubeClass::BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+		UINT descSize) {
+	mhCpuSrv = hCpu;
+	mhGpuSrv = hGpu;
+
+	hCpu.Offset(1, descSize);
+	hGpu.Offset(1, descSize);
+
+	BuildDescriptors();
+}
+
+void SkyCubeClass::BuildDescriptors() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.PlaneSlice = 0;
+	md3dDevice->CreateShaderResourceView(mCubeMap.Get(), &srvDesc, mhCpuSrv);
+}
+
+bool SkyCubeClass::BuildResource(ID3D12GraphicsCommandList*const cmdList) {
+	D3D12_RESOURCE_DESC texDesc;
+	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Alignment = 0;
+	texDesc.Width = 1;
+	texDesc.Height = 1;
+	texDesc.DepthOrArraySize = 1;
+	texDesc.MipLevels = 1;
+	texDesc.Format = mBackBufferFormat;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	
+	CheckHRESULT(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&mCubeMap))
+	);
+	mCubeMap->SetName(L"CubeMap");
+
+	{
+		const UINT num2DSubresources = texDesc.DepthOrArraySize * texDesc.MipLevels;
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(mCubeMap.Get(), 0, num2DSubresources);
+
+		CheckHRESULT(md3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			nullptr,
+			IID_PPV_ARGS(&mCubeMapUploadBuffer)
+		));
+
+		const UINT size = 4;
+		std::vector<BYTE> data(size);
+
+		for (UINT i = 0; i < size; ++i) {
+			data[i] = 0;	// rgba-channels = 0 = black
+		}
+
+		D3D12_SUBRESOURCE_DATA subResourceData = {};
+		subResourceData.pData = data.data();
+		subResourceData.RowPitch = 4;
+		subResourceData.SlicePitch = subResourceData.RowPitch;
+
+		UpdateSubresources(
+			cmdList,
+			mCubeMap.Get(),
+			mCubeMapUploadBuffer.Get(),
+			0,
+			0,
+			num2DSubresources,
+			&subResourceData
+		);
+		cmdList->ResourceBarrier(
+			1,
+			&CD3DX12_RESOURCE_BARRIER::Transition(
+				mCubeMap.Get(),
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			)
+		);
 	}
 
 	return true;

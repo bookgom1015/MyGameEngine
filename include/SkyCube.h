@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <wrl.h>
 
 #include "Samplers.h"
 
@@ -23,21 +24,34 @@ namespace SkyCube {
 		virtual ~SkyCubeClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE CubeMapSrv() const;
+
+	public:
+		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList, 
+			ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
 			const std::vector<RenderItem*>& ritems);
 
-		bool OnResize(UINT width, UINT height);
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+			UINT descSize);
+
+		bool SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file);
 
 	private:
+		void BuildDescriptors();
+		bool BuildResource(ID3D12GraphicsCommandList*const cmdList);
+
 		void DrawRenderItems(ID3D12GraphicsCommandList*const cmdList, const std::vector<RenderItem*>& ritems);
 
 	private:
@@ -50,9 +64,16 @@ namespace SkyCube {
 		UINT mWidth;
 		UINT mHeight;
 
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
-
 		DXGI_FORMAT mBackBufferFormat;
+
+		Microsoft::WRL::ComPtr<ID3D12Resource> mCubeMap;
+		Microsoft::WRL::ComPtr<ID3D12Resource> mCubeMapUploadBuffer;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
 	};
+}
+
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE SkyCube::SkyCubeClass::CubeMapSrv() const {
+	return mhGpuSrv;
 }

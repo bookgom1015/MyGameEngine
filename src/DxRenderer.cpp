@@ -19,6 +19,7 @@
 #include "BlurFilter.h"
 #include "Debug.h"
 #include "SkyCube.h"
+#include "ImGuiManager.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -90,6 +91,8 @@ DxRenderer::DxRenderer() {
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
 	mLightDir = { 0.57735f, -0.57735f, 0.57735f };
 
+	mImGui = std::make_unique<ImGuiManager>();
+
 	mBackBuffer = std::make_unique<BackBuffer::BackBufferClass>();
 	mGBuffer = std::make_unique<GBuffer::GBufferClass>();
 	mShadowMap = std::make_unique<ShadowMap::ShadowMapClass>();
@@ -154,6 +157,8 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 
 	const auto shaderManager = mShaderManager.get();
 
+	CheckReturn(mImGui->Initialize(mhMainWnd, device, mCbvSrvUavHeap.Get(), SwapChainBufferCount, BackBufferFormat));
+
 	std::array<ID3D12Resource*, SwapChainBufferCount> backBuffers;
 	for (int i = 0; i < SwapChainBufferCount; ++i) {
 		backBuffers[i] = BackBuffer(i);
@@ -161,7 +166,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mBackBuffer->Initialize(device, width, height, shaderManager, BackBufferFormat, backBuffers.data(), SwapChainBufferCount));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer.Get(), DepthStencilView(), DepthStencilFormat));
 	CheckReturn(mShadowMap->Initialize(device, shaderManager, 2048, 2048));
-	CheckReturn(mSsao->Initialize(device, cmdList, width, height, 1, shaderManager));
+	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4, BackBufferFormat));
 	CheckReturn(mSsr->Initialize(device, shaderManager, width, height, 2, BackBufferFormat));
@@ -169,7 +174,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height, BackBufferFormat));
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, BackBufferFormat));
 	CheckReturn(mDebug->Initialize(device, shaderManager, width, height, BackBufferFormat));
-	CheckReturn(mSkyCube->Initialize(device, shaderManager, width, height, BackBufferFormat));
+	CheckReturn(mSkyCube->Initialize(device, cmdList, shaderManager, width, height, BackBufferFormat));
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -186,8 +191,6 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(BuildPSOs());
 	BuildRenderItems();
 
-	CheckReturn(InitImGui());
-
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
 		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.0f, ((offset.y - 0.5f) / height) * 2.0f);
@@ -198,7 +201,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 }
 
 void DxRenderer::CleanUp() {
-	CleanUpImGui();
+	mImGui->CleanUp();
 	LowCleanUp();
 
 	bIsCleanedUp = true;
@@ -272,7 +275,6 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckReturn(mMotionBlur->OnResize(width, height));
 	CheckReturn(mTaa->OnResize(width, height));
 	CheckReturn(mDebug->OnResize(width, height));
-	CheckReturn(mSkyCube->OnResize(width, height));
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -327,55 +329,13 @@ bool DxRenderer::SetCubeMap(const std::string& file) {
 	ID3D12GraphicsCommandList* cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	auto texMap = std::make_unique<Texture>();
-	texMap->DescriptorIndex = Descriptors::ES_Cube;
-
-	std::wstring filename;
-	filename.assign(file.begin(), file.end());
-
-	auto index = filename.rfind(L'.');
-	filename = filename.replace(filename.begin() + index, filename.end(), L".dds");
-
-	ResourceUploadBatch resourceUpload(md3dDevice.Get());
-	
-	resourceUpload.Begin();
-	
-	HRESULT status = DirectX::CreateDDSTextureFromFile(
-		md3dDevice.Get(),
-		resourceUpload,
-		filename.c_str(),
-		texMap->Resource.ReleaseAndGetAddressOf()
-	);
-	
-	auto finished = resourceUpload.End(mCommandQueue.Get());
-	finished.wait();
-	
-	if (FAILED(status)) {
-		std::wstringstream wsstream;
-		wsstream << "Returned " << std::hex << status << "; when creating texture:  " << filename;
-		WLogln(wsstream.str());
-		return false;
-	}
-
-	const auto& resource = texMap->Resource;
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-	srvDesc.TextureCube.MostDetailedMip = 0;
-	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-	srvDesc.TextureCube.MipLevels = resource->GetDesc().MipLevels;
-	srvDesc.Format = resource->GetDesc().Format;
-
-	md3dDevice->CreateShaderResourceView(resource.Get(), &srvDesc, D3D12Util::GetCpuHandle(mCbvSrvUavHeap.Get(), Descriptors::ES_Cube, GetCbvSrvUavDescriptorSize()));
+	mSkyCube->SetCubeMap(mCommandQueue.Get(), file);
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	CheckReturn(FlushCommandQueue());
-
-	mTextures[file] = std::move(texMap);
 
 	return true;
 }
@@ -397,37 +357,6 @@ bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
 
 	return true;
-}
-
-bool DxRenderer::InitImGui() {
-	// Setup dear ImGui context.
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-	// Setup Dear ImGui style.
-	ImGui::StyleColorsDark();
-
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	// Setup platform/renderer backends
-	CheckReturn(ImGui_ImplWin32_Init(mhMainWnd));
-	CheckReturn(ImGui_ImplDX12_Init(
-		md3dDevice.Get(),
-		SwapChainBufferCount,
-		BackBufferFormat,
-		mCbvSrvUavHeap.Get(),
-		D3D12Util::GetCpuHandle(mCbvSrvUavHeap.Get(), Descriptors::ES_Font, descSize),
-		D3D12Util::GetGpuHandle(mCbvSrvUavHeap.Get(), Descriptors::ES_Font, descSize)
-	));
-
-	return true;
-}
-
-void DxRenderer::CleanUpImGui() {
-	ImGui_ImplDX12_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
 }
 
 bool DxRenderer::CompileShaders() {
@@ -561,6 +490,8 @@ void DxRenderer::BuildDescriptors() {
 	auto hGpu = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart);
 	auto hCpuDsv = CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart);
 	auto hCpuRtv = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart);
+
+	mImGui->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mBackBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize, mDepthStencilBuffer.Get());
@@ -858,7 +789,7 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	srvDesc.Format = resource->GetDesc().Format;
 
 	auto hDescriptor = mhCpuDescForTexMaps;
-	hDescriptor.Offset(mCurrDescriptorIndex, GetCbvSrvUavDescriptorSize());
+	hDescriptor.Offset(texMap->DescriptorIndex, GetCbvSrvUavDescriptorSize());
 
 	md3dDevice->CreateShaderResourceView(resource.Get(), &srvDesc, hDescriptor);
 
@@ -1325,17 +1256,18 @@ bool DxRenderer::DrawSkyCube() {
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	
+
 	const auto backBuffer = CurrentBackBuffer();
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	mSkyCube->Run(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
 		CurrentBackBufferView(),
 		DepthStencilView(),
 		passCBAddress,
-		cube,
 		mRitemRefs[RenderType::ESky]
 	);
 	
@@ -1488,7 +1420,7 @@ bool DxRenderer::ApplySsr() {
 		mScreenViewport,
 		mScissorRect,
 		ssrCBAddress,
-		cube,
+		mSkyCube->CubeMapSrv(),
 		mBackBuffer->BackBufferSrv(CurrentBackBufferIndex()),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),

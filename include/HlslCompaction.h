@@ -54,9 +54,9 @@ struct MaterialConstants {
 	DirectX::XMFLOAT3	FresnelR0;
 	float				Roughness;
 	DirectX::XMFLOAT4X4	MatTransform;
-	INT					DiffuseSrvIndex;
-	INT					NormalSrvIndex;
-	INT					AlphaSrvIndex;
+	int					DiffuseSrvIndex;
+	int					NormalSrvIndex;
+	int					AlphaSrvIndex;
 	float				MatConstPad0;
 };
 

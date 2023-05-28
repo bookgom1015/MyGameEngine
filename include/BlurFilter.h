@@ -2,6 +2,7 @@
 
 #include <d3dx12.h>
 #include <unordered_map>
+#include <wrl.h>
 
 #include "Samplers.h"
 

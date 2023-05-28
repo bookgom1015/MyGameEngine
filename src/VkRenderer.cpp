@@ -173,7 +173,7 @@ bool VkRenderer::OnResize(UINT width, UINT height) {
 	return true;
 }
 
-void* VkRenderer::AddModel(const std::string& file, const Transform& trans, ERenderTypes type) {
+void* VkRenderer::AddModel(const std::string& file, const Transform& trans, RenderType::Type type) {
 	if (mMeshes.count(file) == 0) CheckReturn(AddGeometry(file));
 	return AddRenderItem(file, trans, type);
 }
@@ -1356,7 +1356,7 @@ bool VkRenderer::AddMaterial(const std::string& file, const Material& material) 
 	return true;
 }
 
-void* VkRenderer::AddRenderItem(const std::string& file, const Transform& trans, ERenderTypes type) {
+void* VkRenderer::AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type) {
 	std::unique_ptr<RenderItem> ritem = std::make_unique<RenderItem>();
 	ritem->Scale = trans.Scale;
 	ritem->Rotation = trans.Rotation;
@@ -1729,7 +1729,7 @@ bool VkRenderer::DrawBackBuffer() {
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipelines["default"]);
 
-	for (auto ritem : mRitemRefs[ERenderTypes::EOpaque]) {
+	for (auto ritem : mRitemRefs[RenderType::EOpaque]) {
 		if (!ritem->Visible) continue;
 
 		const auto& mesh = mMeshes[ritem->MeshName];

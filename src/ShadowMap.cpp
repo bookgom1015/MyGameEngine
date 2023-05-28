@@ -3,6 +3,7 @@
 #include "ShaderManager.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
+#include "MathHelper.h"
 #include "HlslCompaction.h"
 #include "D3D12Util.h"
 

@@ -312,7 +312,7 @@ void DepthOfFieldClass::BlurDof(
 	cmdList->SetGraphicsRootConstantBufferView(DofBlur::RootSignatureLayout::ECB_Blur, cbAddress);
 	cmdList->SetGraphicsRootDescriptorTable(DofBlur::RootSignatureLayout::ESI_Coc, mhCocMapGpuSrv);
 
-	for (int i = 0; i < blurCount; ++i) {
+	for (UINT i = 0; i < blurCount; ++i) {
 		Blur(cmdList, true);
 		Blur(cmdList, false);
 	}

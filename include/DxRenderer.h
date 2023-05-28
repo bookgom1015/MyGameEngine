@@ -3,6 +3,7 @@
 const int gNumFrameResources = 3;
 
 #include "DxLowRenderer.h"
+#include "MathHelper.h"
 #include "HlslCompaction.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
@@ -11,6 +12,7 @@ struct FrameResource;
 struct PassConstants;
 
 class ShaderManager;
+class ImGuiManager;
 
 namespace BackBuffer { class BackBufferClass; }
 namespace GBuffer { class GBufferClass; }
@@ -66,48 +68,6 @@ namespace EDsvHeapLayout {
 	};
 }
 
-namespace Descriptors {
-	enum {
-		ES_BackBuffer0 = 0,
-		ES_BackBuffer1,
-		ES_Cube,
-		ES_Font,
-		Count
-	};
-}
-
-//namespace EReservedDescriptors {
-//	enum {
-//		ES_Cube = 0, Srv_Start = ES_Cube,
-//		ES_Color,
-//		ES_Albedo,
-//		ES_Normal,
-//		ES_Depth,
-//		ES_Specular,
-//		ES_Velocity,
-//		ES_Shadow,
-//		ES_Ambient0,
-//		ES_Ambient1,
-//		ES_RandomVector,
-//		ES_Resolve,
-//		ES_History,
-//		ES_BackBuffer0,
-//		ES_BackBuffer1,
-//		ES_Coc,
-//		ES_Dof,
-//		ES_DofBlur,
-//		ES_Bloom0,
-//		ES_Bloom1,
-//		ES_Ssr0,
-//		ES_Ssr1,
-//		ES_Font, Srv_End = ES_Font,
-//
-//		EU_FocalDist = NUM_TEXTURE_MAPS, Uav_Start = EU_FocalDist, Uav_End = EU_FocalDist,
-//
-//		Count
-//	};
-//}
-
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
 	DxRenderer();
@@ -138,9 +98,6 @@ public:
 	UINT AddTexture(const std::string& file, const Material& material);
 
 private:
-	bool InitImGui();
-	void CleanUpImGui();
-
 	bool CompileShaders();
 	bool BuildGeometries();
 
@@ -206,6 +163,8 @@ private:
 
 	DirectX::BoundingSphere mSceneBounds;
 	DirectX::XMFLOAT3 mLightDir;
+
+	std::unique_ptr<ImGuiManager> mImGui;
 
 	std::unique_ptr<BackBuffer::BackBufferClass> mBackBuffer;
 	std::unique_ptr<GBuffer::GBufferClass> mGBuffer;

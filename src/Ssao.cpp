@@ -10,8 +10,8 @@ using namespace DirectX::PackedVector;
 using namespace Ssao;
 
 bool SsaoClass::Initialize(
-		ID3D12Device* device, ID3D12GraphicsCommandList* cmdList,
-		UINT width, UINT height, UINT divider, ShaderManager*const manager) {
+		ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
+		UINT width, UINT height, UINT divider) {
 	md3dDevice = device;
 	mShaderManager = manager;
 

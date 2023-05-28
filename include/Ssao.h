@@ -28,8 +28,8 @@ namespace Ssao {
 
 	class SsaoClass {
 	public:
-		SsaoClass();
-		virtual ~SsaoClass();
+		SsaoClass() = default;
+		virtual ~SsaoClass() = default;
 
 	public:
 		__forceinline constexpr UINT Width() const;
@@ -46,8 +46,8 @@ namespace Ssao {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RandomVectorMapSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, 
-			UINT width, UINT height, UINT divider, ShaderManager*const manager);
+		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
+			UINT width, UINT height, UINT divider);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout);

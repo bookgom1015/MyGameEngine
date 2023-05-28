@@ -30,7 +30,7 @@ ID3D12Resource* DepthOfField::DepthOfFieldClass::CocMapResource() {
 }
 
 ID3D12Resource* DepthOfField::DepthOfFieldClass::DofMapResource() {
-	return mDofMap.Get();
+	return mDofMaps[0].Get();
 }
 
 ID3D12Resource* DepthOfField::DepthOfFieldClass::FocalDistanceBufferResource() {

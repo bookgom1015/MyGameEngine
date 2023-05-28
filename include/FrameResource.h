@@ -1,8 +1,8 @@
 #pragma once
 
 #include "MathHelper.h"
-#include "UploadBuffer.h"
 #include "HlslCompaction.h"
+#include "UploadBuffer.h"
 
 struct FrameResource {
 public:

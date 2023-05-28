@@ -78,7 +78,9 @@ void DebugClass::Run(
 	
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
-	UINT values[RootConstantsLayout::Count] = { mask0, mask1, mask2, mask3, mask4 };
+	UINT values[RootConstantsLayout::Count] = { 
+		static_cast<UINT>(mask0), static_cast<UINT>(mask1), static_cast<UINT>(mask2), static_cast<UINT>(mask3), static_cast<UINT>(mask4) 
+	};
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, RootConstantsLayout::ESampleMask0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);

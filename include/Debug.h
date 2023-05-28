@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <wrl.h>
 
 #include "MathHelper.h"
 #include "HlslCompaction.h"

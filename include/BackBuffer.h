@@ -2,6 +2,7 @@
 
 #include <d3dx12.h>
 #include <vector>
+#include <wrl.h>
 
 #include "Samplers.h"
 
@@ -27,8 +28,8 @@ namespace BackBuffer {
 		virtual ~BackBufferClass() = default;
 
 	public:
-		ID3D12Resource* BackBuffer(size_t index);
-		CD3DX12_GPU_DESCRIPTOR_HANDLE BackBufferSrv(size_t index);
+		__forceinline ID3D12Resource* BackBuffer(size_t index);
+		__forceinline CD3DX12_GPU_DESCRIPTOR_HANDLE BackBufferSrv(size_t index) const;
 
 	public:
 		bool Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager,
@@ -75,6 +76,6 @@ ID3D12Resource* BackBuffer::BackBufferClass::BackBuffer(size_t index) {
 	return mBackBuffers[index];
 }
 
-CD3DX12_GPU_DESCRIPTOR_HANDLE BackBuffer::BackBufferClass::BackBufferSrv(size_t index) {
+CD3DX12_GPU_DESCRIPTOR_HANDLE BackBuffer::BackBufferClass::BackBufferSrv(size_t index) const {
 	return mhBackBufferGpuSrvs[index];
 }

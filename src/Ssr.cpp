@@ -56,8 +56,6 @@ bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
 
-		CD3DX12_DESCRIPTOR_RANGE texTable1;
-
 		slotRootParameter[Building::RootSignatureLayout::ECB_Ssr].InitAsConstantBufferView(0);
 		slotRootParameter[Building::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[Building::RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
@@ -169,8 +167,8 @@ void SsrClass::ApplySsr(
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normal, 
-		D3D12_GPU_DESCRIPTOR_HANDLE si_depth, 
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_spec) {
 	cmdList->SetPipelineState(mPSOs["applyingSsr"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["applyingSsr"].Get());

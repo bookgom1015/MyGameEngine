@@ -1,6 +1,7 @@
 #include "GBuffer.h"
 #include "Logger.h"
 #include "ShaderManager.h"
+#include "MathHelper.h"
 #include "HlslCompaction.h"
 #include "D3D12Util.h"
 #include "RenderItem.h"
