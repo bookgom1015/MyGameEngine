@@ -17,6 +17,7 @@ namespace BackBuffer {
 			ESI_Normal,
 			ESI_Depth,
 			ESI_Specular,
+			ESI_Shadow,
 			ESI_AOCoefficient,
 			Count
 		};
@@ -28,12 +29,11 @@ namespace BackBuffer {
 		virtual ~BackBufferClass() = default;
 
 	public:
-		__forceinline ID3D12Resource* BackBuffer(size_t index);
 		__forceinline CD3DX12_GPU_DESCRIPTOR_HANDLE BackBufferSrv(size_t index) const;
 
 	public:
-		bool Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager,
-			DXGI_FORMAT backBufferFormat, ID3D12Resource*const buffers[], UINT bufferCount);
+		bool Initialize(ID3D12Device*const device, ShaderManager*const manager, UINT width, UINT height,
+			DXGI_FORMAT backBufferFormat, UINT bufferCount);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -45,13 +45,18 @@ namespace BackBuffer {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_specular, 
+			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient);
 
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv, UINT descSize);
-		bool OnResize(UINT width, UINT height);
+		void BuildDescriptors(
+			ID3D12Resource*const buffers[],
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv, 
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv, 
+			UINT descSize);
+		bool OnResize(ID3D12Resource*const buffers[], UINT width, UINT height);
 
 	private:
-		void BuildDescriptors();
+		void BuildDescriptors(ID3D12Resource*const buffers[]);
 		
 	private:
 		ID3D12Device* md3dDevice;
@@ -64,16 +69,11 @@ namespace BackBuffer {
 		UINT mHeight;
 
 		DXGI_FORMAT mBackBufferFormat;
-		ID3D12Resource*const* mBackBuffers;
 		UINT mBackBufferCount;
 
 		std::vector<CD3DX12_CPU_DESCRIPTOR_HANDLE> mhBackBufferCpuSrvs;
 		std::vector<CD3DX12_GPU_DESCRIPTOR_HANDLE> mhBackBufferGpuSrvs;
 	};
-}
-
-ID3D12Resource* BackBuffer::BackBufferClass::BackBuffer(size_t index) {
-	return mBackBuffers[index];
 }
 
 CD3DX12_GPU_DESCRIPTOR_HANDLE BackBuffer::BackBufferClass::BackBufferSrv(size_t index) const {

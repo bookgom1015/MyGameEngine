@@ -17,6 +17,8 @@ bool DebugClass::Initialize(ID3D12Device* device, ShaderManager*const manager, U
 
 	mBackBufferFormat = backBufferFormat;
 
+	mNumEnabledMaps = 0;
+
 	return true;
 }
 
@@ -32,8 +34,20 @@ bool DebugClass::CompileShaders(const std::wstring& filePath) {
 
 bool DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
-	
+
+	CD3DX12_DESCRIPTOR_RANGE texTables[5];
+	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+
 	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 0);
+	slotRootParameter[RootSignatureLayout::ESI_Debug0].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug1].InitAsDescriptorTable(1, &texTables[1]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug2].InitAsDescriptorTable(1, &texTables[2]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug3].InitAsDescriptorTable(1, &texTables[3]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug4].InitAsDescriptorTable(1, &texTables[4]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -42,7 +56,7 @@ bool DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
 	);
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
-
+	
 	return true;
 }
 
@@ -64,12 +78,7 @@ bool DebugClass::BuildPso() {
 void DebugClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
-		DebugShaderParams::SampleMask::Type mask0,
-		DebugShaderParams::SampleMask::Type mask1, 
-		DebugShaderParams::SampleMask::Type mask2, 
-		DebugShaderParams::SampleMask::Type mask3, 
-		DebugShaderParams::SampleMask::Type mask4) {
+		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 	
@@ -78,15 +87,21 @@ void DebugClass::Run(
 	
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
-	UINT values[RootConstantsLayout::Count] = { 
-		static_cast<UINT>(mask0), static_cast<UINT>(mask1), static_cast<UINT>(mask2), static_cast<UINT>(mask3), static_cast<UINT>(mask4) 
-	};
-	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, RootConstantsLayout::ESampleMask0);
+	cmdList->SetGraphicsRoot32BitConstants(
+		RootSignatureLayout::EC_Consts, 
+		static_cast<UINT>(mDebugMasks.size()), 
+		mDebugMasks.data(), 
+		RootConstantsLayout::ESampleMask0
+	);
+
+	for (int i = 0; i < mNumEnabledMaps; ++i) {
+		cmdList->SetGraphicsRootDescriptorTable(static_cast<UINT>(RootSignatureLayout::ESI_Debug0 + i), mhDebugGpuSrvs[i]);
+	}
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	cmdList->DrawInstanced(6, 10, 0, 0);
+	cmdList->DrawInstanced(6, static_cast<UINT>(mNumEnabledMaps), 0, 0);
 }
 
 bool DebugClass::OnResize(UINT width, UINT height) {
@@ -99,4 +114,31 @@ bool DebugClass::OnResize(UINT width, UINT height) {
 	}
 
 	return true;
+}
+
+bool DebugClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, DebugShaderParams::SampleMask::Type mask) {
+	if (mNumEnabledMaps >= 5) return false;
+
+	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
+	mDebugMasks[mNumEnabledMaps] = mask;
+
+	++mNumEnabledMaps;
+	
+	return true;
+}
+
+void DebugClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
+	for (int i = 0; i < mNumEnabledMaps; ++i) {
+		if (mhDebugGpuSrvs[i].ptr == hGpuSrv.ptr) {
+			for (int curr = i, end = mNumEnabledMaps - 2; curr <= end; ++curr) {
+				int next = curr + 1;
+				mhDebugGpuSrvs[curr] = mhDebugGpuSrvs[next];
+				mDebugMasks[curr] = mDebugMasks[next];
+			}
+			
+
+			--mNumEnabledMaps;
+			return;
+		}
+	}
 }

@@ -5,6 +5,12 @@
 
 using namespace Bloom;
 
+BloomClass::BloomClass() {
+	mBloomMaps[0] = std::make_unique<GpuResource>();
+	mBloomMaps[1] = std::make_unique<GpuResource>();
+	mResultMap = std::make_unique<GpuResource>();
+}
+
 bool BloomClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -19,10 +25,13 @@ bool BloomClass::Initialize(ID3D12Device* device, ShaderManager*const manager, U
 
 	mBackBufferFormat = backBufferFormat;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
+	mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
+	mReducedScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
 
-	CheckReturn(BuildResource());
+	mOriginalViewport = { 0.0f, 0.0f, static_cast<float>(mResultMapWidth), static_cast<float>(mResultMapHeight), 0.0f, 1.0f };
+	mOriginalScissorRect = { 0, 0, static_cast<int>(mResultMapWidth), static_cast<int>(mResultMapHeight) };
+
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -92,7 +101,7 @@ bool BloomClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC extHlightsPsoDesc = quadPsoDesc;
-	extHlightsPsoDesc.pRootSignature = mRootSignatures["extHlights"].Get();
+	extHlightsPsoDesc.pRootSignature = mRootSignatures["extHighlights"].Get();
 	{
 		auto vs = mShaderManager->GetDxcShader("ExtHlightsVS");
 		auto ps = mShaderManager->GetDxcShader("ExtHlightsPS");
@@ -135,9 +144,12 @@ void BloomClass::ExtractHighlights(
 	cmdList->SetPipelineState(mPSOs["extHighlights"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["extHighlights"].Get());
 
-	cmdList->RSSetViewports(1, &mViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
+	cmdList->RSSetViewports(1, &mReducedViewport);
+	cmdList->RSSetScissorRects(1, &mReducedScissorRect);
 
+	const auto bloomMap0 = mBloomMaps[0].get();
+	bloomMap0->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	
 	auto bloomMapRtv = mhBloomMapCpuRtvs[0];
 	cmdList->ClearRenderTargetView(bloomMapRtv, ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &bloomMapRtv, true, nullptr);
@@ -151,6 +163,8 @@ void BloomClass::ExtractHighlights(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	bloomMap0->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 void BloomClass::Bloom(
@@ -159,8 +173,8 @@ void BloomClass::Bloom(
 	cmdList->SetPipelineState(mPSOs["bloom"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["bloom"].Get());
 
-	cmdList->RSSetViewports(1, &mViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
+	cmdList->RSSetViewports(1, &mOriginalViewport);
+	cmdList->RSSetScissorRects(1, &mOriginalScissorRect);
 
 	cmdList->ClearRenderTargetView(mhResultMapCpuRtv, Bloom::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhResultMapCpuRtv, true, nullptr);
@@ -204,10 +218,13 @@ bool BloomClass::OnResize(UINT width, UINT height) {
 		mResultMapWidth = width;
 		mResultMapHeight = height;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
+		mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
+		mReducedScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
 
-		CheckReturn(BuildResource());
+		mOriginalViewport = { 0.0f, 0.0f, static_cast<float>(mResultMapWidth), static_cast<float>(mResultMapHeight), 0.0f, 1.0f };
+		mOriginalScissorRect = { 0, 0, static_cast<int>(mResultMapWidth), static_cast<int>(mResultMapHeight) };
+
+		CheckReturn(BuildResources());
 		BuildDescriptors();
 	}
 
@@ -230,15 +247,15 @@ void BloomClass::BuildDescriptors() {
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
 	for (int i = 0; i < 2; ++i) {
-		auto bloomMap = mBloomMaps[i].Get();
+		auto bloomMap = mBloomMaps[i]->Resource();
 		md3dDevice->CreateShaderResourceView(bloomMap, &srvDesc, mhBloomMapCpuSrvs[i]);
 		md3dDevice->CreateRenderTargetView(bloomMap, &rtvDesc, mhBloomMapCpuRtvs[i]);
 	}
 
-	md3dDevice->CreateRenderTargetView(mResultMap.Get(), &rtvDesc, mhResultMapCpuRtv);
+	md3dDevice->CreateRenderTargetView(mResultMap->Resource(), &rtvDesc, mhResultMapCpuRtv);
 }
 
-bool BloomClass::BuildResource() {
+bool BloomClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -255,31 +272,31 @@ bool BloomClass::BuildResource() {
 	rscDesc.Width = mBloomMapWidth;
 	rscDesc.Height = mBloomMapHeight;
 	for (int i = 0; i < 2; ++i) {
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		std::wstringstream wsstream;
+		wsstream << "BloomMap_" << i;
+		CheckReturn(mBloomMaps[i]->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(&mBloomMaps[i])
+			wsstream.str().c_str()
 		));
-		std::wstringstream wsstream;
-		wsstream << "BloomMap_" << i;
-		mBloomMaps[i]->SetName(wsstream.str().c_str());
 	}
 	
 
 	rscDesc.Width = mResultMapWidth;
 	rscDesc.Height = mResultMapHeight;
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
+	CheckReturn(mResultMap->Initialize(
+		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		&optClear,
-		IID_PPV_ARGS(mResultMap.GetAddressOf())
+		L"BloomResultMap"
 	));
-	mResultMap->SetName(L"BloomResultMap");
 
 	return true;
 }

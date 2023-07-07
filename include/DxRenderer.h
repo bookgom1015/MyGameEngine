@@ -68,6 +68,21 @@ namespace EDsvHeapLayout {
 	};
 }
 
+namespace DebugMapLayout {
+	enum Type {
+		EColor = 0,
+		EAlbedo,
+		ENormal,
+		EDepth,
+		ESpecular,
+		EVelocity,
+		EShadow,
+		ESsao,
+		EBloom,
+		ESsr
+	};
+}
+
 class DxRenderer : public Renderer, public DxLowRenderer {
 public:
 	DxRenderer();
@@ -102,7 +117,6 @@ private:
 	bool BuildGeometries();
 
 	bool BuildFrameResources();
-	bool BuildDescriptorHeaps();
 	void BuildDescriptors();
 	bool BuildRootSignatures();
 	bool BuildPSOs();
@@ -116,16 +130,14 @@ private:
 	bool UpdateSsrCB(float delta);
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
-
-	void DrawRenderItems(const std::vector<RenderItem*>& ritems);
-
+	
 	bool DrawShadowMap();
 	bool DrawGBuffer();
 	bool DrawSsao();
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
 	bool ApplyTAA();
-	bool ApplySsr();
+	bool ApplyReflection();
 	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();
@@ -138,8 +150,6 @@ private:
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 	FrameResource* mCurrFrameResource;
 	int mCurrFrameResourceIndex;
-
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mCbvSrvUavHeap;
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 
@@ -187,6 +197,8 @@ private:
 
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
+
+	std::unordered_map<DebugMapLayout::Type, bool> mDebugMapStates;
 
 	//
 	// DirectXTK12

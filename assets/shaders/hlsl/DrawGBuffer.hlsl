@@ -48,7 +48,7 @@ VertexOut VS(VertexIn vin) {
 	vout.NormalW = mul(vin.NormalL, (float3x3)cbObj.World);
 
 	vout.NonJitPosH = mul(posW, cbPass.ViewProj);
-	vout.PosH = vout.NonJitPosH + float4(gJitteredOffset * vout.NonJitPosH.w, 0, 0);
+	vout.PosH = vout.NonJitPosH + float4(cbPass.JitteredOffset * vout.NonJitPosH.w, 0, 0);
 
 	float4 prevPosW = mul(float4(vin.PosL, 1), cbObj.PrevWorld);
 	vout.PrevPosW = prevPosW.xyz;

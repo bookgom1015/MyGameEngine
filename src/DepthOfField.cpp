@@ -5,37 +5,37 @@
 
 using namespace DepthOfField;
 
+DepthOfFieldClass::DepthOfFieldClass() {
+	mCocMap = std::make_unique<GpuResource>();
+	mDofMaps[0] = std::make_unique<GpuResource>();
+	mDofMaps[1] = std::make_unique<GpuResource>();
+	mFocalDistanceBuffer = std::make_unique<GpuResource>();
+}
+
 bool DepthOfFieldClass::Initialize(
 		ID3D12Device* device, 
 		ShaderManager*const manager, 
 		ID3D12GraphicsCommandList* cmdList, 
-		UINT width, UINT height, UINT divider, 
+		UINT width, UINT height,
 		DXGI_FORMAT backBufferFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
-
-	mDivider = divider;
-	mReducedWidth = width / divider;
-	mReducedHeight = height / divider;
-
+	
 	mBackBufferFormat = backBufferFormat;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(mReducedWidth), static_cast<float>(mReducedHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(mReducedWidth), static_cast<int>(mReducedHeight) };
+	mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
 
-	CheckReturn(BuildResource(cmdList));
+	CheckReturn(BuildResources(cmdList));
 
 	return true;
 }
 
 bool DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 	{
-		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "VS", "vs_5_1", "cocVS"));
-		CheckReturn(mShaderManager->CompileShader(filePath, nullptr, "PS", "ps_5_1", "cocPS"));
-
 		const std::wstring actualPath = filePath + L"Coc.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -232,7 +232,7 @@ void DepthOfFieldClass::CalcFocalDist(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth) {
 	cmdList->SetPipelineState(mPSOs["fd"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["fd"].Get());
-
+	
 	cmdList->RSSetViewports(1, &mViewport);
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
@@ -245,7 +245,7 @@ void DepthOfFieldClass::CalcFocalDist(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 	cmdList->DrawInstanced(1, 1, 0, 0);
-	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer.Get());
+	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer->Resource());
 }
 
 void DepthOfFieldClass::CalcCoc(
@@ -256,6 +256,11 @@ void DepthOfFieldClass::CalcCoc(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth) {
 	cmdList->SetPipelineState(mPSOs["coc"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["coc"].Get());
+
+	cmdList->RSSetViewports(1, &mViewport);
+	cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	mCocMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	cmdList->ClearRenderTargetView(mhCocMapCpuRtv, CocMapClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhCocMapCpuRtv, true, nullptr);
@@ -269,6 +274,8 @@ void DepthOfFieldClass::CalcCoc(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	mCocMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 void DepthOfFieldClass::ApplyDof(
@@ -284,8 +291,11 @@ void DepthOfFieldClass::ApplyDof(
 	cmdList->SetPipelineState(mPSOs["dof"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["dof"].Get());
 
-	cmdList->RSSetViewports(1, &viewport);
-	cmdList->RSSetScissorRects(1, &scissorRect);
+	cmdList->RSSetViewports(1, &mViewport);
+	cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	const auto dofMap = mDofMaps[0].get();
+	dofMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	cmdList->OMSetRenderTargets(1, &mhDofMapCpuRtvs[0], true, nullptr);
 
@@ -299,6 +309,8 @@ void DepthOfFieldClass::ApplyDof(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	dofMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 void DepthOfFieldClass::BlurDof(
@@ -350,13 +362,10 @@ bool DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width,
 		mWidth = width;
 		mHeight = height;
 
-		mReducedWidth = width / mDivider;
-		mReducedHeight = height / mDivider;
+		mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(mReducedWidth), static_cast<float>(mReducedHeight), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(mReducedWidth), static_cast<int>(mReducedHeight) };
-
-		CheckReturn(BuildResource(cmdList));
+		CheckReturn(BuildResources(cmdList));
 		BuildDescriptors();
 	}
 
@@ -386,20 +395,20 @@ void DepthOfFieldClass::BuildDescriptors() {
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	md3dDevice->CreateShaderResourceView(mCocMap.Get(), &srvDesc, mhCocMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mCocMap.Get(), &rtvDesc, mhCocMapCpuRtv);
+	md3dDevice->CreateShaderResourceView(mCocMap->Resource(), &srvDesc, mhCocMapCpuSrv);
+	md3dDevice->CreateRenderTargetView(mCocMap->Resource(), &rtvDesc, mhCocMapCpuRtv);
 
 	srvDesc.Format = mBackBufferFormat;
 	rtvDesc.Format = mBackBufferFormat;	
 	for (int i = 0; i < 2; ++i) {
-		md3dDevice->CreateShaderResourceView(mDofMaps[i].Get(), &srvDesc, mhDofMapCpuSrvs[i]);
-		md3dDevice->CreateRenderTargetView(mDofMaps[i].Get(), &rtvDesc, mhDofMapCpuRtvs[i]);
+		md3dDevice->CreateShaderResourceView(mDofMaps[i]->Resource(), &srvDesc, mhDofMapCpuSrvs[i]);
+		md3dDevice->CreateRenderTargetView(mDofMaps[i]->Resource(), &rtvDesc, mhDofMapCpuRtvs[i]);
 	}
 
-	md3dDevice->CreateUnorderedAccessView(mFocalDistanceBuffer.Get(), nullptr, &uavDesc, mhFocalDistanceCpuUav);
+	md3dDevice->CreateUnorderedAccessView(mFocalDistanceBuffer->Resource(), nullptr, &uavDesc, mhFocalDistanceCpuUav);
 }
 
-bool DepthOfFieldClass::BuildResource(ID3D12GraphicsCommandList* cmdList) {
+bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -416,15 +425,15 @@ bool DepthOfFieldClass::BuildResource(ID3D12GraphicsCommandList* cmdList) {
 		rscDesc.Width = mWidth;
 		rscDesc.Height = mHeight;
 		rscDesc.Format = CocMapFormat;
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckHRESULT(mCocMap->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(&mCocMap)
-		));
-		mCocMap->SetName(L"CircleOfConfusionMap");
+			L"CircleOfConfusionMap"
+		));		
 	}
 	{
 		CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, DofMapClearValues);
@@ -433,44 +442,33 @@ bool DepthOfFieldClass::BuildResource(ID3D12GraphicsCommandList* cmdList) {
 		rscDesc.Height = mHeight;
 		rscDesc.Format = mBackBufferFormat;
 		for (int i = 0; i < 2; ++i) {
-			CheckHRESULT(md3dDevice->CreateCommittedResource(
+			std::wstringstream wsstream;
+			wsstream << L"DepthOfFieldMap_" << i;
+			CheckHRESULT(mDofMaps[i]->Initialize(
+				md3dDevice,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
-				IID_PPV_ARGS(&mDofMaps[0])
+				wsstream.str().c_str()
 			));
-			std::wstringstream wsstream;
-			wsstream << L"DepthOfFieldMap_" << i;
-			mDofMaps[0]->SetName(wsstream.str().c_str());
 		}
 	}
 	{
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckHRESULT(mFocalDistanceBuffer->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(
-				sizeof(float),
-				D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS
-			),
+			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(float), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
-			IID_PPV_ARGS(&mFocalDistanceBuffer)
+			L"FocalDistanceMap"
 		));
-		mFocalDistanceBuffer->SetName(L"FocalDistanceMap");
 	}
 
-	const auto focalDistBuffer = mFocalDistanceBuffer.Get();
-	cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(
-			focalDistBuffer,
-			D3D12_RESOURCE_STATE_COMMON,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS
-		)
-	);
-	D3D12Util::UavBarrier(cmdList, focalDistBuffer);
+	mFocalDistanceBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer->Resource());
 
 	return true;
 }
@@ -481,13 +479,13 @@ void DepthOfFieldClass::Blur(ID3D12GraphicsCommandList*const cmdList, bool horzB
 	CD3DX12_CPU_DESCRIPTOR_HANDLE outputRtv;
 
 	if (horzBlur == true) {
-		output = mDofMaps[1].Get();
+		output = mDofMaps[1]->Resource();
 		outputRtv = mhDofMapCpuRtvs[1];
 		inputSrv = mhDofMapGpuSrvs[0];
 		cmdList->SetGraphicsRoot32BitConstant(DofBlur::RootSignatureLayout::EC_Consts, 1, DofBlur::RootConstantLayout::EHorizontalBlur);
 	}
 	else {
-		output = mDofMaps[0].Get();
+		output = mDofMaps[0]->Resource();
 		outputRtv = mhDofMapCpuRtvs[0];
 		inputSrv = mhDofMapGpuSrvs[1];
 		cmdList->SetGraphicsRoot32BitConstant(DofBlur::RootSignatureLayout::EC_Consts, 0, DofBlur::RootConstantLayout::EHorizontalBlur);

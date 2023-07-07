@@ -55,7 +55,8 @@ DxLowRenderer::DxLowRenderer() {
 
 	mRefreshRate = 60;
 
-	mCurrBackBuffer = 0;
+	mSwapChainBuffer = std::make_unique<SwapChainBuffer::SwapChainBufferClass>();
+	mDepthStencilBuffer = std::make_unique<DepthStencilBuffer::DepthStencilBufferClass>();
 }
 
 DxLowRenderer::~DxLowRenderer() {
@@ -66,6 +67,13 @@ bool DxLowRenderer::LowInitialize(HWND hwnd, UINT width, UINT height) {
 	mhMainWnd = hwnd;
 
 	CheckReturn(InitDirect3D(width, height));
+
+	const auto device = md3dDevice.Get();
+	CheckReturn(mSwapChainBuffer->Initialize(device, mRtvHeap.Get(), SwapChainBufferCount, mRtvDescriptorSize));
+	CheckReturn(mDepthStencilBuffer->Initialize(device));
+
+	BuildDescriptors();
+
 	CheckReturn(LowOnResize(width, height));
 
 	return true;
@@ -87,72 +95,13 @@ void DxLowRenderer::LowCleanUp() {
 }
 
 bool DxLowRenderer::LowOnResize(UINT width, UINT height) {
-	if (!md3dDevice) ReturnFalse(L"md3dDevice is invalid");
-	if (!mSwapChain) ReturnFalse(L"mSwapChain is invalid");
-	if (!mDirectCmdListAlloc) ReturnFalse(L"mDirectCmdListAlloc is invalid");
-
 	// Flush before changing any resources.
 	CheckReturn(FlushCommandQueue());
 
 	CheckHRESULT(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-
-	// Resize the previous resources we will be creating.
-	for (int i = 0; i < SwapChainBufferCount; ++i)
-		mSwapChainBuffer[i].Reset();
-
-	// Resize the swap chain.
-	CheckHRESULT(mSwapChain->ResizeBuffers(
-		SwapChainBufferCount,
-		width,
-		height,
-		BackBufferFormat,
-		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH)
-	);
-
-	mCurrBackBuffer = 0;
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
-	for (UINT i = 0; i < SwapChainBufferCount; ++i) {
-		CheckHRESULT(mSwapChain->GetBuffer(i, IID_PPV_ARGS(&mSwapChainBuffer[i])));
-
-		md3dDevice->CreateRenderTargetView(mSwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
-		rtvHeapHandle.Offset(1, mRtvDescriptorSize);
-	}
-
-	// Create the depth/stencil buffer and view.
-	D3D12_RESOURCE_DESC depthStencilDesc;
-	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	depthStencilDesc.Alignment = 0;
-	depthStencilDesc.Width = width;
-	depthStencilDesc.Height = height;
-	depthStencilDesc.DepthOrArraySize = 1;
-	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.Format = DepthStencilFormat;
-	depthStencilDesc.SampleDesc.Count = 1;
-	depthStencilDesc.SampleDesc.Quality = 0;
-	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE optClear;
-	optClear.Format = DepthStencilFormat;
-	optClear.DepthStencil.Depth = 1.0f;
-	optClear.DepthStencil.Stencil = 0;
-
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&depthStencilDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		&optClear,
-		IID_PPV_ARGS(mDepthStencilBuffer.GetAddressOf())
-	));
-
-	// Create descriptor to mip level 0 of entire resource using the format of the resource.
-	md3dDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), nullptr, DepthStencilView());
-
-	// Transition the resource from its initial state to be used as a depth buffer.
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_READ));
+	
+	CheckReturn(mSwapChainBuffer->OnResize(mSwapChain.Get(), width, height, BackBufferFormat));
+	CheckReturn(mDepthStencilBuffer->OnResize(width, height));
 
 	// Execute the resize commands.
 	CheckHRESULT(mCommandList->Close());
@@ -182,34 +131,25 @@ bool DxLowRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
-	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
+	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&mRtvHeap)));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
 	dsvHeapDesc.NumDescriptors = 1;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
-	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
+	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDsvHeap)));
+
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.NumDescriptors = 32;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mCbvSrvUavHeap)));
 
 	return true;
 }
 
 UINT64 DxLowRenderer::IncreaseFence() { return ++mCurrentFence; }
-
-void DxLowRenderer::NextBackBuffer() {
-	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
-}
-
-ID3D12Resource* DxLowRenderer::BackBuffer(int index) const {
-	assert(index < SwapChainBufferCount);
-	return mSwapChainBuffer[index].Get();
-}
-
-ID3D12Resource* DxLowRenderer::CurrentBackBuffer() const { return mSwapChainBuffer[mCurrBackBuffer].Get(); }
-
-D3D12_CPU_DESCRIPTOR_HANDLE DxLowRenderer::CurrentBackBufferView() const {
-	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mCurrBackBuffer, mRtvDescriptorSize);
-}
 
 D3D12_CPU_DESCRIPTOR_HANDLE DxLowRenderer::DepthStencilView() const { return mDsvHeap->GetCPUDescriptorHandleForHeapStart(); }
 
@@ -269,7 +209,7 @@ bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 #ifdef _DEBUG
 			DXGI_ADAPTER_DESC desc;
 			adapter->GetDesc(&desc);
-			WLogln(desc.Description, L" is selected");
+			WLogln(desc.Description, L" is selected \n");
 #endif
 			break;
 		}
@@ -384,4 +324,19 @@ bool DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
 	CheckHRESULT(mdxgiFactory->CreateSwapChain(mCommandQueue.Get(), &sd, mSwapChain.GetAddressOf()));
 
 	return true;
+}
+
+void DxLowRenderer::BuildDescriptors() {
+	auto cpuStart = mCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
+	auto gpuStart = mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
+	auto rtvCpuStart = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto dsvCpuStart = mDsvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	mhCpuCbvSrvUav = CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuStart);
+	mhGpuCbvSrvUav = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart);
+	mhCpuDsv = CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart);
+	mhCpuRtv = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart);
+
+	mDepthStencilBuffer->BuildDescriptors(mhCpuDsv, mDsvDescriptorSize);
+	mhCpuRtv.Offset(SwapChainBufferCount, mRtvDescriptorSize);
 }

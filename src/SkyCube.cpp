@@ -20,7 +20,7 @@ bool SkyCubeClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*co
 
 	mBackBufferFormat = backBufferFormat;
 
-	CheckReturn(BuildResource(cmdList));
+	CheckReturn(BuildResources(cmdList));
 
 	return true;
 }
@@ -42,6 +42,7 @@ bool SkyCubeClass::BuildRootSignature(const StaticSamplers& samplers) {
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
 	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
+	slotRootParameter[RootSignatureLayout::ECB_Obj].InitAsConstantBufferView(1);
 	slotRootParameter[RootSignatureLayout::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
@@ -57,6 +58,7 @@ bool SkyCubeClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 bool SkyCubeClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
+	skyPsoDesc.pRootSignature = mRootSignature.Get();
 	{
 		auto vs = mShaderManager->GetDxcShader("SkyVS");
 		auto ps = mShaderManager->GetDxcShader("SkyPS");
@@ -80,7 +82,9 @@ void SkyCubeClass::Run(
 		D3D12_RECT scissorRect,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
+		UINT objCBByteSize,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
@@ -90,10 +94,11 @@ void SkyCubeClass::Run(
 	
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbPassAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, cbObjAddress);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Cube, mhGpuSrv);
 
-	DrawRenderItems(cmdList, ritems);
+	DrawRenderItems(cmdList, ritems, cbObjAddress, objCBByteSize);
 }
 
 bool SkyCubeClass::SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file) {
@@ -160,7 +165,7 @@ void SkyCubeClass::BuildDescriptors(
 void SkyCubeClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	srvDesc.Format = mBackBufferFormat;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = 1;
@@ -169,7 +174,7 @@ void SkyCubeClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCubeMap.Get(), &srvDesc, mhCpuSrv);
 }
 
-bool SkyCubeClass::BuildResource(ID3D12GraphicsCommandList*const cmdList) {
+bool SkyCubeClass::BuildResources(ID3D12GraphicsCommandList*const cmdList) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -216,8 +221,8 @@ bool SkyCubeClass::BuildResource(ID3D12GraphicsCommandList*const cmdList) {
 
 		D3D12_SUBRESOURCE_DATA subResourceData = {};
 		subResourceData.pData = data.data();
-		subResourceData.RowPitch = 4;
-		subResourceData.SlicePitch = subResourceData.RowPitch;
+		subResourceData.RowPitch = size;
+		subResourceData.SlicePitch = subResourceData.RowPitch * 1;
 
 		UpdateSubresources(
 			cmdList,
@@ -241,13 +246,20 @@ bool SkyCubeClass::BuildResource(ID3D12GraphicsCommandList*const cmdList) {
 	return true;
 }
 
-void SkyCubeClass::DrawRenderItems(ID3D12GraphicsCommandList*const cmdList, const std::vector<RenderItem*>& ritems) {
+void SkyCubeClass::DrawRenderItems(
+		ID3D12GraphicsCommandList*const cmdList, 
+		const std::vector<RenderItem*>& ritems,
+		D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
+		UINT objCBByteSize) {
 	for (size_t i = 0; i < ritems.size(); ++i) {
 		auto& ri = ritems[i];
 
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geometry->VertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geometry->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
+
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cbObjAddress + ri->ObjCBIndex * objCBByteSize;
+		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
 		
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}

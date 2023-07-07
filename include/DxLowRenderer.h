@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Renderer.h"
+#include "SwapChainBuffer.h"
+#include "DepthStencilBuffer.h"
 
 class DxLowRenderer {
 private:
@@ -24,14 +26,8 @@ protected:
 
 	__forceinline constexpr UINT64 GetCurrentFence() const;
 	UINT64 IncreaseFence();
-
-	void NextBackBuffer();
 	
-	ID3D12Resource* BackBuffer(int index) const;
-	ID3D12Resource* CurrentBackBuffer() const;
-	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
-	__forceinline constexpr int CurrentBackBufferIndex() const;
 
 	HRESULT GetDeviceRemovedReason() const;
 
@@ -46,12 +42,13 @@ private:
 	bool CreateCommandObjects();
 	bool CreateSwapChain(UINT width, UINT height);
 
+	void BuildDescriptors();
+
 protected:
 	static const int SwapChainBufferCount = 2;
 
 	static const D3D_DRIVER_TYPE D3DDriverType = D3D_DRIVER_TYPE_HARDWARE;
 	static const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	static const DXGI_FORMAT DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> md3dDevice;
 
@@ -59,6 +56,7 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mCbvSrvUavHeap;
 
 	Microsoft::WRL::ComPtr<ID3D12InfoQueue1> mInfoQueue;
 	
@@ -67,13 +65,19 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> mCommandList;
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSwapChainBuffer[SwapChainBufferCount];
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;
 
 	D3D12_VIEWPORT mScreenViewport;
 	D3D12_RECT mScissorRect;
 
 	HWND mhMainWnd;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuCbvSrvUav;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuCbvSrvUav;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuRtv;
+
+	std::unique_ptr<SwapChainBuffer::SwapChainBufferClass> mSwapChainBuffer;
+	std::unique_ptr<DepthStencilBuffer::DepthStencilBufferClass> mDepthStencilBuffer;
 
 private:
 	bool bIsCleanedUp;
@@ -91,8 +95,6 @@ private:
 	UINT64 mCurrentFence;
 
 	UINT mRefreshRate;
-
-	int mCurrBackBuffer;
 };
 
 #include "DxLowRenderer.inl"

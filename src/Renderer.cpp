@@ -42,6 +42,10 @@ void Renderer::EnableSsr(bool state) {
 	bSsrEnabled = state;
 }
 
+void Renderer::EnableRaytracing(bool state) {
+	bRaytracing = state;
+}
+
 void Renderer::ShowImGui(bool state) {
 	bShowImGui = state;
 }

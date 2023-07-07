@@ -16,14 +16,7 @@ cbuffer cbRootConstants : register(b0) {
 
 static const int NumSamples = 10;
 
-static const float2 gTexCoords[6] = {
-	float2(0.0f, 1.0f),
-	float2(0.0f, 0.0f),
-	float2(1.0f, 0.0f),
-	float2(0.0f, 1.0f),
-	float2(1.0f, 0.0f),
-	float2(1.0f, 1.0f)
-};
+#include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;

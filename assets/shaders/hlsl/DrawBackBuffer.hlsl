@@ -17,8 +17,9 @@
 #define HLSL
 #endif
 
-#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
+#include "LightingUtil.hlsli"
+#include "ShadingHelpers.hlsli"
 
 ConstantBuffer<PassConstants> cb		: register(b0);
 
@@ -27,16 +28,10 @@ Texture2D<float4>	gi_Albedo			: register(t1);
 Texture2D<float3>	gi_Normal			: register(t2);
 Texture2D<float>	gi_Depth			: register(t3);
 Texture2D<float4>	gi_Specular			: register(t4);
-Texture2D<float>	gi_AOCoefficient	: register(t5);
+Texture2D<float>	gi_Shadow			: register(t5);
+Texture2D<float>	gi_AOCoefficient	: register(t6);
 
-static const float2 gTexCoords[6] = {
-	float2(0.0f, 1.0f),
-	float2(0.0f, 0.0f),
-	float2(1.0f, 0.0f),
-	float2(0.0f, 1.0f),
-	float2(1.0f, 0.0f),
-	float2(1.0f, 1.0f)
-};
+#include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -59,35 +54,10 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float CalcShadowFactor(Texture2D shadowMap, float4 shadowPosH) {
-	shadowPosH.xyz /= shadowPosH.w;
-
-	float depth = shadowPosH.z;
-
-	uint width, height, numMips;
-	shadowMap.GetDimensions(0, width, height, numMips);
-
-	float dx = 1.0f / (float)width;
-
-	float percentLit = 0.0f;
-	const float2 offsets[9] = {
-		float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
-		float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
-		float2(-dx,  +dx), float2(0.0f,  +dx), float2(dx,  +dx)
-	};
-
-	[unroll]
-	for (int i = 0; i < 9; ++i) {
-		percentLit += shadowMap.SampleCmpLevelZero(gsamShadow, shadowPosH.xy + offsets[i], depth).r;
-	}
-
-	return percentLit / 9.0f;
-}
-
 float4 PS(VertexOut pin) : SV_Target{
 	// Get viewspace normal and z-coord of this pixel.  
 	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
-	pz = NdcDepthToViewDepth(pz);
+	pz = NdcDepthToViewDepth(pz, cb.Proj);
 
 	//
 	// Reconstruct full view space position (x,y,z).
@@ -109,7 +79,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	ssaoPosH /= ssaoPosH.w;
 	float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
 
-	float4 ambient = ambientAccess * gAmbientLight * diffuseAlbedo;
+	float4 ambient = ambientAccess * cb.AmbientLight * diffuseAlbedo;
 	
 	float4 specular = gi_Specular.Sample(gsamAnisotropicWrap, pin.TexC);
 	const float shiness = 1.0f - specular.a;
@@ -117,7 +87,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	
 	float3 shadowFactor = 0;
 	float4 shadowPosH = mul(posW, cb.ShadowTransform);
-	shadowFactor[0] = CalcShadowFactor(shadowPosH);
+	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
 	
 	float4 directLight = ComputeLighting(cb.Lights, mat, posW, normalW, toEyeW, shadowFactor);
 	

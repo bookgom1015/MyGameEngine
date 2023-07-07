@@ -9,12 +9,12 @@ constexpr UINT TemporalAA::TemporalAAClass::Height() const {
 	return mHeight;
 }
 
-ID3D12Resource* TemporalAA::TemporalAAClass::ResolveMapResource() {
-	return mResolveMap.Get();
+GpuResource* TemporalAA::TemporalAAClass::ResolveMapResource() {
+	return mResolveMap.get();
 }
 
-ID3D12Resource* TemporalAA::TemporalAAClass::HistoryMapResource() {
-	return mHistoryMap.Get();
+GpuResource* TemporalAA::TemporalAAClass::HistoryMapResource() {
+	return mHistoryMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TemporalAA::TemporalAAClass::ResolveMapSrv() const {

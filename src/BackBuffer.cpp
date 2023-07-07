@@ -5,8 +5,8 @@
 
 using namespace BackBuffer;
 
-bool BackBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager,
-		DXGI_FORMAT backBufferFormat, ID3D12Resource*const buffers[], UINT bufferCount) {
+bool BackBufferClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height,
+		DXGI_FORMAT backBufferFormat, UINT bufferCount) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -14,8 +14,10 @@ bool BackBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT hei
 	mHeight = height;
 
 	mBackBufferFormat = backBufferFormat;
-	mBackBuffers = buffers;
 	mBackBufferCount = bufferCount;
+
+	mhBackBufferCpuSrvs.resize(bufferCount);
+	mhBackBufferGpuSrvs.resize(bufferCount);
 
 	return true;
 }
@@ -33,13 +35,14 @@ bool BackBufferClass::CompileShaders(const std::wstring& filePath) {
 bool BackBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[6];
+	CD3DX12_DESCRIPTOR_RANGE texTables[7];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
 	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 	texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+	texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
 
 	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignatureLayout::ESI_Color].InitAsDescriptorTable(1, &texTables[0]);
@@ -47,7 +50,8 @@ bool BackBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	slotRootParameter[RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
 	slotRootParameter[RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
 	slotRootParameter[RootSignatureLayout::ESI_Specular].InitAsDescriptorTable(1, &texTables[4]);
-	slotRootParameter[RootSignatureLayout::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[5]);
+	slotRootParameter[RootSignatureLayout::ESI_Shadow].InitAsDescriptorTable(1, &texTables[5]);
+	slotRootParameter[RootSignatureLayout::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[6]);
 
 	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
@@ -85,6 +89,7 @@ void BackBufferClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
@@ -96,6 +101,7 @@ void BackBufferClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Specular, si_specular);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Shadow, si_shadow);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_AOCoefficient, si_aoCoefficient);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -105,6 +111,7 @@ void BackBufferClass::Run(
 }
 
 void BackBufferClass::BuildDescriptors(
+		ID3D12Resource*const buffers[],
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		UINT descSize) {
@@ -116,21 +123,21 @@ void BackBufferClass::BuildDescriptors(
 		hGpuSrv.Offset(1, descSize);
 	}
 
-	BuildDescriptors();
+	BuildDescriptors(buffers);
 }
 
-bool BackBufferClass::OnResize(UINT width, UINT height) {
+bool BackBufferClass::OnResize(ID3D12Resource*const buffers[], UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
 
-		BuildDescriptors();
+		BuildDescriptors(buffers);
 	}
 
 	return true;
 }
 
-void BackBufferClass::BuildDescriptors() {
+void BackBufferClass::BuildDescriptors(ID3D12Resource*const buffers[]) {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -140,6 +147,6 @@ void BackBufferClass::BuildDescriptors() {
 	srvDesc.Texture2D.MipLevels = 1;
 
 	for (UINT i = 0; i < mBackBufferCount; ++i) {
-		md3dDevice->CreateShaderResourceView(mBackBuffers[i], &srvDesc, mhBackBufferCpuSrvs[i]);
+		md3dDevice->CreateShaderResourceView(buffers[i], &srvDesc, mhBackBufferCpuSrvs[i]);
 	}
 }

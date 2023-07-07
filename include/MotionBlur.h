@@ -4,6 +4,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -34,14 +35,14 @@ namespace MotionBlur {
 
 	class MotionBlurClass {
 	public:
-		MotionBlurClass() = default;
+		MotionBlurClass();
 		virtual ~MotionBlurClass() = default;
 
 	public:
 		__forceinline constexpr UINT Width() const;
 		__forceinline constexpr UINT Height() const;
 
-		__forceinline ID3D12Resource* MotionVectorMapResource();
+		__forceinline GpuResource* MotionVectorMapResource();
 
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE MotionVectorMapRtv() const;
 
@@ -66,7 +67,7 @@ namespace MotionBlur {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResource();
+		bool BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -80,7 +81,7 @@ namespace MotionBlur {
 
 		DXGI_FORMAT mBackBufferFormat;
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> mMotionVectorMap;
+		std::unique_ptr<GpuResource> mMotionVectorMap;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhMotionVectorMapCpuRtv;
 	};
@@ -94,8 +95,8 @@ constexpr UINT MotionBlur::MotionBlurClass::Height() const {
 	return mHeight;
 }
 
-ID3D12Resource* MotionBlur::MotionBlurClass::MotionVectorMapResource() {
-	return mMotionVectorMap.Get();
+GpuResource* MotionBlur::MotionBlurClass::MotionVectorMapResource() {
+	return mMotionVectorMap.get();
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE MotionBlur::MotionBlurClass::MotionVectorMapRtv() const {

@@ -105,6 +105,11 @@ StaticSamplers Samplers::GetStaticSamplers() {
 		D3D12_TEXTURE_ADDRESS_MODE_MIRROR	// addressW
 	);
 
-	return { pointWrap, pointClamp, linearWrap, linearClamp, anisotropicWrap, anisotropicClamp, anisotropicBorder, depthMap, shadow,
-				pointMirror, linearMirror };
+	return { 
+		pointWrap, pointClamp, 
+		linearWrap, linearClamp, 
+		anisotropicWrap, anisotropicClamp, anisotropicBorder, 
+		depthMap, 
+		shadow,
+		pointMirror, linearMirror };
 }

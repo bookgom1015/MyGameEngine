@@ -9,8 +9,16 @@
 
 using namespace GBuffer;
 
-bool GBufferClass::Initialize(
-		ID3D12Device* device, UINT width, UINT height, ShaderManager*const manager, ID3D12Resource* depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat) {
+GBufferClass::GBufferClass() {
+	mColorMap = std::make_unique<GpuResource>();
+	mAlbedoMap = std::make_unique<GpuResource>();
+	mNormalMap = std::make_unique<GpuResource>();
+	mSpecularMap = std::make_unique<GpuResource>();
+	mVelocityMap = std::make_unique<GpuResource>();
+}
+
+bool GBufferClass::Initialize(ID3D12Device* device, UINT width, UINT height, 
+		ShaderManager*const manager, GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -21,7 +29,7 @@ bool GBufferClass::Initialize(
 	mhDepthMapCpuDsv = dsv;
 	mDepthFormat = depthFormat;
 
-	CheckReturn(BuildResource());
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -62,6 +70,7 @@ bool GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 bool GBufferClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = inputLayout;
+	psoDesc.pRootSignature = mRootSignature.Get();
 	{
 		auto vs = mShaderManager->GetDxcShader("DrawGBufferVS");
 		auto ps = mShaderManager->GetDxcShader("DrawGBufferPS");
@@ -97,60 +106,39 @@ void GBufferClass::Run(
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	mColorMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mAlbedoMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mNormalMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mSpecularMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	
-	const auto pColorMap = mColorMap.Get();
-	const auto pAlbedoMap = mAlbedoMap.Get();
-	const auto pNormalMap = mNormalMap.Get();
-	const auto pSpecularMap = mSpecularMap.Get();
-	const auto pVelocityMap = mVelocityMap.Get();
-
-	{
-		D3D12_RESOURCE_BARRIER barriers[] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(pColorMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
-			CD3DX12_RESOURCE_BARRIER::Transition(pAlbedoMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
-			CD3DX12_RESOURCE_BARRIER::Transition(pNormalMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
-			CD3DX12_RESOURCE_BARRIER::Transition(mDepthMap, D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE),
-			CD3DX12_RESOURCE_BARRIER::Transition(pSpecularMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
-			CD3DX12_RESOURCE_BARRIER::Transition(pVelocityMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
-		};
-		cmdList->ResourceBarrier(
-			_countof(barriers),
-			barriers
-		);
-	}
-
 	cmdList->ClearRenderTargetView(mhColorMapCpuRtv, GBuffer::ColorMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhAlbedoMapCpuRtv, GBuffer::AlbedoMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhNormalMapCpuRtv, GBuffer::NormalMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhSpecularMapCpuRtv, GBuffer::SpecularMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhVelocityMapCpuRtv, GBuffer::VelocityMapClearValues, 0, nullptr);
-
+	
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, GBuffer::NumRenderTargets> renderTargets = { 
 		mhColorMapCpuRtv, mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhSpecularMapCpuRtv, mhVelocityMapCpuRtv 
 	};
+	
 	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &mhDepthMapCpuDsv);
 	cmdList->ClearDepthStencilView(mhDepthMapCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
+	
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, passCBAddress);
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_TexMaps, si_texMaps);
-
+	
 	DrawRenderItems(cmdList, ritems, objCBAddress, matCBAddress);
-
-	{
-		D3D12_RESOURCE_BARRIER barriers[] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(pColorMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(pAlbedoMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(pNormalMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(mDepthMap, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ),
-			CD3DX12_RESOURCE_BARRIER::Transition(pSpecularMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(pVelocityMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-		};
-		cmdList->ResourceBarrier(
-			_countof(barriers),
-			barriers
-		);
-	}
+	
+	mColorMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mAlbedoMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mNormalMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mSpecularMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
 
@@ -158,8 +146,7 @@ void GBufferClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
-		UINT descSize, UINT rtvDescSize,
-		ID3D12Resource* depth) {
+		UINT descSize, UINT rtvDescSize) {
 	mhColorMapCpuSrv = hCpuSrv;
 	mhColorMapGpuSrv = hGpuSrv;
 	mhColorMapCpuRtv = hCpuRtv;
@@ -187,22 +174,22 @@ void GBufferClass::BuildDescriptors(
 	hGpuSrv.Offset(1, descSize);
 	hCpuRtv.Offset(1, rtvDescSize);
 
-	BuildDescriptors(depth);
+	BuildDescriptors();
 }
 
-bool GBufferClass::OnResize(UINT width, UINT height, ID3D12Resource* depth) {
+bool GBufferClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
 
-		CheckReturn(BuildResource());
-		BuildDescriptors(depth);
+		CheckReturn(BuildResources());
+		BuildDescriptors();
 	}
 
 	return true;
 }
 
-void GBufferClass::BuildDescriptors(ID3D12Resource* depth) {
+void GBufferClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -218,40 +205,40 @@ void GBufferClass::BuildDescriptors(ID3D12Resource* depth) {
 	{
 		srvDesc.Format = ColorMapFormat;
 		rtvDesc.Format = ColorMapFormat;
-		md3dDevice->CreateShaderResourceView(mColorMap.Get(), &srvDesc, mhColorMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mColorMap.Get(), &rtvDesc, mhColorMapCpuRtv);
+		md3dDevice->CreateShaderResourceView(mColorMap->Resource(), &srvDesc, mhColorMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mColorMap->Resource(), &rtvDesc, mhColorMapCpuRtv);
 	}
 	{
 		srvDesc.Format = AlbedoMapFormat;
 		rtvDesc.Format = AlbedoMapFormat;
-		md3dDevice->CreateShaderResourceView(mAlbedoMap.Get(), &srvDesc, mhAlbedoMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mAlbedoMap.Get(), &rtvDesc, mhAlbedoMapCpuRtv);
+		md3dDevice->CreateShaderResourceView(mAlbedoMap->Resource(), &srvDesc, mhAlbedoMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mAlbedoMap->Resource(), &rtvDesc, mhAlbedoMapCpuRtv);
 	}
 	{
 		srvDesc.Format = NormalMapFormat;
 		rtvDesc.Format = NormalMapFormat;
-		md3dDevice->CreateShaderResourceView(mNormalMap.Get(), &srvDesc, mhNormalMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mNormalMap.Get(), &rtvDesc, mhNormalMapCpuRtv);
+		md3dDevice->CreateShaderResourceView(mNormalMap->Resource(), &srvDesc, mhNormalMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mNormalMap->Resource(), &rtvDesc, mhNormalMapCpuRtv);
 	}
 	{
 		srvDesc.Format = DepthMapFormat;
-		md3dDevice->CreateShaderResourceView(depth, &srvDesc, mhDepthMapCpuSrv);
+		md3dDevice->CreateShaderResourceView(mDepthMap->Resource(), &srvDesc, mhDepthMapCpuSrv);
 	}
 	{
 		srvDesc.Format = SpecularMapFormat;
 		rtvDesc.Format = SpecularMapFormat;
-		md3dDevice->CreateShaderResourceView(mSpecularMap.Get(), &srvDesc, mhSpecularMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mSpecularMap.Get(), &rtvDesc, mhSpecularMapCpuRtv);
+		md3dDevice->CreateShaderResourceView(mSpecularMap->Resource(), &srvDesc, mhSpecularMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mSpecularMap->Resource(), &rtvDesc, mhSpecularMapCpuRtv);
 	}
 	{
 		srvDesc.Format = VelocityMapFormat;
 		rtvDesc.Format = VelocityMapFormat;
-		md3dDevice->CreateShaderResourceView(mVelocityMap.Get(), &srvDesc, mhVelocityMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mVelocityMap.Get(), &rtvDesc, mhVelocityMapCpuRtv);
+		md3dDevice->CreateShaderResourceView(mVelocityMap->Resource(), &srvDesc, mhVelocityMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mVelocityMap->Resource(), &rtvDesc, mhVelocityMapCpuRtv);
 	}
 }
 
-bool GBufferClass::BuildResource() {
+bool GBufferClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -269,73 +256,73 @@ bool GBufferClass::BuildResource() {
 
 		CD3DX12_CLEAR_VALUE optClear(ColorMapFormat, ColorMapClearValues);
 
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckReturn(mColorMap->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(mColorMap.GetAddressOf())
+			L"ColorMap"
 		));
-		mColorMap->SetName(L"ColorMap");
 	}
 	{
 		CD3DX12_CLEAR_VALUE optClear(AlbedoMapFormat, AlbedoMapClearValues);
 
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckReturn(mAlbedoMap->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(mAlbedoMap.GetAddressOf())
+			L"AlbedoMap"
 		));
-		mAlbedoMap->SetName(L"AlbedoMap");
 	}
 	{
 		rscDesc.Format = NormalMapFormat;
 
 		CD3DX12_CLEAR_VALUE optClear(NormalMapFormat, NormalMapClearValues);
 
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckReturn(mNormalMap->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(mNormalMap.GetAddressOf())
+			L"NormalMap"
 		));
-		mNormalMap->SetName(L"NormalMap");
 	}
 	{
 		rscDesc.Format = SpecularMapFormat;
 
 		CD3DX12_CLEAR_VALUE optClear(SpecularMapFormat, SpecularMapClearValues);
 
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckReturn(mSpecularMap->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(mSpecularMap.GetAddressOf())
+			L"SpecularMap"
 		));
-		mSpecularMap->SetName(L"SpecularMap");
 	}
 	{
 		rscDesc.Format = VelocityMapFormat;
 
 		CD3DX12_CLEAR_VALUE optClear(VelocityMapFormat, VelocityMapClearValues);
 
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		CheckReturn(mVelocityMap->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(mVelocityMap.GetAddressOf())
+			L"VelocityMap"
 		));
-		mVelocityMap->SetName(L"VelocityMap");
 	}
 
 	return true;
@@ -354,11 +341,11 @@ void GBufferClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
 		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBAddress + ri->ObjCBIndex * objCBByteSize;
-		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, objCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
 
 		if (ri->Material != nullptr) {
 			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = matCBAddress + ri->Material->MatCBIndex * matCBByteSize;
-			cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Mat, matCBAddress);
+			cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Mat, currRitemMatCBAddress);
 		}
 
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);

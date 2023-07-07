@@ -6,6 +6,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -43,12 +44,12 @@ namespace Bloom {
 
 	class BloomClass {
 	public:
-		BloomClass() = default;
+		BloomClass();
 		virtual ~BloomClass() = default;
 
 	public:
-		__forceinline ID3D12Resource* BloomMapResource(UINT index);
-		__forceinline ID3D12Resource* ResultMapResource();
+		__forceinline GpuResource* BloomMapResource(UINT index);
+		__forceinline GpuResource* ResultMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE BloomMapSrv(UINT index) const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE BloomMapRtv(UINT index) const;
@@ -77,7 +78,7 @@ namespace Bloom {
 
 	public:
 		void BuildDescriptors();
-		bool BuildResource();
+		bool BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -94,13 +95,16 @@ namespace Bloom {
 
 		UINT mDivider;
 
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
+		D3D12_VIEWPORT mReducedViewport;
+		D3D12_RECT mReducedScissorRect;
+
+		D3D12_VIEWPORT mOriginalViewport;
+		D3D12_RECT mOriginalScissorRect;
 
 		DXGI_FORMAT mBackBufferFormat;
 
-		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mBloomMaps;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mResultMap;
+		std::array<std::unique_ptr<GpuResource>, 2> mBloomMaps;
+		std::unique_ptr<GpuResource> mResultMap;
 
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhBloomMapCpuSrvs;
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhBloomMapGpuSrvs;
@@ -110,12 +114,12 @@ namespace Bloom {
 	};
 }
 
-ID3D12Resource* Bloom::BloomClass::BloomMapResource(UINT index) {
-	return mBloomMaps[index].Get();
+GpuResource* Bloom::BloomClass::BloomMapResource(UINT index) {
+	return mBloomMaps[index].get();
 }
 
-ID3D12Resource* Bloom::BloomClass::ResultMapResource() {
-	return mResultMap.Get();
+GpuResource* Bloom::BloomClass::ResultMapResource() {
+	return mResultMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Bloom::BloomClass::BloomMapSrv(UINT index) const {

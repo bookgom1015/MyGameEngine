@@ -14,6 +14,11 @@ namespace Debug {
 	namespace RootSignatureLayout {
 		enum {
 			EC_Consts = 0,
+			ESI_Debug0,
+			ESI_Debug1,
+			ESI_Debug2,
+			ESI_Debug3,
+			ESI_Debug4,
 			Count
 		};
 	}
@@ -42,14 +47,14 @@ namespace Debug {
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
-			DebugShaderParams::SampleMask::Type mask0 = DebugShaderParams::SampleMask::RGB,
-			DebugShaderParams::SampleMask::Type mask1 = DebugShaderParams::SampleMask::RGB,
-			DebugShaderParams::SampleMask::Type mask2 = DebugShaderParams::SampleMask::RGB,
-			DebugShaderParams::SampleMask::Type mask3 = DebugShaderParams::SampleMask::RGB,
-			DebugShaderParams::SampleMask::Type mask4 = DebugShaderParams::SampleMask::RGB);
+			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv);
 
 		bool OnResize(UINT width, UINT height);
+
+		bool AddDebugMap(
+			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
+			DebugShaderParams::SampleMask::Type mask = DebugShaderParams::SampleMask::RGB);
+		void RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -65,5 +70,9 @@ namespace Debug {
 		D3D12_RECT mScissorRect;
 
 		DXGI_FORMAT mBackBufferFormat;
+
+		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 5> mhDebugGpuSrvs;
+		std::array< DebugShaderParams::SampleMask::Type, 5> mDebugMasks;
+		int mNumEnabledMaps;
 	};
 };

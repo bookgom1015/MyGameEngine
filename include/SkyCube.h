@@ -13,6 +13,7 @@ namespace SkyCube {
 	namespace RootSignatureLayout {
 		enum {
 			ECB_Pass = 0,
+			ECB_Obj,
 			ESI_Cube,
 			Count
 		};
@@ -38,7 +39,9 @@ namespace SkyCube {
 			D3D12_RECT scissorRect,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
+			UINT objCBByteSize,
 			const std::vector<RenderItem*>& ritems);
 
 		void BuildDescriptors(
@@ -50,9 +53,13 @@ namespace SkyCube {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResource(ID3D12GraphicsCommandList*const cmdList);
+		bool BuildResources(ID3D12GraphicsCommandList*const cmdList);
 
-		void DrawRenderItems(ID3D12GraphicsCommandList*const cmdList, const std::vector<RenderItem*>& ritems);
+		void DrawRenderItems(
+			ID3D12GraphicsCommandList*const cmdList, 
+			const std::vector<RenderItem*>& ritems,
+			D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
+			UINT objCBByteSize);
 
 	private:
 		ID3D12Device* md3dDevice;

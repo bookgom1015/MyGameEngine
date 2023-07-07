@@ -6,6 +6,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -44,17 +45,14 @@ namespace Ssr {
 
 	class SsrClass {
 	public:
-		SsrClass() = default;
+		SsrClass();
 		virtual ~SsrClass() = default;
 
 	public:
-		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
-		__forceinline constexpr D3D12_RECT ScissorRect() const;
-
 		__forceinline constexpr DXGI_FORMAT Format() const;
 
-		__forceinline ID3D12Resource* SsrMapResource(UINT index);
-		__forceinline ID3D12Resource* ResultMapResource();
+		__forceinline GpuResource* SsrMapResource(UINT index);
+		__forceinline GpuResource* ResultMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SsrMapSrv(UINT index) const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMapRtv(UINT index) const;
@@ -76,8 +74,6 @@ namespace Ssr {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
 		void ApplySsr(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
@@ -94,7 +90,7 @@ namespace Ssr {
 
 	public:
 		void BuildDescriptors();
-		bool BuildResource();
+		bool BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -111,13 +107,16 @@ namespace Ssr {
 
 		UINT mDivider;
 
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
+		D3D12_VIEWPORT mOriginalViewport;
+		D3D12_RECT mOriginalScissorRect;
+
+		D3D12_VIEWPORT mReducedViewport;
+		D3D12_RECT mReducedScissorRect;
 
 		DXGI_FORMAT mBackBufferFormat;
 
-		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mSsrMaps;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mResultMap;
+		std::array<std::unique_ptr<GpuResource>, 2> mSsrMaps;
+		std::unique_ptr<GpuResource> mResultMap;
 
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuSrvs;
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhSsrMapGpuSrvs;
@@ -127,24 +126,16 @@ namespace Ssr {
 	};
 }
 
-constexpr D3D12_VIEWPORT Ssr::SsrClass::Viewport() const {
-	return mViewport;
-}
-
-constexpr D3D12_RECT Ssr::SsrClass::ScissorRect() const {
-	return mScissorRect;
-}
-
 constexpr DXGI_FORMAT Ssr::SsrClass::Format() const {
 	return mBackBufferFormat;
 }
 
-ID3D12Resource* Ssr::SsrClass::SsrMapResource(UINT index) {
-	return mSsrMaps[index].Get();
+GpuResource* Ssr::SsrClass::SsrMapResource(UINT index) {
+	return mSsrMaps[index].get();
 }
 
-ID3D12Resource* Ssr::SsrClass::ResultMapResource() {
-	return mResultMap.Get();
+GpuResource* Ssr::SsrClass::ResultMapResource() {
+	return mResultMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapSrv(UINT index) const {

@@ -6,6 +6,7 @@
 #include "MathHelper.h"
 #include "FrameResource.h"
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -23,12 +24,13 @@ namespace Ssao {
 	const UINT NumRenderTargets = 2;
 
 	const DXGI_FORMAT AOCoefficientMapFormat = DXGI_FORMAT_R16_UNORM;
+	const DXGI_FORMAT RandomVectorMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	const float AOCoefficientMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	class SsaoClass {
 	public:
-		SsaoClass() = default;
+		SsaoClass();
 		virtual ~SsaoClass() = default;
 
 	public:
@@ -38,8 +40,8 @@ namespace Ssao {
 		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
 		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-		__forceinline ID3D12Resource* AOCoefficientMapResource(UINT index);
-		__forceinline ID3D12Resource* RandomVectorMapResource();
+		__forceinline GpuResource* AOCoefficientMapResource(UINT index);
+		__forceinline GpuResource* RandomVectorMapResource();
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AOCoefficientMapSrv(UINT index) const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE AOCoefficientMapRtv(UINT index) const;
 
@@ -68,7 +70,7 @@ namespace Ssao {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResource();
+		bool BuildResources();
 
 		void BuildOffsetVectors();
 		bool BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
@@ -85,9 +87,9 @@ namespace Ssao {
 
 		UINT mDivider;
 		
-		Microsoft::WRL::ComPtr<ID3D12Resource> mRandomVectorMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mRandomVectorMapUploadBuffer;
-		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mAOCoefficientMaps;
+		std::unique_ptr<GpuResource> mRandomVectorMap;
+		std::unique_ptr<GpuResource> mRandomVectorMapUploadBuffer;
+		std::array<std::unique_ptr<GpuResource>, 2> mAOCoefficientMaps;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhRandomVectorMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhRandomVectorMapGpuSrv;

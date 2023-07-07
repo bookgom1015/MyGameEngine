@@ -5,6 +5,11 @@
 
 using namespace TemporalAA;
 
+TemporalAAClass::TemporalAAClass() {
+	mResolveMap	= std::make_unique<GpuResource>();
+	mHistoryMap = std::make_unique<GpuResource>();
+}
+
 bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT format) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -19,7 +24,7 @@ bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 	bInitiatingTaa = true;
 
-	CheckReturn(BuildResource());
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -85,7 +90,7 @@ void TemporalAAClass::Run(
 	cmdList->RSSetViewports(1, &mViewport);
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
-	const auto resolveMap = mResolveMap.Get();
+	const auto resolveMap = mResolveMap->Resource();
 	if (bInitiatingTaa) {
 		{
 			D3D12_RESOURCE_BARRIER barriers[] = {
@@ -128,7 +133,7 @@ void TemporalAAClass::Run(
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
-	auto historyMap = mHistoryMap.Get();
+	const auto historyMap = mHistoryMap->Resource();
 	{
 		D3D12_RESOURCE_BARRIER barriers[] = {
 			CD3DX12_RESOURCE_BARRIER::Transition(historyMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST),
@@ -176,7 +181,7 @@ bool TemporalAAClass::OnResize(UINT width, UINT height) {
 		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
 
-		CheckReturn(BuildResource());
+		CheckReturn(BuildResources());
 		BuildDescriptors();
 	}
 
@@ -198,13 +203,13 @@ void TemporalAAClass::BuildDescriptors() {
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	md3dDevice->CreateShaderResourceView(mResolveMap.Get(), &srvDesc, mhResolveMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mResolveMap.Get(), &rtvDesc, mhResolveMapCpuRtv);
+	md3dDevice->CreateShaderResourceView(mResolveMap->Resource(), &srvDesc, mhResolveMapCpuSrv);
+	md3dDevice->CreateRenderTargetView(mResolveMap->Resource(), &rtvDesc, mhResolveMapCpuRtv);
 
-	md3dDevice->CreateShaderResourceView(mHistoryMap.Get(), &srvDesc, mhHistoryMapCpuSrv);
+	md3dDevice->CreateShaderResourceView(mHistoryMap->Resource(), &srvDesc, mhHistoryMapCpuSrv);
 }
 
-bool TemporalAAClass::BuildResource() {
+bool TemporalAAClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = mBackBufferFormat;
@@ -220,23 +225,25 @@ bool TemporalAAClass::BuildResource() {
 	CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, ClearValues);
 
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
+	CheckReturn(mResolveMap->Initialize(
+		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		&optClear,
-		IID_PPV_ARGS(mResolveMap.GetAddressOf())
+		L"TAA_ResolveMap"
 	));
 
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
+	CheckReturn(mHistoryMap->Initialize(
+		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		NULL,
-		IID_PPV_ARGS(mHistoryMap.GetAddressOf())
+		L"TAA_HistoryMap"
 	));
 
 	return true;

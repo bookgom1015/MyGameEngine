@@ -5,6 +5,10 @@
 
 using namespace MotionBlur;
 
+MotionBlurClass::MotionBlurClass() {
+	mMotionVectorMap = std::make_unique<GpuResource>();
+}
+
 bool MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT format) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -14,7 +18,7 @@ bool MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 	mBackBufferFormat = format;
 
-	CheckReturn(BuildResource());
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -88,7 +92,7 @@ bool MotionBlurClass::OnResize(UINT width, UINT height) {
 		mWidth = width;
 		mHeight = height;
 
-		CheckReturn(BuildResource());
+		CheckReturn(BuildResources());
 		BuildDescriptors();
 	}
 
@@ -130,10 +134,10 @@ void MotionBlurClass::BuildDescriptors() {
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	md3dDevice->CreateRenderTargetView(mMotionVectorMap.Get(), &rtvDesc, mhMotionVectorMapCpuRtv);
+	md3dDevice->CreateRenderTargetView(mMotionVectorMap->Resource(), &rtvDesc, mhMotionVectorMapCpuRtv);
 }
 
-bool MotionBlurClass::BuildResource() {
+bool MotionBlurClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = mBackBufferFormat;
@@ -149,15 +153,15 @@ bool MotionBlurClass::BuildResource() {
 
 	CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, ClearValues);
 
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
+	CheckReturn(mMotionVectorMap->Initialize(
+		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		&optClear,
-		IID_PPV_ARGS(mMotionVectorMap.GetAddressOf())
+		L"MotionVectorMap"
 	));
-	mMotionVectorMap->SetName(L"MotionVectorMap");
 
 	return true;
 }

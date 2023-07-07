@@ -9,6 +9,10 @@
 
 using namespace ShadowMap;
 
+ShadowMapClass::ShadowMapClass() {
+	mShadowMap = std::make_unique<GpuResource>();
+}
+
 bool ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -19,7 +23,7 @@ bool ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manage
 	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
 
-	CheckReturn(BuildResource());
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -60,8 +64,8 @@ bool ShadowMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT d
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetShader("ShadowVS");
-		auto ps = mShaderManager->GetShader("ShadowPS");
+		auto vs = mShaderManager->GetDxcShader("ShadowVS");
+		auto ps = mShaderManager->GetDxcShader("ShadowPS");
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -88,7 +92,7 @@ void ShadowMapClass::Run(
 	cmdList->RSSetViewports(1, &mViewport);
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
-	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap.Get(), D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+	mShadowMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);	
 
 	cmdList->ClearDepthStencilView(mhCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	cmdList->OMSetRenderTargets(0, nullptr, false, &mhCpuDsv);
@@ -99,7 +103,7 @@ void ShadowMapClass::Run(
 
 	DrawRenderItems(cmdList, ritems, objCBAddress, matCBAddress);
 
-	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_DEPTH_READ));
+	mShadowMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
 void ShadowMapClass::BuildDescriptors(
@@ -127,17 +131,17 @@ void ShadowMapClass::BuildDescriptors() {
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.PlaneSlice = 0;
-	md3dDevice->CreateShaderResourceView(mShadowMap.Get(), &srvDesc, mhCpuSrv);
+	md3dDevice->CreateShaderResourceView(mShadowMap->Resource(), &srvDesc, mhCpuSrv);
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvDesc.Format = ShadowMapFormat;
 	dsvDesc.Texture2D.MipSlice = 0;
-	md3dDevice->CreateDepthStencilView(mShadowMap.Get(), &dsvDesc, mhCpuDsv);
+	md3dDevice->CreateDepthStencilView(mShadowMap->Resource(), &dsvDesc, mhCpuDsv);
 }
 
-bool ShadowMapClass::BuildResource() {
+bool ShadowMapClass::BuildResources() {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -153,19 +157,19 @@ bool ShadowMapClass::BuildResource() {
 	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 	D3D12_CLEAR_VALUE optClear;
-	optClear.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	optClear.Format = ShadowMapFormat;
 	optClear.DepthStencil.Depth = 1.0f;
 	optClear.DepthStencil.Stencil = 0;
 
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
+	CheckReturn(mShadowMap->Initialize(
+		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&texDesc,
 		D3D12_RESOURCE_STATE_DEPTH_READ,
 		&optClear,
-		IID_PPV_ARGS(&mShadowMap))
-	);
-	mShadowMap->SetName(L"ShadowMap");
+		L"ShadowMap"
+	));
 
 	return true;
 }
@@ -175,5 +179,24 @@ void ShadowMapClass::DrawRenderItems(
 		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, 
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress) {
+	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+	UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 
+	for (size_t i = 0; i < ritems.size(); ++i) {
+		auto& ri = ritems[i];
+
+		cmdList->IASetVertexBuffers(0, 1, &ri->Geometry->VertexBufferView());
+		cmdList->IASetIndexBuffer(&ri->Geometry->IndexBufferView());
+		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
+
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBAddress + ri->ObjCBIndex * objCBByteSize;
+		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
+
+		if (ri->Material != nullptr) {
+			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = matCBAddress + ri->Material->MatCBIndex * matCBByteSize;
+			cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Mat, currRitemMatCBAddress);
+		}
+
+		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
+	}
 }

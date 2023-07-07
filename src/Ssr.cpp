@@ -5,6 +5,12 @@
 
 using namespace Ssr;
 
+SsrClass::SsrClass() {
+	mSsrMaps[0] = std::make_unique<GpuResource>();
+	mSsrMaps[1] = std::make_unique<GpuResource>();
+	mResultMap = std::make_unique<GpuResource>();
+}
+
 bool SsrClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -19,10 +25,13 @@ bool SsrClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UIN
 
 	mBackBufferFormat = backBufferFormat;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(mSsrMapWidth), static_cast<float>(mSsrMapHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(mSsrMapWidth), static_cast<int>(mSsrMapHeight) };
+	mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mSsrMapWidth), static_cast<float>(mSsrMapHeight), 0.0f, 1.0f };
+	mReducedScissorRect = { 0, 0, static_cast<int>(mSsrMapWidth), static_cast<int>(mSsrMapHeight) };
 
-	CheckReturn(BuildResource());
+	mOriginalViewport = { 0.0f, 0.0f, static_cast<float>(mResultMapWidth), static_cast<float>(mResultMapHeight), 0.0f, 1.0f };
+	mOriginalScissorRect = { 0, 0, static_cast<int>(mResultMapWidth), static_cast<int>(mResultMapHeight) };
+
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -139,8 +148,11 @@ void SsrClass::BuildSsr(
 	cmdList->SetPipelineState(mPSOs["buildingSsr"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["buildingSsr"].Get());
 	
-	cmdList->RSSetViewports(1, &mViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
+	cmdList->RSSetViewports(1, &mReducedViewport);
+	cmdList->RSSetScissorRects(1, &mReducedScissorRect);
+
+	const auto ssrMap = mSsrMaps[0].get();
+	ssrMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	const auto rtv = mhSsrMapCpuRtvs[0];
 	cmdList->ClearRenderTargetView(rtv, Ssr::ClearValues, 0, nullptr);
@@ -149,7 +161,6 @@ void SsrClass::BuildSsr(
 	cmdList->SetGraphicsRootConstantBufferView(Building::RootSignatureLayout::ECB_Ssr, cbAddress);
 
 	cmdList->SetGraphicsRootDescriptorTable(Building::RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
-
 	cmdList->SetGraphicsRootDescriptorTable(Building::RootSignatureLayout::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(Building::RootSignatureLayout::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(Building::RootSignatureLayout::ESI_Spec, si_spec);
@@ -158,12 +169,12 @@ void SsrClass::BuildSsr(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	ssrMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 void SsrClass::ApplySsr(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
@@ -173,8 +184,8 @@ void SsrClass::ApplySsr(
 	cmdList->SetPipelineState(mPSOs["applyingSsr"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["applyingSsr"].Get());
 
-	cmdList->RSSetViewports(1, &viewport);
-	cmdList->RSSetScissorRects(1, &scissorRect);
+	cmdList->RSSetViewports(1, &mOriginalViewport);
+	cmdList->RSSetScissorRects(1, &mOriginalScissorRect);
 
 	cmdList->ClearRenderTargetView(mhResultMapCpuRtv, Ssr::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhResultMapCpuRtv, true, nullptr);
@@ -226,10 +237,13 @@ bool SsrClass::OnResize(UINT width, UINT height) {
 		mResultMapWidth = width;
 		mResultMapHeight = height;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(mSsrMapWidth), static_cast<float>(mSsrMapHeight), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(mSsrMapWidth), static_cast<int>(mSsrMapHeight) };
+		mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mSsrMapWidth), static_cast<float>(mSsrMapHeight), 0.0f, 1.0f };
+		mReducedScissorRect = { 0, 0, static_cast<int>(mSsrMapWidth), static_cast<int>(mSsrMapHeight) };
 
-		CheckReturn(BuildResource());
+		mOriginalViewport = { 0.0f, 0.0f, static_cast<float>(mResultMapWidth), static_cast<float>(mResultMapHeight), 0.0f, 1.0f };
+		mOriginalScissorRect = { 0, 0, static_cast<int>(mResultMapWidth), static_cast<int>(mResultMapHeight) };
+
+		CheckReturn(BuildResources());
 		BuildDescriptors();
 	}
 
@@ -252,14 +266,14 @@ void SsrClass::BuildDescriptors() {
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
 	for (int i = 0; i < 2; ++i) {
-		md3dDevice->CreateShaderResourceView(mSsrMaps[i].Get(), &srvDesc, mhSsrMapCpuSrvs[i]);
-		md3dDevice->CreateRenderTargetView(mSsrMaps[i].Get(), &rtvDesc, mhSsrMapCpuRtvs[i]);
+		md3dDevice->CreateShaderResourceView(mSsrMaps[i]->Resource(), &srvDesc, mhSsrMapCpuSrvs[i]);
+		md3dDevice->CreateRenderTargetView(mSsrMaps[i]->Resource(), &rtvDesc, mhSsrMapCpuRtvs[i]);
 	}
 
-	md3dDevice->CreateRenderTargetView(mResultMap.Get(), &rtvDesc, mhResultMapCpuRtv);
+	md3dDevice->CreateRenderTargetView(mResultMap->Resource(), &rtvDesc, mhResultMapCpuRtv);
 }
 
-bool SsrClass::BuildResource() {
+bool SsrClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -276,30 +290,32 @@ bool SsrClass::BuildResource() {
 	rscDesc.Width = mSsrMapWidth;
 	rscDesc.Height = mSsrMapHeight;
 	for (int i = 0; i < 2; ++i) {
-		CheckHRESULT(md3dDevice->CreateCommittedResource(
+		std::wstringstream wsstream;
+		wsstream << "SsrMap_" << i;
+
+		CheckReturn(mSsrMaps[i]->Initialize(
+			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
-			IID_PPV_ARGS(&mSsrMaps[i])
+			wsstream.str().c_str()
 		));
-		std::wstringstream wsstream;
-		wsstream << "SsrMap_" << i;
-		mSsrMaps[i]->SetName(wsstream.str().c_str());
 	}
+
 
 	rscDesc.Width = mResultMapWidth;
 	rscDesc.Height = mResultMapHeight;
-	CheckHRESULT(md3dDevice->CreateCommittedResource(
+	CheckReturn(mResultMap->Initialize(
+		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		&optClear,
-		IID_PPV_ARGS(&mResultMap)
+		L"SsrResultMap"
 	));
-	mResultMap->SetName(L"SsrResultMap");
 
 	return true;
 }

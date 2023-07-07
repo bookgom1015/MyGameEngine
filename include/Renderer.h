@@ -95,6 +95,9 @@ public:
 	void EnableSsr(bool state);
 	__forceinline constexpr bool SsrEnabled() const;
 
+	void EnableRaytracing(bool state);
+	__forceinline constexpr bool RaytracingEnabled() const;
+
 	void ShowImGui(bool state);
 
 	__forceinline constexpr bool IsInitialized() const;
@@ -119,6 +122,8 @@ protected:
 	bool bDepthOfFieldEnabled = true;
 	bool bBloomEnabled = true;
 	bool bSsrEnabled = true;
+
+	bool bRaytracing = false;
 };
 
 constexpr bool Renderer::DebuggingEnabled() const {
@@ -151,6 +156,10 @@ constexpr bool Renderer::BloomEnabled() const {
 
 constexpr bool Renderer::SsrEnabled() const {
 	return bSsrEnabled;
+}
+
+constexpr bool Renderer::RaytracingEnabled() const {
+	return bRaytracing;
 }
 
 constexpr bool Renderer::IsInitialized() const {

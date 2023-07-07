@@ -8,9 +8,10 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<PassConstants> cb : register(b0);
+ConstantBuffer<PassConstants>	cbPass	: register(b0);
+ConstantBuffer<ObjectConstants> cbObj	: register(b1);
 
-Texture2D gi_Cube : register(t0);
+TextureCube gi_Cube : register(t0);
 
 struct VertexIn {
 	float3 PosL		: POSITION;
@@ -30,18 +31,18 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 	vout.PosL = vin.PosL;
 
 	// Transform to world space.
-	float4 posW = mul(float4(vin.PosL, 1.0f), cb.World);
+	float4 posW = mul(float4(vin.PosL, 1.0f), cbObj.World);
 
 	// Always center sky about camera.
-	posW.xyz += cb.EyePosW;
+	posW.xyz += cbPass.EyePosW;
 
 	// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
-	vout.PosH = mul(posW, cb.ViewProj).xyww;
+	vout.PosH = mul(posW, cbPass.ViewProj).xyww;
 
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
+float4 PS(VertexOut pin) : SV_Target{
 	return gi_Cube.Sample(gsamLinearWrap, pin.PosL);
 }
 

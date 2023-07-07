@@ -9,24 +9,24 @@ constexpr UINT GBuffer::GBufferClass::Height() const {
 	return mHeight;
 }
 
-ID3D12Resource* GBuffer::GBufferClass::ColorMapResource() {
-	return mColorMap.Get();
+GpuResource* GBuffer::GBufferClass::ColorMapResource() {
+	return mColorMap.get();
 }
 
-ID3D12Resource* GBuffer::GBufferClass::AlbedoMapResource() {
-	return mAlbedoMap.Get();
+GpuResource* GBuffer::GBufferClass::AlbedoMapResource() {
+	return mAlbedoMap.get();
 }
 
-ID3D12Resource* GBuffer::GBufferClass::NormalMapResource() {
-	return mNormalMap.Get();
+GpuResource* GBuffer::GBufferClass::NormalMapResource() {
+	return mNormalMap.get();
 }
 
-ID3D12Resource* GBuffer::GBufferClass::SpecularMapResource() {
-	return mSpecularMap.Get();
+GpuResource* GBuffer::GBufferClass::SpecularMapResource() {
+	return mSpecularMap.get();
 }
 
-ID3D12Resource* GBuffer::GBufferClass::VelocityMapResource() {
-	return mVelocityMap.Get();
+GpuResource* GBuffer::GBufferClass::VelocityMapResource() {
+	return mVelocityMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ColorMapSrv() const {

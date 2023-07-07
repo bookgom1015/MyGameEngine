@@ -4,6 +4,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -37,18 +38,18 @@ namespace GBuffer {
 
 	class GBufferClass {
 	public:
-		GBufferClass() = default;
+		GBufferClass();
 		virtual ~GBufferClass() = default;
 
 	public:
 		__forceinline constexpr UINT Width() const;
 		__forceinline constexpr UINT Height() const;
 
-		__forceinline ID3D12Resource* ColorMapResource();
-		__forceinline ID3D12Resource* AlbedoMapResource();
-		__forceinline ID3D12Resource* NormalMapResource();
-		__forceinline ID3D12Resource* SpecularMapResource();
-		__forceinline ID3D12Resource* VelocityMapResource();
+		__forceinline GpuResource* ColorMapResource();
+		__forceinline GpuResource* AlbedoMapResource();
+		__forceinline GpuResource* NormalMapResource();
+		__forceinline GpuResource* SpecularMapResource();
+		__forceinline GpuResource* VelocityMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ColorMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AlbedoMapSrv() const;
@@ -65,7 +66,7 @@ namespace GBuffer {
 
 	public:
 		bool Initialize(ID3D12Device* device, UINT width, UINT height, ShaderManager*const manager, 
-			ID3D12Resource* depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat);
+			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout);
@@ -81,13 +82,12 @@ namespace GBuffer {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
-			UINT descSize, UINT rtvDescSize,
-			ID3D12Resource* depth);
-		bool OnResize(UINT width, UINT height, ID3D12Resource* depth);
+			UINT descSize, UINT rtvDescSize);
+		bool OnResize(UINT width, UINT height);
 
 	private:
-		void BuildDescriptors(ID3D12Resource* depth);
-		bool BuildResource();
+		void BuildDescriptors();
+		bool BuildResources();
 
 		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);
@@ -102,13 +102,13 @@ namespace GBuffer {
 		UINT mWidth;
 		UINT mHeight;
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> mColorMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mAlbedoMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mNormalMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mSpecularMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mVelocityMap;
+		std::unique_ptr<GpuResource> mColorMap;
+		std::unique_ptr<GpuResource> mAlbedoMap;
+		std::unique_ptr<GpuResource> mNormalMap;
+		std::unique_ptr<GpuResource> mSpecularMap;
+		std::unique_ptr<GpuResource> mVelocityMap;
 
-		ID3D12Resource* mDepthMap;
+		GpuResource* mDepthMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthMapCpuDsv;
 		DXGI_FORMAT mDepthFormat;
 

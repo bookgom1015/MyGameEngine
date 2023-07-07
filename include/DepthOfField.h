@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -100,7 +101,7 @@ namespace DepthOfField {
 
 	class DepthOfFieldClass {
 	public:
-		DepthOfFieldClass() = default;
+		DepthOfFieldClass();
 		virtual ~DepthOfFieldClass() = default;
 
 	public:
@@ -109,13 +110,10 @@ namespace DepthOfField {
 
 		__forceinline constexpr UINT DofMapWidth() const;
 		__forceinline constexpr UINT DofMapHeight() const;
-
-		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
-		__forceinline constexpr D3D12_RECT ScissorRect() const;
-
-		__forceinline ID3D12Resource* CocMapResource();
-		__forceinline ID3D12Resource* DofMapResource();
-		__forceinline ID3D12Resource* FocalDistanceBufferResource();
+		
+		__forceinline GpuResource* CocMapResource();
+		__forceinline GpuResource* DofMapResource();
+		__forceinline GpuResource* FocalDistanceBufferResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CocMapSrv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CocMapRtv() const;
@@ -127,7 +125,7 @@ namespace DepthOfField {
 
 	public:
 		bool Initialize(ID3D12Device* device, ShaderManager*const manager, ID3D12GraphicsCommandList* cmdList, 
-			UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
+			UINT width, UINT height, DXGI_FORMAT backBufferFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
@@ -166,7 +164,7 @@ namespace DepthOfField {
 
 	public:
 		void BuildDescriptors();
-		bool BuildResource(ID3D12GraphicsCommandList* cmdList);
+		bool BuildResources(ID3D12GraphicsCommandList* cmdList);
 
 		void Blur(ID3D12GraphicsCommandList*const cmdList, bool horzBlur);
 
@@ -179,19 +177,15 @@ namespace DepthOfField {
 
 		UINT mWidth;
 		UINT mHeight;
-
-		UINT mDivider;
-		UINT mReducedWidth;
-		UINT mReducedHeight;
-
+		
 		DXGI_FORMAT mBackBufferFormat;
 
 		D3D12_VIEWPORT mViewport;
 		D3D12_RECT mScissorRect;
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> mCocMap;
-		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, 2> mDofMaps;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mFocalDistanceBuffer;
+		std::unique_ptr<GpuResource> mCocMap;
+		std::array<std::unique_ptr<GpuResource>, 2> mDofMaps;
+		std::unique_ptr<GpuResource> mFocalDistanceBuffer;
 
 		BYTE* mMappedBuffer;
 

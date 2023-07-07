@@ -5,6 +5,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -47,8 +48,8 @@ namespace BlurFilter {
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			ID3D12Resource*const primary,
-			ID3D12Resource*const secondary,
+			GpuResource*const primary,
+			GpuResource*const secondary,
 			D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
 			D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
 			D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
@@ -60,8 +61,8 @@ namespace BlurFilter {
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE normalSrv,
 			D3D12_GPU_DESCRIPTOR_HANDLE depthSrv,
-			ID3D12Resource*const primary,
-			ID3D12Resource*const secondary,
+			GpuResource* const primary,
+			GpuResource* const secondary,
 			D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
 			D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
 			D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
@@ -72,7 +73,7 @@ namespace BlurFilter {
 	private:
 		void Blur(
 			ID3D12GraphicsCommandList* cmdList,
-			ID3D12Resource*const output,
+			GpuResource*const output,
 			D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
 			D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
 			bool horzBlur);

@@ -5,6 +5,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -25,15 +26,15 @@ namespace TemporalAA {
 
 	class TemporalAAClass {
 	public:
-		TemporalAAClass() = default;
+		TemporalAAClass();
 		virtual ~TemporalAAClass() = default;
 
 	public:
 		__forceinline constexpr UINT Width() const;
 		__forceinline constexpr UINT Height() const;
 
-		__forceinline ID3D12Resource* ResolveMapResource();
-		__forceinline ID3D12Resource* HistoryMapResource();
+		__forceinline GpuResource* ResolveMapResource();
+		__forceinline GpuResource* HistoryMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolveMapSrv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResolveMapRtv() const;
@@ -62,7 +63,7 @@ namespace TemporalAA {
 
 	public:
 		void BuildDescriptors();
-		bool BuildResource();
+		bool BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -79,8 +80,8 @@ namespace TemporalAA {
 
 		DXGI_FORMAT mBackBufferFormat;
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> mResolveMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mHistoryMap;
+		std::unique_ptr<GpuResource> mResolveMap;
+		std::unique_ptr<GpuResource> mHistoryMap;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResolveMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhResolveMapGpuSrv;

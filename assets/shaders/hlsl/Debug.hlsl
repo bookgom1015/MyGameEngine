@@ -17,11 +17,11 @@ cbuffer gRootConstants : register(b0) {
 	uint gSampleMask4;
 }
 
-Texture2D gi_Debug1	: register(t0);
-Texture2D gi_Debug2	: register(t1);
-Texture2D gi_Debug3	: register(t2);
-Texture2D gi_Debug4	: register(t3);
-Texture2D gi_Debug5	: register(t4);
+Texture2D gi_Debug0	: register(t0);
+Texture2D gi_Debug1	: register(t1);
+Texture2D gi_Debug2	: register(t2);
+Texture2D gi_Debug3	: register(t3);
+Texture2D gi_Debug4	: register(t4);
 
 static const float2 gOffsets[DebugShaderParams::MapCount] = {
 	float2(0.8f, 0.8f),
@@ -98,7 +98,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	case 3: return SampleColor(gi_Debug3, 3, pin.TexC);
 	case 4: return SampleColor(gi_Debug4, 4, pin.TexC);
 	}
-	return 0;
+	return float4(1, 0, 1, 1);
 }
 
 #endif // __DEBUG_HLSL__

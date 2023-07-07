@@ -4,6 +4,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "GpuResource.h"
 
 class ShaderManager;
 
@@ -24,7 +25,7 @@ namespace ShadowMap {
 
 	class ShadowMapClass {
 	public:
-		ShadowMapClass() = default;
+		ShadowMapClass();
 		virtual ~ShadowMapClass() = default;
 
 	public:
@@ -34,7 +35,7 @@ namespace ShadowMap {
 		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
 		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-		__forceinline ID3D12Resource* Resource();
+		__forceinline GpuResource* Resource();
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Srv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
 
@@ -59,13 +60,13 @@ namespace ShadowMap {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResource();
+		bool BuildResources();
 
 		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);
 
 	protected:
-		const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R24G8_TYPELESS;
+		const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -80,7 +81,7 @@ namespace ShadowMap {
 		D3D12_VIEWPORT mViewport;
 		D3D12_RECT mScissorRect;
 
-		Microsoft::WRL::ComPtr<ID3D12Resource> mShadowMap = nullptr;
+		std::unique_ptr<GpuResource> mShadowMap;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;

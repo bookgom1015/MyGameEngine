@@ -17,24 +17,16 @@ constexpr UINT DepthOfField::DepthOfFieldClass::DofMapHeight() const {
 	return mHeight;
 }
 
-constexpr D3D12_VIEWPORT DepthOfField::DepthOfFieldClass::Viewport() const {
-	return mViewport;
+GpuResource* DepthOfField::DepthOfFieldClass::CocMapResource() {
+	return mCocMap.get();
 }
 
-constexpr D3D12_RECT DepthOfField::DepthOfFieldClass::ScissorRect() const {
-	return mScissorRect;
+GpuResource* DepthOfField::DepthOfFieldClass::DofMapResource() {
+	return mDofMaps[0].get();
 }
 
-ID3D12Resource* DepthOfField::DepthOfFieldClass::CocMapResource() {
-	return mCocMap.Get();
-}
-
-ID3D12Resource* DepthOfField::DepthOfFieldClass::DofMapResource() {
-	return mDofMaps[0].Get();
-}
-
-ID3D12Resource* DepthOfField::DepthOfFieldClass::FocalDistanceBufferResource() {
-	return mFocalDistanceBuffer.Get();
+GpuResource* DepthOfField::DepthOfFieldClass::FocalDistanceBufferResource() {
+	return mFocalDistanceBuffer.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::DepthOfFieldClass::CocMapSrv() const {

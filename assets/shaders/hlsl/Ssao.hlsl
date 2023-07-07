@@ -18,14 +18,7 @@ Texture2D<float3>	gi_Normal		: register(t0);
 Texture2D<float>	gi_Depth		: register(t1);
 Texture2D<float3>	gi_RandomVector	: register(t2);
 
-static const float2 gTexCoords[6] = {
-	float2(0.0f, 1.0f),
-	float2(0.0f, 0.0f),
-	float2(1.0f, 0.0f),
-	float2(0.0f, 1.0f),
-	float2(1.0f, 0.0f),
-	float2(1.0f, 1.0f)
-};
+#include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
 	float4 PosH : SV_POSITION;
@@ -114,7 +107,7 @@ float4 PS(VertexOut pin) : SV_Target{
 		// Are offset vectors are fixed and uniformly distributed (so that our offset vectors
 		// do not clump in the same direction).  If we reflect them about a random vector
 		// then we get a random uniform distribution of offset vectors.
-		float3 offset = reflect(gOffsetVectors[i].xyz, randVec);
+		float3 offset = reflect(cb.OffsetVectors[i].xyz, randVec);
 
 		// Flip offset vector if it is behind the plane defined by (p, n).
 		float flip = sign(dot(offset, n));

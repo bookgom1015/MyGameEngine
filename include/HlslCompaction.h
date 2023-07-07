@@ -16,30 +16,38 @@
 #define MaxLights 16
 
 struct Light {
-	DirectX::XMFLOAT3 Strength = { 0.5f, 0.5f, 0.5f };
-	float FalloffStart = 1.0f;								// point/spot light only
-	DirectX::XMFLOAT3 Direction = { 0.0f, -1.0f, 0.0f };	// directional/spot light only
-	float FalloffEnd = 10.0f;								// point/spot light only
-	DirectX::XMFLOAT3 Position = { 0.0f, 0.0f, 0.0f };		// point/spot light only
-	float SpotPower = 64.0f;								// spot light only
+	DirectX::XMFLOAT3 Strength;
+	float FalloffStart;				// point/spot light only
+	DirectX::XMFLOAT3 Direction;	// directional/spot light only
+	float FalloffEnd;				// point/spot light only
+	DirectX::XMFLOAT3 Position;		// point/spot light only
+	float SpotPower;				// spot light only
 };
 
+#ifdef HLSL
+struct Material {
+	float4 DiffuseAlbedo;
+	float3 FresnelR0;
+	float Shininess;
+};
+#endif
+
 struct ObjectConstants {
-	DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 PrevWorld = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 World;
+	DirectX::XMFLOAT4X4 PrevWorld;
+	DirectX::XMFLOAT4X4 TexTransform;
 };
 
 struct PassConstants {
-	DirectX::XMFLOAT4X4	View = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4	InvView = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4	Proj = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4	InvProj = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4	ViewProj = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4	InvViewProj = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 PrevViewProj = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 ViewProjTex = MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 ShadowTransform = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4	View;
+	DirectX::XMFLOAT4X4	InvView;
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4X4	InvProj;
+	DirectX::XMFLOAT4X4	ViewProj;
+	DirectX::XMFLOAT4X4	InvViewProj;
+	DirectX::XMFLOAT4X4 PrevViewProj;
+	DirectX::XMFLOAT4X4 ViewProjTex;
+	DirectX::XMFLOAT4X4 ShadowTransform;
 	DirectX::XMFLOAT3	EyePosW;
 	float				PassConstantsPad0;
 	DirectX::XMFLOAT2	JitteredOffset;
@@ -113,12 +121,12 @@ namespace DebugShaderParams {
 
 	namespace SampleMask {
 		enum Type {
-			RGB	= 1 << 0,
-			RG	= 1 << 1,
-			RRR	= 1 << 2,
-			GGG	= 1 << 3,
-			BBB	= 1 << 4,
-			AAA	= 1 << 5
+			RGB	= 0,
+			RG	= 1 << 0,
+			RRR	= 1 << 1,
+			GGG	= 1 << 2,
+			BBB	= 1 << 3,
+			AAA	= 1 << 4
 		};
 	}
 }

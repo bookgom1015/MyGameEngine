@@ -17,12 +17,12 @@ constexpr D3D12_RECT Ssao::SsaoClass::ScissorRect() const {
 	return mScissorRect;
 }
 
-ID3D12Resource* Ssao::SsaoClass::AOCoefficientMapResource(UINT index) {
-	return mAOCoefficientMaps[index].Get();
+GpuResource* Ssao::SsaoClass::AOCoefficientMapResource(UINT index) {
+	return mAOCoefficientMaps[index].get();
 }
 
-ID3D12Resource* Ssao::SsaoClass::RandomVectorMapResource() {
-	return mRandomVectorMap.Get();
+GpuResource* Ssao::SsaoClass::RandomVectorMapResource() {
+	return mRandomVectorMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssao::SsaoClass::AOCoefficientMapSrv(UINT index) const {

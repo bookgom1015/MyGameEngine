@@ -1,25 +1,23 @@
 #ifndef __APPLYINGSSR_HLSL__
 #define __APPLYINGSSR_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
 #include "Samplers.hlsli"
 #include "LightingUtil.hlsli"
-#include "SsrCommon.hlsli"
 
-TextureCube	gCubeMap		: register(t0);
-Texture2D	gBackBuffer		: register(t1);
-Texture2D	gNormalMap		: register(t2);
-Texture2D	gDepthMap		: register(t3);
-Texture2D	gSpecularMap	: register(t4);
-Texture2D	gSsrMap			: register(t5);
+ConstantBuffer<SsrConstants> cb		: register(b0);
 
-static const float2 gTexCoords[6] = {
-	float2(0.0f, 1.0f),
-	float2(0.0f, 0.0f),
-	float2(1.0f, 0.0f),
-	float2(0.0f, 1.0f),
-	float2(1.0f, 0.0f),
-	float2(1.0f, 1.0f)
-};
+TextureCube<float3>	gi_Cube			: register(t0);
+Texture2D<float3>	gi_BackBuffer	: register(t1);
+Texture2D<float3>	gi_Normal		: register(t2);
+Texture2D<float>	gi_Depth		: register(t3);
+Texture2D<float4>	gi_Specular		: register(t4);
+Texture2D<float4>	gi_Ssr			: register(t5);
+
+#include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -36,7 +34,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
 
 	// Transform quad corners to view space near plane.
-	float4 ph = mul(vout.PosH, gInvProj);
+	float4 ph = mul(vout.PosH, cb.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -44,7 +42,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float NdcDepthToViewDepth(float z_ndc) {
 	// z_ndc = A + B/viewZ, where gProj[2,2]=A and gProj[3,2]=B.
-	float viewZ = gProj[3][2] / (z_ndc - gProj[2][2]);
+	float viewZ = cb.Proj[3][2] / (z_ndc - cb.Proj[2][2]);
 	return viewZ;
 }
 
@@ -73,7 +71,7 @@ float3 BoxCubeMapLookup(float3 rayOrigin, float3 unitRayDir, float3 boxCenter, f
 
 float4 PS(VertexOut pin) : SV_Target {
 	// Get viewspace normal and z-coord of this pixel.  
-	float pz = gDepthMap.Sample(gsamDepthMap, pin.TexC).r;
+	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 	pz = NdcDepthToViewDepth(pz);
 
 	//
@@ -83,23 +81,23 @@ float4 PS(VertexOut pin) : SV_Target {
 	// t = p.z / pin.PosV.z
 	//
 	float3 posV = (pz / pin.PosV.z) * pin.PosV;
-	float4 posW = mul(float4(posV, 1.0f), gInvView);
+	float4 posW = mul(float4(posV, 1.0f), cb.InvView);
 
 	// Vector from point being lit to eye. 
-	float3 toEyeW = normalize(gEyePosW - posW.xyz);
+	float3 toEyeW = normalize(cb.EyePosW - posW.xyz);
 
-	float3 normalW = gNormalMap.Sample(gsamLinearClamp, pin.TexC).xyz;
+	float3 normalW = gi_Normal.Sample(gsamLinearClamp, pin.TexC);
 
 	// Add in specular reflections.
 	float3 r = reflect(-toEyeW, normalW);
 	float3 lookup = BoxCubeMapLookup(posW.xyz, r, (float3)0.0f, (float3)100.0f);
 
-	float3 cube = gCubeMap.Sample(gsamLinearWrap, lookup).rgb;
+	float3 cube = gi_Cube.Sample(gsamLinearWrap, lookup);
 
-	float3 color = gBackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
-	float4 ssr = gSsrMap.Sample(gsamLinearClamp, pin.TexC);
+	float3 color = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
+	float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
 
-	float4 specular = gSpecularMap.Sample(gsamLinearClamp, pin.TexC);
+	float4 specular = gi_Specular.Sample(gsamLinearClamp, pin.TexC);
 	float3 fresnelFactor = SchlickFresnel(specular.rgb, normalW, r);
 	float shiness = 1.0f - specular.a;
 

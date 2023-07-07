@@ -17,8 +17,8 @@ constexpr D3D12_RECT ShadowMap::ShadowMapClass::ScissorRect() const {
 	return mScissorRect;
 }
 
-ID3D12Resource* ShadowMap::ShadowMapClass::Resource() {
-	return mShadowMap.Get();
+GpuResource* ShadowMap::ShadowMapClass::Resource() {
+	return mShadowMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ShadowMap::ShadowMapClass::Srv() const {

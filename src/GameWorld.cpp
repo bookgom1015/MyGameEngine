@@ -431,6 +431,11 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 		case VK_DOWN:
 			mTimeSlowDown = std::max(0.0f, mTimeSlowDown - 0.1f);
 			return;
+		case VK_SPACE: {
+			auto state = mRenderer->RaytracingEnabled();
+			mRenderer->EnableRaytracing(!state);
+			return;
+		}
 		}
 	}
 }

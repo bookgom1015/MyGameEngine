@@ -92,8 +92,8 @@ bool BlurFilterClass::BuildPso() {
 void BlurFilterClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		ID3D12Resource*const primary,
-		ID3D12Resource*const secondary,
+		GpuResource* const primary,
+		GpuResource* const secondary,
 		D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
 		D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
 		D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
@@ -106,23 +106,12 @@ void BlurFilterClass::Run(
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_BlurPass, cbAddress);
 	cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EBilateral);
 
-	ID3D12Resource* output = nullptr;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE inputSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE outputRtv;
 	for (int i = 0; i < blurCount; ++i) {
-		// Ping-pong the two ambient map textures as we apply
-		// horizontal and vertical blur passes.
-		output = secondary;
-		outputRtv = secondaryRtv;
-		inputSrv = primarySrv;
 		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, output, outputRtv, inputSrv, true);
+		Blur(cmdList, secondary, secondaryRtv, primarySrv, true);
 
-		output = primary;
-		outputRtv = primaryRtv;
-		inputSrv = secondarySrv;
 		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, output, outputRtv, inputSrv, false);
+		Blur(cmdList, primary, primaryRtv, secondarySrv, false);
 	}
 }
 
@@ -131,8 +120,8 @@ void BlurFilterClass::Run(
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE normalSrv,
 		D3D12_GPU_DESCRIPTOR_HANDLE depthSrv,
-		ID3D12Resource*const primary,
-		ID3D12Resource*const secondary,
+		GpuResource* const primary,
+		GpuResource* const secondary,
 		D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
 		D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
 		D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
@@ -148,40 +137,22 @@ void BlurFilterClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, normalSrv);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, depthSrv);
 	
-	ID3D12Resource* output = nullptr;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE inputSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE outputRtv;
 	for (int i = 0; i < blurCount; ++i) {
-		// Ping-pong the two ambient map textures as we apply
-		// horizontal and vertical blur passes.
-		output = secondary;
-		outputRtv = secondaryRtv;
-		inputSrv = primarySrv;
 		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, output, outputRtv, inputSrv, true);
+		Blur(cmdList, secondary, secondaryRtv, primarySrv, true);
 
-		output = primary;
-		outputRtv = primaryRtv;
-		inputSrv = secondarySrv;
 		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, output, outputRtv, inputSrv, false);
+		Blur(cmdList, primary, primaryRtv, secondarySrv, false);
 	}
 }
 
 void BlurFilterClass::Blur(
 		ID3D12GraphicsCommandList* cmdList,
-		ID3D12Resource*const output,
+		GpuResource* const output,
 		D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
 		D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
 		bool horzBlur) {
-	cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(
-			output,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_RENDER_TARGET
-		)
-	);
+	output->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	cmdList->OMSetRenderTargets(1, &outputRtv, true, nullptr);
 
@@ -192,12 +163,5 @@ void BlurFilterClass::Blur(
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
-	cmdList->ResourceBarrier(
-		1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(
-			output,
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-		)
-	);
+	output->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }

@@ -1,19 +1,17 @@
 #ifndef __BLOOM_HLSL__
 #define __BLOOM_HLSL__
 
-#include "Common.hlsli"
+#ifndef HLSL
+#define HLSL
+#endif
 
-Texture2D gBackBuffer	: register(t0);
-Texture2D gBloomMap		: register(t1);
+#include "./../../../include/HlslCompaction.h"
+#include "Samplers.hlsli"
 
-static const float2 gTexCoords[6] = {
-	float2(0.0f, 1.0f),
-	float2(0.0f, 0.0f),
-	float2(1.0f, 0.0f),
-	float2(0.0f, 1.0f),
-	float2(1.0f, 0.0f),
-	float2(1.0f, 1.0f)
-};
+Texture2D gi_BackBuffer	: register(t0);
+Texture2D gi_Bloom		: register(t1);
+
+#include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -33,8 +31,8 @@ VertexOut VS(uint vid : SV_VertexID) {
 }
 
 float4 PS(VertexOut pin) : SV_Target {
-	float3 color = gBackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
-	float3 bloom = gBloomMap.Sample(gsamLinearClamp, pin.TexC).rgb;
+	float3 color = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
+	float3 bloom = gi_Bloom.Sample(gsamLinearClamp, pin.TexC).rgb;
 	return float4(color + bloom, 1.0f);
 }
 
