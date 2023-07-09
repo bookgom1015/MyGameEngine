@@ -221,6 +221,9 @@ bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 	HRESULT featureSupport = md3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &ops, sizeof(ops));
 	if (FAILED(featureSupport)) ReturnFalse(L"Device or driver does not support d3d12");
 
+	if (FAILED(featureSupport) || ops.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
+		ReturnFalse(L"Device or driver does not support ray-tracing");
+
 	CheckHRESULT(md3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
 
 	mRtvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);

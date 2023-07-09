@@ -408,7 +408,7 @@ bool GameWorld::InitMainWindow() {
 void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 	if (msg == WM_KEYDOWN) {
 		switch (wParam) {
-		case VK_ESCAPE:	PostQuitMessage(0);	return;
+		case VK_ESCAPE:	PostQuitMessage(0); return;
 		case VK_T: {
 			if (mGameState == EGameStates::EGS_Play) {
 				mGameState = EGameStates::EGS_UI;

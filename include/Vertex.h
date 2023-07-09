@@ -1,21 +1,26 @@
 #pragma once
 
+#ifndef HLSL
 #include <array>
 #include <vulkan/vulkan.h>
 
 #include "MathHelper.h"
+#endif
 
 struct Vertex {
 	DirectX::XMFLOAT3 Position;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexCoord;
 
+#ifndef HLSL
 	static VkVertexInputBindingDescription GetBindingDescription();
 	static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions();
 
 	bool operator==(const Vertex& other) const;
+#endif
 };
 
+#ifndef HLSL
 namespace std {
 	template<> struct hash<Vertex> {
 		size_t operator()(Vertex const& vertex) const {
@@ -26,3 +31,4 @@ namespace std {
 		}
 	};
 }
+#endif

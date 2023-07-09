@@ -20,10 +20,14 @@
 #include "Debug.h"
 #include "SkyCube.h"
 #include "ImGuiManager.h"
+#include "DxrShadowMap.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
 #include <imgui/backends/imgui_impl_dx12.h>
+
+#undef max
+#undef min
 
 using namespace DirectX;
 
@@ -33,6 +37,8 @@ namespace {
 	const DXGI_FORMAT NormalMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 	const DXGI_FORMAT SpecularMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	const DXGI_FORMAT VelocityMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
+
+	const UINT GeometryBufferCount = 64;
 }
 
 namespace ShaderArgs {
@@ -106,6 +112,9 @@ DxRenderer::DxRenderer() {
 	mDebug = std::make_unique<Debug::DebugClass>();
 	mSkyCube = std::make_unique<SkyCube::SkyCubeClass>();
 
+	mTLAS = std::make_unique<AccelerationStructureBuffer>();
+	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
+
 	auto blurWeights = Blur::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
 	mBlurWeights[1] = XMFLOAT4(&blurWeights[4]);
@@ -176,6 +185,8 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, BackBufferFormat));
 	CheckReturn(mDebug->Initialize(device, shaderManager, width, height, BackBufferFormat));
 	CheckReturn(mSkyCube->Initialize(device, cmdList, shaderManager, width, height, BackBufferFormat));
+
+	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -194,6 +205,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 
 	CheckReturn(BuildRootSignatures());
 	CheckReturn(BuildPSOs());
+	CheckReturn(BuildShaderTables());
 
 	BuildRenderItems();
 
@@ -211,6 +223,8 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 }
 
 void DxRenderer::CleanUp() {
+	FlushCommandQueue();
+
 	mImGui->CleanUp();
 	mShaderManager->CleanUp();
 	LowCleanUp();
@@ -240,6 +254,16 @@ bool DxRenderer::Update(float delta) {
 	CheckReturn(UpdateObjectCBs(delta));
 	CheckReturn(UpdateMaterialCBs(delta));
 
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+	CheckReturn(BuildTLASs(cmdList));
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	CheckReturn(FlushCommandQueue());
+
 	return true;
 }
 
@@ -263,7 +287,7 @@ bool DxRenderer::Draw() {
 	// Post-pass
 	if (bRaytracing) {
 		CheckReturn(DrawSkyCube());
-		CheckReturn(ApplyReflection());
+		CheckReturn(ApplySsr());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		if (bTaaEnabled) CheckReturn(ApplyTAA());
@@ -271,7 +295,7 @@ bool DxRenderer::Draw() {
 	}
 	else {
 		CheckReturn(DrawSkyCube());
-		CheckReturn(ApplyReflection());
+		CheckReturn(ApplySsr());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		if (bTaaEnabled) CheckReturn(ApplyTAA());
@@ -313,6 +337,8 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckReturn(mMotionBlur->OnResize(width, height));
 	CheckReturn(mTaa->OnResize(width, height));
 	CheckReturn(mDebug->OnResize(width, height));
+
+	CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -372,7 +398,6 @@ bool DxRenderer::SetCubeMap(const std::string& file) {
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
 	CheckReturn(FlushCommandQueue());
 
 	return true;
@@ -428,6 +453,8 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mDebug->CompileShaders(ShaderFilePath));
 	CheckReturn(mSkyCube->CompileShaders(ShaderFilePath));
 
+	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
+
 #ifdef _DEBUG
 	WLogln(L"Finished compiling shaders \n");
 #endif 
@@ -460,7 +487,7 @@ bool DxRenderer::BuildGeometries() {
 	auto geo = std::make_unique<MeshGeometry>();
 	geo->Name = "basic";
 
-	ID3D12GraphicsCommandList* cmdList = mCommandList.Get();
+	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	CheckHRESULT(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
@@ -490,7 +517,6 @@ bool DxRenderer::BuildGeometries() {
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
 	CheckReturn(FlushCommandQueue());
 
 	geo->VertexByteStride = static_cast<UINT>(sizeof(Vertex));
@@ -564,6 +590,8 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDebug->BuildRootSignature(staticSamplers));
 	CheckReturn(mSkyCube->BuildRootSignature(staticSamplers));
 
+	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, GeometryBufferCount));
+
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
 #endif
@@ -595,10 +623,18 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mTaa->BuildPso());
 	CheckReturn(mDebug->BuildPso());
 	CheckReturn(mSkyCube->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
+	
+	CheckReturn(mDxrShadowMap->BuildPso());
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
 #endif
+
+	return true;
+}
+
+bool DxRenderer::BuildShaderTables() {
+	CheckReturn(mDxrShadowMap->BuildShaderTables());
 
 	return true;
 }
@@ -622,6 +658,7 @@ bool DxRenderer::AddGeometry(const std::string& file) {
 	CheckReturn(MeshImporter::LoadObj(file, mesh, mat));
 
 	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = file;
 	BoundingBox bound;
 
 	const auto& vertices = mesh.Vertices;
@@ -647,7 +684,7 @@ bool DxRenderer::AddGeometry(const std::string& file) {
 	XMStoreFloat3(&bound.Center, 0.5f * (vMax + vMin));
 	XMStoreFloat3(&bound.Extents, 0.5f * (vMax - vMin));
 
-	ID3D12GraphicsCommandList* cmdList = mCommandList.Get();
+	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	CheckHRESULT(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
@@ -674,12 +711,6 @@ bool DxRenderer::AddGeometry(const std::string& file) {
 		geo->IndexBufferGPU)
 	);
 
-	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
-	CheckReturn(FlushCommandQueue());
-
 	geo->VertexByteStride = static_cast<UINT>(vertexSize);
 	geo->VertexBufferByteSize = vbByteSize;
 	geo->IndexFormat = DXGI_FORMAT_R32_UINT;
@@ -692,6 +723,13 @@ bool DxRenderer::AddGeometry(const std::string& file) {
 	submesh.AABB = bound;
 
 	geo->DrawArgs["mesh"] = submesh;
+
+	CheckReturn(AddBLAS(cmdList, geo.get()));
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	CheckReturn(FlushCommandQueue());
 
 	mGeometries[file] = std::move(geo);
 
@@ -743,6 +781,139 @@ void* DxRenderer::AddRenderItem(const std::string& file, const Transform& trans,
 	mRitems.push_back(std::move(ritem));
 
 	return mRitems.back().get();
+}
+
+bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4*const cmdList, MeshGeometry*const geo) {
+	D3D12_RAYTRACING_GEOMETRY_DESC geometryDesc = {};
+	geometryDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+	geometryDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+	geometryDesc.Triangles.VertexCount = static_cast<UINT>(geo->VertexBufferCPU->GetBufferSize() / sizeof(Vertex));
+	geometryDesc.Triangles.VertexBuffer.StartAddress = geo->VertexBufferGPU->GetGPUVirtualAddress();
+	geometryDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+	geometryDesc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
+	geometryDesc.Triangles.IndexCount = static_cast<UINT>(geo->IndexBufferCPU->GetBufferSize() / sizeof(std::uint32_t));
+	geometryDesc.Triangles.IndexBuffer = geo->IndexBufferGPU->GetGPUVirtualAddress();
+	geometryDesc.Triangles.Transform3x4 = 0;
+	// Mark the geometry as opaque. 
+	// PERFORMANCE TIP: mark geometry as opaque whenever applicable as it can enable important ray processing optimizations.
+	// Note: When rays encounter opaque geometry an any hit shader will not be executed whether it is present or not.
+	geometryDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+
+	// Get the size requirements for the BLAS buffers
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
+	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	inputs.pGeometryDescs = &geometryDesc;
+	inputs.NumDescs = 1;
+	inputs.Flags = buildFlags;
+
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+	md3dDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
+	
+	prebuildInfo.ScratchDataSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ScratchDataSizeInBytes);
+	prebuildInfo.ResultDataMaxSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ResultDataMaxSizeInBytes);
+	
+	std::unique_ptr<AccelerationStructureBuffer> blas = std::make_unique<AccelerationStructureBuffer>();
+	
+	// Create the BLAS scratch buffer
+	D3D12BufferCreateInfo bufferInfo(prebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
+	bufferInfo.Alignment = std::max(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), bufferInfo, blas->Scratch.GetAddressOf()));
+	
+	// Create the BLAS buffer
+	bufferInfo.Size = prebuildInfo.ResultDataMaxSizeInBytes;
+	bufferInfo.State = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), bufferInfo, blas->Result.GetAddressOf()));
+	
+	// Describe and build the bottom level acceleration structure
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+	buildDesc.Inputs = inputs;
+	buildDesc.ScratchAccelerationStructureData = blas->Scratch->GetGPUVirtualAddress();
+	buildDesc.DestAccelerationStructureData = blas->Result->GetGPUVirtualAddress();
+	
+	cmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+	
+	D3D12Util::UavBarrier(cmdList, blas->Result.Get());
+	mBLASs[geo->Name] = std::move(blas);
+
+	return true;
+}
+
+bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4*const cmdList) {
+	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
+
+	const auto opaques = mRitemRefs[RenderType::EOpaque];
+
+	for (const auto ri : opaques) {
+		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
+		instanceDesc.InstanceID = instanceDescs.size();
+		instanceDesc.InstanceContributionToHitGroupIndex = 0;
+		instanceDesc.InstanceMask = 0xFF;
+		for (int r = 0; r < 3; ++r) {
+			for (int c = 0; c < 4; ++c) {
+				instanceDesc.Transform[r][c] = ri->World.m[c][r];
+			}
+		}
+		instanceDesc.AccelerationStructure = mBLASs[ri->Geometry->Name]->Result->GetGPUVirtualAddress();
+		instanceDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
+		instanceDescs.push_back(instanceDesc);
+	}
+
+	// Create the TLAS instance buffer
+	D3D12BufferCreateInfo instanceBufferInfo;
+	instanceBufferInfo.Size = instanceDescs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+	instanceBufferInfo.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+	instanceBufferInfo.Flags = D3D12_RESOURCE_FLAG_NONE;
+	instanceBufferInfo.State = D3D12_RESOURCE_STATE_GENERIC_READ;
+	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), instanceBufferInfo, mTLAS->InstanceDesc.GetAddressOf()));
+	
+	// Copy the instance data to the buffer
+	void* pData;
+	CheckHRESULT(mTLAS->InstanceDesc->Map(0, nullptr, &pData));
+	std::memcpy(pData, instanceDescs.data(), instanceDescs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
+	mTLAS->InstanceDesc->Unmap(0, nullptr);
+	
+	// Get the size requirements for the TLAS buffers
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
+	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+	inputs.InstanceDescs = mTLAS->InstanceDesc->GetGPUVirtualAddress();
+	inputs.NumDescs = static_cast<UINT>(instanceDescs.size());
+	inputs.Flags = buildFlags;
+	
+	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+	md3dDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
+	
+	prebuildInfo.ResultDataMaxSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ResultDataMaxSizeInBytes);
+	prebuildInfo.ScratchDataSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ScratchDataSizeInBytes);
+	
+	// Set TLAS size
+	mTLAS->ResultDataMaxSizeInBytes = prebuildInfo.ResultDataMaxSizeInBytes;
+	
+	// Create TLAS sratch buffer
+	D3D12BufferCreateInfo bufferInfo(prebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
+	bufferInfo.Alignment = std::max(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);	
+	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), bufferInfo, mTLAS->Scratch.GetAddressOf()));
+	
+	// Create the TLAS buffer
+	bufferInfo.Size = prebuildInfo.ResultDataMaxSizeInBytes;
+	bufferInfo.State = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;	
+	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), bufferInfo, mTLAS->Result.GetAddressOf()));
+	
+	// Describe and build the TLAS
+	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
+	buildDesc.Inputs = inputs;
+	buildDesc.ScratchAccelerationStructureData = mTLAS->Scratch->GetGPUVirtualAddress();
+	buildDesc.DestAccelerationStructureData = mTLAS->Result->GetGPUVirtualAddress();
+	
+	cmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
+	
+	// Wait for the TLAS build to complete
+	D3D12Util::UavBarrier(cmdList, mTLAS->Result.Get());
+
+	return true;
 }
 
 UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
@@ -1305,7 +1476,7 @@ bool DxRenderer::ApplyTAA() {
 	return true;
 }
 
-bool DxRenderer::ApplyReflection() {
+bool DxRenderer::ApplySsr() {
 	const auto cmdList = mCommandList.Get();
 
 	auto pDescHeap = mCbvSrvUavHeap.Get();

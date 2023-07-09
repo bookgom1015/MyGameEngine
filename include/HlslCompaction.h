@@ -3,6 +3,7 @@
 
 #ifdef HLSL
 #include "HlslCompaction.hlsli"
+#include "./../../../include/Vertex.h"
 #endif
 
 #ifndef NUM_TEXTURE_MAPS 

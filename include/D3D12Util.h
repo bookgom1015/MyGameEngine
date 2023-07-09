@@ -4,6 +4,14 @@
 #include <wrl.h>
 #include <d3dx12.h>
 
+#ifndef ReleaseCom
+#define ReleaseCom(x) { if (x){ x->Release(); x = NULL; } }
+#endif
+
+#ifndef Align
+#define Align(alignment, val) (((val + alignment - 1) / alignment) * alignment)
+#endif
+
 struct D3D12BufferCreateInfo {
 	UINT64					Size = 0;
 	UINT64					Alignment = 0;

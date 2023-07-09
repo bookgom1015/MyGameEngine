@@ -7,6 +7,7 @@ const int gNumFrameResources = 3;
 #include "HlslCompaction.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
+#include "AccelerationStructure.h"
 
 struct FrameResource;
 struct PassConstants;
@@ -26,6 +27,7 @@ namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }
 namespace Debug { class DebugClass; }
 namespace SkyCube { class SkyCubeClass; }
+namespace DxrShadowMap { class DxrShadowMapClass; }
 
 namespace EMappingRootSignatureLayout {
 	enum {
@@ -110,6 +112,9 @@ public:
 	bool AddMaterial(const std::string& file, const Material& material);
 	void* AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type);
 
+	bool AddBLAS(ID3D12GraphicsCommandList4*const cmdList, MeshGeometry*const geo);
+	bool BuildTLASs(ID3D12GraphicsCommandList4*const cmdList);
+
 	UINT AddTexture(const std::string& file, const Material& material);
 
 private:
@@ -120,6 +125,7 @@ private:
 	void BuildDescriptors();
 	bool BuildRootSignatures();
 	bool BuildPSOs();
+	bool BuildShaderTables();
 	void BuildRenderItems();
 
 	bool UpdateShadowPassCB(float delta);
@@ -137,7 +143,7 @@ private:
 	bool DrawBackBuffer();
 	bool DrawSkyCube();
 	bool ApplyTAA();
-	bool ApplyReflection();
+	bool ApplySsr();
 	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();
@@ -204,4 +210,12 @@ private:
 	// DirectXTK12
 	//
 	std::unique_ptr<DirectX::GraphicsMemory> mGraphicsMemory;	
+
+	//
+	// DXR
+	//
+	std::unordered_map<std::string, std::unique_ptr<AccelerationStructureBuffer>> mBLASs;
+	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
+
+	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
 };
