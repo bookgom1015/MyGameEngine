@@ -5,9 +5,6 @@ assets/textures/
 # ignore binary files
 bin/
 
-# ignore project files
-build/
-
 # ignore library files
 lib/
 

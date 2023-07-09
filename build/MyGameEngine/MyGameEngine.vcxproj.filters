@@ -1,0 +1,612 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\Actor">
+      <UniqueIdentifier>{513b6d7b-ab07-4696-8451-b8c15db6627c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Component">
+      <UniqueIdentifier>{6e4aa890-8392-4de0-aceb-4d7871ee7102}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Actor">
+      <UniqueIdentifier>{e4407a70-185a-4dcf-9061-ac24a37ef3e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Component">
+      <UniqueIdentifier>{20adcf1d-e0d8-4ec7-8876-b8c1450151a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Manager">
+      <UniqueIdentifier>{ee1244cb-2b52-418e-a636-a99ddf7b55bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Manager">
+      <UniqueIdentifier>{30d90d96-dbc0-4e30-a50a-634258bb73bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files">
+      <UniqueIdentifier>{85824981-c9c0-4a89-8327-f8b760da6c16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Helper">
+      <UniqueIdentifier>{7af4484e-022a-4a7c-8c7c-d942c20e37b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Helper">
+      <UniqueIdentifier>{f10481dc-9943-470e-b972-788229f9d7a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Preset Files">
+      <UniqueIdentifier>{97e3cbf0-19d8-4b3e-baae-75c402ce15d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Preset Files\Public">
+      <UniqueIdentifier>{f0991738-a1d4-4df0-9341-07bf6b12fffb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Preset Files\Private">
+      <UniqueIdentifier>{2eb7ad19-0344-4c93-81f1-d4b94cd1137d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files">
+      <UniqueIdentifier>{deb10942-5806-4b2a-b498-06f22a03b95d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL">
+      <UniqueIdentifier>{78acca85-437e-4115-b6b2-aa27e69c6828}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\GLSL">
+      <UniqueIdentifier>{a586fcd4-5914-4b89-9794-c8aef91b3008}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Public">
+      <UniqueIdentifier>{8a2b38d5-98f4-4646-be2b-a238380cad11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Private">
+      <UniqueIdentifier>{5f7074c3-a234-4ad8-b8c6-c6ab612dcb59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Private\ImGui">
+      <UniqueIdentifier>{e3aa13fb-8a54-44df-84a9-7b765ed81641}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render">
+      <UniqueIdentifier>{6634db32-6e36-4aaa-b458-772ebc55fce1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render\DirectX">
+      <UniqueIdentifier>{c94d286f-8ef9-4a4c-9f7d-bebdbb87e2cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render\DirectX\Shading">
+      <UniqueIdentifier>{96f721c4-1f83-484f-bd2b-e7d86e246dbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render\DirectX\Debug">
+      <UniqueIdentifier>{3a4c6c4e-972d-4931-b420-f6a617693aa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render\Vulkan">
+      <UniqueIdentifier>{4156f0e3-9746-4208-a421-4b9a840cc0e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render">
+      <UniqueIdentifier>{dca8e33a-fd1e-4bc0-921a-7c7bef42f073}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render\DirectX">
+      <UniqueIdentifier>{a077ab31-f474-4f02-8948-39c7be3a9c6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render\DirectX\Shading">
+      <UniqueIdentifier>{98151085-475e-47f4-8f54-66fba0cfbc90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render\DirectX\Debug">
+      <UniqueIdentifier>{47a0629c-ce1e-4c9f-93d6-4b6fa8fd899f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render\Vulkan">
+      <UniqueIdentifier>{4672b0e0-1bfe-4601-b5ca-c7f6b059fe04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render\DirectX\Shading\DXR">
+      <UniqueIdentifier>{39e950ab-fb12-450c-8a4f-9f27f0a71b0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render\DirectX\Shading\DXR">
+      <UniqueIdentifier>{35ea7b84-a848-4778-a399-6f6d6a767b79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR">
+      <UniqueIdentifier>{8af97d4c-4702-42f5-a117-bc49d79b271c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\GameWorld.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GameTimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Actor.h">
+      <Filter>Header Files\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Component.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MeshComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ActorManager.h">
+      <Filter>Header Files\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\InputManager.h">
+      <Filter>Header Files\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Renderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\VulkanHelper.h">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MathHelper.h">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SphereActor.h">
+      <Filter>Preset Files\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MeshImporter.h">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\FreeLookActor.h">
+      <Filter>Preset Files\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\CameraComponent.h">
+      <Filter>Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\PlaneActor.h">
+      <Filter>Preset Files\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\d3dx12.h">
+      <Filter>Common Files\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DxLowRenderer.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DxRenderer.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\VkLowRenderer.h">
+      <Filter>Header Files\Render\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\VkRenderer.h">
+      <Filter>Header Files\Render\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ShadowMap.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GBuffer.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Ssao.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GeometryGenerator.h">
+      <Filter>Common Files\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\TemporalAA.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\MotionBlur.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\RotatingMonkey.h">
+      <Filter>Preset Files\Public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DepthOfField.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Bloom.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Ssr.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\BackBuffer.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Samplers.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\RenderMacros.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\RenderItem.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DxMesh.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\RenderType.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\BlurFilter.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SkyCube.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ImGuiManager.h">
+      <Filter>Header Files\Render\DirectX\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\KeyCodes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Blur.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Logger.h">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Light.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\HlslCompaction.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ShaderManager.h">
+      <Filter>Header Files\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\UploadBuffer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Vertex.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\FrameResource.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Camera.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\D3D12Util.h">
+      <Filter>Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Transform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Debug.h">
+      <Filter>Header Files\Render\DirectX\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GpuResource.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DepthStencilBuffer.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SwapChainBuffer.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\AccelerationStructure.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ShaderTable.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DxrShadowMap.h">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\GameWorld.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GameTimer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Transform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Mesh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Actor.cpp">
+      <Filter>Source Files\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Component.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\MeshComponent.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ActorManager.cpp">
+      <Filter>Source Files\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\InputManager.cpp">
+      <Filter>Source Files\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Renderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\VulkanHelper.cpp">
+      <Filter>Source Files\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\MathHelper.cpp">
+      <Filter>Source Files\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\SphereActor.cpp">
+      <Filter>Preset Files\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\MeshImporter.cpp">
+      <Filter>Source Files\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\FreeLookActor.cpp">
+      <Filter>Preset Files\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\CameraComponent.cpp">
+      <Filter>Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\PlaneActor.cpp">
+      <Filter>Preset Files\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DxLowRenderer.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DxRenderer.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\VkLowRenderer.cpp">
+      <Filter>Source Files\Render\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\VkRenderer.cpp">
+      <Filter>Source Files\Render\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ShadowMap.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GBuffer.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Ssao.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GeometryGenerator.cpp">
+      <Filter>Common Files\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TemporalAA.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\MotionBlur.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\RotatingMonkey.cpp">
+      <Filter>Preset Files\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DepthOfField.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_draw.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_tables.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_widgets.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_demo.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Bloom.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Ssr.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\BackBuffer.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Samplers.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\RenderItem.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\BlurFilter.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\SkyCube.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ImGuiManager.cpp">
+      <Filter>Source Files\Render\DirectX\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Blur.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Camera.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\FrameResource.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Light.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Logger.cpp">
+      <Filter>Source Files\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\UploadBuffer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Vertex.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ShaderManager.cpp">
+      <Filter>Source Files\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\D3D12Util.cpp">
+      <Filter>Source Files\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Debug.cpp">
+      <Filter>Source Files\Render\DirectX\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GpuResource.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DepthStencilBuffer.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\SwapChainBuffer.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ShaderTable.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DxrShadowMap.cpp">
+      <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\include\Actor.inl">
+      <Filter>Header Files\Actor</Filter>
+    </None>
+    <None Include="..\..\include\MathHelper.inl">
+      <Filter>Header Files\Helper</Filter>
+    </None>
+    <None Include="..\..\.gitignore" />
+    <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Default.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\LightingUtil.glsli">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\include\DxLowRenderer.inl">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </None>
+    <None Include="..\..\include\VkLowRenderer.inl">
+      <Filter>Header Files\Render\Vulkan</Filter>
+    </None>
+    <None Include="..\..\include\ShadowMap.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Default.vert">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Default.frag">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Shadow.vert">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Common.glsli">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Debug.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Shadow.frag">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Shadow.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\include\GBuffer.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawBackBuffer.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawGBuffer.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Sky.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Debug.frag">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\include\TemporalAA.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\include\DepthOfField.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawGBufferSky.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Mapping.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CocBlur.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Debug.vert">
+      <Filter>Shader Files\GLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ApplyingSsr.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ExtractHighlights.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\include\Ssao.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\include\UploadBuffer.inl">
+      <Filter>Header Files\Render</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DxrShadingHelpers.hlsli">
+      <Filter>Shader Files\HLSL\DXR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
+      <Filter>Shader Files\HLSL\DXR</Filter>
+    </None>
+  </ItemGroup>
+</Project>
