@@ -176,6 +176,7 @@
     <ClInclude Include="..\..\include\DxLowRenderer.h" />
     <ClInclude Include="..\..\include\DxMesh.h" />
     <ClInclude Include="..\..\include\DxRenderer.h" />
+    <ClInclude Include="..\..\include\DxrGeometryBuffer.h" />
     <ClInclude Include="..\..\include\DxrShadowMap.h" />
     <ClInclude Include="..\..\include\FreeLookActor.h" />
     <ClInclude Include="..\..\include\FrameResource.h" />
@@ -234,6 +235,7 @@
     <ClCompile Include="..\..\src\DepthStencilBuffer.cpp" />
     <ClCompile Include="..\..\src\DxLowRenderer.cpp" />
     <ClCompile Include="..\..\src\DxRenderer.cpp" />
+    <ClCompile Include="..\..\src\DxrGeometryBuffer.cpp" />
     <ClCompile Include="..\..\src\DxrShadowMap.cpp" />
     <ClCompile Include="..\..\src\FrameResource.cpp" />
     <ClCompile Include="..\..\src\FreeLookActor.cpp" />

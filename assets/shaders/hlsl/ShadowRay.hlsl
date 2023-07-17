@@ -15,8 +15,8 @@ struct ShadowHitInfo {
 
 ConstantBuffer<PassConstants> cbPass		: register(b0);
 
-StructuredBuffer<Vertex>	gVertices[64]	: register(t0, space1);
-ByteAddressBuffer			gIndices[64]	: register(t0, space2);
+StructuredBuffer<Vertex>	gVertices[DxrGeometryBuffer::GeometryBufferCount]	: register(t0, space1);
+ByteAddressBuffer			gIndices[DxrGeometryBuffer::GeometryBufferCount]	: register(t0, space2);
 
 RaytracingAccelerationStructure	gBVH		: register(t0);
 Texture2D<float>				gDepthMap	: register(t1);

@@ -21,6 +21,7 @@
 #include "SkyCube.h"
 #include "ImGuiManager.h"
 #include "DxrShadowMap.h"
+#include "DxrGeometryBuffer.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -37,8 +38,6 @@ namespace {
 	const DXGI_FORMAT NormalMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 	const DXGI_FORMAT SpecularMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	const DXGI_FORMAT VelocityMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
-
-	const UINT GeometryBufferCount = 64;
 }
 
 namespace ShaderArgs {
@@ -114,6 +113,7 @@ DxRenderer::DxRenderer() {
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
+	mDxrGeometryBuffer = std::make_unique<DxrGeometryBuffer::DxrGeometryBufferClass>();
 
 	auto blurWeights = Blur::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
@@ -566,6 +566,8 @@ void DxRenderer::BuildDescriptors() {
 	mMotionBlur->BuildDescriptors(hCpuRtv, rtvDescSize);
 	mTaa->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mSkyCube->BuildDescriptors(hCpu, hGpu, descSize);
+	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
+	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mhCpuDescForTexMaps = hCpu;
 	mhGpuDescForTexMaps = hGpu;
@@ -590,7 +592,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDebug->BuildRootSignature(staticSamplers));
 	CheckReturn(mSkyCube->BuildRootSignature(staticSamplers));
 
-	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, GeometryBufferCount));
+	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -1885,7 +1887,7 @@ bool DxRenderer::DrawImGui() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	static const auto BuildDebugMaps = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugShaderParams::SampleMask::Type type) {
+	static const auto BuildDebugMaps = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, Debug::SampleMask::Type type) {
 		if (mode) { if (!mDebug->AddDebugMap(handle, type)) mode = false; }
 		else { mDebug->RemoveDebugMap(handle); }
 	};
@@ -1905,61 +1907,61 @@ bool DxRenderer::DrawImGui() {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::EColor],
 						mGBuffer->ColorMapSrv(),
-						DebugShaderParams::SampleMask::RGB);
+						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Albedo", &mDebugMapStates[DebugMapLayout::EAlbedo])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::EAlbedo],
 						mGBuffer->AlbedoMapSrv(),
-						DebugShaderParams::SampleMask::RGB);
+						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::ENormal])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::ENormal],
 						mGBuffer->NormalMapSrv(),
-						DebugShaderParams::SampleMask::RGB);
+						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::EDepth])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::EDepth],
 						mGBuffer->DepthMapSrv(),
-						DebugShaderParams::SampleMask::RRR);
+						Debug::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("Specular", &mDebugMapStates[DebugMapLayout::ESpecular])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::ESpecular],
 						mGBuffer->SpecularMapSrv(),
-						DebugShaderParams::SampleMask::RGB);
+						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::EVelocity])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::EVelocity],
 						mGBuffer->VelocityMapSrv(),
-						DebugShaderParams::SampleMask::RG);
+						Debug::SampleMask::RG);
 				}
 				if (ImGui::Checkbox("Shadow", &mDebugMapStates[DebugMapLayout::EShadow])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::EShadow],
 						mShadowMap->Srv(),
-						DebugShaderParams::SampleMask::RRR);
+						Debug::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("SSAO", &mDebugMapStates[DebugMapLayout::ESsao])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::ESsao],
 						mSsao->AOCoefficientMapSrv(0),
-						DebugShaderParams::SampleMask::RRR);
+						Debug::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("Bloom", &mDebugMapStates[DebugMapLayout::EBloom])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::EBloom],
 						mBloom->BloomMapSrv(0),
-						DebugShaderParams::SampleMask::RGB);
+						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("SSR", &mDebugMapStates[DebugMapLayout::ESsr])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::ESsr],
 						mSsr->SsrMapSrv(0),
-						DebugShaderParams::SampleMask::RGB);
+						Debug::SampleMask::RGB);
 				}
 			}
 		}
@@ -2042,6 +2044,94 @@ bool DxRenderer::DrawImGui() {
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
+bool DxRenderer::DrawDxrShadowMap() {
+	//const auto cmdList = mCommandList.Get();
+	//
+	//CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+	//
+	//const auto pDescHeap = mCbvSrvUavHeap.Get();
+	//UINT descSize = GetCbvSrvUavDescriptorSize();
+	//
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	//cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	//
+	//const auto& gbufferResources = mGBuffer->Resources();
+	//const auto& gbufferResourcesGpuDescriptors = mGBuffer->ResourcesGpuDescriptors();
+	//const auto& dxrShadowResources = mDxrShadow->Resources();
+	//const auto& dxrShadowGpuDescriptors = mDxrShadow->ResourcesGpuDescriptors();
+	//
+	//const auto shadow = dxrShadowResources[DxrShadow::Resources::EShadow].Get();
+	//const auto temporary = dxrShadowResources[DxrShadow::Resources::ETemporary].Get();
+	//
+	//ID3D12Resource* resources[DxrShadow::Resources::Count] = { shadow, temporary };
+	//{
+	//	D3D12_RESOURCE_BARRIER barriers[] = {
+	//		CD3DX12_RESOURCE_BARRIER::Transition(
+	//			shadow,
+	//			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+	//			D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+	//		),
+	//		CD3DX12_RESOURCE_BARRIER::Transition(
+	//			temporary,
+	//			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+	//			D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+	//		)
+	//	};
+	//	cmdList->ResourceBarrier(_countof(barriers), barriers);
+	//	D3D12Util::UavBarriers(cmdList, resources, _countof(resources));
+	//}
+	//
+	//mDxrShadow->Run(
+	//	cmdList,
+	//	mTLAS->Result->GetGPUVirtualAddress(),
+	//	mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+	//	mCurrFrameResource->ObjectSB.Resource()->GetGPUVirtualAddress(),
+	//	mCurrFrameResource->MaterialSB.Resource()->GetGPUVirtualAddress(),
+	//	D3D12Util::GetGpuHandle(pDescHeap, EDescriptors::ES_Vertices, descSize),
+	//	D3D12Util::GetGpuHandle(pDescHeap, EDescriptors::ES_Indices, descSize),
+	//	gbufferResourcesGpuDescriptors[GBuffer::Resources::Descriptors::ES_Depth],
+	//	dxrShadowGpuDescriptors[DxrShadow::Resources::Descriptors::EU_Shadow],
+	//	GetClientWidth(), GetClientHeight()
+	//);
+	//{
+	//	D3D12_RESOURCE_BARRIER barriers[] = {
+	//		CD3DX12_RESOURCE_BARRIER::Transition(
+	//			shadow,
+	//			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+	//			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+	//		),
+	//		CD3DX12_RESOURCE_BARRIER::Transition(
+	//			temporary,
+	//			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+	//			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+	//		)
+	//	};
+	//	cmdList->ResourceBarrier(_countof(barriers), barriers);
+	//	D3D12Util::UavBarriers(cmdList, resources, _countof(resources));
+	//}
+	//
+	//mGaussianFilterCS->Run(
+	//	cmdList,
+	//	mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress(),
+	//	gbufferResourcesGpuDescriptors[GBuffer::Resources::Descriptors::ES_NormalDepth],
+	//	shadow,
+	//	temporary,
+	//	dxrShadowGpuDescriptors[DxrShadow::Resources::Descriptors::ES_Shadow],
+	//	dxrShadowGpuDescriptors[DxrShadow::Resources::Descriptors::EU_Shadow],
+	//	dxrShadowGpuDescriptors[DxrShadow::Resources::Descriptors::ES_Temporary],
+	//	dxrShadowGpuDescriptors[DxrShadow::Resources::Descriptors::EU_Temporary],
+	//	GaussianFilterCS::Filter::Type::R16,
+	//	mDxrShadow->Width(), mDxrShadow->Height(),
+	//	ShaderArgs::DxrShadow::BlurCount
+	//);
+	//
+	//CheckHRESULT(cmdList->Close());
+	//ID3D12CommandList* cmdsLists[] = { cmdList };
+	//mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	return true;
 }

@@ -116,7 +116,7 @@ bool DebugClass::OnResize(UINT width, UINT height) {
 	return true;
 }
 
-bool DebugClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, DebugShaderParams::SampleMask::Type mask) {
+bool DebugClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleMask::Type mask) {
 	if (mNumEnabledMaps >= 5) return false;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;

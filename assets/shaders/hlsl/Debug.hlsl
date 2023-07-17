@@ -23,7 +23,7 @@ Texture2D gi_Debug2	: register(t2);
 Texture2D gi_Debug3	: register(t3);
 Texture2D gi_Debug4	: register(t4);
 
-static const float2 gOffsets[DebugShaderParams::MapCount] = {
+static const float2 gOffsets[Debug::MapCount] = {
 	float2(0.8f, 0.8f),
 	float2(0.8f, 0.4f),
 	float2(0.8f, 0.0f),
@@ -66,23 +66,23 @@ uint GetSampleMask(int index) {
 float4 SampleColor(in Texture2D map, int index, float2 tex) {
 	uint mask = GetSampleMask(index);
 	switch (mask) {
-	case DebugShaderParams::SampleMask::RGB: {
+	case Debug::SampleMask::RGB: {
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).rgb;
 		return float4(samp, 1);
 	}
-	case DebugShaderParams::SampleMask::RG: {
+	case Debug::SampleMask::RG: {
 		float2 samp = map.SampleLevel(gsamPointClamp, tex, 0).rg;
 		return float4(samp, 0, 1);
 	}
-	case DebugShaderParams::SampleMask::RRR: {
+	case Debug::SampleMask::RRR: {
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).rrr;
 		return float4(samp, 1);
 	}
-	case DebugShaderParams::SampleMask::GGG: {
+	case Debug::SampleMask::GGG: {
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).ggg;
 		return float4(samp, 1);
 	}
-	case DebugShaderParams::SampleMask::AAA: {
+	case Debug::SampleMask::AAA: {
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).aaa;
 		return float4(samp, 1);
 	}

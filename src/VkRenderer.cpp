@@ -537,15 +537,15 @@ bool VkRenderer::CreateDescriptorSetLayout() {
 	outputMapLayoutBinding.binding = EDescriptorSetLayout::EDSL_Output;
 	outputMapLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	outputMapLayoutBinding.descriptorCount = 1;
-	outputMapLayoutBinding.pImmutableSamplers = nullptr;
 	outputMapLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	outputMapLayoutBinding.pImmutableSamplers = nullptr;
 
 	VkDescriptorSetLayoutBinding shadowMapLayoutBinding = {};
 	shadowMapLayoutBinding.binding = EDescriptorSetLayout::EDSL_Shadow;
 	shadowMapLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	shadowMapLayoutBinding.descriptorCount = 1;
-	shadowMapLayoutBinding.pImmutableSamplers = nullptr;
 	shadowMapLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	shadowMapLayoutBinding.pImmutableSamplers = nullptr;
 
 	std::array<VkDescriptorSetLayoutBinding, EDescriptorSetLayout::EDSL_Count> bindings = {
 		uboLayoutBinding, ubpLayoutBinding, outputMapLayoutBinding, shadowMapLayoutBinding
@@ -860,24 +860,26 @@ bool VkRenderer::CreateGraphicsPipelines() {
 }
 
 bool VkRenderer::CreateDescriptorPool() {
+	auto maxSets = static_cast<std::uint32_t>(SwapChainImageCount * 32);
+
 	std::array<VkDescriptorPoolSize, EDescriptorSetLayout::EDSL_Count> poolSizes = {};
 	poolSizes[EDescriptorSetLayout::EDSL_Object].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[EDescriptorSetLayout::EDSL_Object].descriptorCount = static_cast<std::uint32_t>(SwapChainImageCount);
+	poolSizes[EDescriptorSetLayout::EDSL_Object].descriptorCount = maxSets;
 
 	poolSizes[EDescriptorSetLayout::EDSL_Pass].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[EDescriptorSetLayout::EDSL_Pass].descriptorCount = static_cast<std::uint32_t>(SwapChainImageCount);
+	poolSizes[EDescriptorSetLayout::EDSL_Pass].descriptorCount = maxSets;
 
 	poolSizes[EDescriptorSetLayout::EDSL_Output].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[EDescriptorSetLayout::EDSL_Output].descriptorCount = static_cast<std::uint32_t>(SwapChainImageCount);
+	poolSizes[EDescriptorSetLayout::EDSL_Output].descriptorCount = maxSets;
 
 	poolSizes[EDescriptorSetLayout::EDSL_Shadow].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[EDescriptorSetLayout::EDSL_Shadow].descriptorCount = static_cast<std::uint32_t>(SwapChainImageCount);
+	poolSizes[EDescriptorSetLayout::EDSL_Shadow].descriptorCount = maxSets;
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = static_cast<std::uint32_t>(SwapChainImageCount * 32);
+	poolInfo.maxSets = maxSets;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 	if (vkCreateDescriptorPool(mDevice, &poolInfo, nullptr, &mDescriptorPool) != VK_SUCCESS) {
@@ -1512,7 +1514,7 @@ bool VkRenderer::CreateDescriptorSets(RenderItem* ritem) {
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = mDescriptorPool;
-	allocInfo.descriptorSetCount = static_cast<std::uint32_t>(SwapChainImageCount);
+	allocInfo.descriptorSetCount = static_cast<std::uint32_t>(layouts.size());
 	allocInfo.pSetLayouts = layouts.data();
 
 	if (vkAllocateDescriptorSets(mDevice, &allocInfo, ritem->DescriptorSets.data()) != VK_SUCCESS) {

@@ -4,6 +4,9 @@
 #ifdef HLSL
 #include "HlslCompaction.hlsli"
 #include "./../../../include/Vertex.h"
+#else
+#include <DirectXMath.h>
+#include <Windows.h>
 #endif
 
 #ifndef NUM_TEXTURE_MAPS 
@@ -117,7 +120,7 @@ struct SsrConstants {
 	float				ConstantPad2;
 };
 
-namespace DebugShaderParams {
+namespace Debug {
 	static const int MapCount = 5;
 
 	namespace SampleMask {
@@ -130,6 +133,10 @@ namespace DebugShaderParams {
 			AAA	= 1 << 4
 		};
 	}
+}
+
+namespace DxrGeometryBuffer {
+	static const UINT GeometryBufferCount = 32; 
 }
 
 #endif // __HLSLCOMPACTION_HLSL__

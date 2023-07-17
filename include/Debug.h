@@ -53,7 +53,7 @@ namespace Debug {
 
 		bool AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
-			DebugShaderParams::SampleMask::Type mask = DebugShaderParams::SampleMask::RGB);
+			Debug::SampleMask::Type mask = Debug::SampleMask::RGB);
 		void RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv);
 
 	private:
@@ -72,7 +72,7 @@ namespace Debug {
 		DXGI_FORMAT mBackBufferFormat;
 
 		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 5> mhDebugGpuSrvs;
-		std::array< DebugShaderParams::SampleMask::Type, 5> mDebugMasks;
+		std::array<Debug::SampleMask::Type, 5> mDebugMasks;
 		int mNumEnabledMaps;
 	};
 };

@@ -28,6 +28,7 @@ namespace TemporalAA { class TemporalAAClass; }
 namespace Debug { class DebugClass; }
 namespace SkyCube { class SkyCubeClass; }
 namespace DxrShadowMap { class DxrShadowMapClass; }
+namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
 
 namespace EMappingRootSignatureLayout {
 	enum {
@@ -150,6 +151,8 @@ private:
 	bool DrawDebuggingInfo();
 	bool DrawImGui();
 
+	bool DrawDxrShadowMap();
+
 private:
 	bool bIsCleanedUp;
 
@@ -218,4 +221,5 @@ private:
 	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
 
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
+	std::unique_ptr<DxrGeometryBuffer::DxrGeometryBufferClass> mDxrGeometryBuffer;
 };
