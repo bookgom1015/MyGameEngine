@@ -91,7 +91,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(VS2017_LIB)imgui;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(SolutionDir)externals;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);_DirectX;</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -110,7 +110,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(VS2017_LIB)imgui;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(SolutionDir)externals;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);_Vulkan;</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -127,7 +127,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(VS2017_LIB)imgui;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(SolutionDir)externals;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);_DirectX;</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -146,7 +146,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
-      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(VS2017_LIB)imgui;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VS2017_LIB)dxc-artifacts\include;$(SolutionDir)include;$(VULKAN_SDK)\include;$(VS2017_LIB)glfw-3.3.4\include;$(FBX_SDK)include;$(SolutionDir)externals;$(VS2017_LIB);$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);_Vulkan;</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -220,6 +220,12 @@
     <ClInclude Include="..\..\include\VulkanHelper.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\externals\imgui\backends\imgui_impl_dx12.cpp" />
+    <ClCompile Include="..\..\externals\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="..\..\externals\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\externals\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\externals\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\..\externals\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\src\Actor.cpp" />
     <ClCompile Include="..\..\src\ActorManager.cpp" />
     <ClCompile Include="..\..\src\BackBuffer.cpp" />
@@ -273,13 +279,6 @@
     <ClCompile Include="..\..\src\VkLowRenderer.cpp" />
     <ClCompile Include="..\..\src\VkRenderer.cpp" />
     <ClCompile Include="..\..\src\VulkanHelper.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\backends\imgui_impl_dx12.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\backends\imgui_impl_win32.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_demo.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_draw.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_tables.cpp" />
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\.gitignore" />

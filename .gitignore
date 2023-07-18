@@ -1,15 +1,14 @@
-# ingore asset files
+#
+
+.vs/
+
 assets/meshes/
 assets/textures/
 
-# ignore binary files
 bin/
 
-# ignore library files
 lib/
 
-# ignore object files
 obj/
 
-# 
-.vs/
+externals/

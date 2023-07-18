@@ -377,27 +377,6 @@
     <ClCompile Include="..\..\src\DepthOfField.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\backends\imgui_impl_dx12.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\backends\imgui_impl_win32.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_draw.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_tables.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_widgets.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="C:\Users\bookg\Documents\Visual Studio 2017\Libraries\imgui\imgui_demo.cpp">
-      <Filter>Common Files\Private\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Bloom.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
@@ -469,6 +448,24 @@
     </ClCompile>
     <ClCompile Include="..\..\src\DxrGeometryBuffer.cpp">
       <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\externals\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\externals\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\externals\imgui\imgui_widgets.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\externals\imgui\imgui.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\externals\imgui\imgui_tables.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\externals\imgui\imgui_draw.cpp">
+      <Filter>Common Files\Private\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
