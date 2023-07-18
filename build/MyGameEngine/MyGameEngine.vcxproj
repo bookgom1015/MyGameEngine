@@ -98,7 +98,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)lib\Debug;$(FBX_SDK_PATH)lib\vs2017\$(Platform)\Debug;$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\native\lib\x64\Debug</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;$(SolutionDir)lib\Debug;$(FBX_SDK)lib\vs2017\$(Platform)\Debug;$(VS2017_LIB)directxtk12_desktop_2017.2022.3.24.1\native\lib\x64\Debug</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>MSVCRT.lib</IgnoreSpecificDefaultLibraries>
