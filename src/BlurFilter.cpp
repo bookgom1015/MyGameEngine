@@ -18,7 +18,7 @@ bool BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 	auto psInfo = D3D12ShaderInfo(path.c_str(), L"PS", L"ps_6_3");
 	CheckReturn(mShaderManager->CompileShader(vsInfo, "GaussianBlurVS"));
 	CheckReturn(mShaderManager->CompileShader(psInfo, "GaussianBlurPS"));
-
+	
 	return true;
 }
 

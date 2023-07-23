@@ -139,4 +139,36 @@ namespace DxrGeometryBuffer {
 	static const UINT GeometryBufferCount = 32; 
 }
 
+namespace BlurFilterCS {
+	static const int MaxBlurRadius = 5;
+
+	namespace ThreadGroup {
+		enum {
+			Size = 256
+		};
+	}
+}
+
+namespace Rtao {
+	namespace Default {
+		namespace ThreadGroup {
+			enum {
+				Width = 8,
+				Height = 8,
+				Size = Width * Height
+			};
+		}
+	}
+
+	namespace Atrous {
+		namespace ThreadGroup {
+			enum {
+				Width = 16,
+				Height = 16,
+				Size = Width * Height
+			};
+		}
+	}
+}
+
 #endif // __HLSLCOMPACTION_HLSL__

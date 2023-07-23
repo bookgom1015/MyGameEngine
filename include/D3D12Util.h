@@ -12,6 +12,9 @@
 #define Align(alignment, val) (((val + alignment - 1) / alignment) * alignment)
 #endif
 
+#undef min
+#undef max
+
 struct D3D12BufferCreateInfo {
 	UINT64					Size = 0;
 	UINT64					Alignment = 0;
@@ -79,6 +82,13 @@ public:
 	static __forceinline D3D12_GRAPHICS_PIPELINE_STATE_DESC DefaultPsoDesc(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
 	static __forceinline D3D12_GRAPHICS_PIPELINE_STATE_DESC QuadPsoDesc();
 
+	static __forceinline UINT CeilDivide(UINT value, UINT divisor);
+	static __forceinline UINT CeilLogWithBase(UINT value, UINT base);
+	static __forceinline float Clamp(float a, float _min, float _max);
+	static __forceinline float Lerp(float a, float b, float t);
+	static __forceinline float RelativeCoef(float a, float _min, float _max);
+	static __forceinline UINT NumMantissaBitsInFloatFormat(UINT FloatFormatBitLength);
+
 private:
 	static const size_t SizeOfUint;
 };
@@ -111,4 +121,35 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC D3D12Util::QuadPsoDesc() {
 	psoDesc.DepthStencilState.DepthEnable = FALSE;
 	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	return psoDesc;
+}
+
+UINT D3D12Util::CeilDivide(UINT value, UINT divisor) {
+	return (value + divisor - 1) / divisor;
+}
+
+UINT D3D12Util::CeilLogWithBase(UINT value, UINT base) {
+	return static_cast<UINT>(ceil(log(value) / log(base)));
+}
+
+float D3D12Util::Clamp(float a, float _min, float _max) {
+	return std::max(_min, std::min(_max, a));
+}
+
+float D3D12Util::Lerp(float a, float b, float t) {
+	return a + t * (b - a);
+}
+
+float D3D12Util::RelativeCoef(float a, float _min, float _max) {
+	float _a = Clamp(a, _min, _max);
+	return (_a - _min) / (_max - _min);
+}
+
+UINT D3D12Util::NumMantissaBitsInFloatFormat(UINT FloatFormatBitLength) {
+	switch (FloatFormatBitLength) {
+	case 32: return 23;
+	case 16: return 10;
+	case 11: return 6;
+	case 10: return 5;
+	}
+	return 0;
 }

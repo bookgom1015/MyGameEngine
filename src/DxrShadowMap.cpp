@@ -23,6 +23,9 @@ bool DxrShadowMapClass::Initialize(
 	mWidth = width;
 	mHeight = height;
 
+	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+
 	CheckReturn(BuildResource(cmdList));
 
 	return true;
@@ -136,26 +139,64 @@ void DxrShadowMapClass::Run(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_VIRTUAL_ADDRESS objSBAddress,
-		D3D12_GPU_VIRTUAL_ADDRESS matSBAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE i_vertices,
 		D3D12_GPU_DESCRIPTOR_HANDLE i_indices,
-		D3D12_GPU_DESCRIPTOR_HANDLE i_depth,
-		D3D12_GPU_DESCRIPTOR_HANDLE o_shadow,
-		UINT width, UINT height) {
+		D3D12_GPU_DESCRIPTOR_HANDLE i_depth) {
+	cmdList->SetPipelineState1(mPSO.Get());
+	cmdList->SetComputeRootSignature(mRootSignature.Get());
+
+	//cmdList->RSSetViewports(1, &mViewport);
+	//cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	cmdList->SetComputeRootShaderResourceView(RootSignatureLayout::ESI_AccelerationStructure, accelStruct);
+	cmdList->SetComputeRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
+
+	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::ESB_Vertices, i_vertices);
+	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::EAB_Indices, i_indices);
+	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::ESI_Depth, i_depth);
+
+	const auto shadow0 = mResources[Resources::EShadow0].get();
+	const auto shadow1 = mResources[Resources::EShadow1].get();
+
+	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	shadow1->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::EUO_Shadow, mhGpuDescs[Descriptors::EU_Shadow0]);
+
+	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+	const auto& rayGen = mShaderTables["shadowRayGen"];
+	const auto& miss = mShaderTables["shadowMiss"];
+	const auto& hitGroup = mShaderTables["shadowHitGroup"];
+	dispatchDesc.RayGenerationShaderRecord.StartAddress = rayGen->GetGPUVirtualAddress();
+	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGen->GetDesc().Width;
+	dispatchDesc.MissShaderTable.StartAddress = miss->GetGPUVirtualAddress();
+	dispatchDesc.MissShaderTable.SizeInBytes = miss->GetDesc().Width;
+	dispatchDesc.MissShaderTable.StrideInBytes = dispatchDesc.MissShaderTable.SizeInBytes;
+	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
+	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
+	dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
+	dispatchDesc.Width = mWidth;
+	dispatchDesc.Height = mHeight;
+	dispatchDesc.Depth = 1;
+
+	cmdList->SetPipelineState1(mPSO.Get());
+	cmdList->DispatchRays(&dispatchDesc);
+	
+	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	shadow1->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 
 void DxrShadowMapClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
-	mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::ES_Shadow0] = hCpu;
-	mhResourcesGpuDescriptors[DxrShadowMap::Resources::Descriptors::ES_Shadow0] = hGpu;
-	mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::EU_Shadow0] = hCpu;
-	mhResourcesGpuDescriptors[DxrShadowMap::Resources::Descriptors::EU_Shadow0] = hGpu;
+	mhCpuDescs[Descriptors::ES_Shadow0] = hCpu;
+	mhGpuDescs[Descriptors::ES_Shadow0] = hGpu;
+	mhCpuDescs[Descriptors::EU_Shadow0] = hCpu;
+	mhGpuDescs[Descriptors::EU_Shadow0] = hGpu;
 
-	mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::ES_Shadow1] = hCpu.Offset(1, descSize);
-	mhResourcesGpuDescriptors[DxrShadowMap::Resources::Descriptors::ES_Shadow1] = hGpu.Offset(1, descSize);
-	mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::EU_Shadow1] = hCpu.Offset(1, descSize);
-	mhResourcesGpuDescriptors[DxrShadowMap::Resources::Descriptors::EU_Shadow1] = hGpu.Offset(1, descSize);
+	mhCpuDescs[Descriptors::ES_Shadow1] = hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptors::ES_Shadow1] = hGpu.Offset(1, descSize);
+	mhCpuDescs[Descriptors::EU_Shadow1] = hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptors::EU_Shadow1] = hGpu.Offset(1, descSize);
 
 	BuildDescriptors();
 
@@ -168,7 +209,11 @@ bool DxrShadowMapClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT 
 		mWidth = width;
 		mHeight = height;
 
+		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+
 		CheckReturn(BuildResource(cmdList));
+		BuildDescriptors();
 	}
 
 	return true;
@@ -189,12 +234,12 @@ void DxrShadowMapClass::BuildDescriptors() {
 	uavDesc.Format = ShadowFormat;
 
 	auto pRawResource = mResources[DxrShadowMap::Resources::EShadow0]->Resource();
-	md3dDevice->CreateShaderResourceView(pRawResource, &srvDesc, mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::ES_Shadow0]);
-	md3dDevice->CreateUnorderedAccessView(pRawResource, nullptr, &uavDesc, mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::EU_Shadow0]);
+	md3dDevice->CreateShaderResourceView(pRawResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow0]);
+	md3dDevice->CreateUnorderedAccessView(pRawResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow0]);
 
 	auto pSmoothedResource = mResources[DxrShadowMap::Resources::EShadow1]->Resource();
-	md3dDevice->CreateShaderResourceView(pSmoothedResource, &srvDesc, mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::ES_Shadow1]);
-	md3dDevice->CreateUnorderedAccessView(pSmoothedResource, nullptr, &uavDesc, mhResourcesCpuDescriptors[DxrShadowMap::Resources::Descriptors::EU_Shadow1]);
+	md3dDevice->CreateShaderResourceView(pSmoothedResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow1]);
+	md3dDevice->CreateUnorderedAccessView(pSmoothedResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow1]);
 }
 
 bool DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList) {

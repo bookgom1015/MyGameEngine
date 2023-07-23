@@ -2,6 +2,9 @@
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "D3D12Util.h"
+#include "DxrBackBuffer.h"
+
+#include <DirectXColors.h>
 
 using namespace BackBuffer;
 
@@ -12,6 +15,9 @@ bool BackBufferClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 	mWidth = width;
 	mHeight = height;
+
+	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
 
 	mBackBufferFormat = backBufferFormat;
 	mBackBufferCount = bufferCount;
@@ -83,6 +89,8 @@ bool BackBufferClass::BuildPso() {
 
 void BackBufferClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12Resource* backBuffer,
+		D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_color,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
@@ -93,6 +101,21 @@ void BackBufferClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	cmdList->RSSetViewports(1, &mViewport);
+	cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			backBuffer,
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+		)
+	);
+
+	cmdList->ClearRenderTargetView(ri_backBuffer, DirectX::Colors::AliceBlue, 0, nullptr);
+	cmdList->OMSetRenderTargets(1, &ri_backBuffer, true, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
 
@@ -108,6 +131,15 @@ void BackBufferClass::Run(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	cmdList->ResourceBarrier(
+		1,
+		&CD3DX12_RESOURCE_BARRIER::Transition(
+			backBuffer,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PRESENT
+		)
+	);
 }
 
 void BackBufferClass::BuildDescriptors(
@@ -130,6 +162,9 @@ bool BackBufferClass::OnResize(ID3D12Resource*const buffers[], UINT width, UINT 
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
+
+		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
 
 		BuildDescriptors(buffers);
 	}

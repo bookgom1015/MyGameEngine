@@ -23,26 +23,26 @@ namespace DxrShadowMap {
 	}
 
 	namespace Resources {
-		enum {
+		enum Type {
 			EShadow0 = 0,
 			EShadow1,
 			Count
 		};
+	}
 
-		namespace Descriptors {
-			enum {
-				ES_Shadow0 = 0,
-				EU_Shadow0,
-				ES_Shadow1,
-				EU_Shadow1,
-				Count
-			};
-		}
+	namespace Descriptors {
+		enum Type {
+			ES_Shadow0 = 0,
+			EU_Shadow0,
+			ES_Shadow1,
+			EU_Shadow1,
+			Count
+		};
 	}
 
 	using ResourcesType = std::array<std::unique_ptr<GpuResource>, Resources::Count>;
-	using ResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Resources::Descriptors::Count>;
-	using ResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Resources::Descriptors::Count>;
+	using ResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
+	using ResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
 
 	const DXGI_FORMAT ShadowFormat = DXGI_FORMAT_R16_UNORM;
 
@@ -50,6 +50,13 @@ namespace DxrShadowMap {
 	public:
 		DxrShadowMapClass();
 		virtual ~DxrShadowMapClass() = default;
+
+	public:
+		__forceinline GpuResource* Resource(Resources::Type type);
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE Descriptor(Descriptors::Type type) const;
+
+		__forceinline constexpr UINT Width() const;
+		__forceinline constexpr UINT Height() const;
 
 	public:
 		bool Initialize(ID3D12Device5*const device, ID3D12GraphicsCommandList*const cmdList, ShaderManager*const manager, UINT width, UINT height);
@@ -61,13 +68,9 @@ namespace DxrShadowMap {
 			ID3D12GraphicsCommandList4*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_VIRTUAL_ADDRESS objSBAddress,
-			D3D12_GPU_VIRTUAL_ADDRESS matSBAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE i_vertices,
 			D3D12_GPU_DESCRIPTOR_HANDLE i_indices,
-			D3D12_GPU_DESCRIPTOR_HANDLE i_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE o_shadow,
-			UINT width, UINT height);
+			D3D12_GPU_DESCRIPTOR_HANDLE i_depth);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 
@@ -90,8 +93,27 @@ namespace DxrShadowMap {
 		UINT mWidth;
 		UINT mHeight;
 
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
+
 		DxrShadowMap::ResourcesType mResources;
-		DxrShadowMap::ResourcesCpuDescriptors mhResourcesCpuDescriptors;
-		DxrShadowMap::ResourcesGpuDescriptors mhResourcesGpuDescriptors;
+		DxrShadowMap::ResourcesCpuDescriptors mhCpuDescs;
+		DxrShadowMap::ResourcesGpuDescriptors mhGpuDescs;
 	};
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DxrShadowMap::DxrShadowMapClass::Descriptor(Descriptors::Type type) const {
+	return mhGpuDescs[type];
+}
+
+GpuResource* DxrShadowMap::DxrShadowMapClass::Resource(Resources::Type type) {
+	return mResources[type].get();
+}
+
+constexpr UINT DxrShadowMap::DxrShadowMapClass::Width() const {
+	return mWidth;
+}
+
+constexpr UINT DxrShadowMap::DxrShadowMapClass::Height() const {
+	return mHeight;
 }

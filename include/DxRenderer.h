@@ -29,47 +29,9 @@ namespace Debug { class DebugClass; }
 namespace SkyCube { class SkyCubeClass; }
 namespace DxrShadowMap { class DxrShadowMapClass; }
 namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
-
-namespace EMappingRootSignatureLayout {
-	enum {
-		EInput = 0,
-		Count
-	};
-}
-
-namespace ERtvHeapLayout {
-	enum {
-		EBackBuffer0 = 0,
-		EBackBuffer1,
-		EColor,
-		EAlbedo,
-		ENormal,
-		ESpecular,
-		EVelocity,
-		EAmbient0,
-		EAmbient1,
-		EResolve,
-		EMotionBlur,
-		ECoc,
-		EDof,
-		EDofBlur,
-		EBloom0,
-		EBloom1,
-		EBloomTemp,
-		ESsr0,
-		ESsr1,
-		ESsrTemp,
-		Count
-	};
-}
-
-namespace EDsvHeapLayout {
-	enum {
-		EDefault = 0,
-		EShadow,
-		Count
-	};
-}
+namespace BlurFilterCS { class BlurFilterCSClass; }
+namespace DxrBackBuffer { class DxrBackBufferClass; }
+namespace Rtao { class RtaoClass; }
 
 namespace DebugMapLayout {
 	enum Type {
@@ -82,7 +44,8 @@ namespace DebugMapLayout {
 		EShadow,
 		ESsao,
 		EBloom,
-		ESsr
+		ESsr,
+		EDxrShadow,
 	};
 }
 
@@ -152,6 +115,8 @@ private:
 	bool DrawImGui();
 
 	bool DrawDxrShadowMap();
+	bool DrawDxrBackBuffer();
+	bool DrawRtao();
 
 private:
 	bool bIsCleanedUp;
@@ -222,4 +187,7 @@ private:
 
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
 	std::unique_ptr<DxrGeometryBuffer::DxrGeometryBufferClass> mDxrGeometryBuffer;
+	std::unique_ptr<BlurFilterCS::BlurFilterCSClass> mBlurFilterCS;
+	std::unique_ptr<DxrBackBuffer::DxrBackBufferClass> mDxrBackBuffer;
+	std::unique_ptr<Rtao::RtaoClass> mRtao;
 };

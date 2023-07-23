@@ -17,6 +17,10 @@ namespace DxrGeometryBuffer {
 		virtual ~DxrGeometryBufferClass() = default;
 
 	public:
+		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE VerticesSrv() const;
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE IndicesSrv() const;
+
+	public:
 		bool Initialize(ID3D12Device5* const device);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
@@ -32,4 +36,12 @@ namespace DxrGeometryBuffer {
 
 		UINT mNumGeometries;
 	};
+}
+
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE DxrGeometryBuffer::DxrGeometryBufferClass::VerticesSrv() const {
+	return mhGpuSrv;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DxrGeometryBuffer::DxrGeometryBufferClass::IndicesSrv() const {
+	return CD3DX12_GPU_DESCRIPTOR_HANDLE(mhGpuSrv, GeometryBufferCount, mDescSize);
 }

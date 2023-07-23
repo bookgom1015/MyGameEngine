@@ -106,6 +106,18 @@
     <Filter Include="Shader Files\HLSL\DXR">
       <UniqueIdentifier>{8af97d4c-4702-42f5-a117-bc49d79b271c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\RTAO">
+      <UniqueIdentifier>{ea35a6de-abc7-4515-ae29-30890cf8e0af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising">
+      <UniqueIdentifier>{61e3ccf9-9027-4bf5-88d5-248652b89967}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising\Filtering">
+      <UniqueIdentifier>{5a9400c2-77c5-43c2-b9ae-ae1764cedaac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising\Temporal">
+      <UniqueIdentifier>{d10a3c5b-843e-457f-b4c1-57eb2b26201f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\GameWorld.h">
@@ -288,6 +300,15 @@
     <ClInclude Include="..\..\include\DxrGeometryBuffer.h">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\BlurFilterCS.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DxrBackBuffer.h">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Rtao.h">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -467,6 +488,15 @@
     <ClCompile Include="..\..\externals\imgui\imgui_draw.cpp">
       <Filter>Common Files\Private\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\BlurFilterCS.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DxrBackBuffer.cpp">
+      <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Rtao.cpp">
+      <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -610,6 +640,48 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
       <Filter>Shader Files\HLSL\DXR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DxrBackBuffer.hlsl">
+      <Filter>Shader Files\HLSL\DXR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli">
+      <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS.hlsli">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculatePartialDerivativeCS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FillInCheckerboardCS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
     </None>
   </ItemGroup>
 </Project>

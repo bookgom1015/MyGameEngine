@@ -7,6 +7,7 @@
 #include "Samplers.h"
 
 class ShaderManager;
+namespace DxrBackBuffer { class DxrBackBufferClass; }
 
 namespace BackBuffer {
 	namespace RootSignatureLayout {
@@ -24,6 +25,9 @@ namespace BackBuffer {
 	}
 
 	class BackBufferClass {
+	private:
+		friend class DxrBackBuffer::DxrBackBufferClass;
+
 	public:
 		BackBufferClass() = default;
 		virtual ~BackBufferClass() = default;
@@ -39,6 +43,8 @@ namespace BackBuffer {
 		bool BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12Resource* backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_color,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo, 
@@ -57,7 +63,7 @@ namespace BackBuffer {
 
 	private:
 		void BuildDescriptors(ID3D12Resource*const buffers[]);
-		
+
 	private:
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
@@ -67,6 +73,9 @@ namespace BackBuffer {
 
 		UINT mWidth;
 		UINT mHeight;
+
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
 
 		DXGI_FORMAT mBackBufferFormat;
 		UINT mBackBufferCount;
