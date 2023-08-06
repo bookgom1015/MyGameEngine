@@ -101,7 +101,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	float3 fresnelFactor = SchlickFresnel(specular.rgb, normalW, r);
 	float shiness = 1.0f - specular.a;
 
-	float3 reflection = ssr.a * ssr.rgb + (1.0f - ssr.a) * cube;
+	float3 reflection = (1 - dot(toEyeW, normalW)) * (ssr.a * ssr.rgb + (1.0f - ssr.a) * cube);
 
 	float3 litColor = color + fresnelFactor * shiness * reflection;
 

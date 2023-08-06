@@ -5,7 +5,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Kernels.hlsli"
 #include "Rtao.hlsli"
@@ -113,7 +113,7 @@ void AddFilterContribution(
 	weightSum += w;
 }
 
-[numthreads(AtrousWaveletTransformFilterShaderParams::ThreadGroup::Width, AtrousWaveletTransformFilterShaderParams::ThreadGroup::Height, 1)]
+[numthreads(Rtao::Atrous::ThreadGroup::Width, Rtao::Atrous::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	if (!IsWithinBounds(dispatchThreadID, cb.TextureDim)) return;
 

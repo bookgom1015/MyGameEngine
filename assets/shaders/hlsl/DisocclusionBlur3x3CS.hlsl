@@ -5,7 +5,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Rtao.hlsli"
 
@@ -24,7 +24,7 @@ RWTexture2D<float> gio_Value		: register(u0);
 
 // Group shared memory cache for the row aggregated results.
 static const uint NumValuesToLoadPerRowOrColumn =
-	DefaultComputeShaderParams::ThreadGroup::Width 
+	Rtao::Default::ThreadGroup::Width 
 	+ (FilterKernel::Width - 1);
 groupshared uint PackedValueDepthCache[NumValuesToLoadPerRowOrColumn][8]; // 16bit float value, depth.
 groupshared float FilteredResultCache[NumValuesToLoadPerRowOrColumn][8];	// 32bit float filtered value.
@@ -201,7 +201,7 @@ void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID, float blurStr
 	gio_Value[dispatchThreadID] = filteredValue;
 }
 
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
 void CS(uint2 groupID : SV_GroupID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex) {
 	uint2 sDispatchThreadID = GetPixelIndex(groupID, groupThreadID);
 	// Pass through if all pixels have 0 blur strength set.

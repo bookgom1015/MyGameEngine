@@ -9,7 +9,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 #include "CrossBilateralWeights.hlsli"
@@ -75,7 +75,7 @@ float4 BilateralResampleWeights(
 	return weights;
 }
 
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID, uint2 groupID : SV_GroupID) {
 	if (dispatchThreadID.x >= gTextureDim.x || dispatchThreadID.y >= gTextureDim.y) return;
 

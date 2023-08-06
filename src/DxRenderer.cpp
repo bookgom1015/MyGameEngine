@@ -195,7 +195,6 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, BackBufferFormat));
 	CheckReturn(mDebug->Initialize(device, shaderManager, width, height, BackBufferFormat));
 	CheckReturn(mSkyCube->Initialize(device, cmdList, shaderManager, width, height, BackBufferFormat));
-
 	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
 	CheckReturn(mDxrBackBuffer->Initialize(mBackBuffer.get()));
@@ -613,7 +612,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
 	CheckReturn(mDxrBackBuffer->BuildRootSignature(staticSamplers));
-	CheckReturn(mRtao->BuildRootSignatures(staticSamplers));
+	//CheckReturn(mRtao->BuildRootSignatures(staticSamplers));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -650,7 +649,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
 	CheckReturn(mDxrBackBuffer->BuildPso());
-	CheckReturn(mRtao->BuildPSO());
+	//CheckReturn(mRtao->BuildPSO());
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
@@ -661,7 +660,7 @@ bool DxRenderer::BuildPSOs() {
 
 bool DxRenderer::BuildShaderTables() {
 	CheckReturn(mDxrShadowMap->BuildShaderTables());
-	CheckReturn(mRtao->BuildShaderTables());
+	//CheckReturn(mRtao->BuildShaderTables());
 
 	return true;
 }

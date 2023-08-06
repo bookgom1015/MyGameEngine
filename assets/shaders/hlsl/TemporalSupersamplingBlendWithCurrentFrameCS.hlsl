@@ -8,7 +8,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 #include "Rtao.hlsli"
@@ -27,7 +27,7 @@ RWTexture2D<float>	gio_RayHitDistance		: register(u3);
 RWTexture2D<float>	go_Variance				: register(u4);
 RWTexture2D<float>	go_BlurStrength			: register(u5);
 
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	uint4 encodedCachedValues = gi_ReprojTsppValueSquaredMeanRayHitDist[dispatchThreadID];
 	uint tspp = encodedCachedValues.x;

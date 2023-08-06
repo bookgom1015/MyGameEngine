@@ -5,7 +5,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
@@ -16,7 +16,7 @@ cbuffer cbRootConstants : register (b0) {
 Texture2D<float>	gi_Depth					: register(t0);
 RWTexture2D<float2>	go_DepthPartialDerivative	: register(u0);
 
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	float2 tex = (dispatchThreadID + 0.5) * gInvTextureDim;
 

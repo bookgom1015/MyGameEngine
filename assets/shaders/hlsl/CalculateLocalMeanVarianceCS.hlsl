@@ -18,7 +18,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Rtao.hlsli"
 
@@ -154,7 +154,7 @@ void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID) {
 	go_LocalMeanVariance[pixel] = numValues > 0 ? float2(mean, variance) : Rtao::InvalidAOCoefficientValue;
 }
 
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
 void CS(uint2 groupID : SV_GroupID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint2 dispatchThreadID : SV_DispatchThreadID) {
 	FilterHorizontally(groupID, groupIndex);
 	GroupMemoryBarrierWithGroupSync();

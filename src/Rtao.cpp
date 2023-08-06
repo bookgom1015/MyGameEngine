@@ -1105,44 +1105,44 @@ bool RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 		));
 	}
 
-	{
-		const UINT num2DSubresources = texDesc.DepthOrArraySize * texDesc.MipLevels;
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(mPrevFrameNormalDepth->Resource(), 0, num2DSubresources);
-
-		CheckReturn(mPrevFrameNormalDepthUploadBuffer->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
-			D3D12_RESOURCE_STATE_COPY_SOURCE,
-			nullptr
-		));
-
-		const UINT size = mWidth * mHeight * 4;
-		std::vector<BYTE> data(size);
-
-		for (UINT i = 0; i < size; i += 4) {
-			data[i] = data[i + 1] = data[i + 2] = 0;	// rgb-channels(normal) = 0 / 128;
-			data[i + 3] = 127;							// a-channel(depth) = 127 / 128;
-		}
-
-		D3D12_SUBRESOURCE_DATA subResourceData = {};
-		subResourceData.pData = data.data();
-		subResourceData.RowPitch = mWidth * 4;
-		subResourceData.SlicePitch = subResourceData.RowPitch * mHeight;
-		
-		UpdateSubresources(
-			cmdList,
-			mPrevFrameNormalDepth->Resource(),
-			mPrevFrameNormalDepthUploadBuffer->Resource(),
-			0,
-			0,
-			num2DSubresources,
-			&subResourceData
-		);
-
-		mPrevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	}
+	//{
+	//	const UINT num2DSubresources = texDesc.DepthOrArraySize * texDesc.MipLevels;
+	//	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(mPrevFrameNormalDepth->Resource(), 0, num2DSubresources);
+	//
+	//	CheckReturn(mPrevFrameNormalDepthUploadBuffer->Initialize(
+	//		md3dDevice,
+	//		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+	//		D3D12_HEAP_FLAG_NONE,
+	//		&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
+	//		D3D12_RESOURCE_STATE_COPY_SOURCE,
+	//		nullptr
+	//	));
+	//
+	//	const UINT size = mWidth * mHeight * 4;
+	//	std::vector<BYTE> data(size);
+	//
+	//	for (UINT i = 0; i < size; i += 4) {
+	//		data[i] = data[i + 1] = data[i + 2] = 0;	// rgb-channels(normal) = 0 / 128;
+	//		data[i + 3] = 127;							// a-channel(depth) = 127 / 128;
+	//	}
+	//
+	//	D3D12_SUBRESOURCE_DATA subResourceData = {};
+	//	subResourceData.pData = data.data();
+	//	subResourceData.RowPitch = mWidth * 4;
+	//	subResourceData.SlicePitch = subResourceData.RowPitch * mHeight;
+	//	
+	//	UpdateSubresources(
+	//		cmdList,
+	//		mPrevFrameNormalDepth->Resource(),
+	//		mPrevFrameNormalDepthUploadBuffer->Resource(),
+	//		0,
+	//		0,
+	//		num2DSubresources,
+	//		&subResourceData
+	//	);
+	//
+	//	mPrevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//}
 
 	return true;
 }

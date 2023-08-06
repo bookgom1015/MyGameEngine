@@ -120,6 +120,62 @@ struct SsrConstants {
 	float				ConstantPad2;
 };
 
+struct CrossBilateralFilterConstants {
+	float	DepthSigma;
+	UINT	DepthNumMantissaBits;
+	float	ConstantPad0;
+	float	ConstantPad1;
+};
+
+struct CalcLocalMeanVarianceConstants {
+	DirectX::XMUINT2 TextureDim;
+	UINT	KernelWidth;
+	UINT	KernelRadius;
+
+	BOOL	CheckerboardSamplingEnabled;
+	BOOL	EvenPixelActivated;
+	UINT	PixelStepY;
+	float	ConstantPad0;
+};
+
+struct TemporalSupersamplingBlendWithCurrentFrameConstants {
+	float StdDevGamma;
+	BOOL ClampCachedValues;
+	float ClampingMinStdDevTolerance;
+	float ConstnatPad0;
+
+	float ClampDifferenceToTsppScale;
+	BOOL ForceUseMinSmoothingFactor;
+	float MinSmoothingFactor;
+	UINT MinTsppToUseTemporalVariance;
+
+	UINT BlurStrengthMaxTspp;
+	float BlurDecayStrength;
+	BOOL CheckerboardEnabled;
+	BOOL CheckerboardEvenPixelActivated;
+};
+
+struct AtrousWaveletTransformFilterConstantBuffer {
+	DirectX::XMUINT2 TextureDim;
+	float DepthWeightCutoff;
+	bool UsingBilateralDownsamplingBuffers;
+
+	BOOL UseAdaptiveKernelSize;
+	float KernelRadiusLerfCoef;
+	UINT MinKernelWidth;
+	UINT MaxKernelWidth;
+
+	float RayHitDistanceToKernelWidthScale;
+	float RayHitDistanceToKernelSizeScaleExponent;
+	BOOL PerspectiveCorrectDepthInterpolation;
+	float MinVarianceToDenoise;
+
+	float ValueSigma;
+	float DepthSigma;
+	float NormalSigma;
+	float FovY;
+};
+
 namespace Debug {
 	static const int MapCount = 5;
 
