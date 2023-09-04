@@ -1,5 +1,5 @@
-#ifndef __DRAWBACKBUFFER_HLSL__
-#define __DRAWBACKBUFFER_HLSL__
+#ifndef __BLINNPHONG_HLSL__
+#define __BLINNPHONG_HLSL__
 
 #ifndef NUM_DIR_LIGHTS
 #define NUM_DIR_LIGHTS 1
@@ -97,4 +97,4 @@ float4 PS(VertexOut pin) : SV_Target{
 	return litColor;
 }
 
-#endif // __DRAWBACKBUFFER_HLSL__
+#endif // __BLINNPHONG_HLSL__

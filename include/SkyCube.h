@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <unordered_map>
 #include <wrl.h>
 
 #include "Samplers.h"
@@ -29,7 +30,7 @@ namespace SkyCube {
 
 	public:
 		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList, 
-			ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+			ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT hdrMapFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
@@ -71,7 +72,7 @@ namespace SkyCube {
 		UINT mWidth;
 		UINT mHeight;
 
-		DXGI_FORMAT mBackBufferFormat;
+		DXGI_FORMAT mHDRMapFormat;
 
 		Microsoft::WRL::ComPtr<ID3D12Resource> mCubeMap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> mCubeMapUploadBuffer;

@@ -1,5 +1,5 @@
-#ifndef __DEBUG_HLSL__
-#define __DEBUG_HLSL__
+#ifndef __DEBUGMAP_HLSL__
+#define __DEBUGMAP_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -24,11 +24,11 @@ Texture2D gi_Debug3	: register(t3);
 Texture2D gi_Debug4	: register(t4);
 
 static const float2 gOffsets[Debug::MapCount] = {
-	float2(0.8f, 0.8f),
-	float2(0.8f, 0.4f),
-	float2(0.8f, 0.0f),
-	float2(0.8f, -0.4f),
-	float2(0.8f, -0.8f)
+	float2(0.8,  0.8),
+	float2(0.8,  0.4),
+	float2(0.8,  0.0),
+	float2(0.8, -0.4),
+	float2(0.8, -0.8)
 };
 
 struct VertexOut {
@@ -44,10 +44,10 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 	vout.InstID = instanceID;
 
 	// Quad covering screen in NDC space.
-	float2 pos = float2(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y) * 0.2f + gOffsets[instanceID];
+	float2 pos = float2(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y) * 0.2 + gOffsets[instanceID];
 
 	// Already in homogeneous clip space.
-	vout.PosH = float4(pos, 0.0f, 1.0f);
+	vout.PosH = float4(pos, 0, 1);
 
 	return vout;
 }
@@ -101,4 +101,4 @@ float4 PS(VertexOut pin) : SV_Target {
 	return float4(1, 0, 1, 1);
 }
 
-#endif // __DEBUG_HLSL__
+#endif // __DEBUGMAP_HLSL__

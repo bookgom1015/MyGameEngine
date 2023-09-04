@@ -66,8 +66,11 @@ public:
 	virtual void RemoveModel(void* model) = 0;
 	virtual void UpdateModel(void* model, const Transform& trans) = 0;
 	virtual void SetModelVisibility(void* model, bool visible) = 0;
+	virtual void SetModelPickable(void* model, bool pickable) = 0;
 
 	virtual bool SetCubeMap(const std::string& file) = 0;
+
+	virtual void Pick(float x, float y);
 
 	void SetCamera(Camera* cam);
 
@@ -94,6 +97,12 @@ public:
 
 	void EnableSsr(bool state);
 	__forceinline constexpr bool SsrEnabled() const;
+
+	void EnableGammaCorrection(bool state);
+	__forceinline constexpr bool GammaCorrectionEnabled() const;
+
+	void EnableToneMapping(bool state);
+	__forceinline constexpr bool ToneMappingEnabled() const;
 
 	void EnableRaytracing(bool state);
 	__forceinline constexpr bool RaytracingEnabled() const;
@@ -122,6 +131,8 @@ protected:
 	bool bDepthOfFieldEnabled = true;
 	bool bBloomEnabled = true;
 	bool bSsrEnabled = true;
+	bool bGammaCorrectionEnabled = true;
+	bool bToneMappingEnabled = true;
 
 	bool bRaytracing = false;
 };
@@ -156,6 +167,14 @@ constexpr bool Renderer::BloomEnabled() const {
 
 constexpr bool Renderer::SsrEnabled() const {
 	return bSsrEnabled;
+}
+
+constexpr bool Renderer::GammaCorrectionEnabled() const {
+	return bGammaCorrectionEnabled;
+}
+
+constexpr bool Renderer::ToneMappingEnabled() const {
+	return bToneMappingEnabled;
 }
 
 constexpr bool Renderer::RaytracingEnabled() const {

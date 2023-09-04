@@ -9,8 +9,9 @@
 #include "Samplers.h"
 
 class ShaderManager;
+class GpuResource;
 
-namespace Debug {
+namespace DebugMap {
 	namespace RootSignatureLayout {
 		enum {
 			EC_Consts = 0,
@@ -34,22 +35,23 @@ namespace Debug {
 		};
 	}
 
-	class DebugClass {
+	class DebugMapClass {
 	public:
-		DebugClass() = default;
-		virtual ~DebugClass() = default;
+		DebugMapClass() = default;
+		virtual ~DebugMapClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager, DXGI_FORMAT backBufferFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
+			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv);
-
-		bool OnResize(UINT width, UINT height);
 
 		bool AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
@@ -62,12 +64,6 @@ namespace Debug {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
-
-		UINT mWidth;
-		UINT mHeight;
-
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
 
 		DXGI_FORMAT mBackBufferFormat;
 

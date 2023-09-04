@@ -40,6 +40,8 @@ struct ObjectConstants {
 	DirectX::XMFLOAT4X4 World;
 	DirectX::XMFLOAT4X4 PrevWorld;
 	DirectX::XMFLOAT4X4 TexTransform;
+	DirectX::XMFLOAT4	Center;
+	DirectX::XMFLOAT4	Extents;
 };
 
 struct PassConstants {

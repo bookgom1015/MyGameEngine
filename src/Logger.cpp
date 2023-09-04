@@ -1,5 +1,12 @@
 #include "Logger.h"
 
+bool Logger::LogHelper::StaticInit() {
+	DWORD writtenBytes = 0;
+	WORD bom = 0xFEFF;
+
+	return WriteFile(LogHelper::ghLogFile, &bom, 2, &writtenBytes, NULL);
+}
+
 HANDLE Logger::LogHelper::ghLogFile = CreateFile(
 	L"./log.txt",
 	GENERIC_WRITE,

@@ -115,6 +115,9 @@
 namespace Logger {
 	class LogHelper {
 	public:
+		static bool StaticInit();
+
+	public:
 		static HANDLE ghLogFile;
 
 		static std::mutex gLogFileMutex;
@@ -140,10 +143,10 @@ namespace Logger {
 	}
 
 	inline void LogFunc(const std::wstring& text) {
-		DWORD writtenBytes = 0;
-
 		LogHelper::gLogFileMutex.lock();
 
+		DWORD writtenBytes = 0;
+		
 		WriteFile(
 			LogHelper::ghLogFile,
 			text.c_str(),

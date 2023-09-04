@@ -48,7 +48,6 @@ protected:
 	static const int SwapChainBufferCount = 2;
 
 	static const D3D_DRIVER_TYPE D3DDriverType = D3D_DRIVER_TYPE_HARDWARE;
-	static const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	Microsoft::WRL::ComPtr<ID3D12Device5> md3dDevice;
 

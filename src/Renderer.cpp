@@ -5,6 +5,8 @@
 #include <memory>
 #include <wrl.h>
 
+void Renderer::Pick(float x, float y) {}
+
 void Renderer::SetCamera(Camera* cam) {
 	mCamera = cam;
 }
@@ -40,6 +42,14 @@ void Renderer::EnableBloom(bool state) {
 
 void Renderer::EnableSsr(bool state) {
 	bSsrEnabled = state;
+}
+
+void Renderer::EnableGammaCorrection(bool state) {
+	bGammaCorrectionEnabled = state;
+}
+
+void Renderer::EnableToneMapping(bool state) {
+	bToneMappingEnabled = state;
 }
 
 void Renderer::EnableRaytracing(bool state) {

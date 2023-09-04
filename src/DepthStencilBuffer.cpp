@@ -22,12 +22,7 @@ void DepthStencilBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hC
 	hCpuDsv.Offset(1, dsvDescSize);
 }
 
-void DepthStencilBufferClass::BuildDescriptors() {
-	// Create descriptor to mip level 0 of entire resource using the format of the resource.
-	md3dDevice->CreateDepthStencilView(mDepthStencilBuffer->Resource(), nullptr, mhCpuDsv);
-}
-
-bool DepthStencilBufferClass::OnResize(UINT width, UINT height) {
+bool DepthStencilBufferClass::LowOnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -37,6 +32,11 @@ bool DepthStencilBufferClass::OnResize(UINT width, UINT height) {
 	}
 
 	return true;
+}
+
+void DepthStencilBufferClass::BuildDescriptors() {
+	// Create descriptor to mip level 0 of entire resource using the format of the resource.
+	md3dDevice->CreateDepthStencilView(mDepthStencilBuffer->Resource(), nullptr, mhCpuDsv);
 }
 
 bool DepthStencilBufferClass::BuildResources() {

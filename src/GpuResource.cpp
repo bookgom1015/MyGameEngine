@@ -10,7 +10,6 @@ bool GpuResource::Initialize(
 		D3D12_RESOURCE_STATES initialState,
 		const D3D12_CLEAR_VALUE* optClear,
 		LPCWSTR name) {
-
 	CheckHRESULT(device->CreateCommittedResource(
 		heapProp,
 		heapFlag,
@@ -24,6 +23,18 @@ bool GpuResource::Initialize(
 	mCurrState = initialState;
 
 	return true;
+}
+
+bool GpuResource::OnResize(IDXGISwapChain* const swapChain, UINT index) {
+	CheckHRESULT(swapChain->GetBuffer(index, IID_PPV_ARGS(&mResource)));
+
+	mCurrState = D3D12_RESOURCE_STATE_PRESENT;
+
+	return true;
+}
+
+void GpuResource::Reset() {
+	mResource.Reset();
 }
 
 void GpuResource::Transite(ID3D12GraphicsCommandList* const cmdList, D3D12_RESOURCE_STATES state) {

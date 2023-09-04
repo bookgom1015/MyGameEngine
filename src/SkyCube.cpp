@@ -10,15 +10,21 @@
 using namespace DirectX;
 using namespace SkyCube;
 
-bool SkyCubeClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList,
-		ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
+namespace {
+	const std::string SkyVS = "SkyVS";
+	const std::string SkyPS = "SkyPS";
+}
+
+bool SkyCubeClass::Initialize(
+		ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList,
+		ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT hdrMapFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
 
-	mBackBufferFormat = backBufferFormat;
+	mHDRMapFormat = hdrMapFormat;
 
 	CheckReturn(BuildResources(cmdList));
 
@@ -60,17 +66,18 @@ bool SkyCubeClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsv
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
 	skyPsoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("SkyVS");
-		auto ps = mShaderManager->GetDxcShader("SkyPS");
+		auto vs = mShaderManager->GetDxcShader(SkyVS);
+		auto ps = mShaderManager->GetDxcShader(SkyPS);
 		skyPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		skyPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	skyPsoDesc.NumRenderTargets = 1;
-	skyPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	skyPsoDesc.RTVFormats[0] = mHDRMapFormat;
 	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	skyPsoDesc.DepthStencilState.StencilEnable = FALSE;
+
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&skyPsoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return true;
@@ -165,7 +172,7 @@ void SkyCubeClass::BuildDescriptors(
 void SkyCubeClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = mBackBufferFormat;
+	srvDesc.Format = mHDRMapFormat;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = 1;
@@ -183,7 +190,7 @@ bool SkyCubeClass::BuildResources(ID3D12GraphicsCommandList*const cmdList) {
 	texDesc.Height = 1;
 	texDesc.DepthOrArraySize = 1;
 	texDesc.MipLevels = 1;
-	texDesc.Format = mBackBufferFormat;
+	texDesc.Format = mHDRMapFormat;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;

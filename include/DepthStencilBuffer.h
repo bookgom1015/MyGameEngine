@@ -20,9 +20,9 @@ namespace DepthStencilBuffer {
 
 	public:
 		bool Initialize(ID3D12Device* device);
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv, UINT dsvDescSize);
+		bool LowOnResize(UINT width, UINT height);
 
-		bool OnResize(UINT width, UINT height);
+		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv, UINT dsvDescSize);
 
 	private:
 		void BuildDescriptors();

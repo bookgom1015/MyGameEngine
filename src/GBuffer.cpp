@@ -9,6 +9,11 @@
 
 using namespace GBuffer;
 
+namespace {
+	const std::string GBufferVS = "GBufferVS";
+	const std::string GBufferPS = "GBufferPS";
+}
+
 GBufferClass::GBufferClass() {
 	mColorMap = std::make_unique<GpuResource>();
 	mAlbedoMap = std::make_unique<GpuResource>();
@@ -35,11 +40,11 @@ bool GBufferClass::Initialize(ID3D12Device* device, UINT width, UINT height,
 }
 
 bool GBufferClass::CompileShaders(const std::wstring& filePath) {
-	const std::wstring actualPath = filePath + L"DrawGBuffer.hlsl";
-	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, "DrawGBufferVS"));
-	CheckReturn(mShaderManager->CompileShader(psInfo, "DrawGBufferPS"));
+	const std::wstring fullPath = filePath + L"GBuffer.hlsl";
+	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+	CheckReturn(mShaderManager->CompileShader(vsInfo, GBufferVS));
+	CheckReturn(mShaderManager->CompileShader(psInfo, GBufferPS));
 
 	return true;
 }
@@ -72,8 +77,8 @@ bool GBufferClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 	psoDesc.InputLayout = inputLayout;
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("DrawGBufferVS");
-		auto ps = mShaderManager->GetDxcShader("DrawGBufferPS");
+		auto vs = mShaderManager->GetDxcShader(GBufferVS);
+		auto ps = mShaderManager->GetDxcShader(GBufferPS);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}

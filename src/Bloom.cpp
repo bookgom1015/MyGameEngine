@@ -11,7 +11,9 @@ BloomClass::BloomClass() {
 	mResultMap = std::make_unique<GpuResource>();
 }
 
-bool BloomClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat) {
+bool BloomClass::Initialize(
+		ID3D12Device* device, ShaderManager*const manager, 
+		UINT width, UINT height, UINT divider, DXGI_FORMAT hdrMapFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -23,7 +25,7 @@ bool BloomClass::Initialize(ID3D12Device* device, ShaderManager*const manager, U
 
 	mDivider = divider;
 
-	mBackBufferFormat = backBufferFormat;
+	mHDRMapFormat = hdrMapFormat;
 
 	mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
 	mReducedScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
@@ -114,7 +116,7 @@ bool BloomClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 			ps->GetBufferSize()
 		};
 	}
-	extHlightsPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	extHlightsPsoDesc.RTVFormats[0] = mHDRMapFormat;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&extHlightsPsoDesc, IID_PPV_ARGS(&mPSOs["extHighlights"])));
 	
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC bloomPsoDesc = quadPsoDesc;
@@ -131,7 +133,7 @@ bool BloomClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 			ps->GetBufferSize()
 		};
 	}
-	bloomPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	bloomPsoDesc.RTVFormats[0] = mHDRMapFormat;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&bloomPsoDesc, IID_PPV_ARGS(&mPSOs["bloom"])));
 
 	return true;
@@ -235,14 +237,14 @@ void BloomClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = mBackBufferFormat;
+	srvDesc.Format = mHDRMapFormat;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = mBackBufferFormat;
+	rtvDesc.Format = mHDRMapFormat;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
@@ -263,11 +265,11 @@ bool BloomClass::BuildResources() {
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
-	rscDesc.Format = mBackBufferFormat;
+	rscDesc.Format = mHDRMapFormat;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, ClearValues);
+	CD3DX12_CLEAR_VALUE optClear(mHDRMapFormat, ClearValues);
 	
 	rscDesc.Width = mBloomMapWidth;
 	rscDesc.Height = mBloomMapHeight;

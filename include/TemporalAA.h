@@ -8,6 +8,7 @@
 #include "GpuResource.h"
 
 class ShaderManager;
+class GpuResource;
 
 namespace TemporalAA {
 	namespace RootSignatureLayout {
@@ -49,7 +50,7 @@ namespace TemporalAA {
 
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
-			ID3D12Resource* backBuffer,
+			GpuResource* backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
 			float factor);

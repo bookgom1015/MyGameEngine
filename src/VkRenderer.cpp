@@ -212,8 +212,14 @@ void VkRenderer::SetModelVisibility(void* model, bool visible) {
 	iter->get()->Visible = visible;
 }
 
+void VkRenderer::SetModelPickable(void* model, bool pickable) {}
+
 bool VkRenderer::SetCubeMap(const std::string& file) {
 	return true;
+}
+
+void VkRenderer::Pick(float x, float y) {
+
 }
 
 bool VkRenderer::CreateRenderPass() {

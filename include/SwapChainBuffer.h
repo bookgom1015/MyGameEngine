@@ -3,48 +3,69 @@
 #include <d3dx12.h>
 #include <dxgi1_6.h>
 #include <vector>
+#include <wrl.h>
+
+class GpuResource;
 
 namespace SwapChainBuffer {
+	const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
 	class SwapChainBufferClass {
 	public:
 		SwapChainBufferClass() = default;
 		virtual ~SwapChainBufferClass() = default;
 
 	public:
-		__forceinline ID3D12Resource* BackBuffer(int index) const;
-		__forceinline ID3D12Resource* CurrentBackBuffer() const;
-		__forceinline D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
+		__forceinline GpuResource* BackBuffer(int index) const;
+		__forceinline GpuResource* CurrentBackBuffer() const;
+		__forceinline D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferRtv() const;
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE CurrentBackBufferSrv() const;
 		__forceinline constexpr UINT CurrentBackBufferIndex() const;
+
+	public:
+		bool Initialize(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, UINT count, UINT descSize);
+		bool LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height);
+		bool OnResize();
 
 		void NextBackBuffer();
 
-	public:
-		bool Initialize(ID3D12Device* pDevice, ID3D12DescriptorHeap* pRtvHeap, UINT count, UINT descSize);
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv, 
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
+			UINT descSize);
 
-		bool OnResize(IDXGISwapChain*const pSwapChain, UINT width, UINT height, DXGI_FORMAT format);
+	private:
+		void BuildDescriptors();
 
 	private:
 		ID3D12Device* md3dDevice;
 
-		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> mSwapChainBuffer;
+		std::vector<std::unique_ptr<GpuResource>> mSwapChainBuffer;
 		UINT mSwapChainBufferCount;
 		UINT mCurrBackBuffer;
+
+		std::vector<CD3DX12_CPU_DESCRIPTOR_HANDLE> mhBackBufferCpuSrvs;
+		std::vector<CD3DX12_GPU_DESCRIPTOR_HANDLE> mhBackBufferGpuSrvs;
 
 		ID3D12DescriptorHeap* mRtvHeap;
 		UINT mRtvDescriptorSize;
 	};
 }
 
-ID3D12Resource* SwapChainBuffer::SwapChainBufferClass::BackBuffer(int index) const {
-	return mSwapChainBuffer[index].Get();
+GpuResource* SwapChainBuffer::SwapChainBufferClass::BackBuffer(int index) const {
+	return mSwapChainBuffer[index].get();
 }
 
-ID3D12Resource* SwapChainBuffer::SwapChainBufferClass::CurrentBackBuffer() const { 
-	return mSwapChainBuffer[mCurrBackBuffer].Get(); 
+GpuResource* SwapChainBuffer::SwapChainBufferClass::CurrentBackBuffer() const {
+	return mSwapChainBuffer[mCurrBackBuffer].get(); 
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferView() const {
+D3D12_CPU_DESCRIPTOR_HANDLE SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferRtv() const {
 	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mCurrBackBuffer, mRtvDescriptorSize);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferSrv() const {
+	return mhBackBufferGpuSrvs[mCurrBackBuffer];
 }
 
 constexpr UINT SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferIndex() const {

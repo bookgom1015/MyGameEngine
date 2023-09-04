@@ -80,26 +80,27 @@ void InputManager::CleanUp() {
 }
 
 void InputManager::Update() {
-	POINT cursorPos;
-	GetCursorPos(&cursorPos);
-
 	float prevPosX = mInputState.Mouse.mMousePos.x;
 	float prevPosY = mInputState.Mouse.mMousePos.y;
 
-	mInputState.Mouse.mMousePos.x = static_cast<float>(cursorPos.x);
-	mInputState.Mouse.mMousePos.y = static_cast<float>(cursorPos.y);
+	RECT wndRect;
+	GetWindowRect(mhMainWnd, &wndRect);
+
+	POINT cursorPos;
+	GetCursorPos(&cursorPos);
+
+	mInputState.Mouse.mMousePos.x = static_cast<float>(cursorPos.x) - wndRect.left;
+	mInputState.Mouse.mMousePos.y = static_cast<float>(cursorPos.y) - wndRect.top;
 
 	if (mInputState.Mouse.mIsRelative) {
-		RECT wndRect;
-		GetWindowRect(mhMainWnd, &wndRect);
 
 		int centerX = static_cast<int>((wndRect.left + wndRect.right) * 0.5f);
 		int centerY = static_cast<int>((wndRect.top + wndRect.bottom) * 0.5f);
 
 		SetCursorPos(centerX, centerY);
 
-		prevPosX = static_cast<float>(centerX);
-		prevPosY = static_cast<float>(centerY);
+		prevPosX = static_cast<float>(centerX) - wndRect.left;
+		prevPosY = static_cast<float>(centerY) - wndRect.top;
 	}
 
 	mInputState.Mouse.mMouseDelta.x = mInputState.Mouse.mMousePos.x - prevPosX;
@@ -110,14 +111,6 @@ void InputManager::Update() {
 		mInputState.Mouse.mMouseDelta.x = 0.0f;
 		mInputState.Mouse.mMouseDelta.y = 0.0f;
 	}
-
-	//Logln("cursor_x: ", std::to_string(cursorPos.x));
-	//Logln("cursor_y: ", std::to_string(cursorPos.y));
-	//Logln("pos_x: ", std::to_string(mInputState.Mouse.mMousePos.x));
-	//Logln("pos_y: ", std::to_string(mInputState.Mouse.mMousePos.y));
-	//Logln("delta_x: ", std::to_string(mInputState.Mouse.mMouseDelta.x));
-	//Logln("delta_y: ", std::to_string(mInputState.Mouse.mMouseDelta.y));
-	//Logln("");
 }
 
 void InputManager::SetCursorVisibility(BOOL visible) {

@@ -15,23 +15,7 @@ struct PassConstants;
 class ShaderManager;
 class ImGuiManager;
 
-namespace BackBuffer { class BackBufferClass; }
-namespace GBuffer { class GBufferClass; }
-namespace ShadowMap { class ShadowMapClass; }
-namespace Ssao { class SsaoClass; }
-namespace BlurFilter { class BlurFilterClass; }
-namespace Bloom { class BloomClass; }
-namespace Ssr { class SsrClass; }
-namespace DepthOfField { class DepthOfFieldClass; }
-namespace MotionBlur { class MotionBlurClass; }
-namespace TemporalAA { class TemporalAAClass; }
-namespace Debug { class DebugClass; }
-namespace SkyCube { class SkyCubeClass; }
-namespace DxrShadowMap { class DxrShadowMapClass; }
-namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
-namespace BlurFilterCS { class BlurFilterCSClass; }
-namespace DxrBackBuffer { class DxrBackBufferClass; }
-namespace Rtao { class RtaoClass; }
+#include "DxForwardDeclarations.h"
 
 namespace DebugMapLayout {
 	enum Type {
@@ -67,8 +51,11 @@ public:
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
+	virtual void SetModelPickable(void* model, bool pickable) override;
 
 	virtual bool SetCubeMap(const std::string& file) override;
+
+	virtual void Pick(float x, float y) override;
 
 	virtual bool CreateRtvAndDsvDescriptorHeaps();
 
@@ -111,6 +98,8 @@ private:
 	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();
+	bool ResolveToneMapping();
+	bool ApplyGammaCorrection();
 	bool DrawDebuggingInfo();
 	bool DrawImGui();
 
@@ -150,7 +139,7 @@ private:
 
 	std::unique_ptr<ImGuiManager> mImGui;
 
-	std::unique_ptr<BackBuffer::BackBufferClass> mBackBuffer;
+	std::unique_ptr<BRDF::BRDFClass> mBRDF;
 	std::unique_ptr<GBuffer::GBufferClass> mGBuffer;
 	std::unique_ptr<ShadowMap::ShadowMapClass> mShadowMap;
 	std::unique_ptr<Ssao::SsaoClass> mSsao;
@@ -160,8 +149,11 @@ private:
 	std::unique_ptr<DepthOfField::DepthOfFieldClass> mDof;
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
 	std::unique_ptr<TemporalAA::TemporalAAClass> mTaa;
-	std::unique_ptr<Debug::DebugClass> mDebug;
+	std::unique_ptr<DebugMap::DebugMapClass> mDebugMap;
 	std::unique_ptr<SkyCube::SkyCubeClass> mSkyCube;
+	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
+	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
+	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
@@ -173,6 +165,8 @@ private:
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
 
 	std::unordered_map<DebugMapLayout::Type, bool> mDebugMapStates;
+
+	RenderItem* mPickedRitem;
 
 	//
 	// DirectXTK12
@@ -188,6 +182,5 @@ private:
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
 	std::unique_ptr<DxrGeometryBuffer::DxrGeometryBufferClass> mDxrGeometryBuffer;
 	std::unique_ptr<BlurFilterCS::BlurFilterCSClass> mBlurFilterCS;
-	std::unique_ptr<DxrBackBuffer::DxrBackBufferClass> mDxrBackBuffer;
 	std::unique_ptr<Rtao::RtaoClass> mRtao;
 };

@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "D3D12Util.h"
+#include "GpuResource.h"
 
 using namespace TemporalAA;
 
@@ -80,7 +81,7 @@ bool TemporalAAClass::BuildPso() {
 
 void TemporalAAClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
-		ID3D12Resource* backBuffer,
+		GpuResource* backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity, 
 		float factor) {
@@ -90,34 +91,24 @@ void TemporalAAClass::Run(
 	cmdList->RSSetViewports(1, &mViewport);
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
-	const auto resolveMap = mResolveMap->Resource();
+	auto resolveMap = mResolveMap->Resource();
+	auto historyMap = mHistoryMap->Resource();
+	auto backBufferResource = backBuffer->Resource();
+
 	if (bInitiatingTaa) {
-		{
-			D3D12_RESOURCE_BARRIER barriers[] = {
-				CD3DX12_RESOURCE_BARRIER::Transition(backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_SOURCE),
-				CD3DX12_RESOURCE_BARRIER::Transition(resolveMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST)
-			};	
-			cmdList->ResourceBarrier(_countof(barriers), barriers);
-		}
-		cmdList->CopyResource(resolveMap, backBuffer);
-		{
-			D3D12_RESOURCE_BARRIER barriers[] = {
-				CD3DX12_RESOURCE_BARRIER::Transition(resolveMap, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-				CD3DX12_RESOURCE_BARRIER::Transition(backBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT)			
-			};
-			cmdList->ResourceBarrier(_countof(barriers), barriers);
-		}
+		mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+		cmdList->CopyResource(resolveMap, backBufferResource);
+
+		mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 		bInitiatingTaa = false;
 	}
 
-	{
-		D3D12_RESOURCE_BARRIER barriers[] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(resolveMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET)
-		};	
-		cmdList->ResourceBarrier(_countof(barriers), barriers);
-	}
+	mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	cmdList->ClearRenderTargetView(mhResolveMapCpuRtv, TemporalAA::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhResolveMapCpuRtv, true, nullptr);
@@ -133,25 +124,16 @@ void TemporalAAClass::Run(
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
-	const auto historyMap = mHistoryMap->Resource();
-	{
-		D3D12_RESOURCE_BARRIER barriers[] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(historyMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST),
-			CD3DX12_RESOURCE_BARRIER::Transition(resolveMap, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(backBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST)
-		};
-		cmdList->ResourceBarrier(_countof(barriers), barriers);
-	}
+	mHistoryMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
 	cmdList->CopyResource(historyMap, resolveMap);
-	cmdList->CopyResource(backBuffer, resolveMap);
-	{
-		D3D12_RESOURCE_BARRIER barriers[] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT),
-			CD3DX12_RESOURCE_BARRIER::Transition(resolveMap, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(historyMap, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-		};
-		cmdList->ResourceBarrier(_countof(barriers), barriers);
-	}
+	cmdList->CopyResource(backBufferResource, resolveMap);
+
+	mHistoryMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void TemporalAAClass::BuildDescriptors(

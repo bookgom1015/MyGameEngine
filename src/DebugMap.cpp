@@ -1,19 +1,19 @@
-#include "Debug.h"
+#include "DebugMap.h"
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "D3D12Util.h"
+#include "GpuResource.h"
 
-using namespace Debug;
+using namespace DebugMap;
 
-bool DebugClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
+namespace {
+	const std::string DebugMapVS = "DebugMapVS";
+	const std::string DebugMapPS = "DebugMapPS";
+}
+
+bool DebugMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, DXGI_FORMAT backBufferFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
-
-	mWidth = width;
-	mHeight = height;
-
-	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
 
 	mBackBufferFormat = backBufferFormat;
 
@@ -22,17 +22,17 @@ bool DebugClass::Initialize(ID3D12Device* device, ShaderManager*const manager, U
 	return true;
 }
 
-bool DebugClass::CompileShaders(const std::wstring& filePath) {
-	const std::wstring actualPath = filePath + L"Debug.hlsl";
-	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, "DebugVS"));
-	CheckReturn(mShaderManager->CompileShader(psInfo, "DebugPS"));
+bool DebugMapClass::CompileShaders(const std::wstring& filePath) {
+	const std::wstring fullPath = filePath + L"DebugMap.hlsl";
+	auto vsInfo = D3D12ShaderInfo(fullPath .c_str(), L"VS", L"vs_6_3");
+	auto psInfo = D3D12ShaderInfo(fullPath .c_str(), L"PS", L"ps_6_3");
+	CheckReturn(mShaderManager->CompileShader(vsInfo, DebugMapVS));
+	CheckReturn(mShaderManager->CompileShader(psInfo, DebugMapPS));
 
 	return true;
 }
 
-bool DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
+bool DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[5];
@@ -60,12 +60,12 @@ bool DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool DebugClass::BuildPso() {
+bool DebugMapClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC debugPsoDesc = D3D12Util::QuadPsoDesc();
 	debugPsoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("DebugVS");
-		auto ps = mShaderManager->GetDxcShader("DebugPS");
+		auto vs = mShaderManager->GetDxcShader(DebugMapVS);
+		auto ps = mShaderManager->GetDxcShader(DebugMapPS);
 		debugPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		debugPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -75,16 +75,21 @@ bool DebugClass::BuildPso() {
 	return true;
 }
 
-void DebugClass::Run(
+void DebugMapClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
+		D3D12_VIEWPORT viewport,
+		D3D12_RECT scissorRect,
+		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 	
-	cmdList->RSSetViewports(1, &mViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
+	cmdList->RSSetViewports(1, &viewport);
+	cmdList->RSSetScissorRects(1, &scissorRect);
 	
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
 	cmdList->SetGraphicsRoot32BitConstants(
@@ -102,21 +107,11 @@ void DebugClass::Run(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, static_cast<UINT>(mNumEnabledMaps), 0, 0);
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-bool DebugClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
-	}
-
-	return true;
-}
-
-bool DebugClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleMask::Type mask) {
+bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleMask::Type mask) {
 	if (mNumEnabledMaps >= 5) return false;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
@@ -127,7 +122,7 @@ bool DebugClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleM
 	return true;
 }
 
-void DebugClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
+void DebugMapClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
 	for (int i = 0; i < mNumEnabledMaps; ++i) {
 		if (mhDebugGpuSrvs[i].ptr == hGpuSrv.ptr) {
 			for (int curr = i, end = mNumEnabledMaps - 2; curr <= end; ++curr) {

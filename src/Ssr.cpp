@@ -11,7 +11,9 @@ SsrClass::SsrClass() {
 	mResultMap = std::make_unique<GpuResource>();
 }
 
-bool SsrClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat) {
+bool SsrClass::Initialize(
+		ID3D12Device* device, ShaderManager*const manager, 
+		UINT width, UINT height, UINT divider, DXGI_FORMAT hdrMapFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -23,7 +25,7 @@ bool SsrClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UIN
 
 	mDivider = divider;
 
-	mBackBufferFormat = backBufferFormat;
+	mHDRMapFormat = hdrMapFormat;
 
 	mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mSsrMapWidth), static_cast<float>(mSsrMapHeight), 0.0f, 1.0f };
 	mReducedScissorRect = { 0, 0, static_cast<int>(mSsrMapWidth), static_cast<int>(mSsrMapHeight) };
@@ -121,7 +123,7 @@ bool SsrClass::BuildPso() {
 		buildingSsrPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		buildingSsrPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	buildingSsrPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	buildingSsrPsoDesc.RTVFormats[0] = mHDRMapFormat;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&buildingSsrPsoDesc, IID_PPV_ARGS(&mPSOs["buildingSsr"])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC applyingSsrPsoDesc = quadPsoDesc;
@@ -132,7 +134,7 @@ bool SsrClass::BuildPso() {
 		applyingSsrPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		applyingSsrPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	applyingSsrPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	applyingSsrPsoDesc.RTVFormats[0] = mHDRMapFormat;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&applyingSsrPsoDesc, IID_PPV_ARGS(&mPSOs["applyingSsr"])));
 
 	return true;
@@ -254,14 +256,14 @@ void SsrClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = mBackBufferFormat;
+	srvDesc.Format = mHDRMapFormat;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = mBackBufferFormat;
+	rtvDesc.Format = mHDRMapFormat;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
@@ -281,11 +283,11 @@ bool SsrClass::BuildResources() {
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
-	rscDesc.Format = mBackBufferFormat;
+	rscDesc.Format = mHDRMapFormat;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, ClearValues);
+	CD3DX12_CLEAR_VALUE optClear(mHDRMapFormat, ClearValues);
 
 	rscDesc.Width = mSsrMapWidth;
 	rscDesc.Height = mSsrMapHeight;

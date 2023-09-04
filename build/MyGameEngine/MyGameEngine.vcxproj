@@ -161,7 +161,7 @@
     <ClInclude Include="..\..\include\AccelerationStructure.h" />
     <ClInclude Include="..\..\include\Actor.h" />
     <ClInclude Include="..\..\include\ActorManager.h" />
-    <ClInclude Include="..\..\include\BackBuffer.h" />
+    <ClInclude Include="..\..\include\BRDF.h" />
     <ClInclude Include="..\..\include\Bloom.h" />
     <ClInclude Include="..\..\include\Blur.h" />
     <ClInclude Include="..\..\include\BlurFilter.h" />
@@ -171,12 +171,13 @@
     <ClInclude Include="..\..\include\Component.h" />
     <ClInclude Include="..\..\include\D3D12Util.h" />
     <ClInclude Include="..\..\include\d3dx12.h" />
-    <ClInclude Include="..\..\include\Debug.h" />
+    <ClInclude Include="..\..\include\DebugCollision.h" />
+    <ClInclude Include="..\..\include\DebugMap.h" />
     <ClInclude Include="..\..\include\DepthOfField.h" />
     <ClInclude Include="..\..\include\DepthStencilBuffer.h" />
+    <ClInclude Include="..\..\include\DxForwardDeclarations.h" />
     <ClInclude Include="..\..\include\DxLowRenderer.h" />
     <ClInclude Include="..\..\include\DxMesh.h" />
-    <ClInclude Include="..\..\include\DxrBackBuffer.h" />
     <ClInclude Include="..\..\include\DxRenderer.h" />
     <ClInclude Include="..\..\include\DxrGeometryBuffer.h" />
     <ClInclude Include="..\..\include\DxrShadowMap.h" />
@@ -184,6 +185,7 @@
     <ClInclude Include="..\..\include\FrameResource.h" />
     <ClInclude Include="..\..\include\GameTimer.h" />
     <ClInclude Include="..\..\include\GameWorld.h" />
+    <ClInclude Include="..\..\include\GammaCorrection.h" />
     <ClInclude Include="..\..\include\GBuffer.h" />
     <ClInclude Include="..\..\include\GeometryGenerator.h" />
     <ClInclude Include="..\..\include\GpuResource.h" />
@@ -215,6 +217,7 @@
     <ClInclude Include="..\..\include\Ssr.h" />
     <ClInclude Include="..\..\include\SwapChainBuffer.h" />
     <ClInclude Include="..\..\include\TemporalAA.h" />
+    <ClInclude Include="..\..\include\ToneMapping.h" />
     <ClInclude Include="..\..\include\Transform.h" />
     <ClInclude Include="..\..\include\UploadBuffer.h" />
     <ClInclude Include="..\..\include\Vertex.h" />
@@ -231,7 +234,7 @@
     <ClCompile Include="..\..\externals\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\src\Actor.cpp" />
     <ClCompile Include="..\..\src\ActorManager.cpp" />
-    <ClCompile Include="..\..\src\BackBuffer.cpp" />
+    <ClCompile Include="..\..\src\BRDF.cpp" />
     <ClCompile Include="..\..\src\Bloom.cpp" />
     <ClCompile Include="..\..\src\Blur.cpp" />
     <ClCompile Include="..\..\src\BlurFilter.cpp" />
@@ -240,11 +243,11 @@
     <ClCompile Include="..\..\src\CameraComponent.cpp" />
     <ClCompile Include="..\..\src\Component.cpp" />
     <ClCompile Include="..\..\src\D3D12Util.cpp" />
-    <ClCompile Include="..\..\src\Debug.cpp" />
+    <ClCompile Include="..\..\src\DebugCollision.cpp" />
+    <ClCompile Include="..\..\src\DebugMap.cpp" />
     <ClCompile Include="..\..\src\DepthOfField.cpp" />
     <ClCompile Include="..\..\src\DepthStencilBuffer.cpp" />
     <ClCompile Include="..\..\src\DxLowRenderer.cpp" />
-    <ClCompile Include="..\..\src\DxrBackBuffer.cpp" />
     <ClCompile Include="..\..\src\DxRenderer.cpp" />
     <ClCompile Include="..\..\src\DxrGeometryBuffer.cpp" />
     <ClCompile Include="..\..\src\DxrShadowMap.cpp" />
@@ -252,6 +255,7 @@
     <ClCompile Include="..\..\src\FreeLookActor.cpp" />
     <ClCompile Include="..\..\src\GameTimer.cpp" />
     <ClCompile Include="..\..\src\GameWorld.cpp" />
+    <ClCompile Include="..\..\src\GammaCorrection.cpp" />
     <ClCompile Include="..\..\src\GBuffer.cpp" />
     <ClCompile Include="..\..\src\GeometryGenerator.cpp" />
     <ClCompile Include="..\..\src\GpuResource.cpp" />
@@ -279,6 +283,7 @@
     <ClCompile Include="..\..\src\Ssr.cpp" />
     <ClCompile Include="..\..\src\SwapChainBuffer.cpp" />
     <ClCompile Include="..\..\src\TemporalAA.cpp" />
+    <ClCompile Include="..\..\src\ToneMapping.cpp" />
     <ClCompile Include="..\..\src\Transform.cpp" />
     <ClCompile Include="..\..\src\UploadBuffer.cpp" />
     <ClCompile Include="..\..\src\Vertex.cpp" />
@@ -317,27 +322,22 @@
     <None Include="..\..\include\VkLowRenderer.inl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\Default.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\Shadow.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\Debug.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DrawGBuffer.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DrawBackBuffer.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -363,11 +363,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DrawGBufferSky.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -442,7 +437,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DxrBackBuffer.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DxrBlinnPhong.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -469,6 +464,26 @@
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

@@ -111,6 +111,8 @@ GameWorld::~GameWorld() {
 }
 
 bool GameWorld::Initialize() {
+	Logger::LogHelper::StaticInit();
+
 	CheckReturn(InitMainWindow());
 
 	CheckReturn(mInputManager->Initialize(mhMainWnd));
@@ -312,6 +314,12 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	case WM_KEYDOWN:
 		OnKeyboardInput(WM_KEYDOWN, wParam, lParam);
 		return 0;
+
+	case WM_LBUTTONDOWN: {
+		const auto pos = mInputManager->GetInputState().Mouse.GetMousePosition();
+		if (mGameState == EGameStates::EGS_UI) mRenderer->Pick(pos.x, pos.y);
+		return 0;
+	}
 	}
 
 	return DefWindowProc(hwnd, msg, wParam, lParam);

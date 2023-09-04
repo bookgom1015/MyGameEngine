@@ -17,6 +17,7 @@ public:
 	bool LoadMesh(const std::string& file);
 
 	void SetVisibility(bool visible);
+	void SetPickable(bool pickable);
 
 private:
 	void* mModel;

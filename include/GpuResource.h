@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3dx12.h>
+#include <dxgi1_6.h>
 #include <wrl.h>
 
 class GpuResource {
@@ -17,6 +18,8 @@ public:
 		D3D12_RESOURCE_STATES initialState,
 		const D3D12_CLEAR_VALUE* optClear,
 		LPCWSTR name = nullptr);
+	bool OnResize(IDXGISwapChain*const swapChain, UINT index);
+	void Reset();
 
 	void Transite(ID3D12GraphicsCommandList*const cmdList, D3D12_RESOURCE_STATES state);
 

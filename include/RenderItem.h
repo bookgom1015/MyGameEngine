@@ -39,4 +39,6 @@ struct RenderItem {
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	UINT BaseVertexLocation = 0;
+
+	bool Pickable = true;
 };

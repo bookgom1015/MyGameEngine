@@ -210,7 +210,7 @@
     <ClInclude Include="..\..\include\Ssr.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\BackBuffer.h">
+    <ClInclude Include="..\..\include\BRDF.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\Samplers.h">
@@ -276,7 +276,7 @@
     <ClInclude Include="..\..\include\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Debug.h">
+    <ClInclude Include="..\..\include\DebugMap.h">
       <Filter>Header Files\Render\DirectX\Debug</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\GpuResource.h">
@@ -303,11 +303,20 @@
     <ClInclude Include="..\..\include\BlurFilterCS.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\DxrBackBuffer.h">
-      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\Rtao.h">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DebugCollision.h">
+      <Filter>Header Files\Render\DirectX\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GammaCorrection.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ToneMapping.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DxForwardDeclarations.h">
+      <Filter>Header Files\Render\DirectX</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -404,7 +413,7 @@
     <ClCompile Include="..\..\src\Ssr.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\BackBuffer.cpp">
+    <ClCompile Include="..\..\src\BRDF.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Samplers.cpp">
@@ -449,7 +458,7 @@
     <ClCompile Include="..\..\src\D3D12Util.cpp">
       <Filter>Source Files\Helper</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Debug.cpp">
+    <ClCompile Include="..\..\src\DebugMap.cpp">
       <Filter>Source Files\Render\DirectX\Debug</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\GpuResource.cpp">
@@ -491,11 +500,17 @@
     <ClCompile Include="..\..\src\BlurFilterCS.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DxrBackBuffer.cpp">
-      <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Rtao.cpp">
       <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DebugCollision.cpp">
+      <Filter>Source Files\Render\DirectX\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GammaCorrection.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ToneMapping.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -510,9 +525,6 @@
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Default.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\glsl\LightingUtil.glsli">
@@ -539,7 +551,7 @@
     <None Include="..\..\assets\shaders\glsl\Common.glsli">
       <Filter>Shader Files\GLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Debug.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\glsl\Shadow.frag">
@@ -551,10 +563,10 @@
     <None Include="..\..\include\GBuffer.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawBackBuffer.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawGBuffer.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
@@ -576,9 +588,6 @@
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawGBufferSky.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Mapping.hlsl">
@@ -644,7 +653,7 @@
     <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DxrBackBuffer.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DxrBlinnPhong.hlsl">
       <Filter>Shader Files\HLSL\DXR</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli">
@@ -682,6 +691,18 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
     </None>
   </ItemGroup>
 </Project>

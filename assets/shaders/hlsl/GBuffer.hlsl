@@ -1,5 +1,5 @@
-#ifndef __DRAWGBUFFER_HLSL__
-#define __DRAWGBUFFER_HLSL__
+#ifndef __GBUFFER_HLSL__
+#define __GBUFFER_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -82,4 +82,4 @@ PixelOut PS(VertexOut pin) {
 	return pout;
 }
 
-#endif // __DRAWGBUFFER_HLSL__
+#endif // __GBUFFER_HLSL__

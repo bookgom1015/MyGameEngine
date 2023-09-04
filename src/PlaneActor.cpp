@@ -16,6 +16,7 @@ PlaneActor::~PlaneActor() {};
 
 bool PlaneActor::OnInitialzing() {
 	CheckReturn(mMeshComp->LoadMesh("plane.obj"));
+	mMeshComp->SetPickable(false);
 
 	return true;
 }

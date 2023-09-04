@@ -99,9 +99,9 @@ bool DxLowRenderer::LowOnResize(UINT width, UINT height) {
 	CheckReturn(FlushCommandQueue());
 
 	CheckHRESULT(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-	
-	CheckReturn(mSwapChainBuffer->OnResize(mSwapChain.Get(), width, height, BackBufferFormat));
-	CheckReturn(mDepthStencilBuffer->OnResize(width, height));
+
+	CheckReturn(mSwapChainBuffer->LowOnResize(mSwapChain.Get(), width, height));
+	CheckReturn(mDepthStencilBuffer->LowOnResize(width, height));
 
 	// Execute the resize commands.
 	CheckHRESULT(mCommandList->Close());
@@ -311,7 +311,7 @@ bool DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
 	sd.BufferDesc.Height = height;
 	sd.BufferDesc.RefreshRate.Numerator = mRefreshRate;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
-	sd.BufferDesc.Format = BackBufferFormat;
+	sd.BufferDesc.Format = SwapChainBuffer::BackBufferFormat;
 	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	sd.SampleDesc.Count = 1;

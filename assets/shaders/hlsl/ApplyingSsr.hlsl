@@ -103,7 +103,7 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	float3 reflection = (1 - dot(toEyeW, normalW)) * (ssr.a * ssr.rgb + (1.0f - ssr.a) * cube);
 
-	float3 litColor = color + fresnelFactor * shiness * reflection;
+	float3 litColor = color + shiness * fresnelFactor * reflection;
 
 	return float4(litColor, 1.0f);
 }

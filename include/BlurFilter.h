@@ -32,6 +32,7 @@ namespace BlurFilter {
 	enum FilterType {
 		R8G8B8A8,
 		R16,
+		R16G16B16A16,
 		Count
 	};
 

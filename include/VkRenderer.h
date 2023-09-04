@@ -86,8 +86,11 @@ public:
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
+	virtual void SetModelPickable(void* model, bool pickable) override;
 
 	virtual bool SetCubeMap(const std::string& file) override;
+
+	virtual void Pick(float x, float y) override;
 
 protected:
 	virtual bool RecreateSwapChain() override;

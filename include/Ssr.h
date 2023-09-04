@@ -49,8 +49,6 @@ namespace Ssr {
 		virtual ~SsrClass() = default;
 
 	public:
-		__forceinline constexpr DXGI_FORMAT Format() const;
-
 		__forceinline GpuResource* SsrMapResource(UINT index);
 		__forceinline GpuResource* ResultMapResource();
 
@@ -60,7 +58,8 @@ namespace Ssr {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResultMapRtv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, UINT divider, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager, 
+			UINT width, UINT height, UINT divider, DXGI_FORMAT hdrMapFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -113,7 +112,7 @@ namespace Ssr {
 		D3D12_VIEWPORT mReducedViewport;
 		D3D12_RECT mReducedScissorRect;
 
-		DXGI_FORMAT mBackBufferFormat;
+		DXGI_FORMAT mHDRMapFormat;
 
 		std::array<std::unique_ptr<GpuResource>, 2> mSsrMaps;
 		std::unique_ptr<GpuResource> mResultMap;
@@ -124,10 +123,6 @@ namespace Ssr {
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResultMapCpuRtv;
 	};
-}
-
-constexpr DXGI_FORMAT Ssr::SsrClass::Format() const {
-	return mBackBufferFormat;
 }
 
 GpuResource* Ssr::SsrClass::SsrMapResource(UINT index) {

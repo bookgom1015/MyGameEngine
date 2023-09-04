@@ -33,3 +33,7 @@ bool MeshComponent::LoadMesh(const std::string& file) {
 void MeshComponent::SetVisibility(bool visible) {
 	
 }
+
+void MeshComponent::SetPickable(bool pickable) {
+	GameWorld::GetWorld()->GetRenderer()->SetModelPickable(mModel, false);
+}
