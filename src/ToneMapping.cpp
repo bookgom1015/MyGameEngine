@@ -19,7 +19,7 @@ ToneMappingClass::ToneMappingClass() {
 
 bool ToneMappingClass::Initialize(
 		ID3D12Device* device, ShaderManager* const manager, 
-		UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
+		UINT width, UINT height, DXGI_FORMAT backBufferFormat, DXGI_FORMAT hdrMapFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -27,6 +27,7 @@ bool ToneMappingClass::Initialize(
 	mHeight = height;
 
 	mBackBufferFormat = backBufferFormat;
+	mHDRMapFormat = hdrMapFormat;
 
 	CheckReturn(BuildResources());
 
@@ -187,13 +188,13 @@ void ToneMappingClass::BuildDescriptors() {
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Format = IntermediateMapFormat;
+	srvDesc.Format = mHDRMapFormat;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
-	rtvDesc.Format = IntermediateMapFormat;
+	rtvDesc.Format = mHDRMapFormat;
 
 	md3dDevice->CreateShaderResourceView(mIntermediateMap->Resource(), &srvDesc, mhIntermediateMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mIntermediateMap->Resource(), &rtvDesc, mhIntermediateMapCpuRtv);
@@ -205,7 +206,7 @@ bool ToneMappingClass::BuildResources() {
 	rscDesc.Alignment = 0;
 	rscDesc.Width = mWidth;
 	rscDesc.Height = mHeight;
-	rscDesc.Format = IntermediateMapFormat;
+	rscDesc.Format = mHDRMapFormat;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
@@ -213,13 +214,15 @@ bool ToneMappingClass::BuildResources() {
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
+	CD3DX12_CLEAR_VALUE optClear(mHDRMapFormat, ClearValues);
+
 	CheckReturn(mIntermediateMap->Initialize(
 		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		nullptr,
+		&optClear,
 		L"IntermediateMap"
 	));
 

@@ -318,6 +318,9 @@
     <ClInclude Include="..\..\include\DxForwardDeclarations.h">
       <Filter>Header Files\Render\DirectX</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\DiffuseSpecularSplitor.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -512,6 +515,9 @@
     <ClCompile Include="..\..\src\ToneMapping.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\DiffuseSpecularSplitor.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -702,6 +708,9 @@
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ReflectanceComposition.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
   </ItemGroup>

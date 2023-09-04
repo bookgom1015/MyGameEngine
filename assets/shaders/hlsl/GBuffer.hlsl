@@ -33,10 +33,9 @@ struct VertexOut {
 
 struct PixelOut {
 	float4 Color	: SV_TARGET0;
-	float4 Albedo	: SV_TARGET1;
-	float4 Normal	: SV_TARGET2;
-	float4 Specular	: SV_TARGET3;
-	float4 Velocity	: SV_TARGET4;
+	float4 Normal	: SV_TARGET1;
+	float4 Specular	: SV_TARGET2;
+	float4 Velocity	: SV_TARGET3;
 };
 
 VertexOut VS(VertexIn vin) {
@@ -75,7 +74,6 @@ PixelOut PS(VertexOut pin) {
 
 	PixelOut pout = (PixelOut)0;
 	pout.Color = texSample;
-	pout.Albedo = cbMat.DiffuseAlbedo;
 	pout.Normal = float4(pin.NormalW, 0);
 	pout.Specular = float4(cbMat.FresnelR0, cbMat.Roughness);
 	pout.Velocity = float4(velocity, 0, 1);

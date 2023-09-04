@@ -5,6 +5,14 @@
 
 using namespace Ssr;
 
+namespace {
+	const std::string BuildingSsrVS = "BuildingSsrVS";
+	const std::string BuildingSsrPS = "BuildingSsrPS";
+
+	const std::string ApplyingSsrVS = "ApplyingSsrVS";
+	const std::string ApplyingSsrPS = "ApplyingSsrPS";
+}
+
 SsrClass::SsrClass() {
 	mSsrMaps[0] = std::make_unique<GpuResource>();
 	mSsrMaps[1] = std::make_unique<GpuResource>();
@@ -79,26 +87,17 @@ bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["buildingSsr"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Building]));
 	}
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[Applying::RootSignatureLayout::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[6];
+		CD3DX12_DESCRIPTOR_RANGE texTables[2];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
 
-		slotRootParameter[Applying::RootSignatureLayout::ECB_Ssr].InitAsConstantBufferView(0);
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[Applying::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Spec].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Ssr].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);;
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Ssr].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -106,7 +105,7 @@ bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["applyingSsr"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Applying]));
 	}
 
 	return true;
@@ -116,26 +115,26 @@ bool SsrClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC buildingSsrPsoDesc = quadPsoDesc;
-	buildingSsrPsoDesc.pRootSignature = mRootSignatures["buildingSsr"].Get();
+	buildingSsrPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Building].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("BuildingSsrVS");
-		auto ps = mShaderManager->GetDxcShader("BuildingSsrPS");
+		auto vs = mShaderManager->GetDxcShader(BuildingSsrVS);
+		auto ps = mShaderManager->GetDxcShader(BuildingSsrPS);
 		buildingSsrPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		buildingSsrPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	buildingSsrPsoDesc.RTVFormats[0] = mHDRMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&buildingSsrPsoDesc, IID_PPV_ARGS(&mPSOs["buildingSsr"])));
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&buildingSsrPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Building])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC applyingSsrPsoDesc = quadPsoDesc;
-	applyingSsrPsoDesc.pRootSignature = mRootSignatures["applyingSsr"].Get();
+	applyingSsrPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Applying].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("ApplyingSsrVS");
-		auto ps = mShaderManager->GetDxcShader("ApplyingSsrPS");
+		auto vs = mShaderManager->GetDxcShader(ApplyingSsrVS);
+		auto ps = mShaderManager->GetDxcShader(ApplyingSsrPS);
 		applyingSsrPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		applyingSsrPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	applyingSsrPsoDesc.RTVFormats[0] = mHDRMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&applyingSsrPsoDesc, IID_PPV_ARGS(&mPSOs["applyingSsr"])));
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&applyingSsrPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Applying])));
 
 	return true;
 }
@@ -147,8 +146,8 @@ void SsrClass::BuildSsr(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth, 
 		D3D12_GPU_DESCRIPTOR_HANDLE si_spec) {
-	cmdList->SetPipelineState(mPSOs["buildingSsr"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["buildingSsr"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_Building].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Building].Get());
 	
 	cmdList->RSSetViewports(1, &mReducedViewport);
 	cmdList->RSSetScissorRects(1, &mReducedScissorRect);
@@ -177,14 +176,9 @@ void SsrClass::BuildSsr(
 
 void SsrClass::ApplySsr(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_spec) {
-	cmdList->SetPipelineState(mPSOs["applyingSsr"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["applyingSsr"].Get());
+		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer) {
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_Applying].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Applying].Get());
 
 	cmdList->RSSetViewports(1, &mOriginalViewport);
 	cmdList->RSSetScissorRects(1, &mOriginalScissorRect);
@@ -192,15 +186,7 @@ void SsrClass::ApplySsr(
 	cmdList->ClearRenderTargetView(mhResultMapCpuRtv, Ssr::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhResultMapCpuRtv, true, nullptr);
 
-	cmdList->SetGraphicsRootConstantBufferView(Applying::RootSignatureLayout::ECB_Ssr, cbAddress);
-
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Cube, si_cube);
 	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
-
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Normal, si_normal);
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Depth, si_depth);
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Spec, si_spec);
-
 	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Ssr, mhSsrMapGpuSrvs[0]);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);

@@ -5,6 +5,14 @@
 
 using namespace Bloom;
 
+namespace {
+	const std::string BloomVS = "BloomVS";
+	const std::string BloomPS = "BloomPS";
+
+	const std::string ExtractHighlightsVS = "ExtractHighlightsVS";
+	const std::string ExtractHighlightsPS = "ExtractHighlightsPS";
+}
+
 BloomClass::BloomClass() {
 	mBloomMaps[0] = std::make_unique<GpuResource>();
 	mBloomMaps[1] = std::make_unique<GpuResource>();
@@ -43,15 +51,15 @@ bool BloomClass::CompileShaders(const std::wstring& filePath) {
 		const std::wstring actualPath = filePath + L"Bloom.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, "BloomVS"));
-		CheckReturn(mShaderManager->CompileShader(psInfo, "BloomPS"));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, BloomVS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, BloomPS));
 	}
 	{
 		const std::wstring actualPath = filePath + L"ExtractHighlights.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, "ExtHlightsVS"));
-		CheckReturn(mShaderManager->CompileShader(psInfo, "ExtHlightsPS"));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, ExtractHighlightsVS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, ExtractHighlightsPS));
 	}
 
 	return true;
@@ -73,7 +81,7 @@ bool BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["extHighlights"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Extract]));
 	}
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[ApplyBloom::RootSignatureLayout::Count];
@@ -93,7 +101,7 @@ bool BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["bloom"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Bloom]));
 	}
 
 	return true;
@@ -103,38 +111,26 @@ bool BloomClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC extHlightsPsoDesc = quadPsoDesc;
-	extHlightsPsoDesc.pRootSignature = mRootSignatures["extHighlights"].Get();
+	extHlightsPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Extract].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("ExtHlightsVS");
-		auto ps = mShaderManager->GetDxcShader("ExtHlightsPS");
-		extHlightsPsoDesc.VS = {
-			reinterpret_cast<BYTE*>(vs->GetBufferPointer()),
-			vs->GetBufferSize()
-		};
-		extHlightsPsoDesc.PS = {
-			reinterpret_cast<BYTE*>(ps->GetBufferPointer()),
-			ps->GetBufferSize()
-		};
+		auto vs = mShaderManager->GetDxcShader(ExtractHighlightsVS);
+		auto ps = mShaderManager->GetDxcShader(ExtractHighlightsPS);
+		extHlightsPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+		extHlightsPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	extHlightsPsoDesc.RTVFormats[0] = mHDRMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&extHlightsPsoDesc, IID_PPV_ARGS(&mPSOs["extHighlights"])));
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&extHlightsPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Extract])));
 	
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC bloomPsoDesc = quadPsoDesc;
-	bloomPsoDesc.pRootSignature = mRootSignatures["bloom"].Get();
+	bloomPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Bloom].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("BloomVS");
-		auto ps = mShaderManager->GetDxcShader("BloomPS");
-		bloomPsoDesc.VS = {
-			reinterpret_cast<BYTE*>(vs->GetBufferPointer()),
-			vs->GetBufferSize()
-		};
-		bloomPsoDesc.PS = {
-			reinterpret_cast<BYTE*>(ps->GetBufferPointer()),
-			ps->GetBufferSize()
-		};
+		auto vs = mShaderManager->GetDxcShader(BloomVS);
+		auto ps = mShaderManager->GetDxcShader(BloomPS);
+		bloomPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+		bloomPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	bloomPsoDesc.RTVFormats[0] = mHDRMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&bloomPsoDesc, IID_PPV_ARGS(&mPSOs["bloom"])));
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&bloomPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Bloom])));
 
 	return true;
 }
@@ -143,8 +139,8 @@ void BloomClass::ExtractHighlights(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		float threshold) {
-	cmdList->SetPipelineState(mPSOs["extHighlights"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["extHighlights"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_Extract].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Extract].Get());
 
 	cmdList->RSSetViewports(1, &mReducedViewport);
 	cmdList->RSSetScissorRects(1, &mReducedScissorRect);
@@ -172,8 +168,8 @@ void BloomClass::ExtractHighlights(
 void BloomClass::Bloom(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer) {
-	cmdList->SetPipelineState(mPSOs["bloom"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["bloom"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_Bloom].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Bloom].Get());
 
 	cmdList->RSSetViewports(1, &mOriginalViewport);
 	cmdList->RSSetScissorRects(1, &mOriginalScissorRect);

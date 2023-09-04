@@ -82,6 +82,29 @@ float OcclusionFunction(float distZ, float epsilon, float fadeStart, float fadeE
 	return occlusion;
 }
 
+float3 BoxCubeMapLookup(float3 rayOrigin, float3 unitRayDir, float3 boxCenter, float3 boxExtents) {
+	// Set the origin to box of center.
+	float3 p = rayOrigin - boxCenter;
+
+	// The formula for AABB's i-th plate ray versus plane intersection is as follows.
+	//
+	// t1 = (-dot(n_i, p) + h_i) / dot(n_i, d) = (-p_i + h_i) / d_i
+	// t2 = (-dot(n_i, p) - h_i) / dot(n_i, d) = (-p_i - h_i) / d_i
+	float3 t1 = (-p + boxExtents) / unitRayDir;
+	float3 t2 = (-p - boxExtents) / unitRayDir;
+
+	// Find the maximum value for each coordinate component.
+	// We assume that ray is inside the box, so we only need to find the maximum value of the intersection parameter. 
+	float3 tmax = max(t1, t2);
+
+	// Find the minimum value of all components for tmax.
+	float t = min(min(tmax.x, tmax.y), tmax.z);
+
+	// To use a lookup vector for a cube map, 
+	// create coordinate relative to center of box.
+	return p + t * unitRayDir;
+}
+
 uint GetIndexOfValueClosest(float ref, float2 values) {
 	float2 delta = abs(ref - values);
 	uint index = delta[1] < delta[0] ? 1 : 0;

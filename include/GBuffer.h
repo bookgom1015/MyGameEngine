@@ -21,17 +21,15 @@ namespace GBuffer {
 		};
 	}
 
-	static const UINT NumRenderTargets = 5;
+	static const UINT NumRenderTargets = 4;
 
 	const DXGI_FORMAT ColorMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	const DXGI_FORMAT AlbedoMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	const DXGI_FORMAT NormalMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 	const DXGI_FORMAT DepthMapFormat = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	const DXGI_FORMAT SpecularMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	const DXGI_FORMAT VelocityMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
 
 	const float ColorMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 1.0f };
-	const float AlbedoMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
 	const float NormalMapClearValues[4]		= { 0.0f, 0.0f, 1.0f, 0.0f };
 	const float SpecularMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 1.0f };
 	const float VelocityMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -46,20 +44,17 @@ namespace GBuffer {
 		__forceinline constexpr UINT Height() const;
 
 		__forceinline GpuResource* ColorMapResource();
-		__forceinline GpuResource* AlbedoMapResource();
 		__forceinline GpuResource* NormalMapResource();
 		__forceinline GpuResource* SpecularMapResource();
 		__forceinline GpuResource* VelocityMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ColorMapSrv() const;
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AlbedoMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE NormalMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SpecularMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE VelocityMapSrv() const;
 
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ColorMapRtv() const;
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE AlbedoMapRtv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE NormalMapRtv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SpecularMapRtv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE VelocityMapRtv() const;
@@ -103,7 +98,6 @@ namespace GBuffer {
 		UINT mHeight;
 
 		std::unique_ptr<GpuResource> mColorMap;
-		std::unique_ptr<GpuResource> mAlbedoMap;
 		std::unique_ptr<GpuResource> mNormalMap;
 		std::unique_ptr<GpuResource> mSpecularMap;
 		std::unique_ptr<GpuResource> mVelocityMap;
@@ -115,10 +109,6 @@ namespace GBuffer {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhColorMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhColorMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhColorMapCpuRtv;
-
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhAlbedoMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhAlbedoMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhAlbedoMapCpuRtv;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhNormalMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhNormalMapGpuSrv;

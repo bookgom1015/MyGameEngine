@@ -35,7 +35,7 @@ namespace ToneMapping {
 
 	static const UINT NumRenderTargets = 5;
 
-	const DXGI_FORMAT IntermediateMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class ToneMappingClass {
 	public:
@@ -48,7 +48,8 @@ namespace ToneMapping {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE InterMediateMapRtv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager, 
+			UINT width, UINT height, DXGI_FORMAT backBufferFormat, DXGI_FORMAT hdrMapFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -86,6 +87,7 @@ namespace ToneMapping {
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
 		DXGI_FORMAT mBackBufferFormat;
+		DXGI_FORMAT mHDRMapFormat;
 
 		UINT mWidth;
 		UINT mHeight;

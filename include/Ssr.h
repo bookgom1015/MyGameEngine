@@ -27,16 +27,19 @@ namespace Ssr {
 	namespace Applying {
 		namespace RootSignatureLayout {
 			enum {
-				ECB_Ssr = 0,
-				ESI_Cube,
-				ESI_BackBuffer,
-				ESI_Normal,
-				ESI_Depth,
-				ESI_Spec,
+				ESI_BackBuffer = 0,
 				ESI_Ssr,
 				Count
 			};
 		}
+	}
+
+	namespace PipelineState {
+		enum Type {
+			E_Building = 0,
+			E_Applying,
+			Count
+		};
 	}
 
 	static const UINT NumRenderTargets = 3;
@@ -73,12 +76,7 @@ namespace Ssr {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
 		void ApplySsr(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_cube,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
@@ -95,8 +93,8 @@ namespace Ssr {
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
 		UINT mSsrMapWidth;
 		UINT mSsrMapHeight;

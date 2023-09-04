@@ -9,9 +9,9 @@
 #include "Samplers.hlsli"
 #include "ShadingHelpers.hlsli"
 
-ConstantBuffer<SsrConstants> cb	: register(b0);
+ConstantBuffer<SsrConstants> cbSsr	: register(b0);
 
-Texture2D<float3> gi_BackBuffer	: register(t0);
+Texture2D<float4> gi_BackBuffer	: register(t0);
 Texture2D<float3> gi_Normal		: register(t1);
 Texture2D<float>  gi_Depth		: register(t2);
 Texture2D<float4> gi_Specular	: register(t3);
@@ -33,7 +33,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	// Transform quad corners to view space near plane.
-	float4 ph = mul(vout.PosH, cb.InvProj);
+	float4 ph = mul(vout.PosH, cbSsr.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -58,7 +58,7 @@ float2 rand_2_0004(in float2 uv) {
 
 float4 PS(VertexOut pin) : SV_Target {
 	float pz = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0);
-	pz = NdcDepthToViewDepth(pz, cb.Proj);
+	pz = NdcDepthToViewDepth(pz, cbSsr.Proj);
 
 	//
 	// Reconstruct full view space position (x,y,z).
@@ -67,53 +67,53 @@ float4 PS(VertexOut pin) : SV_Target {
 	// t = p.z / pin.PosV.z
 	//
 	float3 pv = (pz / pin.PosV.z) * pin.PosV;
-	if (pv.z > cb.MaxDistance) return (float4)0;
+	if (pv.z > cbSsr.MaxDistance) return (float4)0;
 
 	float3 nw = gi_Normal.SampleLevel(gsamLinearClamp, pin.TexC, 0);
-	float3 nv = normalize(mul(nw, (float3x3)cb.View));
+	float3 nv = normalize(mul(nw, (float3x3)cbSsr.View));
 
 	// Vector from point being lit to eye. 
 	float3 toEyeV = normalize(-pv);
 
-	float3 r = reflect(-toEyeV, nv) * cb.RayLength;
+	float3 r = reflect(-toEyeV, nv) * cbSsr.RayLength;
 
 	[loop]
-	for (uint i = 0; i < cb.NumSteps; ++i) {
+	for (uint i = 0; i < cbSsr.NumSteps; ++i) {
 		float3 dpv = pv + r * (i + 1);
-		float4 ph = mul(float4(dpv, 1), cb.Proj);
+		float4 ph = mul(float4(dpv, 1), cbSsr.Proj);
 		ph /= ph.w;
 		if (abs(ph.y) > 1) return (float4)0;
 		
 		float2 tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
 		float d = gi_Depth.SampleLevel(gsamDepthMap, tex, 0);
-		float dv = NdcDepthToViewDepth(d, cb.Proj);
+		float dv = NdcDepthToViewDepth(d, cbSsr.Proj);
 
-		float noise = rand_1_05(tex) * cb.NoiseIntensity;
+		float noise = rand_1_05(tex) * cbSsr.NoiseIntensity;
 
 		if (ph.z > d) {
 			float3 half_r = r;
 
 			[loop]
-			for (uint j = 0; j < cb.NumBackSteps; ++j) {
+			for (uint j = 0; j < cbSsr.NumBackSteps; ++j) {
 				half_r *= 0.5;
 				dpv -= half_r;
-				ph = mul(float4(dpv, 1), cb.Proj);
+				ph = mul(float4(dpv, 1), cbSsr.Proj);
 				ph /= ph.w;
 
 				tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
 				d = gi_Depth.SampleLevel(gsamDepthMap, tex, 0);
-				dv = NdcDepthToViewDepth(d, cb.Proj);
-				if (abs(dpv.z - dv) > cb.DepthThreshold) return (float4)0;
+				dv = NdcDepthToViewDepth(d, cbSsr.Proj);
+				if (abs(dpv.z - dv) > cbSsr.DepthThreshold) return (float4)0;
 
 				if (ph.z < d) dpv += half_r;
 			}
 
-			ph = mul(float4(dpv, 1), cb.Proj);
+			ph = mul(float4(dpv, 1), cbSsr.Proj);
 			ph /= ph.w;
 
 			tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
 
-			float3 color = gi_BackBuffer.SampleLevel(gsamLinearClamp, tex, 0);
+			float3 color = gi_BackBuffer.SampleLevel(gsamLinearClamp, tex, 0).rgb;
 			return float4(color, 1);
 		}
 	}

@@ -24,12 +24,12 @@
 ConstantBuffer<PassConstants> cb		: register(b0);
 
 Texture2D<float4>	gi_Color			: register(t0);
-Texture2D<float4>	gi_Albedo			: register(t1);
-Texture2D<float3>	gi_Normal			: register(t2);
-Texture2D<float>	gi_Depth			: register(t3);
-Texture2D<float4>	gi_Specular			: register(t4);
-Texture2D<float>	gi_Shadow			: register(t5);
-Texture2D<float>	gi_AOCoefficient	: register(t6);
+Texture2D<float3>	gi_Normal			: register(t1);
+Texture2D<float>	gi_Depth			: register(t2);
+Texture2D<float4>	gi_Specular			: register(t3);
+Texture2D<float>	gi_Shadow			: register(t4);
+Texture2D<float>	gi_AOCoefficient	: register(t5);
+TextureCube<float4>	gi_SkyCube			: register(t6);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -37,6 +37,12 @@ struct VertexOut {
 	float4 PosH		: SV_POSITION;
 	float3 PosV		: POSITION;
 	float2 TexC		: TEXCOORD;
+};
+
+struct PixelOut {
+	float4 BackBuffer	: SV_TARGET0;
+	float4 Diffuse		: SV_TARGET1;
+	float4 Specular		: SV_TARGET2;
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
@@ -54,7 +60,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
+PixelOut PS(VertexOut pin) : SV_Target{
 	// Get viewspace normal and z-coord of this pixel.  
 	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 	pz = NdcDepthToViewDepth(pz, cb.Proj);
@@ -68,33 +74,49 @@ float4 PS(VertexOut pin) : SV_Target{
 	float3 posV = (pz / pin.PosV.z) * pin.PosV;
 	float4 posW = mul(float4(posV, 1), cb.InvView);
 	
-	float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));	
-	float3 toEyeW = normalize(cb.EyePosW - posW.xyz);
-	
-	float4 colorSample = gi_Color.Sample(gsamAnisotropicWrap, pin.TexC);
-	float4 albedoSample = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
-	float4 diffuseAlbedo = colorSample * albedoSample;
+	//
+	// Diffuse reflection
+	//
+	float4 color = gi_Color.Sample(gsamAnisotropicWrap, pin.TexC);
 
 	float4 ssaoPosH = mul(posW, cb.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
 	float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
 
-	float4 ambient = ambientAccess * cb.AmbientLight * diffuseAlbedo;
+	float4 ambient = color * ambientAccess * cb.AmbientLight;
 	
-	float4 specular = gi_Specular.Sample(gsamAnisotropicWrap, pin.TexC);
-	const float shiness = 1.0f - specular.a;
-	Material mat = { albedoSample, specular.rgb, shiness };
-	
+	const float4 F0 = gi_Specular.Sample(gsamAnisotropicWrap, pin.TexC);
+	const float shiness = 1.0f - F0.a;
+	Material mat = { color, F0.rgb, shiness };
+
 	float3 shadowFactor = 0;
 	float4 shadowPosH = mul(posW, cb.ShadowTransform);
 	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
 	
-	float4 directLight = ComputeLighting(cb.Lights, mat, posW, normalW, toEyeW, shadowFactor);
+	float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+	float3 toEyeW = normalize(cb.EyePosW - posW.xyz);
+	float4 directLight = max(ComputeLighting(cb.Lights, mat, posW, normalW, toEyeW, shadowFactor), (float4)0);
 	
-	float4 litColor = ambient + directLight;
-	litColor.a = diffuseAlbedo.a;
+	float4 diffuse = ambient + directLight;
+	diffuse.a = color.a;
 
-	return litColor;
+	//
+	// Specular reflection
+	//
+	float3 toLight = reflect(-toEyeW, normalW);
+	float3 fresnelFactor = SchlickFresnel(F0.rgb, normalW, toLight);
+
+	float3 lookup = BoxCubeMapLookup(posW.xyz, toLight, (float3)0.0f, (float3)100.0f);
+	float3 envColor = gi_SkyCube.Sample(gsamLinearWrap, lookup);
+
+	float specIntensity = shiness * fresnelFactor;
+	float4 specular = float4(specIntensity * envColor, specIntensity);
+
+	PixelOut pout = (PixelOut)0;
+	pout.BackBuffer = diffuse + specular;
+	pout.Diffuse = diffuse;
+	pout.Specular = specular;
+	return pout;
 }
 
 #endif // __BLINNPHONG_HLSL__

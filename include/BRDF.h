@@ -17,12 +17,12 @@ namespace BRDF {
 		enum {
 			ECB_Pass = 0,
 			ESI_Color,
-			ESI_Albedo,
 			ESI_Normal,
 			ESI_Depth,
 			ESI_Specular,
 			ESI_Shadow,
 			ESI_AOCoefficient,
+			ESI_SkyCube,
 			Count
 		};
 	}
@@ -31,14 +31,6 @@ namespace BRDF {
 		enum Type {
 			E_Raster = 0,
 			E_Raytrace,
-			Count
-		};
-	}
-
-	namespace Range {
-		enum Type {
-			E_SDR = 0,
-			E_HDR,
 			Count
 		};
 	}
@@ -60,7 +52,7 @@ namespace BRDF {
 		virtual ~BRDFClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, DXGI_FORMAT sdrFormat, DXGI_FORMAT hdrFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager, DXGI_FORMAT hdrFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -70,26 +62,28 @@ namespace BRDF {
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
 			GpuResource* backBuffer,
+			GpuResource* diffuse,
+			GpuResource* specular,
 			D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ri_diffuse,
+			D3D12_CPU_DESCRIPTOR_HANDLE ri_specular,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_color,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_specular, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-			Render::Type renderType = Render::E_Raster,
-			Range::Type rangeType = Range::E_SDR);
+			D3D12_GPU_DESCRIPTOR_HANDLE si_skyCube,
+			Render::Type renderType = Render::E_Raster);
 
 	private:
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
-		std::unordered_map<Render::Type, std::unordered_map<Range::Type, std::unordered_map<Model::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>>>> mPSOs;
+		std::unordered_map<Render::Type, std::unordered_map<Model::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>>> mPSOs;
 
-		DXGI_FORMAT mSDRFormat;
 		DXGI_FORMAT mHDRFormat;
 	};
 }

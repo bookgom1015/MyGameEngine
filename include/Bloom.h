@@ -9,6 +9,7 @@
 #include "GpuResource.h"
 
 class ShaderManager;
+class GpuResource;
 
 namespace Bloom {
 	namespace ApplyBloom {
@@ -36,6 +37,14 @@ namespace Bloom {
 				Count
 			};
 		}
+	}
+
+	namespace PipelineState {
+		enum Type {
+			E_Extract = 0,
+			E_Bloom,
+			Count
+		};
 	}
 
 	static const UINT NumRenderTargets = 3;
@@ -86,8 +95,8 @@ namespace Bloom {
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
 		UINT mBloomMapWidth;
 		UINT mBloomMapHeight;

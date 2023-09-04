@@ -7,6 +7,7 @@
 #include "Samplers.h"
 
 class ShaderManager;
+class GpuResource;
 
 struct RenderItem;
 
@@ -35,10 +36,13 @@ namespace SkyCube {
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
+			GpuResource* backBuffer,
+			GpuResource* diffuse,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_diffuse,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
 			D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,

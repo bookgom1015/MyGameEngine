@@ -16,7 +16,6 @@ namespace {
 
 GBufferClass::GBufferClass() {
 	mColorMap = std::make_unique<GpuResource>();
-	mAlbedoMap = std::make_unique<GpuResource>();
 	mNormalMap = std::make_unique<GpuResource>();
 	mSpecularMap = std::make_unique<GpuResource>();
 	mVelocityMap = std::make_unique<GpuResource>();
@@ -91,10 +90,9 @@ bool GBufferClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.NumRenderTargets = NumRenderTargets;
 	psoDesc.RTVFormats[0] = ColorMapFormat;
-	psoDesc.RTVFormats[1] = AlbedoMapFormat;
-	psoDesc.RTVFormats[2] = NormalMapFormat;
-	psoDesc.RTVFormats[3] = SpecularMapFormat;
-	psoDesc.RTVFormats[4] = VelocityMapFormat;
+	psoDesc.RTVFormats[1] = NormalMapFormat;
+	psoDesc.RTVFormats[2] = SpecularMapFormat;
+	psoDesc.RTVFormats[3] = VelocityMapFormat;
 	psoDesc.DSVFormat = mDepthFormat;
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
@@ -113,20 +111,18 @@ void GBufferClass::Run(
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	mColorMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	mAlbedoMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mNormalMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mSpecularMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	
 	cmdList->ClearRenderTargetView(mhColorMapCpuRtv, GBuffer::ColorMapClearValues, 0, nullptr);
-	cmdList->ClearRenderTargetView(mhAlbedoMapCpuRtv, GBuffer::AlbedoMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhNormalMapCpuRtv, GBuffer::NormalMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhSpecularMapCpuRtv, GBuffer::SpecularMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhVelocityMapCpuRtv, GBuffer::VelocityMapClearValues, 0, nullptr);
 	
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, GBuffer::NumRenderTargets> renderTargets = { 
-		mhColorMapCpuRtv, mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhSpecularMapCpuRtv, mhVelocityMapCpuRtv 
+		mhColorMapCpuRtv, mhNormalMapCpuRtv, mhSpecularMapCpuRtv, mhVelocityMapCpuRtv 
 	};
 	
 	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &mhDepthMapCpuDsv);
@@ -139,7 +135,6 @@ void GBufferClass::Run(
 	DrawRenderItems(cmdList, ritems, objCBAddress, matCBAddress);
 	
 	mColorMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	mAlbedoMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mNormalMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mSpecularMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -155,10 +150,6 @@ void GBufferClass::BuildDescriptors(
 	mhColorMapCpuSrv = hCpuSrv;
 	mhColorMapGpuSrv = hGpuSrv;
 	mhColorMapCpuRtv = hCpuRtv;
-
-	mhAlbedoMapCpuSrv = hCpuSrv.Offset(1, descSize);
-	mhAlbedoMapGpuSrv = hGpuSrv.Offset(1, descSize);
-	mhAlbedoMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhNormalMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhNormalMapGpuSrv = hGpuSrv.Offset(1, descSize);
@@ -214,12 +205,6 @@ void GBufferClass::BuildDescriptors() {
 		md3dDevice->CreateRenderTargetView(mColorMap->Resource(), &rtvDesc, mhColorMapCpuRtv);
 	}
 	{
-		srvDesc.Format = AlbedoMapFormat;
-		rtvDesc.Format = AlbedoMapFormat;
-		md3dDevice->CreateShaderResourceView(mAlbedoMap->Resource(), &srvDesc, mhAlbedoMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mAlbedoMap->Resource(), &rtvDesc, mhAlbedoMapCpuRtv);
-	}
-	{
 		srvDesc.Format = NormalMapFormat;
 		rtvDesc.Format = NormalMapFormat;
 		md3dDevice->CreateShaderResourceView(mNormalMap->Resource(), &srvDesc, mhNormalMapCpuSrv);
@@ -269,19 +254,6 @@ bool GBufferClass::BuildResources() {
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
 			L"ColorMap"
-		));
-	}
-	{
-		CD3DX12_CLEAR_VALUE optClear(AlbedoMapFormat, AlbedoMapClearValues);
-
-		CheckReturn(mAlbedoMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"AlbedoMap"
 		));
 	}
 	{
