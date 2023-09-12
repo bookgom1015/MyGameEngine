@@ -92,14 +92,23 @@ bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[Applying::RootSignatureLayout::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[3];
+		CD3DX12_DESCRIPTOR_RANGE texTables[7];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
 
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Specular].InitAsDescriptorTable(1, &texTables[0]);;
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Reflectivity].InitAsDescriptorTable(1, &texTables[1]);;
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Ssr].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[Applying::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Albedo].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Ssr].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Environment].InitAsDescriptorTable(1, &texTables[6]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -178,8 +187,13 @@ void SsrClass::BuildSsr(
 
 void SsrClass::ApplySsr(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_reflectivity) {
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_environment) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_Applying].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Applying].Get());
 
@@ -189,9 +203,14 @@ void SsrClass::ApplySsr(
 	cmdList->ClearRenderTargetView(mhResultMapCpuRtv, Ssr::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhResultMapCpuRtv, true, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Specular, si_specular);
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Reflectivity, si_reflectivity);
+	cmdList->SetGraphicsRootConstantBufferView(Applying::RootSignatureLayout::ECB_Pass, cb_pass);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Albedo, si_albedo);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Normal, si_normal);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_RMS, si_rms);
 	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Ssr, mhSsrMapGpuSrvs[0]);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Environment, si_environment);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

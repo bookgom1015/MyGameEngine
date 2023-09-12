@@ -100,7 +100,6 @@ private:
 	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();
-	bool CompositeReflectance();
 	bool ResolveToneMapping();
 	bool ApplyGammaCorrection();
 	bool DrawDebuggingInfo();
@@ -157,7 +156,6 @@ private:
 	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
 	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;
-	std::unique_ptr<DiffuseSpecularSplitor::DiffuseSpecularSplitorClass> mDiffuseSpecularSplitor;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

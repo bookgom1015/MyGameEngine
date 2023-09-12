@@ -72,9 +72,8 @@ bool SkyCubeClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsv
 		skyPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		skyPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	skyPsoDesc.NumRenderTargets = 2;
+	skyPsoDesc.NumRenderTargets = 1;
 	skyPsoDesc.RTVFormats[0] = mHDRMapFormat;
-	skyPsoDesc.RTVFormats[1] = mHDRMapFormat;
 	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -90,9 +89,7 @@ void SkyCubeClass::Run(
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
 		GpuResource* backBuffer,
-		GpuResource* diffuse,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-		D3D12_CPU_DESCRIPTOR_HANDLE ro_diffuse,
 		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
 		D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
 		D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
@@ -105,10 +102,8 @@ void SkyCubeClass::Run(
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	diffuse->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	
-	D3D12_CPU_DESCRIPTOR_HANDLE renderTargets[] = { ro_backBuffer, ro_diffuse };
-	cmdList->OMSetRenderTargets(2, renderTargets, true, &dio_dsv);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbPassAddress);
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, cbObjAddress);
@@ -117,7 +112,6 @@ void SkyCubeClass::Run(
 	DrawRenderItems(cmdList, ritems, cbObjAddress, objCBByteSize);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-	diffuse->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 bool SkyCubeClass::SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file) {

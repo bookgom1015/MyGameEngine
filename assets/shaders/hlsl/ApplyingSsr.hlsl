@@ -9,14 +9,21 @@
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 
-Texture2D<float3>	gi_Specular		: register(t0);
-Texture2D<float3>	gi_Reflectivity	: register(t1);
-Texture2D<float4>	gi_Ssr			: register(t2);
+ConstantBuffer<PassConstants> cbPass : register(b0);
+
+Texture2D<float3>	gi_BackBuffer	: register(t0);
+Texture2D<float4>	gi_Albedo		: register(t1);
+Texture2D<float3>	gi_Normal		: register(t2);
+Texture2D<float>	gi_Depth		: register(t3);
+Texture2D<float3>	gi_RMS			: register(t4);
+Texture2D<float4>	gi_Ssr			: register(t5);
+TextureCube<float3>	gi_Environment	: register(t6);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
+	float3 PosV		: POSITION;
 	float2 TexC		: TEXCOORD;
 };
 
@@ -25,19 +32,44 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 	vout.TexC = gTexCoords[vid];
 
-	// Quad covering screen in NDC space.
 	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+
+	float4 ph = mul(vout.PosH, cbPass.InvProj);
+	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target {
+	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
+	pz = NdcDepthToViewDepth(pz, cbPass.Proj);
+
+	const float3 posV = (pz / pin.PosV.z) * pin.PosV;
+	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
+
+	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
+	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+
 	float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
-	float3 specular = gi_Specular.Sample(gsamLinearClamp, pin.TexC);
-	float3 reflectivity = gi_Reflectivity.Sample(gsamLinearClamp, pin.TexC);
+	float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
 	float k = ssr.a;
 
-	float3 applied = ((1 - k) * specular.rgb) + k * reflectivity * ssr.rgb;
+	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC);
+	const float roughness = roughnessMetalicSpecular.r;
+	const float metalic = roughnessMetalicSpecular.g;
+	const float specular = roughnessMetalicSpecular.b;
+
+	const float shiness = 1 - roughness;
+	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
+
+	const float3 toEyeW = normalize(cbPass.EyePosW - posW.xyz);
+	const float3 toLight = reflect(-toEyeW, normalW);
+	const float3 lookup = BoxCubeMapLookup(posW.xyz, toLight, (float3)0, (float3)100);
+	float3 env = gi_Environment.Sample(gsamLinearWrap, lookup);
+
+	const float dp = saturate(dot(toEyeW, normalW));
+	const float3 fresnelFactor = SchlickFresnel(fresnelR0, normalW, toLight);
+	float3 applied = radiance + dp * fresnelFactor * (((1 - k) * env) + k * ssr.rgb);
 
 	return float4(applied, 1);
 }

@@ -27,7 +27,6 @@
 #include "DebugCollision.h"
 #include "GammaCorrection.h"
 #include "ToneMapping.h"
-#include "DiffuseSpecularSplitor.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -141,7 +140,6 @@ DxRenderer::DxRenderer() {
 	mDebugCollision = std::make_unique<DebugCollision::DebugCollisionClass>();
 	mGammaCorrection = std::make_unique<GammaCorrection::GammaCorrectionClass>();
 	mToneMapping = std::make_unique<ToneMapping::ToneMappingClass>();
-	mDiffuseSpecularSplitor = std::make_unique<DiffuseSpecularSplitor::DiffuseSpecularSplitorClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -225,7 +223,6 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat, HDRMapFormat));
-	CheckReturn(mDiffuseSpecularSplitor->Initialize(device, shaderManager, width, height));
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -329,8 +326,6 @@ bool DxRenderer::Draw() {
 		CheckReturn(DrawSkyCube());
 		CheckReturn(ApplySsr());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
-
-		CheckReturn(CompositeReflectance());
 		
 		CheckReturn(ResolveToneMapping());
 		if (bGammaCorrectionEnabled) CheckReturn(ApplyGammaCorrection());
@@ -376,7 +371,6 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckReturn(mTaa->OnResize(width, height));
 	CheckReturn(mGammaCorrection->OnResize(width, height));
 	CheckReturn(mToneMapping->OnResize(width, height));
-	CheckReturn(mDiffuseSpecularSplitor->OnResize(width, height));
 
 	CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
 	CheckReturn(mRtao->OnResize(cmdList, width, height));
@@ -494,17 +488,16 @@ void DxRenderer::Pick(float x, float y) {
 
 bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = 
-		SwapChainBufferCount 
-		+ GBuffer::NumRenderTargets 
-		+ Ssao::NumRenderTargets 
-		+ TemporalAA::NumRenderTargets 
+	rtvHeapDesc.NumDescriptors =
+		SwapChainBufferCount
+		+ GBuffer::NumRenderTargets
+		+ Ssao::NumRenderTargets
+		+ TemporalAA::NumRenderTargets
 		+ MotionBlur::NumRenderTargets
-		+ DepthOfField::NumRenderTargets 
-		+ Bloom::NumRenderTargets 
+		+ DepthOfField::NumRenderTargets
+		+ Bloom::NumRenderTargets
 		+ Ssr::NumRenderTargets
-		+ ToneMapping::NumRenderTargets
-		+ DiffuseSpecularSplitor::NumRenderTargets;
+		+ ToneMapping::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -546,7 +539,6 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mDebugCollision->CompileShaders(ShaderFilePath));
 	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
 	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
-	CheckReturn(mDiffuseSpecularSplitor->CompileShaders(ShaderFilePath));
 
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
@@ -665,7 +657,6 @@ void DxRenderer::BuildDescriptors() {
 	mSkyCube->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mDiffuseSpecularSplitor->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
@@ -696,7 +687,6 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDebugCollision->BuildRootSignature());
 	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
 	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
-	CheckReturn(mDiffuseSpecularSplitor->BuildRootSignature(staticSamplers));
 
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
@@ -736,7 +726,6 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mDebugCollision->BuildPso());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
-	CheckReturn(mDiffuseSpecularSplitor->BuildPso());
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -1489,13 +1478,7 @@ bool DxRenderer::DrawBackBuffer() {
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mDiffuseSpecularSplitor->DiffuseReflectanceMap(),
-		mDiffuseSpecularSplitor->SpecularReflectanceMap(),
-		mDiffuseSpecularSplitor->ReflectivityMap(),
 		mToneMapping->InterMediateMapRtv(),
-		mDiffuseSpecularSplitor->DiffuseReflectanceMapRtv(),
-		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
-		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
@@ -1503,7 +1486,6 @@ bool DxRenderer::DrawBackBuffer() {
 		mGBuffer->RMSMapSrv(),
 		mShadowMap->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
-		mSkyCube->CubeMapSrv(),
 		BRDF::Render::E_Raster
 	);
 
@@ -1533,9 +1515,7 @@ bool DxRenderer::DrawSkyCube() {
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mDiffuseSpecularSplitor->DiffuseReflectanceMap(),
 		mToneMapping->InterMediateMapRtv(),
-		mDiffuseSpecularSplitor->DiffuseReflectanceMapRtv(),
 		DepthStencilView(),
 		passCBAddress,
 		objCBAddress,
@@ -1586,6 +1566,9 @@ bool DxRenderer::ApplySsr() {
 
 	auto ssrCBAddress = mCurrFrameResource->SsrCB.Resource()->GetGPUVirtualAddress();
 
+	const auto backBuffer = mToneMapping->InterMediateMapResource();
+	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
+
 	if (bSsrEnabled) {
 		bSsrMapCleanedUp = false;
 
@@ -1593,9 +1576,6 @@ bool DxRenderer::ApplySsr() {
 
 		ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-		const auto backBuffer = mToneMapping->InterMediateMapResource();
-		auto backBufferSrv = mToneMapping->InterMediateMapSrv();
 
 		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -1652,23 +1632,28 @@ bool DxRenderer::ApplySsr() {
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	const auto resultMap = mSsr->ResultMapResource();
-	const auto specularMap = mDiffuseSpecularSplitor->SpecularReflectanceMap();
-	auto specularSrv = mDiffuseSpecularSplitor->SpecularReflectanceMapSrv();
-	auto reflectivitySrv = mDiffuseSpecularSplitor->ReflectivityMapSrv();
+	const auto envMapSrv = mSkyCube->CubeMapSrv();
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	mSsr->ApplySsr(
 		cmdList,
-		specularSrv,
-		reflectivitySrv
+		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		backBufferSrv,
+		mGBuffer->AlbedoMapSrv(),
+		mGBuffer->NormalMapSrv(),
+		mGBuffer->DepthMapSrv(),
+		mGBuffer->RMSMapSrv(),
+		envMapSrv
 	);
 
 	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	specularMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 	
-	cmdList->CopyResource(specularMap->Resource(), resultMap->Resource());
+	cmdList->CopyResource(backBuffer->Resource(), resultMap->Resource());
 
 	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	specularMap->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -1838,31 +1823,6 @@ bool DxRenderer::ApplyMotionBlur() {
 
 	motionVector->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-
-	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
-	return true;
-}
-
-bool DxRenderer::CompositeReflectance() {
-	const auto cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
-
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
-	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	mDiffuseSpecularSplitor->Composite(
-		cmdList,
-		mScreenViewport,
-		mScissorRect,
-		mToneMapping->InterMediateMapResource(),
-		mToneMapping->InterMediateMapRtv()
-	);
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -2058,18 +2018,6 @@ bool DxRenderer::DrawImGui() {
 						mSsr->SsrMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("Diffuse Reflectance", &mDebugMapStates[DebugMapLayout::E_DiffuseReflectance])) {
-					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::E_DiffuseReflectance],
-						mDiffuseSpecularSplitor->DiffuseReflectanceMapSrv(),
-						Debug::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("Specular Reflectance", &mDebugMapStates[DebugMapLayout::E_SpecularReflectance])) {
-					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::E_SpecularReflectance],
-						mDiffuseSpecularSplitor->SpecularReflectanceMapSrv(),
-						Debug::SampleMask::RGB);
-				}
 				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::E_DxrShadow],
@@ -2259,13 +2207,7 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mDiffuseSpecularSplitor->DiffuseReflectanceMap(),
-		mDiffuseSpecularSplitor->SpecularReflectanceMap(),
-		mDiffuseSpecularSplitor->ReflectivityMap(),
 		mToneMapping->InterMediateMapRtv(),
-		mDiffuseSpecularSplitor->DiffuseReflectanceMapRtv(),
-		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
-		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
@@ -2273,7 +2215,6 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mGBuffer->RMSMapSrv(),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 		mSsao->AOCoefficientMapSrv(0),
-		mSkyCube->CubeMapSrv(),
 		BRDF::Render::E_Raytrace
 	);
 

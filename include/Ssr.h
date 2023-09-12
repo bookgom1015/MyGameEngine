@@ -27,9 +27,14 @@ namespace Ssr {
 	namespace Applying {
 		namespace RootSignatureLayout {
 			enum {
-				ESI_Specular = 0,
-				ESI_Reflectivity,
+				ECB_Pass = 0,
+				ESI_BackBuffer,
+				ESI_Albedo,
+				ESI_Normal,
+				ESI_Depth,
+				ESI_RMS,
 				ESI_Ssr,
+				ESI_Environment,
 				Count
 			};
 		}
@@ -77,8 +82,13 @@ namespace Ssr {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
 		void ApplySsr(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_reflectivity);
+			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_environment);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,

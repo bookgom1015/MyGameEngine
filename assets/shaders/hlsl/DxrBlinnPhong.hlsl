@@ -17,6 +17,10 @@
 #define HLSL
 #endif
 
+#ifndef BLINN_PHONG
+#define BLINN_PHONG
+#endif
+
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "LightingUtil.hlsli"
@@ -24,13 +28,12 @@
 
 ConstantBuffer<PassConstants> cbPass : register(b0);
 
-Texture2D<float4>	gi_Color	: register(t0);
-Texture2D<float4>	gi_Albedo	: register(t1);
-Texture2D<float3>	gi_Normal	: register(t2);
-Texture2D<float>	gi_Depth	: register(t3);
-Texture2D<float4>	gi_Specular	: register(t4);
-Texture2D<float>	gi_Shadow	: register(t5);
-Texture2D<float>	gi_AOCeff	: register(t6);
+Texture2D<float4>	gi_Albedo			: register(t0);
+Texture2D<float3>	gi_Normal			: register(t1);
+Texture2D<float>	gi_Depth			: register(t2);
+Texture2D<float3>	gi_RMS				: register(t3);
+Texture2D<float>	gi_Shadow			: register(t4);
+Texture2D<float>	gi_AOCoefficient	: register(t5);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -66,41 +69,38 @@ float4 PS(VertexOut pin) : SV_Target{
 	// p.z = t*pin.PosV.z
 	// t = p.z / pin.PosV.z
 	//
-	float3 posV = (pz / pin.PosV.z) * pin.PosV;
-	float4 posW = mul(float4(posV, 1.0f), cbPass.InvView);
+	const float3 posV = (pz / pin.PosV.z) * pin.PosV;
+	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
 
-	float3 normalW = normalize(gi_Normal.Sample(gsamPointClamp, pin.TexC));
-	float3 toEyeW = normalize(cbPass.EyePosW - posW.xyz);
+	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
 
-	float4 colorSample = gi_Color.Sample(gsamPointClamp, pin.TexC);
-	float4 albedoSample = gi_Albedo.Sample(gsamPointClamp, pin.TexC);
-	float4 diffuseAlbedo = colorSample * albedoSample;
+	float4 ssaoPosH = mul(posW, cbPass.ViewProjTex);
+	ssaoPosH /= ssaoPosH.w;
 
-	float ambientAccess;
-	{
-		uint width, height;
-		gi_AOCeff.GetDimensions(width, height);
+	const float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
+	const float3 ambient = albedo.rgb * ambientAccess * cbPass.AmbientLight.rgb;
 
-		uint2 index = uint2(pin.TexC.x * width - 0.5f, pin.TexC.y * height - 0.5f);
+	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC);
+	const float roughness = roughnessMetalicSpecular.r;
+	const float metalic = roughnessMetalicSpecular.g;
+	const float specular = roughnessMetalicSpecular.b;
 
-		ambientAccess = gi_AOCeff[index];
-	}
+	const float shiness = 1 - roughness;
+	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
 
-	float4 ambient = ambientAccess * cbPass.AmbientLight * diffuseAlbedo;
-
-	float4 specular = gi_Specular.Sample(gsamPointClamp, pin.TexC);
-	const float shiness = 1.0f - specular.a;
-	Material mat = { albedoSample, specular.rgb, shiness };
+	Material mat = { albedo, fresnelR0, shiness };
 
 	float3 shadowFactor = (float3)1.0f;
 	shadowFactor[0] = gi_Shadow.Sample(gsamPointClamp, pin.TexC);
 
-	float3 directLight = ComputeLighting(cbPass.Lights, mat, posW.xyz, normalW, toEyeW, shadowFactor);
+	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+	const float3 toEyeW = normalize(cbPass.EyePosW - posW.xyz);
+	const float3 brdf = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, toEyeW, shadowFactor), (float3)0);
 
-	float4 litColor = float4(ambient + directLight, 0);
-	litColor.a = diffuseAlbedo.a;
+	float4 radiance = float4(ambient + brdf, 0);
+	radiance.a = albedo.a;
 
-	return litColor;
+	return radiance;
 }
 
 #endif // __DXRBLINNPHONG_HLSL__

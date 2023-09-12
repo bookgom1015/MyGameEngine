@@ -22,7 +22,6 @@ namespace BRDF {
 			ESI_RMS,
 			ESI_Shadow,
 			ESI_AOCoefficient,
-			ESI_SkyCube,
 			Count
 		};
 	}
@@ -62,13 +61,7 @@ namespace BRDF {
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
 			GpuResource* backBuffer,
-			GpuResource* diffuse,
-			GpuResource* specular,
-			GpuResource* reflectivity,
 			D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
-			D3D12_CPU_DESCRIPTOR_HANDLE ri_diffuse,
-			D3D12_CPU_DESCRIPTOR_HANDLE ri_specular,
-			D3D12_CPU_DESCRIPTOR_HANDLE ri_reflectivity,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal, 
@@ -76,7 +69,6 @@ namespace BRDF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rms, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_skyCube,
 			Render::Type renderType = Render::E_Raster);
 
 	private:

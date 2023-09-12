@@ -24,11 +24,6 @@ struct VertexOut {
 	float3 PosL		: POSITION;
 };
 
-struct PixelOut {
-	float4 BackBuffer	: SV_TARGET0;
-	float4 Diffuse		: SV_TARGET1;
-};
-
 VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 	VertexOut vout;
 
@@ -47,14 +42,10 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 	return vout;
 }
 
-PixelOut PS(VertexOut pin){
-	float4 color = gi_Cube.Sample(gsamLinearWrap, pin.PosL);
+float4 PS(VertexOut pin) : SV_Target {
+	float4 cubeSample = gi_Cube.Sample(gsamLinearWrap, pin.PosL);
 
-	PixelOut pout = (PixelOut)0;
-	pout.BackBuffer = color;
-	pout.Diffuse = color;
-
-	return pout;
+	return cubeSample;
 }
 
 #endif // __SKY_HLSL__

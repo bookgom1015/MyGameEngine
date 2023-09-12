@@ -175,7 +175,6 @@
     <ClInclude Include="..\..\include\DebugMap.h" />
     <ClInclude Include="..\..\include\DepthOfField.h" />
     <ClInclude Include="..\..\include\DepthStencilBuffer.h" />
-    <ClInclude Include="..\..\include\DiffuseSpecularSplitor.h" />
     <ClInclude Include="..\..\include\DxForwardDeclarations.h" />
     <ClInclude Include="..\..\include\DxLowRenderer.h" />
     <ClInclude Include="..\..\include\DxMesh.h" />
@@ -248,7 +247,6 @@
     <ClCompile Include="..\..\src\DebugMap.cpp" />
     <ClCompile Include="..\..\src\DepthOfField.cpp" />
     <ClCompile Include="..\..\src\DepthStencilBuffer.cpp" />
-    <ClCompile Include="..\..\src\DiffuseSpecularSplitor.cpp" />
     <ClCompile Include="..\..\src\DxLowRenderer.cpp" />
     <ClCompile Include="..\..\src\DxRenderer.cpp" />
     <ClCompile Include="..\..\src\DxrGeometryBuffer.cpp" />
@@ -304,6 +302,7 @@
     <None Include="..\..\assets\shaders\glsl\Shadow.frag" />
     <None Include="..\..\assets\shaders\glsl\Shadow.vert" />
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
@@ -486,12 +485,17 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\ReflectanceComposition.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
