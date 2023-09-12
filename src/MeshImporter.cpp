@@ -69,7 +69,7 @@ bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 	for (const auto& material : materials) {
 		mat.Name = material.name;
 		mat.DiffuseMapFileName = material.diffuse_texname;
-		mat.DiffuseAlbedo = XMFLOAT4(material.diffuse[0], material.diffuse[1], material.diffuse[2], 1.0f);
+		mat.Albedo = XMFLOAT4(material.diffuse[0], material.diffuse[1], material.diffuse[2], 1.0f);
 	}
 
 	return true;

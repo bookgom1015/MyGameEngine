@@ -14,18 +14,15 @@ using namespace DiffuseSpecularSplitor;
 DiffuseSpecularSplitorClass::DiffuseSpecularSplitorClass() {
 	mDiffuseMap = std::make_unique<GpuResource>();
 	mSpecularMap = std::make_unique <GpuResource>();
+	mReflectivityMap = std::make_unique<GpuResource>();
 }
 
-bool DiffuseSpecularSplitorClass::Initialize(
-		ID3D12Device* device, ShaderManager* const manager,
-		UINT width, UINT height, DXGI_FORMAT hdrMapFormat) {
+bool DiffuseSpecularSplitorClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
-
-	mHDRMapFormat = hdrMapFormat;
 
 	CheckReturn(BuildResources());
 
@@ -73,7 +70,7 @@ bool DiffuseSpecularSplitorClass::BuildPso() {
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	psoDesc.RTVFormats[0] = mHDRMapFormat;
+	psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return true;
@@ -119,6 +116,10 @@ void DiffuseSpecularSplitorClass::BuildDescriptors(
 	mhSpecularMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhSpecularMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
+	mhReflectivityMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhReflectivityMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhReflectivityMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
 	BuildDescriptors();
 
 	hCpuSrv.Offset(1, descSize);
@@ -145,19 +146,29 @@ void DiffuseSpecularSplitorClass::BuildDescriptors() {
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Format = mHDRMapFormat;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
-	rtvDesc.Format = mHDRMapFormat;
 
-	md3dDevice->CreateShaderResourceView(mDiffuseMap->Resource(), &srvDesc, mhDiffuseMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mDiffuseMap->Resource(), &rtvDesc, mhDiffuseMapCpuRtv);
+	{
+		srvDesc.Format = D3D12Util::HDRMapFormat;
+		rtvDesc.Format = D3D12Util::HDRMapFormat;
 
-	md3dDevice->CreateShaderResourceView(mSpecularMap->Resource(), &srvDesc, mhSpecularMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mSpecularMap->Resource(), &rtvDesc, mhSpecularMapCpuRtv);
+		md3dDevice->CreateShaderResourceView(mDiffuseMap->Resource(), &srvDesc, mhDiffuseMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mDiffuseMap->Resource(), &rtvDesc, mhDiffuseMapCpuRtv);
+
+		md3dDevice->CreateShaderResourceView(mSpecularMap->Resource(), &srvDesc, mhSpecularMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mSpecularMap->Resource(), &rtvDesc, mhSpecularMapCpuRtv);
+	}
+	{
+		srvDesc.Format = D3D12Util::SDRMapFormat;
+		rtvDesc.Format = D3D12Util::SDRMapFormat;
+
+		md3dDevice->CreateShaderResourceView(mReflectivityMap->Resource(), &srvDesc, mhReflectivityMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mReflectivityMap->Resource(), &rtvDesc, mhReflectivityMapCpuRtv);
+	}
 }
 
 bool DiffuseSpecularSplitorClass::BuildResources() {
@@ -172,26 +183,40 @@ bool DiffuseSpecularSplitorClass::BuildResources() {
 	rscDesc.SampleDesc.Quality = 0;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	rscDesc.Format = mHDRMapFormat;
 
-	CheckReturn(mDiffuseMap->Initialize(
-		md3dDevice,
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&rscDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		nullptr,
-		L"DiffuseReflectanceMap"
-	));
-	CheckReturn(mSpecularMap->Initialize(
-		md3dDevice,
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&rscDesc,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		nullptr,
-		L"SpecularReflectanceMap"
-	));
+	{
+		rscDesc.Format = D3D12Util::HDRMapFormat;
+		CheckReturn(mDiffuseMap->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			nullptr,
+			L"DiffuseReflectanceMap"
+		));
+		CheckReturn(mSpecularMap->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			nullptr,
+			L"SpecularReflectanceMap"
+		));
+	}
+	{
+		rscDesc.Format = D3D12Util::SDRMapFormat;
+		CheckReturn(mReflectivityMap->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			nullptr,
+			L"ReflectivityMap"
+		));
+	}
 
 	return true;
 }

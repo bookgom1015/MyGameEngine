@@ -95,9 +95,9 @@ float4 PS(VertexOut pin) : SV_Target{
 	float3 shadowFactor = (float3)1.0f;
 	shadowFactor[0] = gi_Shadow.Sample(gsamPointClamp, pin.TexC);
 
-	float4 directLight = ComputeLighting(cbPass.Lights, mat, posW, normalW, toEyeW, shadowFactor);
+	float3 directLight = ComputeLighting(cbPass.Lights, mat, posW.xyz, normalW, toEyeW, shadowFactor);
 
-	float4 litColor = ambient + directLight;
+	float4 litColor = float4(ambient + directLight, 0);
 	litColor.a = diffuseAlbedo.a;
 
 	return litColor;

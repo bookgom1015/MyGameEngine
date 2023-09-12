@@ -30,7 +30,7 @@ struct Light {
 
 #ifdef HLSL
 struct Material {
-	float4 DiffuseAlbedo;
+	float4 Albedo;
 	float3 FresnelR0;
 	float Shininess;
 };
@@ -64,9 +64,11 @@ struct PassConstants {
 };
 
 struct MaterialConstants {
-	DirectX::XMFLOAT4	DiffuseAlbedo;
-	DirectX::XMFLOAT3	FresnelR0;
+	DirectX::XMFLOAT4	Albedo;
 	float				Roughness;
+	float				Metalic;
+	float				Specular;
+	float				ConstantPad0;
 	DirectX::XMFLOAT4X4	MatTransform;
 	int					DiffuseSrvIndex;
 	int					NormalSrvIndex;

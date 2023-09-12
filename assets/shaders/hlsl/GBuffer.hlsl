@@ -13,7 +13,7 @@ ConstantBuffer<PassConstants>		cbPass	: register(b0);
 ConstantBuffer<ObjectConstants>		cbObj	: register(b1);
 ConstantBuffer<MaterialConstants>	cbMat	: register(b2);
 
-Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t0);
+Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]		: register(t0);
 
 struct VertexIn {
 	float3 PosL		: POSITION;
@@ -32,10 +32,10 @@ struct VertexOut {
 };
 
 struct PixelOut {
-	float4 Color	: SV_TARGET0;
-	float4 Normal	: SV_TARGET1;
-	float4 Specular	: SV_TARGET2;
-	float4 Velocity	: SV_TARGET3;
+	float4 Color					: SV_TARGET0;
+	float4 Normal					: SV_TARGET1;
+	float4 RoughnessMetalicSpecular	: SV_TARGET2;
+	float4 Velocity					: SV_TARGET3;
 };
 
 VertexOut VS(VertexIn vin) {
@@ -65,17 +65,15 @@ PixelOut PS(VertexOut pin) {
 	pin.PrevPosH /= pin.PrevPosH.w;
 	pin.NormalW = normalize(pin.NormalW);
 
-	float3 toEyeW = normalize(cbPass.EyePosW - pin.PosW);
-
-	float4 texSample = 1;
-	if (cbMat.DiffuseSrvIndex != -1) texSample = gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 albedo = cbMat.Albedo;
+	if (cbMat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 	
-	float2 velocity = CalcVelocity(pin.NonJitPosH, pin.PrevPosH);
+	const float2 velocity = CalcVelocity(pin.NonJitPosH, pin.PrevPosH);
 
 	PixelOut pout = (PixelOut)0;
-	pout.Color = texSample;
+	pout.Color = albedo;
 	pout.Normal = float4(pin.NormalW, 0);
-	pout.Specular = float4(cbMat.FresnelR0, cbMat.Roughness);
+	pout.RoughnessMetalicSpecular = float4(cbMat.Roughness, cbMat.Metalic, cbMat.Specular, 0);
 	pout.Velocity = float4(velocity, 0, 1);
 	return pout;
 }

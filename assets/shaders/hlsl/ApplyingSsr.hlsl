@@ -9,8 +9,9 @@
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 
-Texture2D<float4>	gi_BackBuffer	: register(t0);
-Texture2D<float4>	gi_Ssr			: register(t1);
+Texture2D<float3>	gi_Specular		: register(t0);
+Texture2D<float3>	gi_Reflectivity	: register(t1);
+Texture2D<float4>	gi_Ssr			: register(t2);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -32,12 +33,11 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target {
 	float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
-	float4 specular = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
-
+	float3 specular = gi_Specular.Sample(gsamLinearClamp, pin.TexC);
+	float3 reflectivity = gi_Reflectivity.Sample(gsamLinearClamp, pin.TexC);
 	float k = ssr.a;
-	float specIntensity = specular.a;
 
-	float3 applied = ((1 - k) * specular.rgb) + k * specIntensity * ssr.rgb;
+	float3 applied = ((1 - k) * specular.rgb) + k * reflectivity * ssr.rgb;
 
 	return float4(applied, 1);
 }

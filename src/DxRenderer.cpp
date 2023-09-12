@@ -206,7 +206,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #ifdef _DEBUG
 	WLogln(L"Initializing shading components...");
 #endif
-	CheckReturn(mBRDF->Initialize(device, shaderManager, HDRMapFormat));
+	CheckReturn(mBRDF->Initialize(device, shaderManager));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, 
 		mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv(), DepthStencilBuffer::Format));
 	CheckReturn(mShadowMap->Initialize(device, shaderManager, 2048, 2048));
@@ -225,7 +225,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat, HDRMapFormat));
-	CheckReturn(mDiffuseSpecularSplitor->Initialize(device, shaderManager, width, height, HDRMapFormat));
+	CheckReturn(mDiffuseSpecularSplitor->Initialize(device, shaderManager, width, height));
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -864,8 +864,8 @@ bool DxRenderer::AddMaterial(const std::string& file, const Material& material) 
 	matData->MatCBIndex = static_cast<int>(mMaterials.size());
 	matData->MatTransform = MathHelper::Identity4x4();
 	matData->DiffuseSrvHeapIndex = index;
-	matData->DiffuseAlbedo = material.DiffuseAlbedo;
-	matData->FresnelR0 = material.FresnelR0;
+	matData->Albedo = material.Albedo;
+	matData->Specular = material.Specular;
 	matData->Roughness = material.Roughness;
 
 	mMaterials[file] = std::move(matData);
@@ -1306,9 +1306,10 @@ bool DxRenderer::UpdateMaterialCBs(float delta) {
 
 			MaterialConstants matConsts;
 			matConsts.DiffuseSrvIndex = mat->DiffuseSrvHeapIndex;
-			matConsts.DiffuseAlbedo = mat->DiffuseAlbedo;
-			matConsts.FresnelR0 = mat->FresnelR0;
+			matConsts.Albedo = mat->Albedo;
 			matConsts.Roughness = mat->Roughness;
+			matConsts.Metalic = mat->Metailic;
+			matConsts.Specular = mat->Specular;
 			XMStoreFloat4x4(&matConsts.MatTransform, XMMatrixTranspose(matTransform));
 
 			currMaterialCB.CopyData(mat->MatCBIndex, matConsts);
@@ -1490,14 +1491,16 @@ bool DxRenderer::DrawBackBuffer() {
 		mToneMapping->InterMediateMapResource(),
 		mDiffuseSpecularSplitor->DiffuseReflectanceMap(),
 		mDiffuseSpecularSplitor->SpecularReflectanceMap(),
+		mDiffuseSpecularSplitor->ReflectivityMap(),
 		mToneMapping->InterMediateMapRtv(),
 		mDiffuseSpecularSplitor->DiffuseReflectanceMapRtv(),
 		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
+		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->ColorMapSrv(),
+		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
-		mGBuffer->SpecularMapSrv(),
+		mGBuffer->RMSMapSrv(),
 		mShadowMap->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
 		mSkyCube->CubeMapSrv(),
@@ -1602,7 +1605,7 @@ bool DxRenderer::ApplySsr() {
 			backBufferSrv,
 			mGBuffer->NormalMapSrv(),
 			mGBuffer->DepthMapSrv(),
-			mGBuffer->SpecularMapSrv()
+			mGBuffer->RMSMapSrv()
 		);
 
 		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
@@ -1651,10 +1654,12 @@ bool DxRenderer::ApplySsr() {
 	const auto resultMap = mSsr->ResultMapResource();
 	const auto specularMap = mDiffuseSpecularSplitor->SpecularReflectanceMap();
 	auto specularSrv = mDiffuseSpecularSplitor->SpecularReflectanceMapSrv();
+	auto reflectivitySrv = mDiffuseSpecularSplitor->ReflectivityMapSrv();
 
 	mSsr->ApplySsr(
 		cmdList,
-		specularSrv
+		specularSrv,
+		reflectivitySrv
 	);
 
 	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -1999,63 +2004,75 @@ bool DxRenderer::DrawImGui() {
 
 		if (ImGui::CollapsingHeader("Debug")) {
 			if (ImGui::TreeNode("Map Info")) {
-				if (ImGui::Checkbox("Color", &mDebugMapStates[DebugMapLayout::EColor])) {
+				if (ImGui::Checkbox("Albedo", &mDebugMapStates[DebugMapLayout::E_Albedo])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::EColor],
-						mGBuffer->ColorMapSrv(),
+						mDebugMapStates[DebugMapLayout::E_Albedo],
+						mGBuffer->AlbedoMapSrv(),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::ENormal])) {
+				if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::E_Normal])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::ENormal],
+						mDebugMapStates[DebugMapLayout::E_Normal],
 						mGBuffer->NormalMapSrv(),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::EDepth])) {
+				if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::E_Depth])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::EDepth],
+						mDebugMapStates[DebugMapLayout::E_Depth],
 						mGBuffer->DepthMapSrv(),
 						Debug::SampleMask::RRR);
 				}
-				if (ImGui::Checkbox("Specular", &mDebugMapStates[DebugMapLayout::ESpecular])) {
+				if (ImGui::Checkbox("RoughnessMetalicSpecular", &mDebugMapStates[DebugMapLayout::E_RMS])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::ESpecular],
-						mGBuffer->SpecularMapSrv(),
+						mDebugMapStates[DebugMapLayout::E_RMS],
+						mGBuffer->RMSMapSrv(),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::EVelocity])) {
+				if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::E_Velocity])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::EVelocity],
+						mDebugMapStates[DebugMapLayout::E_Velocity],
 						mGBuffer->VelocityMapSrv(),
 						Debug::SampleMask::RG);
 				}
-				if (ImGui::Checkbox("Shadow", &mDebugMapStates[DebugMapLayout::EShadow])) {
+				if (ImGui::Checkbox("Shadow", &mDebugMapStates[DebugMapLayout::E_Shadow])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::EShadow],
+						mDebugMapStates[DebugMapLayout::E_Shadow],
 						mShadowMap->Srv(),
 						Debug::SampleMask::RRR);
 				}
-				if (ImGui::Checkbox("SSAO", &mDebugMapStates[DebugMapLayout::ESsao])) {
+				if (ImGui::Checkbox("SSAO", &mDebugMapStates[DebugMapLayout::E_SSAO])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::ESsao],
+						mDebugMapStates[DebugMapLayout::E_SSAO],
 						mSsao->AOCoefficientMapSrv(0),
 						Debug::SampleMask::RRR);
 				}
-				if (ImGui::Checkbox("Bloom", &mDebugMapStates[DebugMapLayout::EBloom])) {
+				if (ImGui::Checkbox("Bloom", &mDebugMapStates[DebugMapLayout::E_Bloom])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::EBloom],
+						mDebugMapStates[DebugMapLayout::E_Bloom],
 						mBloom->BloomMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("SSR", &mDebugMapStates[DebugMapLayout::ESsr])) {
+				if (ImGui::Checkbox("SSR", &mDebugMapStates[DebugMapLayout::E_SSR])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::ESsr],
+						mDebugMapStates[DebugMapLayout::E_SSR],
 						mSsr->SsrMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::EDxrShadow])) {
+				if (ImGui::Checkbox("Diffuse Reflectance", &mDebugMapStates[DebugMapLayout::E_DiffuseReflectance])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::EDxrShadow],
+						mDebugMapStates[DebugMapLayout::E_DiffuseReflectance],
+						mDiffuseSpecularSplitor->DiffuseReflectanceMapSrv(),
+						Debug::SampleMask::RGB);
+				}
+				if (ImGui::Checkbox("Specular Reflectance", &mDebugMapStates[DebugMapLayout::E_SpecularReflectance])) {
+					BuildDebugMaps(
+						mDebugMapStates[DebugMapLayout::E_SpecularReflectance],
+						mDiffuseSpecularSplitor->SpecularReflectanceMapSrv(),
+						Debug::SampleMask::RGB);
+				}
+				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
+					BuildDebugMaps(
+						mDebugMapStates[DebugMapLayout::E_DxrShadow],
 						mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 						Debug::SampleMask::RRR);
 				}
@@ -2162,14 +2179,16 @@ bool DxRenderer::DrawImGui() {
 			auto mat = mPickedRitem->Material;
 			ImGui::Text(mPickedRitem->Geometry->Name.c_str());
 
-			float albedo[4] = { mat->DiffuseAlbedo.x, mat->DiffuseAlbedo.y, mat->DiffuseAlbedo.z, mat->DiffuseAlbedo.w };
+			float albedo[4] = { mat->Albedo.x, mat->Albedo.y, mat->Albedo.z, mat->Albedo.w };
 			if (ImGui::ColorPicker4("Albedo", albedo)) {
-				mat->DiffuseAlbedo.x = albedo[0];
-				mat->DiffuseAlbedo.y = albedo[1];
-				mat->DiffuseAlbedo.z = albedo[2];
-				mat->DiffuseAlbedo.w = albedo[3];
+				mat->Albedo.x = albedo[0];
+				mat->Albedo.y = albedo[1];
+				mat->Albedo.z = albedo[2];
+				mat->Albedo.w = albedo[3];
 			}			
 			ImGui::SliderFloat("Roughness", &mat->Roughness, 0.0f, 1.0f);
+			ImGui::SliderFloat("Metalic", &mat->Metailic, 0.0f, 1.0f);
+			ImGui::SliderFloat("Specular", &mat->Specular, 0.0f, 1.0f);
 		}
 
 		ImGui::End();
@@ -2242,14 +2261,16 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mToneMapping->InterMediateMapResource(),
 		mDiffuseSpecularSplitor->DiffuseReflectanceMap(),
 		mDiffuseSpecularSplitor->SpecularReflectanceMap(),
+		mDiffuseSpecularSplitor->ReflectivityMap(),
 		mToneMapping->InterMediateMapRtv(),
 		mDiffuseSpecularSplitor->DiffuseReflectanceMapRtv(),
 		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
+		mDiffuseSpecularSplitor->SpecularReflectanceMapRtv(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->ColorMapSrv(),
+		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
-		mGBuffer->SpecularMapSrv(),
+		mGBuffer->RMSMapSrv(),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 		mSsao->AOCoefficientMapSrv(0),
 		mSkyCube->CubeMapSrv(),

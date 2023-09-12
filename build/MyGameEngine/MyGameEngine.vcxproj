@@ -304,6 +304,7 @@
     <None Include="..\..\assets\shaders\glsl\Shadow.frag" />
     <None Include="..\..\assets\shaders\glsl\Shadow.vert" />
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\DxrShadingHelpers.hlsli" />

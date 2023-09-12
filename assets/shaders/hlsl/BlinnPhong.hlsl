@@ -17,16 +17,20 @@
 #define HLSL
 #endif
 
+#ifndef BLINN_PHONG
+#define BLINN_PHONG
+#endif
+
 #include "Samplers.hlsli"
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 
 ConstantBuffer<PassConstants> cb		: register(b0);
 
-Texture2D<float4>	gi_Color			: register(t0);
+Texture2D<float4>	gi_Albedo			: register(t0);
 Texture2D<float3>	gi_Normal			: register(t1);
 Texture2D<float>	gi_Depth			: register(t2);
-Texture2D<float4>	gi_Specular			: register(t3);
+Texture2D<float3>	gi_RMS				: register(t3);
 Texture2D<float>	gi_Shadow			: register(t4);
 Texture2D<float>	gi_AOCoefficient	: register(t5);
 TextureCube<float4>	gi_SkyCube			: register(t6);
@@ -43,6 +47,7 @@ struct PixelOut {
 	float4 BackBuffer	: SV_TARGET0;
 	float4 Diffuse		: SV_TARGET1;
 	float4 Specular		: SV_TARGET2;
+	float4 Reflectivity	: SV_TARGET3;
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
@@ -71,51 +76,59 @@ PixelOut PS(VertexOut pin) : SV_Target{
 	// p.z = t*pin.PosV.z
 	// t = p.z / pin.PosV.z
 	//
-	float3 posV = (pz / pin.PosV.z) * pin.PosV;
-	float4 posW = mul(float4(posV, 1), cb.InvView);
+	const float3 posV = (pz / pin.PosV.z) * pin.PosV;
+	const float4 posW = mul(float4(posV, 1), cb.InvView);
 	
 	//
 	// Diffuse reflection
 	//
-	float4 color = gi_Color.Sample(gsamAnisotropicWrap, pin.TexC);
+	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
 
 	float4 ssaoPosH = mul(posW, cb.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
-	float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
 
-	float4 ambient = color * ambientAccess * cb.AmbientLight;
+	const float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
+	const float3 ambient = albedo.rgb * ambientAccess * cb.AmbientLight.rgb;
 	
-	const float4 F0 = gi_Specular.Sample(gsamAnisotropicWrap, pin.TexC);
-	const float shiness = 1.0f - F0.a;
-	Material mat = { color, F0.rgb, shiness };
+	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC);
+	const float roughness = roughnessMetalicSpecular.r;
+	const float metalic = roughnessMetalicSpecular.g;
+	const float specular = roughnessMetalicSpecular.b;
+
+	const float shiness = 1 - roughness;
+	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
+
+	Material mat = { albedo, fresnelR0, shiness };
 
 	float3 shadowFactor = 0;
-	float4 shadowPosH = mul(posW, cb.ShadowTransform);
+	const float4 shadowPosH = mul(posW, cb.ShadowTransform);
 	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
 	
-	float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
-	float3 toEyeW = normalize(cb.EyePosW - posW.xyz);
-	float4 directLight = max(ComputeLighting(cb.Lights, mat, posW, normalW, toEyeW, shadowFactor), (float4)0);
+	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+	const float3 toEyeW = normalize(cb.EyePosW - posW.xyz);
+	const float3 directLight = max(ComputeLighting(cb.Lights, mat, posW.xyz, normalW, toEyeW, shadowFactor), (float3)0);
 	
-	float4 diffuse = ambient + directLight;
-	diffuse.a = color.a;
+	float4 diffuseReflectance = float4(ambient + directLight, 0);
+	diffuseReflectance.a = albedo.a;
 
 	//
 	// Specular reflection
 	//
-	float3 toLight = reflect(-toEyeW, normalW);
-	float3 fresnelFactor = SchlickFresnel(F0.rgb, normalW, toLight);
+	const float3 toLight = reflect(-toEyeW, normalW);
+	const float3 fresnelFactor = SchlickFresnel(fresnelR0, normalW, toLight);
 
-	float3 lookup = BoxCubeMapLookup(posW.xyz, toLight, (float3)0.0f, (float3)100.0f);
-	float3 envColor = gi_SkyCube.Sample(gsamLinearWrap, lookup);
+	const float3 lookup = BoxCubeMapLookup(posW.xyz, toLight, (float3)0, (float3)100);
+	const float3 envColor = gi_SkyCube.Sample(gsamLinearWrap, lookup).rgb;
 
-	float specIntensity = shiness * fresnelFactor;
-	float4 specular = float4(specIntensity * envColor, specIntensity);
+	const float reflectivity = shiness * fresnelFactor;
+	const float4 specularReflectance = float4(reflectivity * envColor, 0);
 
 	PixelOut pout = (PixelOut)0;
-	pout.BackBuffer = diffuse + specular;
-	pout.Diffuse = diffuse;
-	pout.Specular = specular;
+	pout.BackBuffer = diffuseReflectance + specularReflectance;
+	pout.Diffuse = diffuseReflectance;
+	pout.Specular = specularReflectance;
+	pout.Reflectivity = reflectivity;
+
 	return pout;
 }
 

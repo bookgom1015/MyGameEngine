@@ -16,10 +16,10 @@ namespace BRDF {
 	namespace RootSignatureLayout {
 		enum {
 			ECB_Pass = 0,
-			ESI_Color,
+			ESI_Albedo,
 			ESI_Normal,
 			ESI_Depth,
-			ESI_Specular,
+			ESI_RMS,
 			ESI_Shadow,
 			ESI_AOCoefficient,
 			ESI_SkyCube,
@@ -52,7 +52,7 @@ namespace BRDF {
 		virtual ~BRDFClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, DXGI_FORMAT hdrFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -64,14 +64,16 @@ namespace BRDF {
 			GpuResource* backBuffer,
 			GpuResource* diffuse,
 			GpuResource* specular,
+			GpuResource* reflectivity,
 			D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ri_diffuse,
 			D3D12_CPU_DESCRIPTOR_HANDLE ri_specular,
+			D3D12_CPU_DESCRIPTOR_HANDLE ri_reflectivity,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_color,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth, 
-			D3D12_GPU_DESCRIPTOR_HANDLE si_specular, 
+			D3D12_GPU_DESCRIPTOR_HANDLE si_rms, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_skyCube,
@@ -83,7 +85,5 @@ namespace BRDF {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		std::unordered_map<Render::Type, std::unordered_map<Model::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>>> mPSOs;
-
-		DXGI_FORMAT mHDRFormat;
 	};
 }

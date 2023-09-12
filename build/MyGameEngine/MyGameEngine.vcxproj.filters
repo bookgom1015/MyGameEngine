@@ -713,5 +713,8 @@
     <None Include="..\..\assets\shaders\hlsl\ReflectanceComposition.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -19,16 +19,19 @@ class ImGuiManager;
 
 namespace DebugMapLayout {
 	enum Type {
-		EColor = 0,
-		ENormal,
-		EDepth,
-		ESpecular,
-		EVelocity,
-		EShadow,
-		ESsao,
-		EBloom,
-		ESsr,
-		EDxrShadow,
+		E_Albedo = 0,
+		E_Normal,
+		E_Depth,
+		E_RMS,
+		E_Velocity,
+		E_Shadow,
+		E_SSAO,
+		E_Bloom,
+		E_SSR,
+		E_DiffuseReflectance,
+		E_SpecularReflectance,
+		E_DxrShadow,
+		Count
 	};
 }
 

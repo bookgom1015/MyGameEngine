@@ -9,24 +9,24 @@ constexpr UINT GBuffer::GBufferClass::Height() const {
 	return mHeight;
 }
 
-GpuResource* GBuffer::GBufferClass::ColorMapResource() {
-	return mColorMap.get();
+GpuResource* GBuffer::GBufferClass::AlbedoMapResource() {
+	return mAlbedoMap.get();
 }
 
 GpuResource* GBuffer::GBufferClass::NormalMapResource() {
 	return mNormalMap.get();
 }
 
-GpuResource* GBuffer::GBufferClass::SpecularMapResource() {
-	return mSpecularMap.get();
+GpuResource* GBuffer::GBufferClass::RMSMapResource() {
+	return mRMSMap.get();
 }
 
 GpuResource* GBuffer::GBufferClass::VelocityMapResource() {
 	return mVelocityMap.get();
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ColorMapSrv() const {
-	return mhColorMapGpuSrv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapSrv() const {
+	return mhAlbedoMapGpuSrv;
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalMapSrv() const {
@@ -37,24 +37,24 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::DepthMapSrv() con
 	return mhDepthMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::SpecularMapSrv() const {
-	return mhSpecularMapGpuSrv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::RMSMapSrv() const {
+	return mhRMSMapGpuSrv;
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::VelocityMapSrv() const {
 	return mhVelocityMapGpuSrv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ColorMapRtv() const {
-	return mhColorMapCpuRtv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapRtv() const {
+	return mhAlbedoMapCpuRtv;
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalMapRtv() const {
 	return mhNormalMapCpuRtv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::SpecularMapRtv() const {
-	return mhSpecularMapCpuRtv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::RMSMapRtv() const {
+	return mhRMSMapCpuRtv;
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::VelocityMapRtv() const {

@@ -20,7 +20,7 @@ namespace DiffuseSpecularSplitor {
 		};
 	}
 
-	static const UINT NumRenderTargets = 2;
+	static const UINT NumRenderTargets = 3;
 
 	class DiffuseSpecularSplitorClass {
 	public:
@@ -36,10 +36,12 @@ namespace DiffuseSpecularSplitor {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SpecularReflectanceMapSrv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SpecularReflectanceMapRtv() const;
 
+		__forceinline GpuResource* ReflectivityMap();
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ReflectivityMapSrv() const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ReflectivityMapRtv() const;
+
 	public:
-		bool Initialize(
-			ID3D12Device* device, ShaderManager* const manager,
-			UINT width, UINT height, DXGI_FORMAT hdrMapFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -72,10 +74,9 @@ namespace DiffuseSpecularSplitor {
 		UINT mWidth;
 		UINT mHeight;
 
-		DXGI_FORMAT mHDRMapFormat;
-
 		std::unique_ptr<GpuResource> mDiffuseMap;
 		std::unique_ptr<GpuResource> mSpecularMap;
+		std::unique_ptr<GpuResource> mReflectivityMap;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDiffuseMapGpuSrv;
@@ -84,6 +85,10 @@ namespace DiffuseSpecularSplitor {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhSpecularMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhSpecularMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhSpecularMapCpuRtv;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReflectivityMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhReflectivityMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReflectivityMapCpuRtv;
 	};
 }
 
@@ -109,4 +114,16 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DiffuseSpecularSplitor::DiffuseSpecularS
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DiffuseSpecularSplitor::DiffuseSpecularSplitorClass::SpecularReflectanceMapRtv() const {
 	return mhSpecularMapCpuRtv;
+}
+
+GpuResource* DiffuseSpecularSplitor::DiffuseSpecularSplitorClass::ReflectivityMap() {
+	return mReflectivityMap.get();
+}
+
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DiffuseSpecularSplitor::DiffuseSpecularSplitorClass::ReflectivityMapSrv() const {
+	return mhReflectivityMapGpuSrv;
+}
+
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DiffuseSpecularSplitor::DiffuseSpecularSplitorClass::ReflectivityMapRtv() const {
+	return mhReflectivityMapCpuRtv;
 }

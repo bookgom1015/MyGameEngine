@@ -19,11 +19,9 @@ namespace {
 	const std::string CookTorrancePS = "CookTorrancePS";
 }
 
-bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, DXGI_FORMAT hdrFormat) {
+bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
-
-	mHDRFormat = hdrFormat;
 
 	return true;
 }
@@ -67,10 +65,10 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
 
 	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-	slotRootParameter[RootSignatureLayout::ESI_Color].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignatureLayout::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);
 	slotRootParameter[RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
 	slotRootParameter[RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-	slotRootParameter[RootSignatureLayout::ESI_Specular].InitAsDescriptorTable(1, &texTables[3]);
+	slotRootParameter[RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
 	slotRootParameter[RootSignatureLayout::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
 	slotRootParameter[RootSignatureLayout::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[5]);
 	slotRootParameter[RootSignatureLayout::ESI_SkyCube].InitAsDescriptorTable(1, &texTables[6]);
@@ -97,9 +95,10 @@ bool BRDFClass::BuildPso() {
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
-		psoDesc.NumRenderTargets = 3;
+		psoDesc.NumRenderTargets = 4;
 		for (int i = 0; i < 3; ++i)
-			psoDesc.RTVFormats[i] = mHDRFormat;
+			psoDesc.RTVFormats[i] = D3D12Util::HDRMapFormat;
+		psoDesc.RTVFormats[3] = D3D12Util::SDRMapFormat;
 
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::Type::E_BlinnPhong])));
 	}
@@ -112,9 +111,10 @@ bool BRDFClass::BuildPso() {
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
-		psoDesc.NumRenderTargets = 3;
+		psoDesc.NumRenderTargets = 4;
 		for (int i = 0; i < 3; ++i)
-			psoDesc.RTVFormats[i] = mHDRFormat;
+			psoDesc.RTVFormats[i] = D3D12Util::HDRMapFormat;
+		psoDesc.RTVFormats[3] = D3D12Util::SDRMapFormat;
 
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::Type::E_BlinnPhong])));
 	}
@@ -129,14 +129,16 @@ void BRDFClass::BlinnPhong(
 		GpuResource* backBuffer,
 		GpuResource* diffuse,
 		GpuResource* specular,
+		GpuResource* reflectivity,
 		D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ri_diffuse,
 		D3D12_CPU_DESCRIPTOR_HANDLE ri_specular,
+		D3D12_CPU_DESCRIPTOR_HANDLE ri_reflectivity,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_color,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_skyCube,
@@ -150,16 +152,17 @@ void BRDFClass::BlinnPhong(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	diffuse->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	specular->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	reflectivity->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE renderTargets[] = { ri_backBuffer, ri_diffuse, ri_specular };
-	cmdList->OMSetRenderTargets(3, renderTargets, true, nullptr);
+	D3D12_CPU_DESCRIPTOR_HANDLE renderTargets[] = { ri_backBuffer, ri_diffuse, ri_specular, ri_reflectivity };
+	cmdList->OMSetRenderTargets(_countof(renderTargets), renderTargets, true, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Color, si_color);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Albedo, si_albedo);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Specular, si_specular);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_RMS, si_rms);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Shadow, si_shadow);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_AOCoefficient, si_aoCoefficient);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_SkyCube, si_skyCube);
@@ -172,4 +175,5 @@ void BRDFClass::BlinnPhong(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 	diffuse->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	specular->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	reflectivity->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }

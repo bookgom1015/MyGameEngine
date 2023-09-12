@@ -92,12 +92,14 @@ bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[Applying::RootSignatureLayout::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[2];
+		CD3DX12_DESCRIPTOR_RANGE texTables[3];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 
-		slotRootParameter[Applying::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);;
-		slotRootParameter[Applying::RootSignatureLayout::ESI_Ssr].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Specular].InitAsDescriptorTable(1, &texTables[0]);;
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Reflectivity].InitAsDescriptorTable(1, &texTables[1]);;
+		slotRootParameter[Applying::RootSignatureLayout::ESI_Ssr].InitAsDescriptorTable(1, &texTables[2]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -176,7 +178,8 @@ void SsrClass::BuildSsr(
 
 void SsrClass::ApplySsr(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer) {
+		D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_reflectivity) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_Applying].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Applying].Get());
 
@@ -186,7 +189,8 @@ void SsrClass::ApplySsr(
 	cmdList->ClearRenderTargetView(mhResultMapCpuRtv, Ssr::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhResultMapCpuRtv, true, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Specular, si_specular);
+	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Reflectivity, si_reflectivity);
 	cmdList->SetGraphicsRootDescriptorTable(Applying::RootSignatureLayout::ESI_Ssr, mhSsrMapGpuSrvs[0]);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);

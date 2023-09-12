@@ -39,14 +39,14 @@ VertexOut VS(VertexIn vin) {
 }
 
 void PS(VertexOut pin) {
-	float4 diffuseAlbedo = cbMat.DiffuseAlbedo;
-	if (cbMat.DiffuseSrvIndex != -1) diffuseAlbedo *= gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 albedo = cbMat.Albedo;
+	if (cbMat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
 #ifdef ALPHA_TEST
 	// Discard pixel if texture alpha < 0.1.  We do this test as soon 
 	// as possible in the shader so that we can potentially exit the
 	// shader early, thereby skipping the rest of the shader code.
-	clip(diffuseAlbedo.a - 0.1f);
+	clip(albedo.a - 0.1f);
 #endif
 }
 
