@@ -40,7 +40,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
+float4 PS(VertexOut pin) : SV_Target{
 	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 	pz = NdcDepthToViewDepth(pz, cbPass.Proj);
 
@@ -48,7 +48,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
 
 	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
-	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+	const float3 normal = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
 
 	float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
 	float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
@@ -62,14 +62,17 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float shiness = 1 - roughness;
 	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
 
-	const float3 toEyeW = normalize(cbPass.EyePosW - posW.xyz);
-	const float3 toLight = reflect(-toEyeW, normalW);
-	const float3 lookup = BoxCubeMapLookup(posW.xyz, toLight, (float3)0, (float3)100);
+	const float3 V = normalize(cbPass.EyePosW - posW.xyz);
+	const float3 L = reflect(-V, normal);
+	const float3 lookup = BoxCubeMapLookup(posW.xyz, L, (float3)0, (float3)100);
 	float3 env = gi_Environment.Sample(gsamLinearWrap, lookup);
 
-	const float dp = saturate(dot(toEyeW, normalW));
-	const float3 fresnelFactor = SchlickFresnel(fresnelR0, normalW, toLight);
-	float3 applied = radiance + dp * fresnelFactor * (((1 - k) * env) + k * ssr.rgb);
+	const float3 H = normalize(V + L);
+	const float3 fresnelFactor = FresnelSchlick(saturate(dot(H, V)), fresnelR0);
+
+	float skyFactor = ceil(max(1 - dot(normal, -V), 0));
+
+	float3 applied = radiance + shiness * skyFactor * fresnelFactor * (((1 - k) * env) + k * ssr.rgb);
 
 	return float4(applied, 1);
 }

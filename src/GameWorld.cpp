@@ -471,6 +471,7 @@ bool GameWorld::Draw() {
 
 bool GameWorld::LoadData() {
 	CheckReturn(mRenderer->SetCubeMap("./../../assets/textures/sky_cube.dds"));
+	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/forest_hdr.dds"));
 
 	XMFLOAT4 rot;
 	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVectors::UpVector, XM_PI));

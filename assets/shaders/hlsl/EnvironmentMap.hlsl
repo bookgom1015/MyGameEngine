@@ -1,5 +1,5 @@
-#ifndef __SKY_HLSL__
-#define __SKY_HLSL__
+#ifndef __ENVIRONMENTMAP_HLSL__
+#define __ENVIRONMENTMAP_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -43,9 +43,9 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 }
 
 float4 PS(VertexOut pin) : SV_Target {
-	float4 cubeSample = gi_Cube.Sample(gsamLinearWrap, pin.PosL);
+	float4 cubeSample = gi_Cube.Sample(gsamLinearWrap, normalize(pin.PosL));
 
 	return cubeSample;
 }
 
-#endif // __SKY_HLSL__
+#endif // __ENVIRONMENTMAP_HLSL__

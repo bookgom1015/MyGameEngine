@@ -37,6 +37,12 @@ void GpuResource::Reset() {
 	mResource.Reset();
 }
 
+void GpuResource::Swap(Microsoft::WRL::ComPtr<ID3D12Resource>& srcResource, D3D12_RESOURCE_STATES initialState) {
+	srcResource.Swap(mResource);
+
+	mCurrState = initialState;
+}
+
 void GpuResource::Transite(ID3D12GraphicsCommandList* const cmdList, D3D12_RESOURCE_STATES state) {
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mResource.Get(), mCurrState, state));
 

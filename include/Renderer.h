@@ -62,13 +62,14 @@ public:
 
 	virtual bool OnResize(UINT width, UINT height) = 0;
 
-	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::EOpaque) = 0;
+	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::E_Opaque) = 0;
 	virtual void RemoveModel(void* model) = 0;
 	virtual void UpdateModel(void* model, const Transform& trans) = 0;
 	virtual void SetModelVisibility(void* model, bool visible) = 0;
 	virtual void SetModelPickable(void* model, bool pickable) = 0;
 
 	virtual bool SetCubeMap(const std::string& file) = 0;
+	virtual bool SetEquirectangularMap(const std::string& file) = 0;
 
 	virtual void Pick(float x, float y);
 

@@ -23,10 +23,12 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
-	float3 lightStrength = L.Strength * ndotl;
+	float3 lightStrength = L.Strength;
 
-#ifdef BLINN_PHONG
+#if defined(BLINN_PHONG)
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+#elif defined(COOK_TORRANCE)
+	return CookTorrance(lightStrength, lightVec, normal, toEye, mat);
 #else
 	return 0;
 #endif
@@ -51,14 +53,16 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
-	float3 lightStrength = L.Strength * ndotl;
+	float3 lightStrength = L.Strength;
 
 	// Attenuate light by distance.
 	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
 	lightStrength *= att;
 
-#ifdef BLINN_PHONG
+#if defined(BLINN_PHONG)
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+#elif defined(COOK_TORRANCE)
+	return CookTorrance(lightStrength, lightVec, normal, toEye, mat);
 #else
 	return 0;
 #endif
@@ -83,7 +87,7 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
-	float3 lightStrength = L.Strength * ndotl;
+	float3 lightStrength = L.Strength;
 
 	// Attenuate light by distance.
 	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
@@ -93,8 +97,10 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0.0f), L.SpotPower);
 	lightStrength *= spotFactor;
 
-#ifdef BLINN_PHONG
+#if defined(BLINN_PHONG)
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+#elif defined(COOK_TORRANCE)
+	return CookTorrance(lightStrength, lightVec, normal, toEye, mat);
 #else
 	return 0;
 #endif

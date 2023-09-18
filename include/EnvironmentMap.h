@@ -11,7 +11,7 @@ class GpuResource;
 
 struct RenderItem;
 
-namespace SkyCube {
+namespace EnvironmentMap {
 	namespace RootSignatureLayout {
 		enum {
 			ECB_Pass = 0,
@@ -21,17 +21,17 @@ namespace SkyCube {
 		};
 	}
 
-	class SkyCubeClass {
+	class EnvironmentMapClass {
 	public:
-		SkyCubeClass() = default;
-		virtual ~SkyCubeClass() = default;
+		EnvironmentMapClass();
+		virtual ~EnvironmentMapClass() = default;
 
 	public:
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE CubeMapSrv() const;
 
 	public:
 		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList, 
-			ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT hdrMapFormat);
+			ShaderManager*const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
@@ -74,16 +74,14 @@ namespace SkyCube {
 		UINT mWidth;
 		UINT mHeight;
 
-		DXGI_FORMAT mHDRMapFormat;
-
-		Microsoft::WRL::ComPtr<ID3D12Resource> mCubeMap;
-		Microsoft::WRL::ComPtr<ID3D12Resource> mCubeMapUploadBuffer;
+		std::unique_ptr<GpuResource> mCubeMap;
+		std::unique_ptr<GpuResource> mCubeMapUploadBuffer;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
 	};
 }
 
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE SkyCube::SkyCubeClass::CubeMapSrv() const {
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE EnvironmentMap::EnvironmentMapClass::CubeMapSrv() const {
 	return mhGpuSrv;
 }

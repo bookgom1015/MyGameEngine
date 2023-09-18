@@ -2,9 +2,10 @@
 
 namespace RenderType {
 	enum Type {
-		EOpaque = 0,
-		EBlend,
-		ESky,
+		E_Opaque = 0,
+		E_Blend,
+		E_SkySphere,
+		E_Equirectangular,
 		Count,
 	};
 }

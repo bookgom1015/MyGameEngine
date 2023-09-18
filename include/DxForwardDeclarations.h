@@ -11,7 +11,7 @@ namespace DepthOfField { class DepthOfFieldClass; }
 namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }
 namespace DebugMap { class DebugMapClass; }
-namespace SkyCube { class SkyCubeClass; }
+namespace EnvironmentMap { class EnvironmentMapClass; }
 namespace DxrShadowMap { class DxrShadowMapClass; }
 namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
 namespace BlurFilterCS { class BlurFilterCSClass; }
@@ -19,3 +19,4 @@ namespace Rtao { class RtaoClass; }
 namespace DebugCollision { class DebugCollisionClass; }
 namespace GammaCorrection { class GammaCorrectionClass; }
 namespace ToneMapping { class ToneMappingClass; }
+namespace CubeMapConverter { class CubeMapConverterClass; }

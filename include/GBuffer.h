@@ -30,7 +30,7 @@ namespace GBuffer {
 	const DXGI_FORMAT VelocityMapFormat	= DXGI_FORMAT_R8G8B8A8_SNORM;
 
 	const float AlbedoMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 1.0f };
-	const float NormalMapClearValues[4]		= { 0.0f, 0.0f, 1.0f, 0.0f };
+	const float NormalMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
 	const float RMSMapClearValues[4]		= { 0.5f, 0.0f, 0.5f, 0.0f };
 	const float VelocityMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
 

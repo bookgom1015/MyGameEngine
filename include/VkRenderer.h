@@ -82,13 +82,14 @@ public:
 
 	virtual bool OnResize(UINT width, UINT height) override;
 
-	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::EOpaque) override;
+	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::E_Opaque) override;
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
 	virtual void SetModelPickable(void* model, bool pickable) override;
 
 	virtual bool SetCubeMap(const std::string& file) override;
+	virtual bool SetEquirectangularMap(const std::string& file) override;
 
 	virtual void Pick(float x, float y) override;
 

@@ -33,6 +33,7 @@ struct Material {
 	float4 Albedo;
 	float3 FresnelR0;
 	float Shininess;
+	float Metalic;
 };
 #endif
 

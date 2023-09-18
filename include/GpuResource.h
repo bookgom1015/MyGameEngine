@@ -20,6 +20,7 @@ public:
 		LPCWSTR name = nullptr);
 	bool OnResize(IDXGISwapChain*const swapChain, UINT index);
 	void Reset();
+	void Swap(Microsoft::WRL::ComPtr<ID3D12Resource>& srcResource, D3D12_RESOURCE_STATES initialState);
 
 	void Transite(ID3D12GraphicsCommandList*const cmdList, D3D12_RESOURCE_STATES state);
 

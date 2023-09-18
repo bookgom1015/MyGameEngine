@@ -10,6 +10,11 @@
 #define FLT_10BIT_MAX   6.5e4
 #define PI              3.1415926535897f
 
+// the Fresnel Schlick approximation
+float3 FresnelSchlick(float cos, float3 F0) {
+	return F0 + (1 - F0) * pow(saturate(1 - cos), 5);
+}
+
 float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
 

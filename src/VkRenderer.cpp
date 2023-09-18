@@ -218,6 +218,10 @@ bool VkRenderer::SetCubeMap(const std::string& file) {
 	return true;
 }
 
+bool VkRenderer::SetEquirectangularMap(const std::string& file) {
+	return true;
+}
+
 void VkRenderer::Pick(float x, float y) {
 
 }
@@ -1737,7 +1741,7 @@ bool VkRenderer::DrawBackBuffer() {
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipelines["default"]);
 
-	for (auto ritem : mRitemRefs[RenderType::EOpaque]) {
+	for (auto ritem : mRitemRefs[RenderType::E_Opaque]) {
 		if (!ritem->Visible) continue;
 
 		const auto& mesh = mMeshes[ritem->MeshName];

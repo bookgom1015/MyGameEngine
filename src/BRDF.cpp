@@ -11,12 +11,17 @@ using namespace BRDF;
 namespace {
 	const std::string BlinnPhongVS = "BlinnPhongVS";
 	const std::string BlinnPhongPS = "BlinnPhongPS";
-
 	const std::string DxrBlinnPhongVS = "DxrBlinnPhongVS";
 	const std::string DxrBlinnPhongPS = "DxrBlinnPhongPS";
 
 	const std::string CookTorranceVS = "CookTorranceVS";
 	const std::string CookTorrancePS = "CookTorrancePS";
+	const std::string DxrCookTorranceVS = "DxrCookTorranceVS";
+	const std::string DxrCookTorrancePS = "DxrCookTorrancePS";
+}
+
+BRDFClass::BRDFClass() {
+	ModelType = Model::E_BlinnPhong;
 }
 
 bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
@@ -28,25 +33,46 @@ bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
 
 bool BRDFClass::CompileShaders(const std::wstring& filePath) {
 	{
-		const std::wstring fullPath = filePath + L"BlinnPhong.hlsl";
-		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, BlinnPhongVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, BlinnPhongPS));
+		DxcDefine defines[] = {
+			{ L"BLINN_PHONG", L"1" }
+		};
+
+		{
+			const std::wstring fullPath = filePath + L"BRDF.hlsl";
+			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, BlinnPhongVS));
+			CheckReturn(mShaderManager->CompileShader(psInfo, BlinnPhongPS));
+		}
+
+		{
+			const auto fullPath = filePath + L"DxrBRDF.hlsl";
+			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, DxrBlinnPhongVS));
+			CheckReturn(mShaderManager->CompileShader(psInfo, DxrBlinnPhongPS));
+		}
 	}
 	{
-		const auto fullPath = filePath + L"DxrBlinnPhong.hlsl";
-		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, DxrBlinnPhongVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, DxrBlinnPhongPS));
-	}
-	{
-		const std::wstring fullPath = filePath + L"CookTorrance.hlsl";
-		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, CookTorranceVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, CookTorrancePS));
+		DxcDefine defines[] = {
+			{ L"COOK_TORRANCE", L"1" }
+		};
+
+		{
+			const std::wstring fullPath = filePath + L"BRDF.hlsl";
+			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, CookTorranceVS));
+			CheckReturn(mShaderManager->CompileShader(psInfo, CookTorrancePS));
+		}
+
+		{
+			const auto fullPath = filePath + L"DxrBRDF.hlsl";
+			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, DxrCookTorranceVS));
+			CheckReturn(mShaderManager->CompileShader(psInfo, DxrCookTorrancePS));
+		}
 	}
 
 	return true;
@@ -85,38 +111,82 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 bool BRDFClass::BuildPso() {
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-		psoDesc.pRootSignature = mRootSignature.Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(BlinnPhongVS);
-			auto ps = mShaderManager->GetDxcShader(BlinnPhongPS);
-			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
-			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
-		}
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
+			psoDesc.pRootSignature = mRootSignature.Get();
+			{
+				auto vs = mShaderManager->GetDxcShader(BlinnPhongVS);
+				auto ps = mShaderManager->GetDxcShader(BlinnPhongPS);
+				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+			}
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
 
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::Type::E_BlinnPhong])));
+			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+				&psoDesc, 
+				IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::Type::E_BlinnPhong]))
+			);
+		}
+		{
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
+			psoDesc.pRootSignature = mRootSignature.Get();
+			{
+				auto vs = mShaderManager->GetDxcShader(CookTorranceVS);
+				auto ps = mShaderManager->GetDxcShader(CookTorrancePS);
+				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+			}
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+
+			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+				&psoDesc, 
+				IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::Type::E_CookTorrance]))
+			);
+		}
 	}
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-		psoDesc.pRootSignature = mRootSignature.Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(DxrBlinnPhongVS);
-			auto ps = mShaderManager->GetDxcShader(DxrBlinnPhongPS);
-			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
-			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
-		}
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
+			psoDesc.pRootSignature = mRootSignature.Get();
+			{
+				auto vs = mShaderManager->GetDxcShader(DxrBlinnPhongVS);
+				auto ps = mShaderManager->GetDxcShader(DxrBlinnPhongPS);
+				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+			}
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
 
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::Type::E_BlinnPhong])));
+			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+				&psoDesc, 
+				IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::Type::E_BlinnPhong]))
+			);
+		}
+		{
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
+			psoDesc.pRootSignature = mRootSignature.Get();
+			{
+				auto vs = mShaderManager->GetDxcShader(DxrCookTorranceVS);
+				auto ps = mShaderManager->GetDxcShader(DxrCookTorrancePS);
+				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+			}
+			psoDesc.NumRenderTargets = 1;
+			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+
+			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+				&psoDesc, 
+				IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::Type::E_CookTorrance]))
+			);
+		}
 	}
 
 	return true;
 }
 
-void BRDFClass::BlinnPhong(
+void BRDFClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
@@ -130,7 +200,7 @@ void BRDFClass::BlinnPhong(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
 		Render::Type renderType) {
-	cmdList->SetPipelineState(mPSOs[renderType][Model::Type::E_BlinnPhong].Get());
+	cmdList->SetPipelineState(mPSOs[renderType][ModelType].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	cmdList->RSSetViewports(1, &viewport);

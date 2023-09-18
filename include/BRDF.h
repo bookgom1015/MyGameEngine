@@ -47,7 +47,7 @@ namespace BRDF {
 		friend class DxrBackBuffer::DxrBackBufferClass;
 
 	public:
-		BRDFClass() = default;
+		BRDFClass();
 		virtual ~BRDFClass() = default;
 
 	public:
@@ -56,7 +56,7 @@ namespace BRDF {
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
 
-		void BlinnPhong(
+		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
@@ -70,6 +70,9 @@ namespace BRDF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
 			Render::Type renderType = Render::E_Raster);
+
+	public:
+		Model::Type ModelType;
 
 	private:
 		ID3D12Device* md3dDevice;

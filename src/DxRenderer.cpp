@@ -18,7 +18,7 @@
 #include "Samplers.h"
 #include "BlurFilter.h"
 #include "DebugMap.h"
-#include "SkyCube.h"
+#include "EnvironmentMap.h"
 #include "ImGuiManager.h"
 #include "DxrShadowMap.h"
 #include "DxrGeometryBuffer.h"
@@ -27,6 +27,7 @@
 #include "DebugCollision.h"
 #include "GammaCorrection.h"
 #include "ToneMapping.h"
+#include "CubeMapConverter.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -102,9 +103,17 @@ namespace ShaderArgs {
 		bool ShowCollisionBox = false;
 	}
 
-	namespace DirectionalLight {
+	namespace Light {
 		float AmbientLight[3] = { 0.164f, 0.2f, 0.235f };
-		float Strength[3] = { 0.341f, 0.341f, 0.341f };
+
+		namespace DirectionalLight {
+			float Strength[3] = { 0.9568f, 0.9411f, 0.8941f };
+			float Multiplier = 2.885f;
+		}
+	}
+
+	namespace CubeMapConverter {
+		bool ShowEquirectangularMap = false;
 	}
 }
 
@@ -136,10 +145,11 @@ DxRenderer::DxRenderer() {
 	mMotionBlur = std::make_unique<MotionBlur::MotionBlurClass>();
 	mTaa = std::make_unique<TemporalAA::TemporalAAClass>();
 	mDebugMap = std::make_unique<DebugMap::DebugMapClass>();
-	mSkyCube = std::make_unique<SkyCube::SkyCubeClass>();
+	mSkyCube = std::make_unique<EnvironmentMap::EnvironmentMapClass>();
 	mDebugCollision = std::make_unique<DebugCollision::DebugCollisionClass>();
 	mGammaCorrection = std::make_unique<GammaCorrection::GammaCorrectionClass>();
 	mToneMapping = std::make_unique<ToneMapping::ToneMappingClass>();
+	mCubeMapConverter = std::make_unique<CubeMapConverter::CubeMapConverterClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -216,13 +226,14 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mDebugMap->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mSkyCube->Initialize(device, cmdList, shaderManager, width, height, HDRMapFormat));
+	CheckReturn(mSkyCube->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
 	CheckReturn(mRtao->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat, HDRMapFormat));
+	CheckReturn(mCubeMapConverter->Initialize(device, cmdList, shaderManager));
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -323,7 +334,7 @@ bool DxRenderer::Draw() {
 	}
 	// Post-pass
 	{
-		CheckReturn(DrawSkyCube());
+		CheckReturn(DrawSkySphere());
 		CheckReturn(ApplySsr());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
 		
@@ -335,6 +346,7 @@ bool DxRenderer::Draw() {
 		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 	}
 
+	if (ShaderArgs::CubeMapConverter::ShowEquirectangularMap) CheckReturn(DrawEquirectangulaToCube());
 	CheckReturn(DrawDebuggingInfo());
 	if (bShowImGui) CheckReturn(DrawImGui());
 
@@ -447,6 +459,12 @@ bool DxRenderer::SetCubeMap(const std::string& file) {
 	return true;
 }
 
+bool DxRenderer::SetEquirectangularMap(const std::string& file) {
+	mCubeMapConverter->SetEquirectangularMap(mCommandQueue.Get(), file);
+
+	return true;
+}
+
 void DxRenderer::Pick(float x, float y) {
 	const auto& P = mCamera->GetProj();
 
@@ -462,7 +480,7 @@ void DxRenderer::Pick(float x, float y) {
 	const auto InvView = XMMatrixInverse(&XMMatrixDeterminant(V), V);
 
 	float closestT = std::numeric_limits<float>().max();
-	for (auto ri : mRitemRefs[RenderType::EOpaque]) {
+	for (auto ri : mRitemRefs[RenderType::E_Opaque]) {
 		if (!ri->Pickable) continue;
 
 		auto geo = ri->Geometry;
@@ -539,6 +557,7 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mDebugCollision->CompileShaders(ShaderFilePath));
 	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
 	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
+	CheckReturn(mCubeMapConverter->CompileShaders(ShaderFilePath));
 
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
@@ -553,22 +572,73 @@ bool DxRenderer::CompileShaders() {
 
 bool DxRenderer::BuildGeometries() {
 	GeometryGenerator geoGen;
-	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(1000.0f, 8, 8);
+	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(1.0f, 32, 32);
+	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 1);
 
+	UINT numVertices = 0;
+	UINT numIndices = 0;
+
+	UINT startIndexLocation = 0;
+	UINT baseVertexLocation = 0;
+
+	// 1.
 	SubmeshGeometry sphereSubmesh;
-	sphereSubmesh.IndexCount = static_cast<UINT>(sphere.Indices32.size());
-	sphereSubmesh.StartIndexLocation = 0;
-	sphereSubmesh.BaseVertexLocation = 0;
+	sphereSubmesh.StartIndexLocation = startIndexLocation;
+	sphereSubmesh.BaseVertexLocation = baseVertexLocation;
+	{
+		auto numIdx = static_cast<UINT>(sphere.GetIndices16().size());
+		auto numVert = static_cast<UINT>(sphere.Vertices.size());
 
-	std::vector<Vertex> vertices(sphere.Vertices.size());
+		sphereSubmesh.IndexCount = numIdx;
 
-	for (size_t i = 0, end = sphere.Vertices.size(); i < end; ++i) {
-		vertices[i].Position = sphere.Vertices[i].Position;
-		vertices[i].Normal = sphere.Vertices[i].Normal;
-		vertices[i].TexCoord = sphere.Vertices[i].TexC;
+		numIndices += numIdx;
+		numVertices += numVert;
+
+		startIndexLocation += numIdx;
+		baseVertexLocation += numVert;
 	}
 
-	std::vector<std::uint16_t> indices(sphere.GetIndices16().begin(), sphere.GetIndices16().end());
+	// 2.
+	SubmeshGeometry boxSubmesh;
+	boxSubmesh.StartIndexLocation = startIndexLocation;
+	boxSubmesh.BaseVertexLocation = baseVertexLocation;
+	{
+		auto numIdx = static_cast<UINT>(box.GetIndices16().size());
+		auto numVert = static_cast<UINT>(box.Vertices.size());
+
+		boxSubmesh.IndexCount = numIdx;
+
+		numIndices += numIdx;
+		numVertices += numVert;
+
+		startIndexLocation += numIdx;
+		baseVertexLocation += numVert;
+	}
+
+	std::vector<Vertex> vertices(numVertices);
+
+	for (size_t i = 0, end = sphere.Vertices.size(); i < end; ++i) {
+		auto index = i + sphereSubmesh.BaseVertexLocation;
+		vertices[index].Position = sphere.Vertices[i].Position;
+		vertices[index].Normal = sphere.Vertices[i].Normal;
+		vertices[index].TexCoord = sphere.Vertices[i].TexC;
+	}
+	for (size_t i = 0, end = box.Vertices.size(); i < end; ++i) {
+		auto index = i + boxSubmesh.BaseVertexLocation;
+		vertices[index].Position = box.Vertices[i].Position;
+		vertices[index].Normal = box.Vertices[i].Normal;
+		vertices[index].TexCoord = box.Vertices[i].TexC;
+	}
+
+	std::vector<std::uint16_t> indices(numIndices);
+	for (size_t i = 0, end = sphere.GetIndices16().size(); i < end; ++i) {
+		auto index = i + sphereSubmesh.StartIndexLocation;
+		indices[index] = sphere.GetIndices16()[i];
+	}
+	for (size_t i = 0, end = box.GetIndices16().size(); i < end; ++i) {
+		auto index = i + boxSubmesh.StartIndexLocation;
+		indices[index] = box.GetIndices16()[i];
+	}
 
 	const UINT vbByteSize = static_cast<UINT>(vertices.size() * sizeof(Vertex));
 	const UINT ibByteSize = static_cast<UINT>(indices.size() * sizeof(std::uint16_t));
@@ -614,6 +684,7 @@ bool DxRenderer::BuildGeometries() {
 	geo->IndexBufferByteSize = ibByteSize;
 
 	geo->DrawArgs["sphere"] = sphereSubmesh;
+	geo->DrawArgs["box"] = boxSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 
@@ -657,6 +728,7 @@ void DxRenderer::BuildDescriptors() {
 	mSkyCube->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mCubeMapConverter->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
@@ -687,6 +759,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDebugCollision->BuildRootSignature());
 	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
 	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
+	CheckReturn(mCubeMapConverter->BuildRootSignature(staticSamplers));
 
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
@@ -726,6 +799,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mDebugCollision->BuildPso());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
+	CheckReturn(mCubeMapConverter->BuildPso(inputLayoutDesc));
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -746,16 +820,30 @@ bool DxRenderer::BuildShaderTables() {
 }
 
 void DxRenderer::BuildRenderItems() {
-	auto skyRitem = std::make_unique<RenderItem>();
-	skyRitem->ObjCBIndex = static_cast<int>(mRitems.size());
-	skyRitem->Geometry = mGeometries["basic"].get();
-	skyRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	skyRitem->IndexCount = skyRitem->Geometry->DrawArgs["sphere"].IndexCount;
-	skyRitem->StartIndexLocation = skyRitem->Geometry->DrawArgs["sphere"].StartIndexLocation;
-	skyRitem->BaseVertexLocation = skyRitem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
-	skyRitem->World = MathHelper::Identity4x4();
-	mRitemRefs[RenderType::ESky].push_back(skyRitem.get());
-	mRitems.push_back(std::move(skyRitem));
+	{
+		auto skyRitem = std::make_unique<RenderItem>();
+		skyRitem->ObjCBIndex = static_cast<int>(mRitems.size());
+		skyRitem->Geometry = mGeometries["basic"].get();
+		skyRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		skyRitem->IndexCount = skyRitem->Geometry->DrawArgs["sphere"].IndexCount;
+		skyRitem->StartIndexLocation = skyRitem->Geometry->DrawArgs["sphere"].StartIndexLocation;
+		skyRitem->BaseVertexLocation = skyRitem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
+		XMStoreFloat4x4(&skyRitem->World, XMMatrixScaling(1000.0f, 1000.0f, 1000.0f));
+		mRitemRefs[RenderType::E_SkySphere].push_back(skyRitem.get());
+		mRitems.push_back(std::move(skyRitem));
+	}
+	{
+		auto boxRitem = std::make_unique<RenderItem>();
+		boxRitem->ObjCBIndex = static_cast<int>(mRitems.size());
+		boxRitem->Geometry = mGeometries["basic"].get();
+		boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		boxRitem->IndexCount = boxRitem->Geometry->DrawArgs["box"].IndexCount;
+		boxRitem->StartIndexLocation = boxRitem->Geometry->DrawArgs["box"].StartIndexLocation;
+		boxRitem->BaseVertexLocation = boxRitem->Geometry->DrawArgs["box"].BaseVertexLocation;
+		XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0, 4.5f, 0.0f));
+		mRitemRefs[RenderType::E_Equirectangular].push_back(boxRitem.get());
+		mRitems.push_back(std::move(boxRitem));
+	}
 }
 
 bool DxRenderer::AddGeometry(const std::string& file) {
@@ -950,7 +1038,7 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4*const cmdList, MeshGeometry*
 bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4*const cmdList) {
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
 
-	const auto opaques = mRitemRefs[RenderType::EOpaque];
+	const auto opaques = mRitemRefs[RenderType::E_Opaque];
 
 	for (const auto ri : opaques) {
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
@@ -1154,8 +1242,6 @@ bool DxRenderer::UpdateMainPassCB(float delta) {
 
 	size_t offsetIndex = static_cast<size_t>(GetCurrentFence()) % mFittedToBakcBufferHaltonSequence.size();
 
-	const auto ambient = ShaderArgs::DirectionalLight::AmbientLight;
-
 	mMainPassCB->PrevViewProj = mMainPassCB->ViewProj;
 	XMStoreFloat4x4(&mMainPassCB->View, XMMatrixTranspose(view));
 	XMStoreFloat4x4(&mMainPassCB->InvView, XMMatrixTranspose(invView));
@@ -1166,8 +1252,13 @@ bool DxRenderer::UpdateMainPassCB(float delta) {
 	XMStoreFloat4x4(&mMainPassCB->ViewProjTex, XMMatrixTranspose(viewProjTex));
 	XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->GetPosition());
 	mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.0f, 0.0f);
+
+	const auto ambient = ShaderArgs::Light::AmbientLight;
 	mMainPassCB->AmbientLight = XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
-	mMainPassCB->Lights[0].Strength = XMFLOAT3(ShaderArgs::DirectionalLight::Strength);
+
+	XMVECTOR strength = XMLoadFloat3(&XMFLOAT3(ShaderArgs::Light::DirectionalLight::Strength));
+	strength = XMVectorScale(strength, ShaderArgs::Light::DirectionalLight::Multiplier);
+	XMStoreFloat3(&mMainPassCB->Lights[0].Strength, strength);
 	mMainPassCB->Lights[0].Direction = mLightDir;
 
 	auto& currPassCB = mCurrFrameResource->PassCB;
@@ -1358,7 +1449,7 @@ bool DxRenderer::DrawShadowMap() {
 		objCBAddress,
 		matCBAddress,
 		mhGpuDescForTexMaps,
-		mRitemRefs[RenderType::EOpaque]
+		mRitemRefs[RenderType::E_Opaque]
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -1391,7 +1482,7 @@ bool DxRenderer::DrawGBuffer() {
 		objCBAddress,
 		matCBAddress,
 		mhGpuDescForTexMaps,
-		mRitemRefs[RenderType::EOpaque]
+		mRitemRefs[RenderType::E_Opaque]
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -1473,7 +1564,7 @@ bool DxRenderer::DrawBackBuffer() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	mBRDF->BlinnPhong(
+	mBRDF->Run(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -1496,7 +1587,7 @@ bool DxRenderer::DrawBackBuffer() {
 	return true;
 }
 
-bool DxRenderer::DrawSkyCube() {
+bool DxRenderer::DrawSkySphere() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -1520,9 +1611,42 @@ bool DxRenderer::DrawSkyCube() {
 		passCBAddress,
 		objCBAddress,
 		objCBByteSize,
-		mRitemRefs[RenderType::ESky]
+		mRitemRefs[RenderType::E_SkySphere]
 	);
 
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
+bool DxRenderer::DrawEquirectangulaToCube() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+	
+	const auto pDescHeap = mCbvSrvUavHeap.Get();
+	auto descSize = GetCbvSrvUavDescriptorSize();
+	
+	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	
+	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
+	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
+	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+	
+	mCubeMapConverter->Run(
+		cmdList,
+		mScreenViewport,
+		mScissorRect,
+		mSwapChainBuffer->CurrentBackBuffer(),
+		mSwapChainBuffer->CurrentBackBufferRtv(),
+		passCBAddress,
+		objCBAddress,
+		objCBByteSize,
+		mRitemRefs[RenderType::E_Equirectangular]
+	);
+	
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
@@ -1921,7 +2045,7 @@ bool DxRenderer::DrawDebuggingInfo() {
 			mSwapChainBuffer->CurrentBackBufferRtv(),
 			mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 			mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress(),
-			mRitemRefs[RenderType::EOpaque]
+			mRitemRefs[RenderType::E_Opaque]
 		);
 	}
 
@@ -2041,12 +2165,22 @@ bool DxRenderer::DrawImGui() {
 			ImGui::Checkbox("Tone Mapping", &bToneMappingEnabled);
 		}
 		if (ImGui::CollapsingHeader("Lights")) {
+			ImGui::ColorPicker3("Amblient Light", ShaderArgs::Light::AmbientLight);
+
 			if (ImGui::TreeNode("Directional Lights")) {
-				ImGui::ColorPicker3("Amblient Light", ShaderArgs::DirectionalLight::AmbientLight);
-				ImGui::ColorPicker3("Strength", ShaderArgs::DirectionalLight::Strength);
+				ImGui::ColorPicker3("Strength", ShaderArgs::Light::DirectionalLight::Strength);
+				ImGui::SliderFloat("Multiplier", &ShaderArgs::Light::DirectionalLight::Multiplier, 0, 100.0f);
 
 				ImGui::TreePop();
 			}
+		}
+		if (ImGui::CollapsingHeader("BRDF")) {
+			ImGui::RadioButton("Blinn-Phong", reinterpret_cast<int*>(&mBRDF->ModelType), BRDF::Model::E_BlinnPhong); ImGui::SameLine();
+			ImGui::RadioButton("Cook-Torrance", reinterpret_cast<int*>(&mBRDF->ModelType), BRDF::Model::E_CookTorrance);
+			
+		}
+		if (ImGui::CollapsingHeader("Environment")) {
+			ImGui::Checkbox("Show  Equirectangular Map", &ShaderArgs::CubeMapConverter::ShowEquirectangularMap);
 		}
 
 		ImGui::End();
@@ -2202,7 +2336,7 @@ bool DxRenderer::DrawDxrBackBuffer() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
-	mBRDF->BlinnPhong(
+	mBRDF->Run(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,

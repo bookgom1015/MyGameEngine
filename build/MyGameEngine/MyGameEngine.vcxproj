@@ -169,6 +169,7 @@
     <ClInclude Include="..\..\include\Camera.h" />
     <ClInclude Include="..\..\include\CameraComponent.h" />
     <ClInclude Include="..\..\include\Component.h" />
+    <ClInclude Include="..\..\include\CubeMapConverter.h" />
     <ClInclude Include="..\..\include\D3D12Util.h" />
     <ClInclude Include="..\..\include\d3dx12.h" />
     <ClInclude Include="..\..\include\DebugCollision.h" />
@@ -211,7 +212,7 @@
     <ClInclude Include="..\..\include\ShaderManager.h" />
     <ClInclude Include="..\..\include\ShaderTable.h" />
     <ClInclude Include="..\..\include\ShadowMap.h" />
-    <ClInclude Include="..\..\include\SkyCube.h" />
+    <ClInclude Include="..\..\include\EnvironmentMap.h" />
     <ClInclude Include="..\..\include\SphereActor.h" />
     <ClInclude Include="..\..\include\Ssao.h" />
     <ClInclude Include="..\..\include\Ssr.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="..\..\src\Camera.cpp" />
     <ClCompile Include="..\..\src\CameraComponent.cpp" />
     <ClCompile Include="..\..\src\Component.cpp" />
+    <ClCompile Include="..\..\src\CubeMapConverter.cpp" />
     <ClCompile Include="..\..\src\D3D12Util.cpp" />
     <ClCompile Include="..\..\src\DebugCollision.cpp" />
     <ClCompile Include="..\..\src\DebugMap.cpp" />
@@ -277,7 +279,7 @@
     <ClCompile Include="..\..\src\ShaderManager.cpp" />
     <ClCompile Include="..\..\src\ShaderTable.cpp" />
     <ClCompile Include="..\..\src\ShadowMap.cpp" />
-    <ClCompile Include="..\..\src\SkyCube.cpp" />
+    <ClCompile Include="..\..\src\EnvironmentMap.cpp" />
     <ClCompile Include="..\..\src\SphereActor.cpp" />
     <ClCompile Include="..\..\src\Ssao.cpp" />
     <ClCompile Include="..\..\src\Ssr.cpp" />
@@ -339,12 +341,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\Sky.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\EnvironmentMap.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -439,7 +441,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DxrBlinnPhong.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DxrBRDF.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -495,7 +497,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

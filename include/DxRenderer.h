@@ -49,13 +49,14 @@ public:
 
 	virtual bool OnResize(UINT width, UINT height) override;
 
-	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::EOpaque) override;
+	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::E_Opaque) override;
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
 	virtual void SetModelVisibility(void* model, bool visible) override;
 	virtual void SetModelPickable(void* model, bool pickable) override;
 
 	virtual bool SetCubeMap(const std::string& file) override;
+	virtual bool SetEquirectangularMap(const std::string& file) override;
 
 	virtual void Pick(float x, float y) override;
 
@@ -94,7 +95,8 @@ private:
 	bool DrawGBuffer();
 	bool DrawSsao();
 	bool DrawBackBuffer();
-	bool DrawSkyCube();
+	bool DrawSkySphere();
+	bool DrawEquirectangulaToCube();
 	bool ApplyTAA();
 	bool ApplySsr();
 	bool ApplyBloom();
@@ -152,10 +154,11 @@ private:
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
 	std::unique_ptr<TemporalAA::TemporalAAClass> mTaa;
 	std::unique_ptr<DebugMap::DebugMapClass> mDebugMap;
-	std::unique_ptr<SkyCube::SkyCubeClass> mSkyCube;
+	std::unique_ptr<EnvironmentMap::EnvironmentMapClass> mSkyCube;
 	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
 	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;
+	std::unique_ptr<CubeMapConverter::CubeMapConverterClass> mCubeMapConverter;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
