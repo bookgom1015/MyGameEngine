@@ -5,7 +5,6 @@ namespace RenderType {
 		E_Opaque = 0,
 		E_Blend,
 		E_SkySphere,
-		E_Equirectangular,
 		Count,
 	};
 }

@@ -32,6 +32,7 @@ public:
 	UploadBuffer<BlurConstants> BlurCB;
 	UploadBuffer<DofConstants> DofCB;
 	UploadBuffer<SsrConstants> SsrCB;
+	UploadBuffer<ConvertEquirectangularToCubeConstantBuffer> ConvEquirectToCubeCB;
 
 	UINT64 Fence;
 

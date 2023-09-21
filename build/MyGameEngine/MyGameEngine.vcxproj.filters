@@ -318,8 +318,8 @@
     <ClInclude Include="..\..\include\DxForwardDeclarations.h">
       <Filter>Header Files\Render\DirectX</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\CubeMapConverter.h">
-      <Filter>Header Files\Render\DirectX</Filter>
+    <ClInclude Include="..\..\include\IrradianceMap.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -515,8 +515,8 @@
     <ClCompile Include="..\..\src\ToneMapping.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CubeMapConverter.cpp">
-      <Filter>Source Files\Render\DirectX</Filter>
+    <ClCompile Include="..\..\src\IrradianceMap.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -720,6 +720,9 @@
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawIrradianceCubeMap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
   </ItemGroup>

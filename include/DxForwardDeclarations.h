@@ -19,4 +19,4 @@ namespace Rtao { class RtaoClass; }
 namespace DebugCollision { class DebugCollisionClass; }
 namespace GammaCorrection { class GammaCorrectionClass; }
 namespace ToneMapping { class ToneMappingClass; }
-namespace CubeMapConverter { class CubeMapConverterClass; }
+namespace IrradianceMap { class IrradianceMapClass; }

@@ -111,7 +111,6 @@ void EnvironmentMapClass::Run(
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbPassAddress);
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, cbObjAddress);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Cube, mhGpuSrv);
 
 	DrawRenderItems(cmdList, ritems, cbObjAddress, objCBByteSize);

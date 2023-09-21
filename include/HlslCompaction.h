@@ -181,6 +181,11 @@ struct AtrousWaveletTransformFilterConstantBuffer {
 	float FovY;
 };
 
+struct ConvertEquirectangularToCubeConstantBuffer {
+	DirectX::XMFLOAT4X4 Proj;
+	DirectX::XMFLOAT4X4 View[6];
+};
+
 namespace Debug {
 	static const int MapCount = 5;
 

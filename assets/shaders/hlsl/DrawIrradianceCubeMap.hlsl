@@ -1,5 +1,5 @@
-#ifndef __CONVERTEQUIRECTANGULARTOCUBEMAP_HLSL__
-#define __CONVERTEQUIRECTANGULARTOCUBEMAP_HLSL__
+#ifndef __DRAWIRRADIANCECUBEMAP_HLSL__
+#define __DRAWIRRADIANCECUBEMAP_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -8,13 +8,11 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer>	cbCube	: register(b0);
+ConstantBuffer<PassConstants>	cbPass	: register(b0);
+ConstantBuffer<ObjectConstants> cbObj	: register(b1);
 
-cbuffer cbRootConstants : register(b1) {
-	uint FaceID;
-}
-
-Texture2D<float3> gi_Equirectangular : register(t0);
+TextureCube<float3> gi_Cube				: register(t0);
+Texture2D<float3>	gi_Equirectangular	: register(t1);
 
 struct VertexIn {
 	float3 PosL		: POSITION;
@@ -29,16 +27,14 @@ struct VertexOut {
 
 static const float2 InvATan = float2(0.1591, 0.3183);
 
-VertexOut VS(VertexIn vin) {
+VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 	VertexOut vout;
 
 	vout.PosL = vin.PosL;
 
-	float4x4 view = cbCube.View[FaceID];
-	float4 posV = mul(float4(vin.PosL, 1.0f), view);
-	float4 posH = mul(posV, cbCube.Proj);
+	float4 posW = mul(float4(vin.PosL, 1.0f), cbObj.World);
 
-	vout.PosH = posH.xyww;
+	vout.PosH = mul(posW, cbPass.ViewProj);
 
 	return vout;
 }
@@ -52,9 +48,16 @@ float2 SampleSphericalMap(float3 view) {
 }
 
 float4 PS(VertexOut pin) : SV_Target{
+	float3 samp = 0;
+
+#ifdef SPHERICAL
 	float2 texc = SampleSphericalMap(normalize(pin.PosL));
-	float3 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc, 0);
+	 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc, 0);
+#else
+	samp = gi_Cube.Sample(gsamLinearWrap, normalize(pin.PosL));
+#endif
+
 	return float4(samp, 1);
 }
 
-#endif // __CONVERTEQUIRECTANGULARTOCUBEMAP_HLSL__
+#endif // __DRAWIRRADIANCECUBEMAP_HLSL__

@@ -27,7 +27,7 @@
 #include "DebugCollision.h"
 #include "GammaCorrection.h"
 #include "ToneMapping.h"
-#include "CubeMapConverter.h"
+#include "IrradianceMap.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -112,8 +112,8 @@ namespace ShaderArgs {
 		}
 	}
 
-	namespace CubeMapConverter {
-		bool ShowEquirectangularMap = false;
+	namespace IrradianceMap {
+		bool ShowIrradianceCubeMap = false;
 	}
 }
 
@@ -149,7 +149,7 @@ DxRenderer::DxRenderer() {
 	mDebugCollision = std::make_unique<DebugCollision::DebugCollisionClass>();
 	mGammaCorrection = std::make_unique<GammaCorrection::GammaCorrectionClass>();
 	mToneMapping = std::make_unique<ToneMapping::ToneMappingClass>();
-	mCubeMapConverter = std::make_unique<CubeMapConverter::CubeMapConverterClass>();
+	mIrradianceMap = std::make_unique<IrradianceMap::IrradianceMapClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -233,7 +233,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat, HDRMapFormat));
-	CheckReturn(mCubeMapConverter->Initialize(device, cmdList, shaderManager));
+	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -300,16 +300,9 @@ bool DxRenderer::Update(float delta) {
 	CheckReturn(UpdateSsrCB(delta));
 	CheckReturn(UpdateObjectCBs(delta));
 	CheckReturn(UpdateMaterialCBs(delta));
+	CheckReturn(UpdateConvEquirectToCubeCB(delta));
 
-	const auto cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-
-	CheckReturn(BuildTLASs(cmdList));
-
-	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	CheckReturn(FlushCommandQueue());
+	CheckReturn(UpdateShadingObjects(delta));
 
 	return true;
 }
@@ -346,7 +339,7 @@ bool DxRenderer::Draw() {
 		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 	}
 
-	if (ShaderArgs::CubeMapConverter::ShowEquirectangularMap) CheckReturn(DrawEquirectangulaToCube());
+	if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) CheckReturn(DrawEquirectangulaToCube());
 	CheckReturn(DrawDebuggingInfo());
 	if (bShowImGui) CheckReturn(DrawImGui());
 
@@ -460,7 +453,7 @@ bool DxRenderer::SetCubeMap(const std::string& file) {
 }
 
 bool DxRenderer::SetEquirectangularMap(const std::string& file) {
-	mCubeMapConverter->SetEquirectangularMap(mCommandQueue.Get(), file);
+	mIrradianceMap->SetEquirectangularMap(mCommandQueue.Get(), file);
 
 	return true;
 }
@@ -515,7 +508,8 @@ bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 		+ DepthOfField::NumRenderTargets
 		+ Bloom::NumRenderTargets
 		+ Ssr::NumRenderTargets
-		+ ToneMapping::NumRenderTargets;
+		+ ToneMapping::NumRenderTargets
+		+ IrradianceMap::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -557,7 +551,7 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mDebugCollision->CompileShaders(ShaderFilePath));
 	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
 	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
-	CheckReturn(mCubeMapConverter->CompileShaders(ShaderFilePath));
+	CheckReturn(mIrradianceMap->CompileShaders(ShaderFilePath));
 
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
@@ -728,7 +722,7 @@ void DxRenderer::BuildDescriptors() {
 	mSkyCube->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mCubeMapConverter->BuildDescriptors(hCpu, hGpu, descSize);
+	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
@@ -759,7 +753,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDebugCollision->BuildRootSignature());
 	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
 	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
-	CheckReturn(mCubeMapConverter->BuildRootSignature(staticSamplers));
+	CheckReturn(mIrradianceMap->BuildRootSignature(staticSamplers));
 
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
@@ -799,7 +793,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mDebugCollision->BuildPso());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
-	CheckReturn(mCubeMapConverter->BuildPso(inputLayoutDesc));
+	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc));
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -840,8 +834,8 @@ void DxRenderer::BuildRenderItems() {
 		boxRitem->IndexCount = boxRitem->Geometry->DrawArgs["box"].IndexCount;
 		boxRitem->StartIndexLocation = boxRitem->Geometry->DrawArgs["box"].StartIndexLocation;
 		boxRitem->BaseVertexLocation = boxRitem->Geometry->DrawArgs["box"].BaseVertexLocation;
-		XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0, 4.5f, 0.0f));
-		mRitemRefs[RenderType::E_Equirectangular].push_back(boxRitem.get());
+		XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 4.5f, 0.0f));
+		mIrradianceCubeMap = boxRitem.get();
 		mRitems.push_back(std::move(boxRitem));
 	}
 }
@@ -1171,6 +1165,27 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	return mCurrDescriptorIndex++;
 }
 
+bool DxRenderer::UpdateShadingObjects(float delta) {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+	mIrradianceMap->Update(
+		mCbvSrvUavHeap.Get(),
+		cmdList, 
+		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(), 
+		mIrradianceCubeMap
+	);
+
+	CheckReturn(BuildTLASs(cmdList));
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	CheckReturn(FlushCommandQueue());
+
+	return true;
+}
+
 bool DxRenderer::UpdateShadowPassCB(float delta) {
 	XMVECTOR lightDir = XMLoadFloat3(&mLightDir);
 	XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
@@ -1398,6 +1413,71 @@ bool DxRenderer::UpdateMaterialCBs(float delta) {
 			mat->NumFramesDirty--;
 		}
 	}
+
+	return true;
+}
+
+bool DxRenderer::UpdateConvEquirectToCubeCB(float delta) {
+	ConvertEquirectangularToCubeConstantBuffer cubeCB;
+
+	XMStoreFloat4x4(&cubeCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
+	// Positive +X
+	XMStoreFloat4x4(
+		&cubeCB.View[0],
+		XMMatrixTranspose(XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f),
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+		))
+	);
+	// Positive -X
+	XMStoreFloat4x4(
+		&cubeCB.View[1],
+		XMMatrixTranspose(XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f),
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+		))
+	);
+	// Positive +Y
+	XMStoreFloat4x4(
+		&cubeCB.View[2],
+		XMMatrixTranspose(XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
+			XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)
+		))
+	);
+	// Positive -Y
+	XMStoreFloat4x4(
+		&cubeCB.View[3],
+		XMMatrixTranspose(XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f),
+			XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)
+		))
+	);
+	// Positive +Z
+	XMStoreFloat4x4(
+		&cubeCB.View[4],
+		XMMatrixTranspose(XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+		))
+	);
+	// Positive -Z
+	XMStoreFloat4x4(
+		&cubeCB.View[5],
+		XMMatrixTranspose(XMMatrixLookAtLH(
+			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
+			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+		))
+	);
+
+	auto& currCubeCB = mCurrFrameResource->ConvEquirectToCubeCB;
+	currCubeCB.CopyData(0, cubeCB);
 
 	return true;
 }
@@ -1634,8 +1714,8 @@ bool DxRenderer::DrawEquirectangulaToCube() {
 	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-	
-	mCubeMapConverter->Run(
+
+	mIrradianceMap->DrawCubeMap(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -1644,7 +1724,7 @@ bool DxRenderer::DrawEquirectangulaToCube() {
 		passCBAddress,
 		objCBAddress,
 		objCBByteSize,
-		mRitemRefs[RenderType::E_Equirectangular]
+		mIrradianceCubeMap
 	);
 	
 	CheckHRESULT(cmdList->Close());
@@ -2180,7 +2260,17 @@ bool DxRenderer::DrawImGui() {
 			
 		}
 		if (ImGui::CollapsingHeader("Environment")) {
-			ImGui::Checkbox("Show  Equirectangular Map", &ShaderArgs::CubeMapConverter::ShowEquirectangularMap);
+			ImGui::Checkbox("Show Irradiance CubeMap", &ShaderArgs::IrradianceMap::ShowIrradianceCubeMap);
+			if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
+				ImGui::RadioButton(
+					"Converted CubeMap", 
+					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType), 
+					IrradianceMap::PipelineState::E_DrawConvertedCube); ImGui::SameLine();
+				ImGui::RadioButton(
+					"Equirectangular Map", 
+					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType), 
+					IrradianceMap::PipelineState::E_DrawEquirectangularCube);
+			}
 		}
 
 		ImGui::End();

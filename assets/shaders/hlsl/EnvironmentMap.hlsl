@@ -24,7 +24,7 @@ struct VertexOut {
 	float3 PosL		: POSITION;
 };
 
-VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
+VertexOut VS(VertexIn vin) {
 	VertexOut vout;
 
 	// Use local vertex position as cubemap lookup vector.

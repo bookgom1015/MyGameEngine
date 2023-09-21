@@ -82,6 +82,7 @@ private:
 	bool BuildShaderTables();
 	void BuildRenderItems();
 
+	bool UpdateShadingObjects(float delta);
 	bool UpdateShadowPassCB(float delta);
 	bool UpdateMainPassCB(float delta);
 	bool UpdateSsaoPassCB(float delta);
@@ -90,6 +91,7 @@ private:
 	bool UpdateSsrCB(float delta);
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
+	bool UpdateConvEquirectToCubeCB(float delta);
 	
 	bool DrawShadowMap();
 	bool DrawGBuffer();
@@ -158,7 +160,7 @@ private:
 	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
 	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;
-	std::unique_ptr<CubeMapConverter::CubeMapConverterClass> mCubeMapConverter;
+	std::unique_ptr<IrradianceMap::IrradianceMapClass> mIrradianceMap;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
@@ -172,6 +174,7 @@ private:
 	std::unordered_map<DebugMapLayout::Type, bool> mDebugMapStates;
 
 	RenderItem* mPickedRitem;
+	RenderItem* mIrradianceCubeMap;
 
 	//
 	// DirectXTK12

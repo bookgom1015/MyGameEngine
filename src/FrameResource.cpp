@@ -22,6 +22,7 @@ bool FrameResource::Initialize() {
 	CheckReturn(BlurCB.Initialize(Device, 1, true));
 	CheckReturn(DofCB.Initialize(Device, 1, true));
 	CheckReturn(SsrCB.Initialize(Device, 1, true));
+	CheckReturn(ConvEquirectToCubeCB.Initialize(Device, 1, true))
 
 	return true;
 }
