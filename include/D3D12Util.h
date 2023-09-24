@@ -3,6 +3,7 @@
 #include <string>
 #include <wrl.h>
 #include <d3dx12.h>
+#include <DDS.h>
 
 #ifndef ReleaseCom
 #define ReleaseCom(x) { if (x){ x->Release(); x = NULL; } }

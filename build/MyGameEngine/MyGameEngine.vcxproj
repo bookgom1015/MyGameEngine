@@ -169,6 +169,7 @@
     <ClInclude Include="..\..\include\Camera.h" />
     <ClInclude Include="..\..\include\CameraComponent.h" />
     <ClInclude Include="..\..\include\Component.h" />
+    <ClInclude Include="..\..\include\DDS.h" />
     <ClInclude Include="..\..\include\IrradianceMap.h" />
     <ClInclude Include="..\..\include\D3D12Util.h" />
     <ClInclude Include="..\..\include\d3dx12.h" />
@@ -346,7 +347,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\EnvironmentMap.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -503,6 +504,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\DrawIrradianceCubeMap.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\DiffuseIrradiance.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

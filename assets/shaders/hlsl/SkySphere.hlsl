@@ -1,5 +1,5 @@
-#ifndef __ENVIRONMENTMAP_HLSL__
-#define __ENVIRONMENTMAP_HLSL__
+#ifndef __SKYSPHERE_HLSL__
+#define __SKYSPHERE_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -48,4 +48,4 @@ float4 PS(VertexOut pin) : SV_Target {
 	return cubeSample;
 }
 
-#endif // __ENVIRONMENTMAP_HLSL__
+#endif // __SKYSPHERE_HLSL__

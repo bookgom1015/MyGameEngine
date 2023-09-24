@@ -18,7 +18,6 @@
 #include "Samplers.h"
 #include "BlurFilter.h"
 #include "DebugMap.h"
-#include "EnvironmentMap.h"
 #include "ImGuiManager.h"
 #include "DxrShadowMap.h"
 #include "DxrGeometryBuffer.h"
@@ -145,7 +144,6 @@ DxRenderer::DxRenderer() {
 	mMotionBlur = std::make_unique<MotionBlur::MotionBlurClass>();
 	mTaa = std::make_unique<TemporalAA::TemporalAAClass>();
 	mDebugMap = std::make_unique<DebugMap::DebugMapClass>();
-	mSkyCube = std::make_unique<EnvironmentMap::EnvironmentMapClass>();
 	mDebugCollision = std::make_unique<DebugCollision::DebugCollisionClass>();
 	mGammaCorrection = std::make_unique<GammaCorrection::GammaCorrectionClass>();
 	mToneMapping = std::make_unique<ToneMapping::ToneMappingClass>();
@@ -226,7 +224,6 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mDebugMap->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mSkyCube->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
 	CheckReturn(mRtao->Initialize(device, cmdList, shaderManager, width, height));
@@ -334,9 +331,9 @@ bool DxRenderer::Draw() {
 		CheckReturn(ResolveToneMapping());
 		if (bGammaCorrectionEnabled) CheckReturn(ApplyGammaCorrection());
 
-		if (bTaaEnabled) CheckReturn(ApplyTAA());
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
+		if (bTaaEnabled) CheckReturn(ApplyTAA());
 	}
 
 	if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) CheckReturn(DrawEquirectangulaToCube());
@@ -439,15 +436,6 @@ void DxRenderer::SetModelPickable(void* model, bool pickable) {
 }
 
 bool DxRenderer::SetCubeMap(const std::string& file) {
-	ID3D12GraphicsCommandList* cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-
-	mSkyCube->SetCubeMap(mCommandQueue.Get(), file);
-
-	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	CheckReturn(FlushCommandQueue());
 
 	return true;
 }
@@ -547,7 +535,6 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mMotionBlur->CompileShaders(ShaderFilePath));
 	CheckReturn(mTaa->CompileShaders(ShaderFilePath));
 	CheckReturn(mDebugMap->CompileShaders(ShaderFilePath));
-	CheckReturn(mSkyCube->CompileShaders(ShaderFilePath));
 	CheckReturn(mDebugCollision->CompileShaders(ShaderFilePath));
 	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
 	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
@@ -719,7 +706,6 @@ void DxRenderer::BuildDescriptors() {
 	mDof->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mMotionBlur->BuildDescriptors(hCpuRtv, rtvDescSize);
 	mTaa->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mSkyCube->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -749,7 +735,6 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mMotionBlur->BuildRootSignature(staticSamplers));
 	CheckReturn(mTaa->BuildRootSignature(staticSamplers));
 	CheckReturn(mDebugMap->BuildRootSignature(staticSamplers));
-	CheckReturn(mSkyCube->BuildRootSignature(staticSamplers));
 	CheckReturn(mDebugCollision->BuildRootSignature());
 	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
 	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
@@ -789,11 +774,10 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mMotionBlur->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
 	CheckReturn(mTaa->BuildPso());
 	CheckReturn(mDebugMap->BuildPso());
-	CheckReturn(mSkyCube->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
 	CheckReturn(mDebugCollision->BuildPso());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
-	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc));
+	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -823,7 +807,7 @@ void DxRenderer::BuildRenderItems() {
 		skyRitem->StartIndexLocation = skyRitem->Geometry->DrawArgs["sphere"].StartIndexLocation;
 		skyRitem->BaseVertexLocation = skyRitem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
 		XMStoreFloat4x4(&skyRitem->World, XMMatrixScaling(1000.0f, 1000.0f, 1000.0f));
-		mRitemRefs[RenderType::E_SkySphere].push_back(skyRitem.get());
+		mSkySphere = skyRitem.get();
 		mRitems.push_back(std::move(skyRitem));
 	}
 	{
@@ -1170,6 +1154,7 @@ bool DxRenderer::UpdateShadingObjects(float delta) {
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	mIrradianceMap->Update(
+		mCommandQueue.Get(),
 		mCbvSrvUavHeap.Get(),
 		cmdList, 
 		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(), 
@@ -1681,7 +1666,7 @@ bool DxRenderer::DrawSkySphere() {
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 	
-	mSkyCube->Run(
+	mIrradianceMap->DrawSkySphere(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -1691,7 +1676,7 @@ bool DxRenderer::DrawSkySphere() {
 		passCBAddress,
 		objCBAddress,
 		objCBByteSize,
-		mRitemRefs[RenderType::E_SkySphere]
+		mSkySphere
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -1836,7 +1821,7 @@ bool DxRenderer::ApplySsr() {
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	const auto resultMap = mSsr->ResultMapResource();
-	const auto envMapSrv = mSkyCube->CubeMapSrv();
+	const auto envMapSrv = mIrradianceMap->EnvironmentCubeMapSrv();
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -2222,6 +2207,12 @@ bool DxRenderer::DrawImGui() {
 						mSsr->SsrMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
+				if (ImGui::Checkbox("Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_IrradianceEquirect])) {
+					BuildDebugMaps(
+						mDebugMapStates[DebugMapLayout::E_IrradianceEquirect],
+						mIrradianceMap->IrradianceEquirectMapSrv(),
+						Debug::SampleMask::RGB);
+				}
 				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::E_DxrShadow],
@@ -2270,6 +2261,10 @@ bool DxRenderer::DrawImGui() {
 					"Equirectangular Map", 
 					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType), 
 					IrradianceMap::PipelineState::E_DrawEquirectangularCube);
+				ImGui::RadioButton(
+					"Irradiance CubeMap",
+					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType),
+					IrradianceMap::PipelineState::E_DrawIrradianceCube);
 			}
 		}
 

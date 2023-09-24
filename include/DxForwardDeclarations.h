@@ -11,7 +11,6 @@ namespace DepthOfField { class DepthOfFieldClass; }
 namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }
 namespace DebugMap { class DebugMapClass; }
-namespace EnvironmentMap { class EnvironmentMapClass; }
 namespace DxrShadowMap { class DxrShadowMapClass; }
 namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
 namespace BlurFilterCS { class BlurFilterCSClass; }

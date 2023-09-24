@@ -11,7 +11,7 @@
 ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer>	cbCube	: register(b0);
 
 cbuffer cbRootConstants : register(b1) {
-	uint FaceID;
+	uint gFaceID;
 }
 
 Texture2D<float3> gi_Equirectangular : register(t0);
@@ -34,7 +34,7 @@ VertexOut VS(VertexIn vin) {
 
 	vout.PosL = vin.PosL;
 
-	float4x4 view = cbCube.View[FaceID];
+	float4x4 view = cbCube.View[gFaceID];
 	float4 posV = mul(float4(vin.PosL, 1.0f), view);
 	float4 posH = mul(posV, cbCube.Proj);
 

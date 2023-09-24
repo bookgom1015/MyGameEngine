@@ -30,6 +30,7 @@ namespace DebugMapLayout {
 		E_SSR,
 		E_DiffuseReflectance,
 		E_SpecularReflectance,
+		E_IrradianceEquirect,
 		E_DxrShadow,
 		Count
 	};
@@ -156,7 +157,6 @@ private:
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
 	std::unique_ptr<TemporalAA::TemporalAAClass> mTaa;
 	std::unique_ptr<DebugMap::DebugMapClass> mDebugMap;
-	std::unique_ptr<EnvironmentMap::EnvironmentMapClass> mSkyCube;
 	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
 	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;
@@ -175,6 +175,7 @@ private:
 
 	RenderItem* mPickedRitem;
 	RenderItem* mIrradianceCubeMap;
+	RenderItem* mSkySphere;
 
 	//
 	// DirectXTK12

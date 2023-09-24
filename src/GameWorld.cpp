@@ -470,7 +470,6 @@ bool GameWorld::Draw() {
 }
 
 bool GameWorld::LoadData() {
-	CheckReturn(mRenderer->SetCubeMap("./../../assets/textures/sky_cube.dds"));
 	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/forest_hdr.dds"));
 
 	XMFLOAT4 rot;
@@ -481,7 +480,7 @@ bool GameWorld::LoadData() {
 	new RotatingMonkey("monkey_2", 2.0f * XM_2PI, DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
 	new RotatingMonkey("monkey_3", XM_PI, DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
 	new RotatingMonkey("monkey_4", XM_PIDIV4, DirectX::XMFLOAT3(0.0f, 0.0f, -20.0f), rot);
-	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(1000.0f, 1.0f, 1000.0f));
+	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(10.0f, 1.0f, 10.0f));
 	new SphereActor("sphere_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -2.0f));
 
 	return true;
