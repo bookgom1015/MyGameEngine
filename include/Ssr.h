@@ -6,9 +6,9 @@
 #include <wrl.h>
 
 #include "Samplers.h"
-#include "GpuResource.h"
 
 class ShaderManager;
+class GpuResource;
 
 namespace Ssr {
 	namespace Building {
@@ -48,7 +48,7 @@ namespace Ssr {
 		};
 	}
 
-	static const UINT NumRenderTargets = 3;
+	static const UINT NumRenderTargets = 2;
 	
 	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
@@ -59,37 +59,16 @@ namespace Ssr {
 
 	public:
 		__forceinline GpuResource* SsrMapResource(UINT index);
-		__forceinline GpuResource* ResultMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SsrMapSrv(UINT index) const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMapRtv(UINT index) const;
 
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResultMapRtv() const;
-
 	public:
 		bool Initialize(ID3D12Device* device, ShaderManager*const manager, 
-			UINT width, UINT height, UINT divider, DXGI_FORMAT hdrMapFormat);
+			UINT width, UINT height, UINT divider);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
-
-		void BuildSsr(
-			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
-		void ApplySsr(
-			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_environment);
-
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
@@ -97,7 +76,29 @@ namespace Ssr {
 			UINT descSize, UINT rtvDescSize);
 		bool OnResize(UINT width, UINT height);
 
-	public:
+		void Build(
+			ID3D12GraphicsCommandList*const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
+
+		void Apply(
+			ID3D12GraphicsCommandList* const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
+			GpuResource* backBuffer,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_environment);
+
+	private:
 		void BuildDescriptors();
 		bool BuildResources();
 
@@ -108,39 +109,30 @@ namespace Ssr {
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
-		UINT mSsrMapWidth;
-		UINT mSsrMapHeight;
+		UINT mWidth;
+		UINT mHeight;
 
-		UINT mResultMapWidth;
-		UINT mResultMapHeight;
+		UINT mReducedWidth;
+		UINT mReducedHeight;
 
 		UINT mDivider;
 
-		D3D12_VIEWPORT mOriginalViewport;
-		D3D12_RECT mOriginalScissorRect;
-
-		D3D12_VIEWPORT mReducedViewport;
-		D3D12_RECT mReducedScissorRect;
-
-		DXGI_FORMAT mHDRMapFormat;
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
 
 		std::array<std::unique_ptr<GpuResource>, 2> mSsrMaps;
-		std::unique_ptr<GpuResource> mResultMap;
-
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuSrvs;
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhSsrMapGpuSrvs;
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuRtvs;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResultMapCpuRtv;
+		std::unique_ptr<GpuResource> mCopiedBackBuffer;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferSrvCpu;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferSrvGpu;
 	};
 }
 
 GpuResource* Ssr::SsrClass::SsrMapResource(UINT index) {
 	return mSsrMaps[index].get();
-}
-
-GpuResource* Ssr::SsrClass::ResultMapResource() {
-	return mResultMap.get();
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapSrv(UINT index) const {
@@ -149,8 +141,4 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapSrv(UINT index) con
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapRtv(UINT index) const {
 	return mhSsrMapCpuRtvs[index];
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrClass::ResultMapRtv() const {
-	return mhResultMapCpuRtv;
 }

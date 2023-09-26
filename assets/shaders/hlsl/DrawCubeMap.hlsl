@@ -1,5 +1,5 @@
-#ifndef __DRAWIRRADIANCECUBEMAP_HLSL__
-#define __DRAWIRRADIANCECUBEMAP_HLSL__
+#ifndef __DRAWCUBEMAP_HLSL__
+#define __DRAWCUBEMAP_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -10,6 +10,10 @@
 
 ConstantBuffer<PassConstants>	cbPass	: register(b0);
 ConstantBuffer<ObjectConstants> cbObj	: register(b1);
+
+cbuffer cbRootConstants : register(b2) {
+	float gMipLevel;
+}
 
 TextureCube<float3> gi_Cube				: register(t0);
 Texture2D<float3>	gi_Equirectangular	: register(t1);
@@ -52,12 +56,12 @@ float4 PS(VertexOut pin) : SV_Target{
 
 #ifdef SPHERICAL
 	float2 texc = SampleSphericalMap(normalize(pin.PosL));
-	 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc, 0);
+	 samp = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, 0);
 #else
-	samp = gi_Cube.Sample(gsamLinearWrap, normalize(pin.PosL));
+	samp = gi_Cube.SampleLevel(gsamLinearWrap, normalize(pin.PosL), gMipLevel);
 #endif
 
 	return float4(samp, 1);
 }
 
-#endif // __DRAWIRRADIANCECUBEMAP_HLSL__
+#endif // __DRAWCUBEMAP_HLSL__

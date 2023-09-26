@@ -725,14 +725,20 @@
     <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawIrradianceCubeMap.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DiffuseIrradiance.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
       <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
   </ItemGroup>
 </Project>

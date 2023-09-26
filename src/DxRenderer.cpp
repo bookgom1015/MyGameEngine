@@ -113,6 +113,7 @@ namespace ShaderArgs {
 
 	namespace IrradianceMap {
 		bool ShowIrradianceCubeMap = false;
+		float MipLevel = 0.0f;
 	}
 }
 
@@ -219,7 +220,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4, HDRMapFormat));
-	CheckReturn(mSsr->Initialize(device, shaderManager, width, height, 2, HDRMapFormat));
+	CheckReturn(mSsr->Initialize(device, shaderManager, width, height, 2));
 	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
@@ -1157,6 +1158,7 @@ bool DxRenderer::UpdateShadingObjects(float delta) {
 		mCommandQueue.Get(),
 		mCbvSrvUavHeap.Get(),
 		cmdList, 
+		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(), 
 		mIrradianceCubeMap
 	);
@@ -1642,6 +1644,9 @@ bool DxRenderer::DrawBackBuffer() {
 		mGBuffer->RMSMapSrv(),
 		mShadowMap->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
+		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
+		mIrradianceMap->PrefilteredSpecularCubeMapSrv(),
+		mIrradianceMap->IntegratedBrdfMapSrv(),
 		BRDF::Render::E_Raster
 	);
 
@@ -1709,7 +1714,8 @@ bool DxRenderer::DrawEquirectangulaToCube() {
 		passCBAddress,
 		objCBAddress,
 		objCBByteSize,
-		mIrradianceCubeMap
+		mIrradianceCubeMap,
+		ShaderArgs::IrradianceMap::MipLevel
 	);
 	
 	CheckHRESULT(cmdList->Close());
@@ -1768,7 +1774,7 @@ bool DxRenderer::ApplySsr() {
 
 		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-		mSsr->BuildSsr(
+		mSsr->Build(
 			cmdList,
 			ssrCBAddress,
 			backBufferSrv,
@@ -1817,32 +1823,25 @@ bool DxRenderer::ApplySsr() {
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	
-	const auto resultMap = mSsr->ResultMapResource();
-	const auto envMapSrv = mIrradianceMap->EnvironmentCubeMapSrv();
 
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 
-	mSsr->ApplySsr(
+	mSsr->Apply(
 		cmdList,
-		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		backBufferSrv,
+		mScreenViewport,
+		mScissorRect,
+		mToneMapping->InterMediateMapResource(),
+		passCBAddress,
+		mToneMapping->InterMediateMapRtv(),
+		mToneMapping->InterMediateMapSrv(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
-		envMapSrv
+		mIrradianceMap->EnvironmentCubeMapSrv()
 	);
-
-	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-	
-	cmdList->CopyResource(backBuffer->Resource(), resultMap->Resource());
-
-	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -2207,10 +2206,10 @@ bool DxRenderer::DrawImGui() {
 						mSsr->SsrMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_IrradianceEquirect])) {
+				if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect])) {
 					BuildDebugMaps(
-						mDebugMapStates[DebugMapLayout::E_IrradianceEquirect],
-						mIrradianceMap->IrradianceEquirectMapSrv(),
+						mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
+						mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
@@ -2254,17 +2253,22 @@ bool DxRenderer::DrawImGui() {
 			ImGui::Checkbox("Show Irradiance CubeMap", &ShaderArgs::IrradianceMap::ShowIrradianceCubeMap);
 			if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
 				ImGui::RadioButton(
-					"Converted CubeMap", 
-					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType), 
-					IrradianceMap::PipelineState::E_DrawConvertedCube); ImGui::SameLine();
+					"Environment CubeMap", 
+					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType), 
+					IrradianceMap::DrawCube::E_EnvironmentCube);
 				ImGui::RadioButton(
 					"Equirectangular Map", 
-					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType), 
-					IrradianceMap::PipelineState::E_DrawEquirectangularCube);
+					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DrawCube::E_Equirectangular);
 				ImGui::RadioButton(
-					"Irradiance CubeMap",
-					reinterpret_cast<int*>(&mIrradianceMap->PipelineStateType),
-					IrradianceMap::PipelineState::E_DrawIrradianceCube);
+					"Diffuse Irradiance CubeMap",
+					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DrawCube::E_DiffuseIrradianceCube);
+				ImGui::RadioButton(
+					"Specular Irradiance CubeMap",
+					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DrawCube::E_SpecularIrradianceCube);
+				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel);
 			}
 		}
 
@@ -2434,6 +2438,9 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mGBuffer->RMSMapSrv(),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 		mSsao->AOCoefficientMapSrv(0),
+		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
+		mIrradianceMap->PrefilteredSpecularCubeMapSrv(),
+		mIrradianceMap->IntegratedBrdfMapSrv(),
 		BRDF::Render::E_Raytrace
 	);
 

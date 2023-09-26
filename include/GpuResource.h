@@ -25,9 +25,14 @@ public:
 	void Transite(ID3D12GraphicsCommandList*const cmdList, D3D12_RESOURCE_STATES state);
 
 	ID3D12Resource*const Resource() const;
+	__forceinline D3D12_RESOURCE_STATES State() const;
 
 private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
 
 	D3D12_RESOURCE_STATES mCurrState;
 };
+
+D3D12_RESOURCE_STATES GpuResource::State() const {
+	return mCurrState;
+}

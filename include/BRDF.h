@@ -21,7 +21,10 @@ namespace BRDF {
 			ESI_Depth,
 			ESI_RMS,
 			ESI_Shadow,
-			ESI_AOCoefficient,
+			ESI_AOCoeiff,
+			ESI_Diffuse,
+			ESI_Specular,
+			ESI_Brdf,
 			Count
 		};
 	}
@@ -68,7 +71,10 @@ namespace BRDF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rms, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_diffuse,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
 			Render::Type renderType = Render::E_Raster);
 
 	public:

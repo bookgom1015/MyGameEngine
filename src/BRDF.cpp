@@ -21,7 +21,7 @@ namespace {
 }
 
 BRDFClass::BRDFClass() {
-	ModelType = Model::E_BlinnPhong;
+	ModelType = Model::E_CookTorrance;
 }
 
 bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
@@ -81,13 +81,16 @@ bool BRDFClass::CompileShaders(const std::wstring& filePath) {
 bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[6];
+	CD3DX12_DESCRIPTOR_RANGE texTables[9];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
 	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 	texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+	texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
+	texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
+	texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
 
 	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignatureLayout::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);
@@ -95,7 +98,10 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	slotRootParameter[RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
 	slotRootParameter[RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
 	slotRootParameter[RootSignatureLayout::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
-	slotRootParameter[RootSignatureLayout::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[5]);
+	slotRootParameter[RootSignatureLayout::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
+	slotRootParameter[RootSignatureLayout::ESI_Diffuse].InitAsDescriptorTable(1, &texTables[6]);
+	slotRootParameter[RootSignatureLayout::ESI_Specular].InitAsDescriptorTable(1, &texTables[7]);
+	slotRootParameter[RootSignatureLayout::ESI_Brdf].InitAsDescriptorTable(1, &texTables[8]);
 
 	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
@@ -198,7 +204,10 @@ void BRDFClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_diffuse,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
 		Render::Type renderType) {
 	cmdList->SetPipelineState(mPSOs[renderType][ModelType].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
@@ -217,7 +226,10 @@ void BRDFClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_RMS, si_rms);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Shadow, si_shadow);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_AOCoefficient, si_aoCoefficient);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_AOCoeiff, si_aocoeiff);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Diffuse, si_diffuse);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Specular, si_specular);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Brdf, si_brdf);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

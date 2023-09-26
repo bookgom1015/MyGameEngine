@@ -29,7 +29,10 @@ Texture2D<float3>	gi_Normal			: register(t1);
 Texture2D<float>	gi_Depth			: register(t2);
 Texture2D<float3>	gi_RMS				: register(t3);
 Texture2D<float>	gi_Shadow			: register(t4);
-Texture2D<float>	gi_AOCoefficient	: register(t5);
+Texture2D<float>	gi_AOCoeiff			: register(t5);
+TextureCube<float3>	gi_Diffuse			: register(t6);
+TextureCube<float3>	gi_Specular			: register(t7);
+Texture2D<float2>	gi_Brdf				: register(t8);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -40,12 +43,12 @@ struct VertexOut {
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
 
 	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	// Transform quad corners to view space near plane.
 	float4 ph = mul(vout.PosH, cbPass.InvProj);
@@ -73,9 +76,6 @@ float4 PS(VertexOut pin) : SV_Target{
 	float4 ssaoPosH = mul(posW, cbPass.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
 
-	const float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
-	const float3 ambient = albedo.rgb * ambientAccess * cbPass.AmbientLight.rgb;
-
 	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC);
 	const float roughness = roughnessMetalicSpecular.r;
 	const float metalic = roughnessMetalicSpecular.g;
@@ -90,13 +90,20 @@ float4 PS(VertexOut pin) : SV_Target{
 	shadowFactor[0] = gi_Shadow.Sample(gsamPointClamp, pin.TexC);
 
 	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
-	const float3 toEyeW = normalize(cbPass.EyePosW - posW.xyz);
-	const float3 brdf = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, toEyeW, shadowFactor), (float3)0);
+	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
+	const float3 radiance = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor), (float3)0);
 
-	float4 radiance = float4(ambient + brdf, 0);
-	radiance.a = albedo.a;
+	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
+	const float3 kD = 1 - kS;
 
-	return radiance;
+	const float3 diffSamp = gi_Diffuse.SampleLevel(gsamLinearClamp, normalW, 0);
+	const float diffuse = diffSamp * albedo;
+
+	const float aoCoeiff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
+
+	const float3 ambient = (kD * diffuse) * aoCoeiff;
+
+	return float4(radiance + ambient, albedo.a);
 }
 
 #endif // __DXRBRDF_HLSL__

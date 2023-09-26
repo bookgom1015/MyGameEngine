@@ -1,5 +1,5 @@
-#ifndef __DIFFUSEIRRADIANCE_HLSL__
-#define __DIFFUSEIRRADIANCE_HLSL__
+#ifndef __CONVOLUTEDIFFUSEIRRADIANCE_HLSL__
+#define __CONVOLUTEDIFFUSEIRRADIANCE_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -58,7 +58,7 @@ float3 ConvoluteIrradiance(float3 pos) {
 	up = normalize(cross(N, right));
 
 	uint numSamples = 0;
-	float sampDelta = 0.03125;
+	float sampDelta = 0.0125;
 	for (float phi = 0; phi < 2 * PI; phi += sampDelta) {
 		for (float theta = 0; theta < 0.5 * PI; theta += sampDelta) {
 			const float cosTheta = cos(theta);
@@ -84,4 +84,4 @@ float4 PS(VertexOut pin) : SV_Target{
 	return float4(irradiance, 1);
 }
 
-#endif // __DIFFUSEIRRADIANCE_HLSL__
+#endif // __CONVOLUTEDIFFUSEIRRADIANCE_HLSL__

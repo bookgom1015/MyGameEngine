@@ -30,7 +30,10 @@ Texture2D<float3>	gi_Normal			: register(t1);
 Texture2D<float>	gi_Depth			: register(t2);
 Texture2D<float3>	gi_RMS				: register(t3);
 Texture2D<float>	gi_Shadow			: register(t4);
-Texture2D<float>	gi_AOCoefficient	: register(t5);
+Texture2D<float>	gi_AOCoeiff			: register(t5);
+TextureCube<float3>	gi_Diffuse			: register(t6);
+TextureCube<float3>	gi_Specular			: register(t7);
+Texture2D<float2>	gi_BrdfLUT			: register(t8);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -73,9 +76,6 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	float4 ssaoPosH = mul(posW, cbPass.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
-
-	const float ambientAccess = gi_AOCoefficient.Sample(gsamAnisotropicWrap, ssaoPosH.xy, 0);
-	const float3 ambient = albedo.rgb * ambientAccess * cbPass.AmbientLight.rgb;
 	
 	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC);
 	const float roughness = roughnessMetalicSpecular.r;
@@ -92,13 +92,29 @@ float4 PS(VertexOut pin) : SV_Target {
 	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
 	
 	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
-	const float3 toEyeW = normalize(cbPass.EyePosW - posW.xyz);
-	const float3 brdf = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, toEyeW, shadowFactor), (float3)0);
-	
-	float4 radiance = float4(ambient + brdf, 0);
-	radiance.a = albedo.a;
+	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
+	const float3 radiance = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor), (float3)0);
 
-	return radiance;
+	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
+	const float3 kD = 1 - kS;
+
+	const float3 diffSamp = gi_Diffuse.SampleLevel(gsamLinearClamp, normalW, 0);
+	const float3 diffuseIrradiance = diffSamp * albedo;
+
+	const float3 reflectedW = reflect(-viewW, normalW);
+	const float MaxMipLevel = 5;
+	const float3 prefilteredColor = gi_Specular.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel);
+	
+	const float NdotV = max(dot(normalW, viewW), 0);
+
+	const float2 envBRDF =  gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);
+	const float3 specIrradiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
+
+	const float aoCoeiff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
+
+	const float3 ambient = (kD * diffuseIrradiance + specIrradiance) * aoCoeiff;
+
+	return float4(radiance + ambient, albedo.a);
 }
 
 #endif // __BRDF_HLSL__

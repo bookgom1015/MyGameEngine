@@ -31,22 +31,6 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-//float3 SphericalToCartesian(float2 spherical) {
-//	float azimuth = spherical.x * (2 * PI);			// Azimuthal angle (φ)
-//	float inclination = (1.0 - spherical.y) * PI;	// Polar angle (θ)
-//
-//	float sinInclination = sin(inclination);
-//	float cosInclination = cos(inclination);
-//
-//	float sinAzimuth = sin(azimuth);
-//	float cosAzimuth = cos(azimuth);
-//
-//	float x = sinInclination * cosAzimuth;
-//	float y = cosInclination;
-//	float z = sinInclination * sinAzimuth;
-//
-//	return float3(x, 1.0f - y, z);
-//}
 float3 SphericalToCartesian(float2 sphericalCoord) {
 	// 구면 좌표에서 텍스처 좌표로 변환
 	sphericalCoord.y = 1 - sphericalCoord.y;

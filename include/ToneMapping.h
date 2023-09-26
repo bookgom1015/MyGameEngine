@@ -33,7 +33,7 @@ namespace ToneMapping {
 		};
 	}
 
-	static const UINT NumRenderTargets = 5;
+	static const UINT NumRenderTargets = 1;
 
 	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 

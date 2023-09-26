@@ -65,14 +65,16 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 V = normalize(cbPass.EyePosW - posW.xyz);
 	const float3 L = reflect(-V, normal);
 	const float3 lookup = BoxCubeMapLookup(posW.xyz, L, (float3)0, (float3)100);
-	float3 env = gi_Environment.Sample(gsamLinearWrap, lookup);
+	float3 const env = gi_Environment.Sample(gsamLinearWrap, lookup);
 
 	const float3 H = normalize(V + L);
-	const float3 fresnelFactor = FresnelSchlick(saturate(dot(H, V)), fresnelR0);
+	const float3 kS = FresnelSchlick(saturate(dot(H, V)), fresnelR0);
+	const float3 kD = 1 - kS;
 
-	float skyFactor = ceil(max(1 - dot(normal, -V), 0));
+	const float skyFactor = ceil(max(1 - dot(normal, -V), 0));
+	const float3 reflectedLight = shiness * skyFactor * kS * ssr.rgb;
 
-	float3 applied = radiance + shiness * skyFactor * fresnelFactor * (((1 - k) * env) + k * ssr.rgb);
+	float3 applied = radiance + reflectedLight;
 
 	return float4(applied, 1);
 }

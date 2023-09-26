@@ -30,7 +30,7 @@ namespace DebugMapLayout {
 		E_SSR,
 		E_DiffuseReflectance,
 		E_SpecularReflectance,
-		E_IrradianceEquirect,
+		E_DiffuseIrradianceEquirect,
 		E_DxrShadow,
 		Count
 	};

@@ -503,17 +503,27 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DrawIrradianceCubeMap.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DiffuseIrradiance.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
