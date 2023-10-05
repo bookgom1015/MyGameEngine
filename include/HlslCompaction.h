@@ -19,6 +19,57 @@
 
 #define MaxLights 16
 
+namespace Debug {
+	static const int MapCount = 5;
+
+	namespace SampleMask {
+		enum Type {
+			RGB = 0,
+			RG = 1 << 0,
+			RRR = 1 << 1,
+			GGG = 1 << 2,
+			BBB = 1 << 3,
+			AAA = 1 << 4
+		};
+	}
+}
+
+namespace DxrGeometryBuffer {
+	static const UINT GeometryBufferCount = 32;
+}
+
+namespace BlurFilterCS {
+	static const int MaxBlurRadius = 5;
+
+	namespace ThreadGroup {
+		enum {
+			Size = 256
+		};
+	}
+}
+
+namespace Rtao {
+	namespace Default {
+		namespace ThreadGroup {
+			enum {
+				Width = 8,
+				Height = 8,
+				Size = Width * Height
+			};
+		}
+	}
+
+	namespace Atrous {
+		namespace ThreadGroup {
+			enum {
+				Width = 16,
+				Height = 16,
+				Size = Width * Height
+			};
+		}
+	}
+}
+
 struct Light {
 	DirectX::XMFLOAT3 Strength;
 	float FalloffStart;				// point/spot light only
@@ -185,56 +236,5 @@ struct ConvertEquirectangularToCubeConstantBuffer {
 	DirectX::XMFLOAT4X4 Proj;
 	DirectX::XMFLOAT4X4 View[6];
 };
-
-namespace Debug {
-	static const int MapCount = 5;
-
-	namespace SampleMask {
-		enum Type {
-			RGB	= 0,
-			RG	= 1 << 0,
-			RRR	= 1 << 1,
-			GGG	= 1 << 2,
-			BBB	= 1 << 3,
-			AAA	= 1 << 4
-		};
-	}
-}
-
-namespace DxrGeometryBuffer {
-	static const UINT GeometryBufferCount = 32; 
-}
-
-namespace BlurFilterCS {
-	static const int MaxBlurRadius = 5;
-
-	namespace ThreadGroup {
-		enum {
-			Size = 256
-		};
-	}
-}
-
-namespace Rtao {
-	namespace Default {
-		namespace ThreadGroup {
-			enum {
-				Width = 8,
-				Height = 8,
-				Size = Width * Height
-			};
-		}
-	}
-
-	namespace Atrous {
-		namespace ThreadGroup {
-			enum {
-				Width = 16,
-				Height = 16,
-				Size = Width * Height
-			};
-		}
-	}
-}
 
 #endif // __HLSLCOMPACTION_HLSL__

@@ -35,6 +35,14 @@ namespace IrradianceMap {
 		namespace RootSignatureLayout {
 			enum {
 				ESI_Cube = 0,
+				EC_Consts,
+				Count
+			};
+		}
+
+		namespace RootConstantsLayout {
+			enum {
+				E_MipLevel = 0,
 				Count
 			};
 		}
@@ -63,7 +71,7 @@ namespace IrradianceMap {
 			E_Equirectangular = 0,
 			E_EnvironmentCube,
 			E_DiffuseIrradianceCube,
-			E_SpecularIrradianceCube,
+			E_PrefilteredIrradianceCube,
 			Count
 		};
 	}
@@ -100,6 +108,7 @@ namespace IrradianceMap {
 		namespace RootConstantsLayout {
 			enum {
 				E_FaceID = 0,
+				E_MipLevel,
 				E_Roughness,
 				Count
 			};
@@ -131,7 +140,7 @@ namespace IrradianceMap {
 			E_ConvEquirectToCube = 0,
 			E_ConvCubeToEquirect,
 			E_ConvoluteDiffuseIrradiance,
-			E_ConvoluteSpecularIrradiance,
+			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBrdf,
 			E_DrawCube,
 			E_DrawEquirectangular,
@@ -145,7 +154,7 @@ namespace IrradianceMap {
 			E_ConvEquirectToCube = 0,
 			E_ConvCubeToEquirect,
 			E_ConvoluteDiffuseIrradiance,
-			E_ConvoluteSpecularIrradiance,
+			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBrdf,
 			E_DrawCube,
 			E_DrawSkySphere,
@@ -165,11 +174,25 @@ namespace IrradianceMap {
 		};
 	}
 
+	namespace Save {
+		enum Type : std::uint8_t {
+			E_None				= 1 << 0,
+			E_DiffuseIrradiance	= 1 << 1,
+			E_IntegratedBrdf	= 1 << 2,
+			E_PrefilteredL0		= 1 << 3,
+			E_PrefilteredL1		= 1 << 4,
+			E_PrefilteredL2		= 1 << 5,
+			E_PrefilteredL3		= 1 << 6,
+			E_PrefilteredL4		= 1 << 7,
+		};
+	}
+
 	static const UINT MaxMipLevel = 5;
+
 	// Environemt CubeMap(6) + Diffuse Irradiance CubeMap(6) + Diffuse Irradiance Equirectangular Map(1) 
-	//	+ Specular Irradiance CubeMap(6 * 5) + Integrated BRDF Map(1)
+	//	+ Prefiltered Irradiance CubeMap(6 * 5) + Integrated BRDF Map(1) + Prefiltered Irradiance Equirectangular Map(5)
 	static const UINT NumRenderTargets = 
-		CubeMapFace::Count + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1;
+		CubeMapFace::Count + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
 
 	static const DXGI_FORMAT IntegratedBrdfMapFormat = DXGI_FORMAT_R16G16_FLOAT;
 
@@ -182,10 +205,12 @@ namespace IrradianceMap {
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE EnvironmentCubeMapSrv() const;
 
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE DiffuseIrradianceCubeMapSrv() const;
-		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE PrefilteredSpecularCubeMapSrv() const;
+		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE PrefilteredEnvironmentCubeMapSrv() const;
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE IntegratedBrdfMapSrv() const;
 
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE DiffuseIrradianceEquirectMapSrv() const;
+
+		UINT Size() const;
 
 	public:
 		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
@@ -235,32 +260,41 @@ namespace IrradianceMap {
 		void BuildDescriptors();
 		bool BuildResources(ID3D12GraphicsCommandList* const cmdList);
 
-		bool Check();
+		bool Check(const std::wstring& filepath);
 		bool Load(
 			ID3D12CommandQueue* const queue,
 			GpuResource* const dst,
 			D3D12_CPU_DESCRIPTOR_HANDLE hDesc,
-			LPCWSTR filename,
+			const std::wstring& filepath,
 			LPCWSTR setname);
-		bool Save(ID3D12CommandQueue* const queue, GpuResource* resource, LPCWSTR filepath);
+		bool Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath);
 
 		void ConvertEquirectangularToCube(
 			ID3D12GraphicsCommandList* const cmdList,
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
 			GpuResource* resource,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
 			D3D12_CPU_DESCRIPTOR_HANDLE* ro_outputs,
 			RenderItem* box);
-		void ConvertCubeToEquirectangular(ID3D12GraphicsCommandList* const cmdList);
-		void ConvoluteDiffuse(
+		void ConvertCubeToEquirectangular(
+			ID3D12GraphicsCommandList* const cmdList, 
+			D3D12_VIEWPORT viewport,
+			D3D12_RECT scissorRect,
+			GpuResource* equirectResource,
+			D3D12_CPU_DESCRIPTOR_HANDLE equirectRtv,
+			D3D12_GPU_DESCRIPTOR_HANDLE cubeSrv,
+			UINT mipLevel = 0);
+		void GenerateDiffuseIrradiance(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			RenderItem* box);
-		void ConvoluteSpecular(
+		void GeneratePrefilteredEnvironment(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			RenderItem* box);
-		void IntegrateBrdf(
+		void GenerateIntegratedBrdf(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass);
 
@@ -293,10 +327,15 @@ namespace IrradianceMap {
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceEquirectMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceEquirectMapCpuRtv;
 
-		std::unique_ptr<GpuResource> mSpecularIrradianceCubeMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhSpecularIrradianceCubeMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhSpecularIrradianceCubeMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhSpecularIrradianceCubeMapCpuRtvs[MaxMipLevel][CubeMapFace::Count];
+		std::unique_ptr<GpuResource> mPrefilteredEnvironmentCubeMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapCpuRtvs[MaxMipLevel][CubeMapFace::Count];
+
+		std::unique_ptr<GpuResource> mPrefilteredEnvironmentEquirectMaps[MaxMipLevel];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentEquirectMapCpuSrvs[MaxMipLevel];
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentEquirectMapGpuSrvs[MaxMipLevel];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentEquirectMapCpuRtvs[MaxMipLevel];
 
 		std::unique_ptr<GpuResource> mIntegratedBrdfMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhIntegratedBrdfMapCpuSrv;
@@ -310,7 +349,7 @@ namespace IrradianceMap {
 		D3D12_RECT mIrradEquirectMapScissorRect;
 
 		bool bNeedToUpdate;
-		bool bNeedToSave;
+		Save::Type mNeedToSave;
 	};
 }
 
@@ -322,8 +361,8 @@ constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::Diffuse
 	return mhDiffuseIrradianceCubeMapGpuSrv;
 }
 
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::PrefilteredSpecularCubeMapSrv() const {
-	return mhSpecularIrradianceCubeMapGpuSrv;
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::PrefilteredEnvironmentCubeMapSrv() const {
+	return mhPrefilteredEnvironmentCubeMapGpuSrv;
 }
 
 constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::IntegratedBrdfMapSrv() const {

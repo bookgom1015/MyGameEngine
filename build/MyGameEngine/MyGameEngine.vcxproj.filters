@@ -324,6 +324,9 @@
     <ClInclude Include="..\..\include\DDS.h">
       <Filter>Common Files\Public</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\MipmapGenerator.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -521,6 +524,9 @@
     <ClCompile Include="..\..\src\IrradianceMap.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\MipmapGenerator.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -661,9 +667,6 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
       <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DxrBRDF.hlsl">
-      <Filter>Shader Files\HLSL\DXR</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>

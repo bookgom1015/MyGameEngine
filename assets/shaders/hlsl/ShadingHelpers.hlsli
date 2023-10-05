@@ -71,11 +71,11 @@ float GeometrySmith_IBL(float3 N, float3 V, float3 L, float roughness) {
 
 // the Fresnel Schlick approximation
 float3 FresnelSchlick(float cos, float3 F0) {
-	return F0 + (1 - F0) * pow(saturate(1 - cos), 5);
+	return F0 + (1 - F0) * pow(max((1 - cos), 0), 5);
 }
 
 float3 FresnelSchlickRoughness(float cos, float3 F0, float roughness) {
-	return F0 + (max((float3)(1 - roughness), F0) - F0) * pow(saturate(1 - cos), 5);
+	return F0 + (max((float3)(1 - roughness), F0) - F0) * pow(max(1 - cos, 0), 5);
 }
 
 float RadicalInverse_VdC(uint bits) {

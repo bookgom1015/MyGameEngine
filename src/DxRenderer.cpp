@@ -1406,8 +1406,9 @@ bool DxRenderer::UpdateMaterialCBs(float delta) {
 
 bool DxRenderer::UpdateConvEquirectToCubeCB(float delta) {
 	ConvertEquirectangularToCubeConstantBuffer cubeCB;
-
+		
 	XMStoreFloat4x4(&cubeCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
+
 	// Positive +X
 	XMStoreFloat4x4(
 		&cubeCB.View[0],
@@ -1645,7 +1646,7 @@ bool DxRenderer::DrawBackBuffer() {
 		mShadowMap->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
-		mIrradianceMap->PrefilteredSpecularCubeMapSrv(),
+		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
 		mIrradianceMap->IntegratedBrdfMapSrv(),
 		BRDF::Render::E_Raster
 	);
@@ -2265,10 +2266,10 @@ bool DxRenderer::DrawImGui() {
 					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
 					IrradianceMap::DrawCube::E_DiffuseIrradianceCube);
 				ImGui::RadioButton(
-					"Specular Irradiance CubeMap",
+					"Prefiltered Irradiance CubeMap",
 					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DrawCube::E_SpecularIrradianceCube);
-				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel);
+					IrradianceMap::DrawCube::E_PrefilteredIrradianceCube);
+				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel - 1);
 			}
 		}
 
@@ -2439,7 +2440,7 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 		mSsao->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
-		mIrradianceMap->PrefilteredSpecularCubeMapSrv(),
+		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
 		mIrradianceMap->IntegratedBrdfMapSrv(),
 		BRDF::Render::E_Raytrace
 	);

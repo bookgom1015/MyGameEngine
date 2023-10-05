@@ -15,7 +15,7 @@ CameraComponent::CameraComponent(Actor* owner) : Component(owner) {
 	bLimitYaw = false;
 	bLimitRoll = false;
 
-	mPitchLimit = XM_PIDIV4;
+	mPitchLimit = XM_PIDIV2 - 0.1f;
 	mYawLimit = 0.0f;
 	mRollLimit = 0.0f;
 

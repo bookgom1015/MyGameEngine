@@ -13,6 +13,7 @@ ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer> cbCube : register(b0)
 
 cbuffer cbRootConstants : register(b1) {
 	uint	gFaceID;
+	uint	gMipLevel;
 	float	gRoughness;
 }
 
@@ -73,7 +74,7 @@ float4 PS(VertexOut pin) : SV_Target{
 		const float3 H = ImportanceSampleGGX(Xi, N, gRoughness);
 		const float3 L = normalize(2 * dot(V, H) * H - V);
 
-		float NdotL = saturate(dot(N, L));
+		float NdotL = max(dot(N, L), 0);
 		if (NdotL > 0) {			
 			const float mipLevel = ChetanJagsMipLevel(N, V, H, gRoughness);
 			const float3 color = gi_Environment.SampleLevel(gsamLinearClamp, L, mipLevel);

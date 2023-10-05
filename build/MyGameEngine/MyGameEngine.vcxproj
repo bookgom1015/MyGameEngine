@@ -201,6 +201,7 @@
     <ClInclude Include="..\..\include\Mesh.h" />
     <ClInclude Include="..\..\include\MeshComponent.h" />
     <ClInclude Include="..\..\include\MeshImporter.h" />
+    <ClInclude Include="..\..\include\MipmapGenerator.h" />
     <ClInclude Include="..\..\include\MotionBlur.h" />
     <ClInclude Include="..\..\include\PlaneActor.h" />
     <ClInclude Include="..\..\include\Renderer.h" />
@@ -270,6 +271,7 @@
     <ClCompile Include="..\..\src\Mesh.cpp" />
     <ClCompile Include="..\..\src\MeshComponent.cpp" />
     <ClCompile Include="..\..\src\MeshImporter.cpp" />
+    <ClCompile Include="..\..\src\MipmapGenerator.cpp" />
     <ClCompile Include="..\..\src\MotionBlur.cpp" />
     <ClCompile Include="..\..\src\PlaneActor.cpp" />
     <ClCompile Include="..\..\src\Renderer.cpp" />
@@ -438,11 +440,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DxrBRDF.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

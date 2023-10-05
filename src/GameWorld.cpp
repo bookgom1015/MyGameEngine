@@ -40,7 +40,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 		}
 		game.CleanUp();
 
-		Logln("The game has been successfully finished");
+		Logln("\nThe game has been successfully finished");
 		return 0;
 	}
 	catch (const std::exception& e) {
@@ -470,7 +470,7 @@ bool GameWorld::Draw() {
 }
 
 bool GameWorld::LoadData() {
-	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/forest_hdr.dds"));
+	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/brown_photostudio.dds"));
 
 	XMFLOAT4 rot;
 	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVectors::UpVector, XM_PI));

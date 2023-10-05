@@ -11,6 +11,10 @@
 
 TextureCube<float3> gi_Cube : register(t0);
 
+cbuffer cbRootConstants : register(b0) {
+	uint gMipLevel;
+}
+
 #include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
@@ -48,7 +52,7 @@ float3 SphericalToCartesian(float2 sphericalCoord) {
 
 float4 PS(VertexOut pin) : SV_Target{
 	float3 sampVec = SphericalToCartesian(pin.TexC);
-	float3 samp = gi_Cube.SampleLevel(gsamLinearClamp, sampVec, 0);
+	float3 samp = gi_Cube.SampleLevel(gsamLinearClamp, sampVec, gMipLevel);
 
 	return float4(samp, 1);
 }

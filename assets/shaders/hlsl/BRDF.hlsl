@@ -32,7 +32,7 @@ Texture2D<float3>	gi_RMS				: register(t3);
 Texture2D<float>	gi_Shadow			: register(t4);
 Texture2D<float>	gi_AOCoeiff			: register(t5);
 TextureCube<float3>	gi_Diffuse			: register(t6);
-TextureCube<float3>	gi_Specular			: register(t7);
+TextureCube<float3>	gi_Prefiltered		: register(t7);
 Texture2D<float2>	gi_BrdfLUT			: register(t8);
 
 #include "CoordinatesFittedToScreen.hlsli"
@@ -88,8 +88,12 @@ float4 PS(VertexOut pin) : SV_Target {
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
 	float3 shadowFactor = 0;
+#ifdef DXR
+	shadowFactor[0] = gi_Shadow.Sample(gsamPointClamp, pin.TexC);
+#else
 	const float4 shadowPosH = mul(posW, cbPass.ShadowTransform);
 	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
+#endif
 	
 	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
 	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
@@ -103,7 +107,8 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	const float3 reflectedW = reflect(-viewW, normalW);
 	const float MaxMipLevel = 5;
-	const float3 prefilteredColor = gi_Specular.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel);
+
+	const float3 prefilteredColor = gi_Prefiltered.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel);
 	
 	const float NdotV = max(dot(normalW, viewW), 0);
 

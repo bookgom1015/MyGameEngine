@@ -23,7 +23,7 @@ namespace BRDF {
 			ESI_Shadow,
 			ESI_AOCoeiff,
 			ESI_Diffuse,
-			ESI_Specular,
+			ESI_Prefiltered,
 			ESI_Brdf,
 			Count
 		};

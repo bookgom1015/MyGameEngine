@@ -33,20 +33,24 @@ bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
 
 bool BRDFClass::CompileShaders(const std::wstring& filePath) {
 	{
-		DxcDefine defines[] = {
-			{ L"BLINN_PHONG", L"1" }
-		};
+		const std::wstring fullPath = filePath + L"BRDF.hlsl";
 
 		{
-			const std::wstring fullPath = filePath + L"BRDF.hlsl";
+			DxcDefine defines[] = {
+				{ L"BLINN_PHONG", L"1" }
+			};
+
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, BlinnPhongVS));
 			CheckReturn(mShaderManager->CompileShader(psInfo, BlinnPhongPS));
 		}
-
 		{
-			const auto fullPath = filePath + L"DxrBRDF.hlsl";
+			DxcDefine defines[] = {
+				{ L"BLINN_PHONG", L"1" },
+				{ L"DXR", L"1" }
+			};
+
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, DxrBlinnPhongVS));
@@ -54,20 +58,24 @@ bool BRDFClass::CompileShaders(const std::wstring& filePath) {
 		}
 	}
 	{
-		DxcDefine defines[] = {
-			{ L"COOK_TORRANCE", L"1" }
-		};
+		const auto fullPath = filePath + L"BRDF.hlsl";
 
 		{
-			const std::wstring fullPath = filePath + L"BRDF.hlsl";
+			DxcDefine defines[] = {
+				{ L"COOK_TORRANCE", L"1" }
+			};
+
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, CookTorranceVS));
 			CheckReturn(mShaderManager->CompileShader(psInfo, CookTorrancePS));
 		}
-
 		{
-			const auto fullPath = filePath + L"DxrBRDF.hlsl";
+			DxcDefine defines[] = {
+				{ L"COOK_TORRANCE", L"1" },
+				{ L"DXR", L"1" }
+			};
+
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, DxrCookTorranceVS));
@@ -100,7 +108,7 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	slotRootParameter[RootSignatureLayout::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
 	slotRootParameter[RootSignatureLayout::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
 	slotRootParameter[RootSignatureLayout::ESI_Diffuse].InitAsDescriptorTable(1, &texTables[6]);
-	slotRootParameter[RootSignatureLayout::ESI_Specular].InitAsDescriptorTable(1, &texTables[7]);
+	slotRootParameter[RootSignatureLayout::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[7]);
 	slotRootParameter[RootSignatureLayout::ESI_Brdf].InitAsDescriptorTable(1, &texTables[8]);
 
 	// A root signature is an array of root parameters.
@@ -228,7 +236,7 @@ void BRDFClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Shadow, si_shadow);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_AOCoeiff, si_aocoeiff);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Diffuse, si_diffuse);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Specular, si_specular);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Prefiltered, si_specular);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Brdf, si_brdf);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
