@@ -70,6 +70,16 @@ namespace Rtao {
 	}
 }
 
+namespace MipmapGenerator {
+	namespace ThreadGroup {
+		enum {
+			Width = 8,
+			Height = 8,
+			Size = Width * Height
+		};
+	}
+}
+
 struct Light {
 	DirectX::XMFLOAT3 Strength;
 	float FalloffStart;				// point/spot light only

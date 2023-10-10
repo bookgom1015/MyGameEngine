@@ -6,6 +6,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "MipmapGenerator.h"
 
 class ShaderManager;
 class GpuResource;
@@ -189,10 +190,10 @@ namespace IrradianceMap {
 
 	static const UINT MaxMipLevel = 5;
 
-	// Environemt CubeMap(6) + Diffuse Irradiance CubeMap(6) + Diffuse Irradiance Equirectangular Map(1) 
+	// Equirectangular Map(5) + Environemt CubeMap(6) + Diffuse Irradiance CubeMap(6) + Diffuse Irradiance Equirectangular Map(1) 
 	//	+ Prefiltered Irradiance CubeMap(6 * 5) + Integrated BRDF Map(1) + Prefiltered Irradiance Equirectangular Map(5)
 	static const UINT NumRenderTargets = 
-		CubeMapFace::Count + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
+		MaxMipLevel + CubeMapFace::Count + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
 
 	static const DXGI_FORMAT IntegratedBrdfMapFormat = DXGI_FORMAT_R16G16_FLOAT;
 
@@ -202,6 +203,9 @@ namespace IrradianceMap {
 		virtual ~IrradianceMapClass() = default;
 
 	public:
+		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE EquirectangularMapSrv() const;
+		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE TemporaryEquirectangularMapSrv() const;
+
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE EnvironmentCubeMapSrv() const;
 
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE DiffuseIrradianceCubeMapSrv() const;
@@ -224,7 +228,7 @@ namespace IrradianceMap {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
 
-		bool SetEquirectangularMap(ID3D12CommandQueue* const queue,  const std::string& file);
+		bool SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file);
 
 		bool Update(
 			ID3D12CommandQueue*const queue,
@@ -232,6 +236,7 @@ namespace IrradianceMap {
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
+			MipmapGenerator::MipmapGeneratorClass* const generator,
 			RenderItem* box);
 		bool DrawCubeMap(
 			ID3D12GraphicsCommandList* const cmdList,
@@ -308,9 +313,14 @@ namespace IrradianceMap {
 		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
+		std::unique_ptr<GpuResource> mTemporaryEquirectangularMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTemporaryEquirectangularMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhTemporaryEquirectangularMapGpuSrv;
+
 		std::unique_ptr<GpuResource> mEquirectangularMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEquirectangularMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhEquirectangularMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEquirectangularMapCpuRtvs[MaxMipLevel];
 
 		std::unique_ptr<GpuResource> mEnvironmentCubeMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuSrv;
@@ -351,6 +361,14 @@ namespace IrradianceMap {
 		bool bNeedToUpdate;
 		Save::Type mNeedToSave;
 	};
+}
+
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::EquirectangularMapSrv() const {
+	return mhEquirectangularMapGpuSrv;
+}
+
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::TemporaryEquirectangularMapSrv() const {
+	return mhTemporaryEquirectangularMapGpuSrv;
 }
 
 constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::EnvironmentCubeMapSrv() const {

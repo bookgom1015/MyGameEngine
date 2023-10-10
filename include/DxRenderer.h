@@ -30,6 +30,8 @@ namespace DebugMapLayout {
 		E_SSR,
 		E_DiffuseReflectance,
 		E_SpecularReflectance,
+		E_TemporaryEquirectangular,
+		E_Equirectangular,
 		E_DiffuseIrradianceEquirect,
 		E_DxrShadow,
 		Count
@@ -161,6 +163,7 @@ private:
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
 	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;
 	std::unique_ptr<IrradianceMap::IrradianceMapClass> mIrradianceMap;
+	std::unique_ptr<MipmapGenerator::MipmapGeneratorClass> mMipmapGenerator;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

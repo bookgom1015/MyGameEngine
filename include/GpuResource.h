@@ -19,12 +19,13 @@ public:
 		const D3D12_CLEAR_VALUE* optClear,
 		LPCWSTR name = nullptr);
 	bool OnResize(IDXGISwapChain*const swapChain, UINT index);
-	void Reset();
+	__forceinline void Reset();
 	void Swap(Microsoft::WRL::ComPtr<ID3D12Resource>& srcResource, D3D12_RESOURCE_STATES initialState);
 
 	void Transite(ID3D12GraphicsCommandList*const cmdList, D3D12_RESOURCE_STATES state);
 
-	ID3D12Resource*const Resource() const;
+	__forceinline ID3D12Resource*const Resource() const;
+	__forceinline D3D12_RESOURCE_DESC GetDesc() const;
 	__forceinline D3D12_RESOURCE_STATES State() const;
 
 private:
@@ -32,6 +33,18 @@ private:
 
 	D3D12_RESOURCE_STATES mCurrState;
 };
+
+void GpuResource::Reset() {
+	mResource.Reset();
+}
+
+ID3D12Resource* const GpuResource::Resource() const {
+	return mResource.Get();
+}
+
+D3D12_RESOURCE_DESC GpuResource::GetDesc() const {
+	return mResource->GetDesc();
+}
 
 D3D12_RESOURCE_STATES GpuResource::State() const {
 	return mCurrState;

@@ -33,10 +33,6 @@ bool GpuResource::OnResize(IDXGISwapChain* const swapChain, UINT index) {
 	return true;
 }
 
-void GpuResource::Reset() {
-	mResource.Reset();
-}
-
 void GpuResource::Swap(Microsoft::WRL::ComPtr<ID3D12Resource>& srcResource, D3D12_RESOURCE_STATES initialState) {
 	srcResource.Swap(mResource);
 
@@ -50,8 +46,4 @@ void GpuResource::Transite(ID3D12GraphicsCommandList* const cmdList, D3D12_RESOU
 		D3D12Util::UavBarrier(cmdList, mResource.Get());
 
 	mCurrState = state;
-}
-
-ID3D12Resource* const GpuResource::Resource() const {
-	return mResource.Get();
 }

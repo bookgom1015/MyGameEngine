@@ -27,6 +27,7 @@
 #include "GammaCorrection.h"
 #include "ToneMapping.h"
 #include "IrradianceMap.h"
+#include "MipmapGenerator.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -149,6 +150,7 @@ DxRenderer::DxRenderer() {
 	mGammaCorrection = std::make_unique<GammaCorrection::GammaCorrectionClass>();
 	mToneMapping = std::make_unique<ToneMapping::ToneMappingClass>();
 	mIrradianceMap = std::make_unique<IrradianceMap::IrradianceMapClass>();
+	mMipmapGenerator = std::make_unique<MipmapGenerator::MipmapGeneratorClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -232,6 +234,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat, HDRMapFormat));
 	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
+	CheckReturn(mMipmapGenerator->Initialize(device, cmdList, shaderManager));
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -441,7 +444,7 @@ bool DxRenderer::SetCubeMap(const std::string& file) {
 	return true;
 }
 
-bool DxRenderer::SetEquirectangularMap(const std::string& file) {
+bool DxRenderer::SetEquirectangularMap(const std::string& file) {	
 	mIrradianceMap->SetEquirectangularMap(mCommandQueue.Get(), file);
 
 	return true;
@@ -540,6 +543,7 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
 	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
 	CheckReturn(mIrradianceMap->CompileShaders(ShaderFilePath));
+	CheckReturn(mMipmapGenerator->CompileShaders(ShaderFilePath));
 
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
@@ -740,6 +744,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
 	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
 	CheckReturn(mIrradianceMap->BuildRootSignature(staticSamplers));
+	CheckReturn(mMipmapGenerator->BuildRootSignature(staticSamplers));
 
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
@@ -779,6 +784,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
 	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
+	CheckReturn(mMipmapGenerator->BuildPso());
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -1160,6 +1166,7 @@ bool DxRenderer::UpdateShadingObjects(float delta) {
 		cmdList, 
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(), 
+		mMipmapGenerator.get(),
 		mIrradianceCubeMap
 	);
 
@@ -2205,6 +2212,18 @@ bool DxRenderer::DrawImGui() {
 					BuildDebugMaps(
 						mDebugMapStates[DebugMapLayout::E_SSR],
 						mSsr->SsrMapSrv(0),
+						Debug::SampleMask::RGB);
+				}
+				if (ImGui::Checkbox("Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_Equirectangular])) {
+					BuildDebugMaps(
+						mDebugMapStates[DebugMapLayout::E_Equirectangular],
+						mIrradianceMap->EquirectangularMapSrv(),
+						Debug::SampleMask::RGB);
+				}
+				if (ImGui::Checkbox("Temporary Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular])) {
+					BuildDebugMaps(
+						mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
+						mIrradianceMap->TemporaryEquirectangularMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect])) {

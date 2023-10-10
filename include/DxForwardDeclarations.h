@@ -19,3 +19,4 @@ namespace DebugCollision { class DebugCollisionClass; }
 namespace GammaCorrection { class GammaCorrectionClass; }
 namespace ToneMapping { class ToneMappingClass; }
 namespace IrradianceMap { class IrradianceMapClass; }
+namespace MipmapGenerator { class MipmapGeneratorClass; }
