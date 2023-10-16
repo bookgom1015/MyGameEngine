@@ -40,9 +40,6 @@ using namespace DirectX;
 
 namespace {
 	const std::wstring ShaderFilePath = L".\\..\\..\\assets\\shaders\\hlsl\\";
-
-	const DXGI_FORMAT HDRMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	const DXGI_FORMAT SDRMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 }
 
 namespace ShaderArgs {
@@ -215,13 +212,13 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #ifdef _DEBUG
 	WLogln(L"Initializing shading components...");
 #endif
-	CheckReturn(mBRDF->Initialize(device, shaderManager));
+	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, 
 		mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv(), DepthStencilBuffer::Format));
 	CheckReturn(mShadowMap->Initialize(device, shaderManager, 2048, 2048));
 	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
-	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4, HDRMapFormat));
+	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4));
 	CheckReturn(mSsr->Initialize(device, shaderManager, width, height, 2));
 	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
@@ -232,7 +229,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mRtao->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat, HDRMapFormat));
+	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
 	CheckReturn(mMipmapGenerator->Initialize(device, cmdList, shaderManager));
 #ifdef _DEBUG
@@ -329,7 +326,8 @@ bool DxRenderer::Draw() {
 	// Post-pass
 	{
 		CheckReturn(DrawSkySphere());
-		CheckReturn(ApplySsr());
+		CheckReturn(BuildSsr());
+		CheckReturn(IntegrateSpecIrrad());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
 		
 		CheckReturn(ResolveToneMapping());
@@ -367,6 +365,7 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
+	CheckReturn(mBRDF->OnResize(width, height));
 	CheckReturn(mSwapChainBuffer->OnResize());
 	CheckReturn(mGBuffer->OnResize(width, height));
 	CheckReturn(mSsao->OnResize(width, height));
@@ -703,6 +702,7 @@ void DxRenderer::BuildDescriptors() {
 
 	mImGui->BuildDescriptors(hCpu, hGpu, descSize);
 	mSwapChainBuffer->BuildDescriptors(hCpu, hGpu, descSize);
+	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
 	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mShadowMap->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
 	mSsao->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -1639,13 +1639,13 @@ bool DxRenderer::DrawBackBuffer() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	mBRDF->Run(
+	mBRDF->CalcReflectanceWithoutSpecIrrad(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mToneMapping->InterMediateMapRtv(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
@@ -1653,10 +1653,40 @@ bool DxRenderer::DrawBackBuffer() {
 		mShadowMap->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
-		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
-		mIrradianceMap->IntegratedBrdfMapSrv(),
 		BRDF::Render::E_Raster
 	);
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
+bool DxRenderer::IntegrateSpecIrrad() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+
+	const auto pDescHeap = mCbvSrvUavHeap.Get();
+	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mBRDF->IntegrateSpecularIrrad(
+		cmdList,
+		mScreenViewport,
+		mScissorRect,
+		mToneMapping->InterMediateMapResource(),
+		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mToneMapping->InterMediateMapRtv(),
+		mGBuffer->AlbedoMapSrv(),
+		mGBuffer->NormalMapSrv(),
+		mGBuffer->DepthMapSrv(),
+		mGBuffer->RMSMapSrv(),
+		mSsao->AOCoefficientMapSrv(0),
+		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
+		mIrradianceMap->IntegratedBrdfMapSrv(),
+		mSsr->SsrMapSrv(0)
+	);	
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -1758,7 +1788,7 @@ bool DxRenderer::ApplyTAA() {
 	return true;
 }
 
-bool DxRenderer::ApplySsr() {
+bool DxRenderer::BuildSsr() {
 	const auto cmdList = mCommandList.Get();
 
 	auto pDescHeap = mCbvSrvUavHeap.Get();
@@ -1803,7 +1833,7 @@ bool DxRenderer::ApplySsr() {
 			mSsr->SsrMapSrv(0),
 			mSsr->SsrMapRtv(1),
 			mSsr->SsrMapSrv(1),
-			BlurFilter::FilterType::R16G16B16A16,
+			BlurFilter::FilterType::R32G32B32A32,
 			ShaderArgs::Ssr::BlurCount
 		);
 
@@ -1834,22 +1864,7 @@ bool DxRenderer::ApplySsr() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
-
-	mSsr->Apply(
-		cmdList,
-		mScreenViewport,
-		mScissorRect,
-		mToneMapping->InterMediateMapResource(),
-		passCBAddress,
-		mToneMapping->InterMediateMapRtv(),
-		mToneMapping->InterMediateMapSrv(),
-		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalMapSrv(),
-		mGBuffer->DepthMapSrv(),
-		mGBuffer->RMSMapSrv(),
-		mIrradianceMap->EnvironmentCubeMapSrv()
-	);
+	
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -1892,7 +1907,7 @@ bool DxRenderer::ApplyBloom() {
 		mBloom->BloomMapSrv(0),
 		mBloom->BloomMapRtv(1),
 		mBloom->BloomMapSrv(1),
-		BlurFilter::FilterType::R16G16B16A16,
+		BlurFilter::FilterType::R32G32B32A32,
 		ShaderArgs::Bloom::BlurCount
 	);
 	
@@ -2445,13 +2460,13 @@ bool DxRenderer::DrawDxrBackBuffer() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
-	mBRDF->Run(
+	mBRDF->CalcReflectanceWithoutSpecIrrad(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mToneMapping->InterMediateMapRtv(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
@@ -2459,8 +2474,6 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 		mSsao->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
-		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
-		mIrradianceMap->IntegratedBrdfMapSrv(),
 		BRDF::Render::E_Raytrace
 	);
 

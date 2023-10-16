@@ -18,15 +18,25 @@ namespace {
 	const std::string CookTorrancePS = "CookTorrancePS";
 	const std::string DxrCookTorranceVS = "DxrCookTorranceVS";
 	const std::string DxrCookTorrancePS = "DxrCookTorrancePS";
+
+	const std::string IntegrateSpecularVS = "IntegrateSpecularVS";
+	const std::string IntegrateSpecularPS = "IntegrateSpecularPS";
 }
 
 BRDFClass::BRDFClass() {
+	mCopiedBackBuffer = std::make_unique<GpuResource>();
+
 	ModelType = Model::E_CookTorrance;
 }
 
-bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
+bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
+
+	mWidth = width;
+	mHeight = height;
+
+	CheckReturn(BuildResources());
 
 	return true;
 }
@@ -82,52 +92,90 @@ bool BRDFClass::CompileShaders(const std::wstring& filePath) {
 			CheckReturn(mShaderManager->CompileShader(psInfo, DxrCookTorrancePS));
 		}
 	}
+	{
+		const auto fullPath = filePath + L"IntegrateSpecular.hlsl";
+		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+		CheckReturn(mShaderManager->CompileShader(vsInfo, IntegrateSpecularVS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, IntegrateSpecularPS));
+	}
 
 	return true;
 }
 
 bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	{
+		CD3DX12_ROOT_PARAMETER slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[9];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-	texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
-	texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
-	texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
-	texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[7];
+		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
 
-	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-	slotRootParameter[RootSignatureLayout::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
-	slotRootParameter[RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-	slotRootParameter[RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
-	slotRootParameter[RootSignatureLayout::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
-	slotRootParameter[RootSignatureLayout::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
-	slotRootParameter[RootSignatureLayout::ESI_Diffuse].InitAsDescriptorTable(1, &texTables[6]);
-	slotRootParameter[RootSignatureLayout::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[7]);
-	slotRootParameter[RootSignatureLayout::ESI_Brdf].InitAsDescriptorTable(1, &texTables[8]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[CalcReflectanceEquation::RootSignatureLayout::ESI_Diffuse].InitAsDescriptorTable(1, &texTables[6]);
 
-	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-		_countof(slotRootParameter), slotRootParameter,
-		static_cast<UINT>(samplers.size()), samplers.data(),
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-	);
+		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
+			_countof(slotRootParameter), slotRootParameter,
+			static_cast<UINT>(samplers.size()), samplers.data(),
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+		);
 
-	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_CalcReflectanceEquation]));
+	}
+	{
+		CD3DX12_ROOT_PARAMETER slotRootParameter[IntegrateSpecular::RootSignatureLayout::Count];
+
+		CD3DX12_DESCRIPTOR_RANGE texTables[9];
+		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
+		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
+		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
+
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_Albedo].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[7]);
+		slotRootParameter[IntegrateSpecular::RootSignatureLayout::ESI_SSR].InitAsDescriptorTable(1, &texTables[8]);
+
+		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
+			_countof(slotRootParameter), slotRootParameter,
+			static_cast<UINT>(samplers.size()), samplers.data(),
+			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+		);
+
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_IntegrateSpecular]));
+	}
 
 	return true;
 }
 
 bool BRDFClass::BuildPso() {
+	const auto& diffuseRootSig = mRootSignatures[RootSignature::E_CalcReflectanceEquation].Get();
 	{
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-			psoDesc.pRootSignature = mRootSignature.Get();
+			psoDesc.pRootSignature = diffuseRootSig;
 			{
 				auto vs = mShaderManager->GetDxcShader(BlinnPhongVS);
 				auto ps = mShaderManager->GetDxcShader(BlinnPhongPS);
@@ -144,7 +192,7 @@ bool BRDFClass::BuildPso() {
 		}
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-			psoDesc.pRootSignature = mRootSignature.Get();
+			psoDesc.pRootSignature = diffuseRootSig;
 			{
 				auto vs = mShaderManager->GetDxcShader(CookTorranceVS);
 				auto ps = mShaderManager->GetDxcShader(CookTorrancePS);
@@ -163,7 +211,7 @@ bool BRDFClass::BuildPso() {
 	{
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-			psoDesc.pRootSignature = mRootSignature.Get();
+			psoDesc.pRootSignature = diffuseRootSig;
 			{
 				auto vs = mShaderManager->GetDxcShader(DxrBlinnPhongVS);
 				auto ps = mShaderManager->GetDxcShader(DxrBlinnPhongPS);
@@ -180,7 +228,7 @@ bool BRDFClass::BuildPso() {
 		}
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-			psoDesc.pRootSignature = mRootSignature.Get();
+			psoDesc.pRootSignature = diffuseRootSig;
 			{
 				auto vs = mShaderManager->GetDxcShader(DxrCookTorranceVS);
 				auto ps = mShaderManager->GetDxcShader(DxrCookTorrancePS);
@@ -196,17 +244,59 @@ bool BRDFClass::BuildPso() {
 			);
 		}
 	}
+	{
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
+		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_IntegrateSpecular].Get();
+		{
+			auto vs = mShaderManager->GetDxcShader(IntegrateSpecularVS);
+			auto ps = mShaderManager->GetDxcShader(IntegrateSpecularPS);
+			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+		}
+		psoDesc.NumRenderTargets = 1;
+		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+
+		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+			&psoDesc,
+			IID_PPV_ARGS(&mIntegrateSpecularPSO))
+		);
+	}
 
 	return true;
 }
 
-void BRDFClass::Run(
+void BRDFClass::BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+		UINT descSize) {
+	mhCopiedBackBufferSrvCpu = hCpu;
+	mhCopiedBackBufferSrvGpu = hGpu;
+
+	hCpu.Offset(1, descSize);
+	hGpu.Offset(1, descSize);
+
+	BuildDescriptors();
+}
+
+bool BRDFClass::OnResize(UINT width, UINT height) {
+	if ((mWidth != width) || (mHeight != height)) {
+		mWidth = width;
+		mHeight = height;
+
+		CheckReturn(BuildResources());
+		BuildDescriptors();
+	}
+
+	return true;
+}
+
+void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
 		GpuResource* backBuffer,
-		D3D12_CPU_DESCRIPTOR_HANDLE ri_backBuffer,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
@@ -214,30 +304,26 @@ void BRDFClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_diffuse,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_specular,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
 		Render::Type renderType) {
 	cmdList->SetPipelineState(mPSOs[renderType][ModelType].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_CalcReflectanceEquation].Get());
 
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &ri_backBuffer, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
+	cmdList->SetGraphicsRootConstantBufferView(CalcReflectanceEquation::RootSignatureLayout::ECB_Pass, cb_pass);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Albedo, si_albedo);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, si_normal);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_RMS, si_rms);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Shadow, si_shadow);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_AOCoeiff, si_aocoeiff);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Diffuse, si_diffuse);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Prefiltered, si_specular);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Brdf, si_brdf);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_Albedo, si_albedo);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_Normal, si_normal);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_RMS, si_rms);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_Shadow, si_shadow);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_AOCoeiff, si_aocoeiff);
+	cmdList->SetGraphicsRootDescriptorTable(CalcReflectanceEquation::RootSignatureLayout::ESI_Diffuse, si_diffuse);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -245,4 +331,93 @@ void BRDFClass::Run(
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
+}
+
+void BRDFClass::IntegrateSpecularIrrad(
+		ID3D12GraphicsCommandList* const cmdList,
+		D3D12_VIEWPORT viewport,
+		D3D12_RECT scissorRect,
+		GpuResource* backBuffer,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_prefiltered,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_ssr) {
+	cmdList->SetPipelineState(mIntegrateSpecularPSO.Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_IntegrateSpecular].Get());
+
+	cmdList->RSSetViewports(1, &viewport);
+	cmdList->RSSetScissorRects(1, &scissorRect);
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+	cmdList->CopyResource(mCopiedBackBuffer->Resource(), backBuffer->Resource());
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
+
+	cmdList->SetGraphicsRootConstantBufferView(IntegrateSpecular::RootSignatureLayout::ECB_Pass, cb_pass);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_BackBuffer, mhCopiedBackBufferSrvGpu);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_Albedo, si_albedo);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_Normal, si_normal);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_RMS, si_rms);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_AOCoeiff, si_aocoeiff);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_Prefiltered, si_prefiltered);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_BrdfLUT, si_brdf);
+	cmdList->SetGraphicsRootDescriptorTable(IntegrateSpecular::RootSignatureLayout::ESI_SSR, si_ssr);
+
+	cmdList->IASetVertexBuffers(0, 0, nullptr);
+	cmdList->IASetIndexBuffer(nullptr);
+	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+}
+
+void BRDFClass::BuildDescriptors() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Format = D3D12Util::HDRMapFormat;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferSrvCpu);
+}
+
+bool BRDFClass::BuildResources() {
+	D3D12_RESOURCE_DESC rscDesc = {};
+	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	rscDesc.Width = mWidth;
+	rscDesc.Height = mHeight;
+	rscDesc.Alignment = 0;
+	rscDesc.DepthOrArraySize = 1;
+	rscDesc.MipLevels = 1;
+	rscDesc.SampleDesc.Count = 1;
+	rscDesc.SampleDesc.Quality = 0;
+	rscDesc.Format = D3D12Util::HDRMapFormat;
+	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	CheckReturn(mCopiedBackBuffer->Initialize(
+		md3dDevice,
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&rscDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		L"CopiedBackBufferMap"
+	));
+
+	return true;
 }

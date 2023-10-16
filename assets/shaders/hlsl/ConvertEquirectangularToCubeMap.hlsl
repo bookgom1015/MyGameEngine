@@ -53,7 +53,7 @@ float2 SampleSphericalMap(float3 view) {
 
 float4 PS(VertexOut pin) : SV_Target{
 	float2 texc = SampleSphericalMap(normalize(pin.PosL));
-	float3 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc, 0);
+	float3 samp = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, 0);
 	return float4(samp, 1);
 }
 

@@ -17,7 +17,8 @@ Texture2D<float3>	gi_Normal		: register(t2);
 Texture2D<float>	gi_Depth		: register(t3);
 Texture2D<float3>	gi_RMS			: register(t4);
 Texture2D<float4>	gi_Ssr			: register(t5);
-TextureCube<float3>	gi_Environment	: register(t6);
+Texture2D<float4>	gi_BrdfLUT		: register(t6);
+TextureCube<float3>	gi_Environment	: register(t7);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -48,10 +49,10 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
 
 	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
-	const float3 normal = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
 
-	float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
-	float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
+	const float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
+	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
 	float k = ssr.a;
 
 	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC);
@@ -62,17 +63,20 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float shiness = 1 - roughness;
 	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
 
-	const float3 V = normalize(cbPass.EyePosW - posW.xyz);
-	const float3 L = reflect(-V, normal);
-	const float3 lookup = BoxCubeMapLookup(posW.xyz, L, (float3)0, (float3)100);
+	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
+	const float3 lightW = reflect(-viewW, normalW);
+	const float3 lookup = BoxCubeMapLookup(posW.xyz, lightW, (float3)0, (float3)100);
 	float3 const env = gi_Environment.Sample(gsamLinearWrap, lookup);
 
-	const float3 H = normalize(V + L);
-	const float3 kS = FresnelSchlick(saturate(dot(H, V)), fresnelR0);
+	const float3 halfW = normalize(viewW + lightW);
+
+	const float2 envBRDF = gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(saturate(dot(normalW, viewW)), roughness), 0);
+
+	const float3 kS = FresnelSchlick(saturate(dot(halfW, viewW)), fresnelR0);
 	const float3 kD = 1 - kS;
 
-	const float skyFactor = ceil(max(1 - dot(normal, -V), 0));
-	const float3 reflectedLight = shiness * skyFactor * kS * ssr.rgb;
+	const float skyFactor = ceil(max(1 - dot(normalW, -viewW), 0));
+	const float3 reflectedLight = skyFactor * shiness * (kS * envBRDF.x + envBRDF.y) * ssr.rgb;
 
 	float3 applied = radiance + reflectedLight;
 

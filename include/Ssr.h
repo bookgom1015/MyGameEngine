@@ -11,39 +11,13 @@ class ShaderManager;
 class GpuResource;
 
 namespace Ssr {
-	namespace Building {
-		namespace RootSignatureLayout {
-			enum {
-				ECB_Ssr = 0,
-				ESI_BackBuffer,
-				ESI_Normal,
-				ESI_Depth,
-				ESI_Spec,
-				Count
-			};
-		}
-	}
-
-	namespace Applying {
-		namespace RootSignatureLayout {
-			enum {
-				ECB_Pass = 0,
-				ESI_BackBuffer,
-				ESI_Albedo,
-				ESI_Normal,
-				ESI_Depth,
-				ESI_RMS,
-				ESI_Ssr,
-				ESI_Environment,
-				Count
-			};
-		}
-	}
-
-	namespace PipelineState {
-		enum Type {
-			E_Building = 0,
-			E_Applying,
+	namespace RootSignatureLayout {
+		enum {
+			ECB_Ssr = 0,
+			ESI_BackBuffer,
+			ESI_Normal,
+			ESI_Depth,
+			ESI_Spec,
 			Count
 		};
 	}
@@ -84,20 +58,6 @@ namespace Ssr {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_spec);
 
-		void Apply(
-			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
-			GpuResource* backBuffer,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_environment);
-
 	private:
 		void BuildDescriptors();
 		bool BuildResources();
@@ -106,8 +66,8 @@ namespace Ssr {
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
 		UINT mWidth;
 		UINT mHeight;
@@ -124,10 +84,6 @@ namespace Ssr {
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuSrvs;
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhSsrMapGpuSrvs;
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuRtvs;
-
-		std::unique_ptr<GpuResource> mCopiedBackBuffer;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferSrvCpu;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferSrvGpu;
 	};
 }
 

@@ -100,10 +100,11 @@ private:
 	bool DrawGBuffer();
 	bool DrawSsao();
 	bool DrawBackBuffer();
+	bool IntegrateSpecIrrad();
 	bool DrawSkySphere();
 	bool DrawEquirectangulaToCube();
 	bool ApplyTAA();
-	bool ApplySsr();
+	bool BuildSsr();
 	bool ApplyBloom();
 	bool ApplyDepthOfField();
 	bool ApplyMotionBlur();

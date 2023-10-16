@@ -33,6 +33,7 @@ namespace BlurFilter {
 		R8G8B8A8,
 		R16,
 		R16G16B16A16,
+		R32G32B32A32,
 		Count
 	};
 

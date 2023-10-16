@@ -513,8 +513,8 @@ bool IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, 
 		srvDesc.Format = desc.Format;
 		md3dDevice->CreateShaderResourceView(mTemporaryEquirectangularMap->Resource(), &srvDesc, mhTemporaryEquirectangularMapCpuSrv);
 	}
-
 	bNeedToUpdate = true;
+
 
 	return true;
 }
@@ -567,7 +567,7 @@ bool IrradianceMapClass::Update(
 			EquirectangularMapWidth, 
 			EquirectangularMapHeight, 
 			MaxMipLevel);
-
+	
 		{
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -579,19 +579,18 @@ bool IrradianceMapClass::Update(
 			srvDesc.Format = D3D12Util::HDRMapFormat;
 			md3dDevice->CreateShaderResourceView(mEquirectangularMap->Resource(), &srvDesc, mhEquirectangularMapCpuSrv);
 		}
+
+		ConvertEquirectangularToCube(
+			cmdList,
+			mCubeMapViewport,
+			mCubeMapScissorRect,
+			mEnvironmentCubeMap.get(),
+			cbConvEquirectToCube,
+			mhEquirectangularMapGpuSrv,
+			mhEnvironmentCubeMapCpuRtvs,
+			box
+		);
 	}
-
-	ConvertEquirectangularToCube(
-		cmdList, 
-		mCubeMapViewport,
-		mCubeMapScissorRect,
-		mEnvironmentCubeMap.get(), 
-		cbConvEquirectToCube, 
-		mhEquirectangularMapGpuSrv,
-		mhEnvironmentCubeMapCpuRtvs, 
-		box
-	);
-
 	{
 		bool exists = Check(GenDiffuseIrradianceCubeMap);
 		if (exists) {
@@ -897,7 +896,7 @@ void IrradianceMapClass::BuildDescriptors() {
 
 		for (UINT i = 0; i < MaxMipLevel; ++i) {
 			rtvDesc.Texture2D.MipSlice = i;
-
+		
 			md3dDevice->CreateRenderTargetView(mEquirectangularMap->Resource(), &rtvDesc, mhEquirectangularMapCpuRtvs[i]);
 		}
 

@@ -83,6 +83,9 @@ bool BlurFilterClass::BuildPso() {
 		case FilterType::R16G16B16A16:
 			psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
 			break;
+		case FilterType::R32G32B32A32:
+			psoDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			break;
 		default:
 			ReturnFalse(L"Unknown FilterType");
 		}

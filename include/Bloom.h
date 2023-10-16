@@ -68,7 +68,7 @@ namespace Bloom {
 	public:
 		bool Initialize(
 			ID3D12Device* device, ShaderManager*const manager, 
-			UINT width, UINT height, UINT divider, DXGI_FORMAT hdrMapFormat);
+			UINT width, UINT height, UINT divider);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout);
@@ -111,8 +111,6 @@ namespace Bloom {
 
 		D3D12_VIEWPORT mOriginalViewport;
 		D3D12_RECT mOriginalScissorRect;
-
-		DXGI_FORMAT mHDRMapFormat;
 
 		std::array<std::unique_ptr<GpuResource>, 2> mBloomMaps;
 		std::unique_ptr<GpuResource> mResultMap;

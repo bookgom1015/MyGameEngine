@@ -49,7 +49,7 @@ namespace ToneMapping {
 
 	public:
 		bool Initialize(ID3D12Device* device, ShaderManager* const manager, 
-			UINT width, UINT height, DXGI_FORMAT backBufferFormat, DXGI_FORMAT hdrMapFormat);
+			UINT width, UINT height, DXGI_FORMAT backBufferFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -87,7 +87,6 @@ namespace ToneMapping {
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
 		DXGI_FORMAT mBackBufferFormat;
-		DXGI_FORMAT mHDRMapFormat;
 
 		UINT mWidth;
 		UINT mHeight;

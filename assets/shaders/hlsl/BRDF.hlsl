@@ -32,8 +32,6 @@ Texture2D<float3>	gi_RMS				: register(t3);
 Texture2D<float>	gi_Shadow			: register(t4);
 Texture2D<float>	gi_AOCoeiff			: register(t5);
 TextureCube<float3>	gi_Diffuse			: register(t6);
-TextureCube<float3>	gi_Prefiltered		: register(t7);
-Texture2D<float2>	gi_BrdfLUT			: register(t8);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -105,19 +103,9 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float3 diffSamp = gi_Diffuse.SampleLevel(gsamLinearClamp, normalW, 0);
 	const float3 diffuseIrradiance = diffSamp * albedo;
 
-	const float3 reflectedW = reflect(-viewW, normalW);
-	const float MaxMipLevel = 5;
-
-	const float3 prefilteredColor = gi_Prefiltered.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel);
-	
-	const float NdotV = max(dot(normalW, viewW), 0);
-
-	const float2 envBRDF =  gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);
-	const float3 specIrradiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
-
 	const float aoCoeiff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 
-	const float3 ambient = (kD * diffuseIrradiance + specIrradiance) * aoCoeiff;
+	const float3 ambient = (kD * diffuseIrradiance) * aoCoeiff;
 
 	return float4(radiance + ambient, albedo.a);
 }

@@ -746,5 +746,8 @@
     <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
   </ItemGroup>
 </Project>
