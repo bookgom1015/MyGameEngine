@@ -441,8 +441,10 @@ void IrradianceMapClass::BuildDescriptors(
 	mhDiffuseIrradianceEquirectMapCpuRtv = hCpuRtv;
 	mhIntegratedBrdfMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
-	for (UINT i = 0; i < CubeMapFace::Count; ++i) {
-		mhEnvironmentCubeMapCpuRtvs[i] = hCpuRtv.Offset(1, rtvDescSize);
+	for (UINT mipLevel = 0; mipLevel < MaxMipLevel; ++mipLevel) {
+		for (UINT face = 0; face < CubeMapFace::Count; ++face) {
+			mhEnvironmentCubeMapCpuRtvs[mipLevel][face] = hCpuRtv.Offset(1, rtvDescSize);
+		}
 	}
 	for (UINT i = 0; i < CubeMapFace::Count; ++i) {
 		mhDiffuseIrradianceCubeMapCpuRtvs[i] = hCpuRtv.Offset(1, rtvDescSize);
@@ -582,13 +584,14 @@ bool IrradianceMapClass::Update(
 
 		ConvertEquirectangularToCube(
 			cmdList,
-			mCubeMapViewport,
-			mCubeMapScissorRect,
+			CubeMapSize,
+			CubeMapSize,
 			mEnvironmentCubeMap.get(),
 			cbConvEquirectToCube,
 			mhEquirectangularMapGpuSrv,
 			mhEnvironmentCubeMapCpuRtvs,
-			box
+			box,
+			MaxMipLevel
 		);
 	}
 	{
@@ -831,12 +834,12 @@ void IrradianceMapClass::BuildDescriptors() {
 		{
 			srvDesc.TextureCube.MipLevels = 1;
 
-			md3dDevice->CreateShaderResourceView(mEnvironmentCubeMap->Resource(), &srvDesc, mhEnvironmentCubeMapCpuSrv);
 			md3dDevice->CreateShaderResourceView(mDiffuseIrradianceCubeMap->Resource(), &srvDesc, mhDiffuseIrradianceCubeMapCpuSrv);
 		}
 		{
 			srvDesc.TextureCube.MipLevels = MaxMipLevel;
 
+			md3dDevice->CreateShaderResourceView(mEnvironmentCubeMap->Resource(), &srvDesc, mhEnvironmentCubeMapCpuSrv);
 			md3dDevice->CreateShaderResourceView(mPrefilteredEnvironmentCubeMap->Resource(), &srvDesc, mhPrefilteredEnvironmentCubeMapCpuSrv);
 		}
 	}
@@ -865,13 +868,21 @@ void IrradianceMapClass::BuildDescriptors() {
 		rtvDesc.Texture2DArray.ArraySize = 1;
 
 		{
-			rtvDesc.Texture2DArray.MipSlice = 0;
 
+			rtvDesc.Texture2DArray.MipSlice = 0;
 			for (UINT i = 0; i < CubeMapFace::Count; ++i) {
 				rtvDesc.Texture2DArray.FirstArraySlice = i;
 			
-				md3dDevice->CreateRenderTargetView(mEnvironmentCubeMap->Resource(), &rtvDesc, mhEnvironmentCubeMapCpuRtvs[i]);
 				md3dDevice->CreateRenderTargetView(mDiffuseIrradianceCubeMap->Resource(), &rtvDesc, mhDiffuseIrradianceCubeMapCpuRtvs[i]);
+			}
+
+			for (UINT mipLevel = 0; mipLevel < MaxMipLevel; ++mipLevel) {
+				rtvDesc.Texture2DArray.MipSlice = mipLevel;
+				for (UINT face = 0; face < CubeMapFace::Count; ++face) {
+					rtvDesc.Texture2DArray.FirstArraySlice = face;
+
+					md3dDevice->CreateRenderTargetView(mEnvironmentCubeMap->Resource(), &rtvDesc, mhEnvironmentCubeMapCpuRtvs[mipLevel][face]);
+				}
 			}
 		}
 		{
@@ -1108,7 +1119,7 @@ bool IrradianceMapClass::Save(ID3D12CommandQueue* const queue, GpuResource* reso
 }
 
 void IrradianceMapClass::ConvertEquirectangularToCube(
-	ID3D12GraphicsCommandList* const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
 		GpuResource* resource,
@@ -1137,6 +1148,49 @@ void IrradianceMapClass::ConvertEquirectangularToCube(
 		cmdList->IASetPrimitiveTopology(box->PrimitiveType);
 
 		cmdList->DrawIndexedInstanced(box->IndexCount, 1, box->StartIndexLocation, box->BaseVertexLocation, 0);
+	}
+
+	resource->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
+void IrradianceMapClass::ConvertEquirectangularToCube(
+		ID3D12GraphicsCommandList* const cmdList,
+		UINT width, UINT height,
+		GpuResource* resource,
+		D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
+		CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[][CubeMapFace::Count],
+		RenderItem* box,
+		UINT maxMipLevel) {
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_ConvEquirectToCube].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ConvEquirectToCube].Get());
+
+	resource->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	cmdList->SetGraphicsRootConstantBufferView(ConvEquirectToCube::RootSignatureLayout::ECB_ConvEquirectToCube, cbConvEquirectToCube);
+	cmdList->SetGraphicsRootDescriptorTable(ConvEquirectToCube::RootSignatureLayout::ESI_Equirectangular, si_equirectangular);
+
+	for (UINT mipLevel = 0; mipLevel < maxMipLevel; ++mipLevel) {
+		UINT mw = static_cast<UINT>(width / std::pow(2, mipLevel));
+		UINT mh = static_cast<UINT>(height / std::pow(2, mipLevel));
+
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(mw), static_cast<float>(mh), 0.0f, 1.0f };
+		D3D12_RECT scissorRect = { 0, 0, static_cast<int>(mw), static_cast<int>(mh) };
+
+		cmdList->RSSetViewports(1, &viewport);
+		cmdList->RSSetScissorRects(1, &scissorRect);
+
+		for (UINT face = 0; face < CubeMapFace::Count; ++face) {
+			cmdList->OMSetRenderTargets(1, &ro_outputs[mipLevel][face], TRUE, nullptr);
+
+			cmdList->SetGraphicsRoot32BitConstant(ConvEquirectToCube::RootSignatureLayout::EC_Consts, face, 0);
+
+			cmdList->IASetVertexBuffers(0, 1, &box->Geometry->VertexBufferView());
+			cmdList->IASetIndexBuffer(&box->Geometry->IndexBufferView());
+			cmdList->IASetPrimitiveTopology(box->PrimitiveType);
+
+			cmdList->DrawIndexedInstanced(box->IndexCount, 1, box->StartIndexLocation, box->BaseVertexLocation, 0);
+		}
 	}
 
 	resource->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

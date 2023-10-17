@@ -87,7 +87,8 @@ float4 PS(VertexOut pin) : SV_Target{
 
 	const float3 ssrRadiance = shiness * (kS * envBRDF.x + envBRDF.y) * ssr.rgb;
 
-	const float3 integratedSpecRadiance = (1 - k) * specRadiance + k * ssrRadiance;
+	const float t = k * shiness;
+	const float3 integratedSpecRadiance = (1 - t) * specRadiance + t * ssrRadiance;
 	const float aoCoeff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 
 	const float skyFactor = ceil(max(1 - dot(normalW, -viewW), 0));

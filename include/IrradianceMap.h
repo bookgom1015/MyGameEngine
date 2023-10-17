@@ -190,10 +190,10 @@ namespace IrradianceMap {
 
 	static const UINT MaxMipLevel = 5;
 
-	// Equirectangular Map(5) + Environemt CubeMap(6) + Diffuse Irradiance CubeMap(6) + Diffuse Irradiance Equirectangular Map(1) 
+	// Equirectangular Map(5) + Environemt CubeMap(6 * 5) + Diffuse Irradiance CubeMap(6) + Diffuse Irradiance Equirectangular Map(1) 
 	//	+ Prefiltered Irradiance CubeMap(6 * 5) + Integrated BRDF Map(1) + Prefiltered Irradiance Equirectangular Map(5)
 	static const UINT NumRenderTargets = 
-		MaxMipLevel + CubeMapFace::Count + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
+		MaxMipLevel + (CubeMapFace::Count * MaxMipLevel) + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
 
 	static const DXGI_FORMAT IntegratedBrdfMapFormat = DXGI_FORMAT_R16G16_FLOAT;
 
@@ -283,6 +283,15 @@ namespace IrradianceMap {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
 			D3D12_CPU_DESCRIPTOR_HANDLE* ro_outputs,
 			RenderItem* box);
+		void ConvertEquirectangularToCube(
+			ID3D12GraphicsCommandList* const cmdList,
+			UINT width, UINT height,
+			GpuResource* resource,
+			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
+			CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[][CubeMapFace::Count],
+			RenderItem* box,
+			UINT maxMipLevel);
 		void ConvertCubeToEquirectangular(
 			ID3D12GraphicsCommandList* const cmdList, 
 			D3D12_VIEWPORT viewport,
@@ -325,7 +334,7 @@ namespace IrradianceMap {
 		std::unique_ptr<GpuResource> mEnvironmentCubeMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuRtvs[CubeMapFace::Count];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuRtvs[MaxMipLevel][CubeMapFace::Count];
 
 		std::unique_ptr<GpuResource> mDiffuseIrradianceCubeMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceCubeMapCpuSrv;

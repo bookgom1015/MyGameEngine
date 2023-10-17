@@ -47,13 +47,13 @@ float4 GenerateMipmapPS(VertexOut pin) : SV_Target {
 	float4 color2 = gi_Input.SampleLevel(gsamPointClamp, texc2, 0);
 	float4 color3 = gi_Input.SampleLevel(gsamPointClamp, texc3, 0);
 
-	float4 finalColor = color0 + color1 + color2 + color3 * 0.25;
+	float4 finalColor = (color0 + color1 + color2 + color3) * 0.25;
 
 	return finalColor;
 }
 
 float4 JustCopyPS(VertexOut pin) : SV_Target{
-	float4 color = gi_Input.SampleLevel(gsamPointWrap, pin.TexC, 0);
+	float4 color = gi_Input.SampleLevel(gsamPointClamp, pin.TexC, 0);
 	
 	return color;
 }

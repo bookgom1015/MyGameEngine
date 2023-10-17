@@ -1833,7 +1833,7 @@ bool DxRenderer::BuildSsr() {
 			mSsr->SsrMapSrv(0),
 			mSsr->SsrMapRtv(1),
 			mSsr->SsrMapSrv(1),
-			BlurFilter::FilterType::R32G32B32A32,
+			BlurFilter::FilterType::R16G16B16A16,
 			ShaderArgs::Ssr::BlurCount
 		);
 
@@ -1907,7 +1907,7 @@ bool DxRenderer::ApplyBloom() {
 		mBloom->BloomMapSrv(0),
 		mBloom->BloomMapRtv(1),
 		mBloom->BloomMapSrv(1),
-		BlurFilter::FilterType::R32G32B32A32,
+		BlurFilter::FilterType::R16G16B16A16,
 		ShaderArgs::Bloom::BlurCount
 	);
 	

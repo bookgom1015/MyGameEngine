@@ -56,7 +56,7 @@ float4 PS(VertexOut pin) : SV_Target{
 
 #ifdef SPHERICAL
 	float2 texc = SampleSphericalMap(normalize(pin.PosL));
-	 samp = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, 0);
+	 samp = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, gMipLevel);
 #else
 	samp = gi_Cube.SampleLevel(gsamLinearWrap, normalize(pin.PosL), gMipLevel);
 #endif

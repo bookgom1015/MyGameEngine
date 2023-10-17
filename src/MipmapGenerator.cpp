@@ -95,11 +95,13 @@ bool MipmapGeneratorClass::GenerateMipmap(
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_JustCopy].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	D3D12_RECT scissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+	{
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+		D3D12_RECT scissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
 
-	cmdList->RSSetViewports(1, &viewport);
-	cmdList->RSSetScissorRects(1, &scissorRect);
+		cmdList->RSSetViewports(1, &viewport);
+		cmdList->RSSetScissorRects(1, &scissorRect);
+	}
 
 	output->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -121,27 +123,34 @@ bool MipmapGeneratorClass::GenerateMipmap(
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
-	output->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_GenerateMipmap].Get());
+	for (UINT mipLevel = 1; mipLevel < maxMipLevel; ++mipLevel) {
+		cmdList->OMSetRenderTargets(1, &ro_outputs[mipLevel], TRUE, nullptr);
+		
+		UINT mw = static_cast<UINT>(width / std::pow(2, mipLevel));
+		UINT mh = static_cast<UINT>(height / std::pow(2, mipLevel));
 
-	//cmdList->SetPipelineState(mPSOs[PipelineState::E_GenerateMipmap].Get());
-	//for (UINT mipLevel = 1; mipLevel < maxMipLevel; ++mipLevel) {
-	//	float invW = static_cast<float>(1 / width);
-	//	float invH = static_cast<float>(1 / height);
-	//	
-	//	UINT mw = static_cast<UINT>(width / std::pow(2, mipLevel));
-	//	UINT mh = static_cast<UINT>(height / std::pow(2, mipLevel));
-	//	float invMW = static_cast<float>(1 / mw);
-	//	float invMH = static_cast<float>(1 / mh);
-	//
-	//	float values[RootConstantsLayout::Count] = { invW, invH, invMW, invMH };
-	//	cmdList->SetComputeRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
-	//
-	//	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::EUO_Output, ro_outputs[mipLevel - 1]);
-	//
-	//	cmdList->Dispatch(
-	//		D3D12Util::CeilDivide(mw, ThreadGroup::Width),
-	//		D3D12Util::CeilDivide(mh, ThreadGroup::Height), 1);
-	//}
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(mw), static_cast<float>(mh), 0.0f, 1.0f };
+		D3D12_RECT scissorRect = { 0, 0, static_cast<int>(mw), static_cast<int>(mh) };
+
+		cmdList->RSSetViewports(1, &viewport);
+		cmdList->RSSetScissorRects(1, &scissorRect);
+
+		float invW = static_cast<float>(1 / width);
+		float invH = static_cast<float>(1 / height);
+		float invMW = static_cast<float>(1 / mw);
+		float invMH = static_cast<float>(1 / mh);	
+
+		float values[RootConstantsLayout::Count] = { invW, invH, invMW, invMH };
+		cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+	
+		cmdList->IASetVertexBuffers(0, 0, nullptr);
+		cmdList->IASetIndexBuffer(nullptr);
+		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		cmdList->DrawInstanced(6, 1, 0, 0);
+	}
+
+	output->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	return true;
 }
