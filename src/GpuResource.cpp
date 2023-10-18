@@ -40,6 +40,8 @@ void GpuResource::Swap(Microsoft::WRL::ComPtr<ID3D12Resource>& srcResource, D3D1
 }
 
 void GpuResource::Transite(ID3D12GraphicsCommandList* const cmdList, D3D12_RESOURCE_STATES state) {
+	if (mCurrState == state) return;
+
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mResource.Get(), mCurrState, state));
 
 	if (mCurrState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS || state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)

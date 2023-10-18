@@ -203,6 +203,7 @@
     <ClInclude Include="..\..\include\MeshImporter.h" />
     <ClInclude Include="..\..\include\MipmapGenerator.h" />
     <ClInclude Include="..\..\include\MotionBlur.h" />
+    <ClInclude Include="..\..\include\Pixelation.h" />
     <ClInclude Include="..\..\include\PlaneActor.h" />
     <ClInclude Include="..\..\include\Renderer.h" />
     <ClInclude Include="..\..\include\RenderItem.h" />
@@ -273,6 +274,7 @@
     <ClCompile Include="..\..\src\MeshImporter.cpp" />
     <ClCompile Include="..\..\src\MipmapGenerator.cpp" />
     <ClCompile Include="..\..\src\MotionBlur.cpp" />
+    <ClCompile Include="..\..\src\Pixelation.cpp" />
     <ClCompile Include="..\..\src\PlaneActor.cpp" />
     <ClCompile Include="..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\src\RenderItem.cpp" />
@@ -531,6 +533,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

@@ -28,6 +28,7 @@
 #include "ToneMapping.h"
 #include "IrradianceMap.h"
 #include "MipmapGenerator.h"
+#include "Pixelation.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -113,6 +114,10 @@ namespace ShaderArgs {
 		bool ShowIrradianceCubeMap = false;
 		float MipLevel = 0.0f;
 	}
+
+	namespace Pixelization {
+		float PixelSize = 5.0f;
+	}
 }
 
 DxRenderer::DxRenderer() {
@@ -148,6 +153,7 @@ DxRenderer::DxRenderer() {
 	mToneMapping = std::make_unique<ToneMapping::ToneMappingClass>();
 	mIrradianceMap = std::make_unique<IrradianceMap::IrradianceMapClass>();
 	mMipmapGenerator = std::make_unique<MipmapGenerator::MipmapGeneratorClass>();
+	mPixelation = std::make_unique<Pixelation::PixelationClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -232,6 +238,8 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
 	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
 	CheckReturn(mMipmapGenerator->Initialize(device, cmdList, shaderManager));
+	CheckReturn(mPixelation->Initialize(device, shaderManager, width, height));
+
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
@@ -336,6 +344,7 @@ bool DxRenderer::Draw() {
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 		if (bTaaEnabled) CheckReturn(ApplyTAA());
+		if (bPixelationEnabled) ApplyPixelation();
 	}
 
 	if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) CheckReturn(DrawEquirectangulaToCube());
@@ -376,6 +385,7 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckReturn(mTaa->OnResize(width, height));
 	CheckReturn(mGammaCorrection->OnResize(width, height));
 	CheckReturn(mToneMapping->OnResize(width, height));
+	CheckReturn(mPixelation->OnResize(width, height));
 
 	CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
 	CheckReturn(mRtao->OnResize(cmdList, width, height));
@@ -543,6 +553,7 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
 	CheckReturn(mIrradianceMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mMipmapGenerator->CompileShaders(ShaderFilePath));
+	CheckReturn(mPixelation->CompileShaders(ShaderFilePath));
 
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
@@ -714,6 +725,7 @@ void DxRenderer::BuildDescriptors() {
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mPixelation->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
@@ -745,6 +757,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
 	CheckReturn(mIrradianceMap->BuildRootSignature(staticSamplers));
 	CheckReturn(mMipmapGenerator->BuildRootSignature(staticSamplers));
+	CheckReturn(mPixelation->BuildRootSignature(staticSamplers));
 
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
@@ -785,6 +798,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mToneMapping->BuildPso());
 	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
 	CheckReturn(mMipmapGenerator->BuildPso());
+	CheckReturn(mPixelation->BuildPso());
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -2105,6 +2119,32 @@ bool DxRenderer::ApplyGammaCorrection() {
 	return true;
 }
 
+bool DxRenderer::ApplyPixelation() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+
+	const auto pDescHeap = mCbvSrvUavHeap.Get();
+	auto descSize = GetCbvSrvUavDescriptorSize();
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mPixelation->Run(
+		cmdList,
+		mScreenViewport,
+		mScissorRect,
+		mSwapChainBuffer->CurrentBackBuffer(),
+		mSwapChainBuffer->CurrentBackBufferRtv(),
+		ShaderArgs::Pixelization::PixelSize
+	);
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
 bool DxRenderer::DrawDebuggingInfo() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
@@ -2268,6 +2308,7 @@ bool DxRenderer::DrawImGui() {
 			ImGui::Checkbox("SSR", &bSsrEnabled);
 			ImGui::Checkbox("Gamma Correction", &bGammaCorrectionEnabled);
 			ImGui::Checkbox("Tone Mapping", &bToneMappingEnabled);
+			ImGui::Checkbox("Pixelation", &bPixelationEnabled);
 		}
 		if (ImGui::CollapsingHeader("Lights")) {
 			ImGui::ColorPicker3("Amblient Light", ShaderArgs::Light::AmbientLight);
@@ -2370,6 +2411,11 @@ bool DxRenderer::DrawImGui() {
 			}
 			if (ImGui::TreeNode("Gamma Correction")) {
 				ImGui::SliderFloat("Gamma", &ShaderArgs::GammaCorrection::Gamma, 0.1f, 10.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Pixelization")) {
+				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.0f, 20.0f);
 
 				ImGui::TreePop();
 			}

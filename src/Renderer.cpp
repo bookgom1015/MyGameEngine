@@ -52,6 +52,10 @@ void Renderer::EnableToneMapping(bool state) {
 	bToneMappingEnabled = state;
 }
 
+void Renderer::EnablePixelation(bool state) {
+	bPixelationEnabled = state;
+}
+
 void Renderer::EnableRaytracing(bool state) {
 	bRaytracing = state;
 }

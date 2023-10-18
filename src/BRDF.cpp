@@ -416,7 +416,7 @@ bool BRDFClass::BuildResources() {
 		&rscDesc,
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
-		L"CopiedBackBufferMap"
+		L"BRDF_CopiedBackBufferMap"
 	));
 
 	return true;

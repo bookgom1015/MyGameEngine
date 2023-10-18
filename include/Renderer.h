@@ -105,6 +105,9 @@ public:
 	void EnableToneMapping(bool state);
 	__forceinline constexpr bool ToneMappingEnabled() const;
 
+	void EnablePixelation(bool state);
+	__forceinline constexpr bool PixelationEnabled() const;
+
 	void EnableRaytracing(bool state);
 	__forceinline constexpr bool RaytracingEnabled() const;
 
@@ -134,6 +137,7 @@ protected:
 	bool bSsrEnabled = true;
 	bool bGammaCorrectionEnabled = true;
 	bool bToneMappingEnabled = true;
+	bool bPixelationEnabled = false;
 
 	bool bRaytracing = false;
 };
@@ -176,6 +180,10 @@ constexpr bool Renderer::GammaCorrectionEnabled() const {
 
 constexpr bool Renderer::ToneMappingEnabled() const {
 	return bToneMappingEnabled;
+}
+
+constexpr bool Renderer::PixelationEnabled() const {
+	return bPixelationEnabled;
 }
 
 constexpr bool Renderer::RaytracingEnabled() const {

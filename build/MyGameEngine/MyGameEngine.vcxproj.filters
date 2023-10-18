@@ -327,6 +327,9 @@
     <ClInclude Include="..\..\include\MipmapGenerator.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Pixelation.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -525,6 +528,9 @@
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\MipmapGenerator.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Pixelation.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
   </ItemGroup>
@@ -747,6 +753,9 @@
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
   </ItemGroup>
