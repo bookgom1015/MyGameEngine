@@ -10,16 +10,20 @@
 class ShaderManager;
 
 namespace DxrShadowMap {
-	namespace RootSignatureLayout {
-		enum {
-			ECB_Pass = 0,
-			ESI_AccelerationStructure,
-			ESB_Vertices,
-			EAB_Indices,
-			ESI_Depth,
-			EUO_Shadow,
-			Count
+	namespace RootSignature {
+		enum Type {
+			E_Global = 0
 		};
+
+		namespace Global {
+			enum {
+				ECB_Pass = 0,
+				ESI_AccelerationStructure,
+				ESI_Depth,
+				EUO_Shadow,
+				Count
+			};
+		}
 	}
 
 	namespace Resources {
@@ -84,7 +88,7 @@ namespace DxrShadowMap {
 		ID3D12Device5* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		Microsoft::WRL::ComPtr<ID3D12StateObject> mPSO;
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mPSOProp;
 

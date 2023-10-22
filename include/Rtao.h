@@ -10,8 +10,20 @@
 class ShaderManager;
 
 namespace Rtao {
-	namespace CalcAmbientOcclusion {
-		namespace RootSignatureLayout {
+	namespace RootSignature {
+		enum Type {
+			E_CalcAmbientOcclusion = 0,
+			E_TemporalSupersamplingReverseReproject,
+			E_TemporalSupersamplingBlendWithCurrentFrame,
+			E_CalcDepthPartialDerivative,
+			E_CalcLocalMeanVariance,
+			E_FillInCheckerboard,
+			E_AtrousWaveletTransformFilter,
+			E_DisocclusionBlur,
+			Count
+		};
+
+		namespace CalcAmbientOcclusion {
 			enum {
 				ESI_AccelerationStructure = 0,
 				ECB_RtaoPass,
@@ -22,19 +34,17 @@ namespace Rtao {
 				EUO_RayHitDistance,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_TextureDim_X = 0,
+					E_TextureDim_Y,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				ETextureDim_X = 0,
-				ETextureDim_Y,
-				Count
-			};
-		}
-	}
-
-	namespace TemporalSupersamplingReverseReproject {
-		namespace RootSignatureLayout {
+		namespace TemporalSupersamplingReverseReproject {
 			enum {
 				ECB_CrossBilateralFilter = 0,
 				EC_Consts,
@@ -51,21 +61,19 @@ namespace Rtao {
 				EUO_TsppCoefficientSquaredMeanRayHitDistacne,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_TextureDim_X = 0,
+					E_TextureDim_Y,
+					E_InvTextureDim_X,
+					E_InvTextureDim_Y,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				ETextureDim_X = 0,
-				ETextureDim_Y,
-				EInvTextureDim_X,
-				EInvTextureDim_Y,
-				Count
-			};
-		}
-	}
-
-	namespace TemporalSupersamplingBlendWithCurrentFrame {
-		namespace RootSignatureLayout {
+		namespace TemporalSupersamplingBlendWithCurrentFrame {
 			enum {
 				ECB_TsspBlendWithCurrentFrame = 0,
 				ESI_AOCoefficient,
@@ -81,29 +89,25 @@ namespace Rtao {
 				Count
 			};
 		}
-	}
 
-	namespace CalcDepthPartialDerivative {
-		namespace RootSignatureLayout {
+		namespace CalcDepthPartialDerivative {
 			enum {
 				EC_Consts = 0,
 				ESI_Depth,
 				EUO_DepthPartialDerivative,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_InvTextureDim_X = 0,
+					E_InvTextureDim_Y,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				EInvTextureDim_X = 0,
-				EInvTextureDim_Y,
-				Count
-			};
-		}
-	}
-
-	namespace CalcLocalMeanVariance {
-		namespace RootSignatureLayout {
+		namespace CalcLocalMeanVariance {
 			enum {
 				ECB_LocalMeanVar = 0,
 				ESI_AOCoefficient,
@@ -111,20 +115,16 @@ namespace Rtao {
 				Count
 			};
 		}
-	}
 
-	namespace FillInCheckerboard {
-		namespace RootSignatureLayout {
+		namespace FillInCheckerboard {
 			enum {
 				ECB_LocalMeanVar = 0,
 				EUIO_LocalMeanVar,
 				Count
 			};
 		}
-	}
 
-	namespace AtrousWaveletTransformFilter {
-		namespace RootSignatureLayout {
+		namespace AtrousWaveletTransformFilter {
 			enum {
 				ECB_AtrousFilter = 0,
 				ESI_TemporalAOCoefficient,
@@ -137,10 +137,8 @@ namespace Rtao {
 				Count
 			};
 		}
-	}
 
-	namespace DisocclusionBlur {
-		namespace RootSignatureLayout {
+		namespace DisocclusionBlur {
 			enum {
 				EC_Consts = 0,
 				ESI_Depth,
@@ -148,20 +146,33 @@ namespace Rtao {
 				EUIO_AOCoefficient,
 				Count
 			};
-		}
 
-		namespace RootConstantsLayout {
-			enum {
-				ETextureDim_X = 0,
-				ETextureDim_Y,
-				EStep,
-				Count
-			};
+			namespace RootConstant {
+				enum {
+					E_TextureDim_X = 0,
+					E_TextureDim_Y,
+					E_Step,
+					Count
+				};
+			}
 		}
 	}
 
-	namespace AO {
-		namespace Resources {
+	namespace PipelineState {
+		enum Type {
+			E_TemporalSupersamplingReverseReproject = 0,
+			E_TemporalSupersamplingBlendWithCurrentFrame,
+			E_CalcDepthPartialDerivative,
+			E_CalcLocalMeanVariance,
+			E_FillInCheckerboard,
+			E_AtrousWaveletTransformFilter,
+			E_DisocclusionBlur,
+			Count
+		};
+	}
+
+	namespace Resource {
+		namespace AO {
 			enum {
 				EAmbientCoefficient = 0,
 				ERayHitDistance,
@@ -169,19 +180,7 @@ namespace Rtao {
 			};
 		}
 
-		namespace Descriptors {
-			enum {
-				ES_AmbientCoefficient = 0,
-				EU_AmbientCoefficient,
-				ES_RayHitDistance,
-				EU_RayHitDistance,
-				Count
-			};
-		}
-	}
-
-	namespace TemporalCache {
-		namespace Resources {
+		namespace TemporalCache {
 			enum {
 				ETspp = 0,
 				ERayHitDistance,
@@ -190,7 +189,35 @@ namespace Rtao {
 			};
 		}
 
-		namespace Descriptors {
+		namespace LocalMeanVariance {
+			enum {
+				ERaw = 0,
+				ESmoothed,
+				Count
+			};
+		}
+
+		namespace AOVariance {
+			enum {
+				ERaw = 0,
+				ESmoothed,
+				Count
+			};
+		}
+	}
+
+	namespace Descriptor {
+		namespace AO {
+			enum {
+				ES_AmbientCoefficient = 0,
+				EU_AmbientCoefficient,
+				ES_RayHitDistance,
+				EU_RayHitDistance,
+				Count
+			};
+		}
+
+		namespace TemporalCache {
 			enum {
 				ES_Tspp = 0,
 				EU_Tspp,
@@ -201,18 +228,8 @@ namespace Rtao {
 				Count
 			};
 		}
-	}
 
-	namespace LocalMeanVariance {
-		namespace Resources {
-			enum {
-				ERaw = 0,
-				ESmoothed,
-				Count
-			};
-		}
-
-		namespace Descriptors {
+		namespace LocalMeanVariance {
 			enum {
 				ES_Raw = 0,
 				EU_Raw,
@@ -221,18 +238,8 @@ namespace Rtao {
 				Count
 			};
 		}
-	}
 
-	namespace AOVariance {
-		namespace Resources {
-			enum {
-				ERaw = 0,
-				ESmoothed,
-				Count
-			};
-		}
-
-		namespace Descriptors {
+		namespace AOVariance {
 			enum {
 				ES_Raw = 0,
 				EU_Raw,
@@ -241,10 +248,8 @@ namespace Rtao {
 				Count
 			};
 		}
-	}
 
-	namespace TemporalAOCoefficient {
-		namespace Descriptors {
+		namespace TemporalAOCoefficient {
 			enum {
 				Srv = 0,
 				Uav,
@@ -253,25 +258,25 @@ namespace Rtao {
 		}
 	}
 
-	using AOResourcesType = std::array<std::unique_ptr<GpuResource>, AO::Resources::Count>;
-	using AOResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, AO::Descriptors::Count>;
-	using AOResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, AO::Descriptors::Count>;
+	using AOResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::AO::Count>;
+	using AOResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::AO::Count>;
+	using AOResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::AO::Count>;
 
-	using TemporalCachesType = std::array<std::array<std::unique_ptr<GpuResource>, TemporalCache::Resources::Count>, 2>;
-	using TemporalCachesCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, TemporalCache::Descriptors::Count>, 2>;
-	using TemporalCachesGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, TemporalCache::Descriptors::Count>, 2>;
+	using TemporalCachesType = std::array<std::array<std::unique_ptr<GpuResource>, Resource::TemporalCache::Count>, 2>;
+	using TemporalCachesCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::TemporalCache::Count>, 2>;
+	using TemporalCachesGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::TemporalCache::Count>, 2>;
 
-	using LocalMeanVarianceResourcesType = std::array<std::unique_ptr<GpuResource>, LocalMeanVariance::Resources::Count>;
-	using LocalMeanVarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, LocalMeanVariance::Descriptors::Count>;
-	using LocalMeanVarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, LocalMeanVariance::Descriptors::Count>;
+	using LocalMeanVarianceResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::LocalMeanVariance::Count>;
+	using LocalMeanVarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::LocalMeanVariance::Count>;
+	using LocalMeanVarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::LocalMeanVariance::Count>;
 
-	using AOVarianceResourcesType = std::array<std::unique_ptr<GpuResource>, AOVariance::Resources::Count>;
-	using AOVarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, AOVariance::Descriptors::Count>;
-	using AOVarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, AOVariance::Descriptors::Count>;
+	using AOVarianceResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::AOVariance::Count>;
+	using AOVarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::AOVariance::Count>;
+	using AOVarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::AOVariance::Count>;
 
 	using TemporalAOCoefficientsType = std::array<std::unique_ptr<GpuResource>, 2>;
-	using TemporalAOCoefficientsCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, TemporalAOCoefficient::Descriptors::Count>, 2>;
-	using TemporalAOCoefficientsGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, TemporalAOCoefficient::Descriptors::Count>, 2>;
+	using TemporalAOCoefficientsCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::TemporalAOCoefficient::Count>, 2>;
+	using TemporalAOCoefficientsGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::TemporalAOCoefficient::Count>, 2>;
 
 	const float AmbientMapClearValues[1] = { 1.0f };
 
@@ -415,13 +420,12 @@ namespace Rtao {
 		void BuildDescriptors();
 		bool BuildResources(ID3D12GraphicsCommandList* cmdList);
 
-
 	private:
 		ID3D12Device5* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPsos;
+		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPsos;
 		Microsoft::WRL::ComPtr<ID3D12StateObject> mDxrPso;
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mDxrPsoProp;
 

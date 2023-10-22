@@ -56,6 +56,10 @@ void Renderer::EnablePixelation(bool state) {
 	bPixelationEnabled = state;
 }
 
+void Renderer::EnableSharpen(bool state) {
+	bSharpenEnabled = state;
+}
+
 void Renderer::EnableRaytracing(bool state) {
 	bRaytracing = state;
 }

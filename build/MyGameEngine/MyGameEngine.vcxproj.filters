@@ -330,6 +330,9 @@
     <ClInclude Include="..\..\include\Pixelation.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Sharpen.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -531,6 +534,9 @@
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Pixelation.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Sharpen.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
   </ItemGroup>
@@ -757,6 +763,12 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
       <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\include\Renderer.inl">
+      <Filter>Header Files\Render</Filter>
     </None>
   </ItemGroup>
 </Project>

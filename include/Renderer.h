@@ -108,6 +108,9 @@ public:
 	void EnablePixelation(bool state);
 	__forceinline constexpr bool PixelationEnabled() const;
 
+	void EnableSharpen(bool state);
+	__forceinline constexpr bool SharpenEnabled() const;
+
 	void EnableRaytracing(bool state);
 	__forceinline constexpr bool RaytracingEnabled() const;
 
@@ -138,62 +141,9 @@ protected:
 	bool bGammaCorrectionEnabled = true;
 	bool bToneMappingEnabled = true;
 	bool bPixelationEnabled = false;
+	bool bSharpenEnabled = false;
 
 	bool bRaytracing = false;
 };
 
-constexpr bool Renderer::DebuggingEnabled() const {
-	return bDebuggingEnabled;
-}
-
-constexpr bool Renderer::ShadowEnabled() const {
-	return bShadowEnabled;
-}
-
-constexpr bool Renderer::SsaoEnabled() const {
-	return bSsaoEnabled;
-}
-
-constexpr bool Renderer::TaaEnabled() const {
-	return bTaaEnabled;
-}
-
-constexpr bool Renderer::MotionBlurEnabled() const {
-	return bMotionBlurEnabled;
-}
-
-constexpr bool Renderer::DepthOfFieldEnabled() const {
-	return bDepthOfFieldEnabled;
-}
-
-constexpr bool Renderer::BloomEnabled() const {
-	return bBloomEnabled;
-}
-
-constexpr bool Renderer::SsrEnabled() const {
-	return bSsrEnabled;
-}
-
-constexpr bool Renderer::GammaCorrectionEnabled() const {
-	return bGammaCorrectionEnabled;
-}
-
-constexpr bool Renderer::ToneMappingEnabled() const {
-	return bToneMappingEnabled;
-}
-
-constexpr bool Renderer::PixelationEnabled() const {
-	return bPixelationEnabled;
-}
-
-constexpr bool Renderer::RaytracingEnabled() const {
-	return bRaytracing;
-}
-
-constexpr bool Renderer::IsInitialized() const {
-	return bInitialized;
-}
-
-constexpr float Renderer::AspectRatio() const {
-	return static_cast<float>(mClientWidth) / static_cast<float>(mClientHeight);
-}
+#include "Renderer.inl"

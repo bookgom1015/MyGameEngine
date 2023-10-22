@@ -21,3 +21,4 @@ namespace ToneMapping { class ToneMappingClass; }
 namespace IrradianceMap { class IrradianceMapClass; }
 namespace MipmapGenerator { class MipmapGeneratorClass; }
 namespace Pixelation { class PixelationClass; }
+namespace Sharpen { class SharpenClass; }

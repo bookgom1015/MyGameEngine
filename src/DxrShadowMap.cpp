@@ -40,27 +40,25 @@ bool DxrShadowMapClass::CompileShaders(const std::wstring& filePath) {
 }
 
 bool DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[DxrShadowMap::RootSignatureLayout::Count];
+	{
+		CD3DX12_ROOT_PARAMETER slotRootParameter[DxrShadowMap::RootSignature::Global::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[4];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, geometryBufferCount, 0, 1);
-	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, geometryBufferCount, 0, 2);
-	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[2];
+		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-	slotRootParameter[DxrShadowMap::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-	slotRootParameter[DxrShadowMap::RootSignatureLayout::ESI_AccelerationStructure].InitAsShaderResourceView(0);
-	slotRootParameter[DxrShadowMap::RootSignatureLayout::ESB_Vertices].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[DxrShadowMap::RootSignatureLayout::EAB_Indices].InitAsDescriptorTable(1, &texTables[1]);
-	slotRootParameter[DxrShadowMap::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-	slotRootParameter[DxrShadowMap::RootSignatureLayout::EUO_Shadow].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::Global::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::Global::ESI_AccelerationStructure].InitAsShaderResourceView(0);
+		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::Global::EUO_Shadow].InitAsDescriptorTable(1, &texTables[1]);
 
-	CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
-		_countof(slotRootParameter), slotRootParameter,
-		static_cast<UINT>(samplers.size()), samplers.data(),
-		D3D12_ROOT_SIGNATURE_FLAG_NONE
-	);
-	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, globalRootSignatureDesc, &mRootSignature));
+		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
+			_countof(slotRootParameter), slotRootParameter,
+			static_cast<UINT>(samplers.size()), samplers.data(),
+			D3D12_ROOT_SIGNATURE_FLAG_NONE
+		);
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSignatureDesc, &mRootSignatures[RootSignature::E_Global]));
+	}
 
 	return true;
 }
@@ -70,41 +68,33 @@ bool DxrShadowMapClass::BuildPso() {
 	// Default association applies to every exported shader entrypoint that doesn't have any of the same type of subobject associated with it.
 	// This simple sample utilizes default shader association except for local root signature subobject
 	// which has an explicit association specified purely for demonstration purposes.
-	CD3DX12_STATE_OBJECT_DESC shadowDxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
+	CD3DX12_STATE_OBJECT_DESC dxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
-	auto shadowRayLib = shadowDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+	auto shadowRayLib = dxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
 	auto shadowRayShader = mShaderManager->GetDxcShader("shadowRay");
 	D3D12_SHADER_BYTECODE shadowRayLibDxil = CD3DX12_SHADER_BYTECODE(shadowRayShader->GetBufferPointer(), shadowRayShader->GetBufferSize());
 	shadowRayLib->SetDXILLibrary(&shadowRayLibDxil);
 	LPCWSTR shadowRayExports[] = { L"ShadowRayGen", L"ShadowClosestHit", L"ShadowMiss" };
 	shadowRayLib->DefineExports(shadowRayExports);
 
-	auto shadowHitGroup = shadowDxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+	auto shadowHitGroup = dxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
 	shadowHitGroup->SetClosestHitShaderImport(L"ShadowClosestHit");
 	shadowHitGroup->SetHitGroupExport(L"ShadowHitGroup");
 	shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
-	auto shaderConfig = shadowDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+	auto shaderConfig = dxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
 	UINT payloadSize = sizeof(DirectX::XMFLOAT4);	// for pixel color
 	UINT attribSize = sizeof(DirectX::XMFLOAT2);	// for barycentrics
 	shaderConfig->Config(payloadSize, attribSize);
 
-	//auto localRootSig = dxrPso.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-	//localRootSig->SetRootSignature(mRootSignatures["dxr_local"].Get());
-	//{
-	//	auto rootSigAssociation = dxrPso.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-	//	rootSigAssociation->SetSubobjectToAssociate(*localRootSig);
-	//	rootSigAssociation->AddExport(L"HitGroup");
-	//}
+	auto glbalRootSig = dxrPso.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+	glbalRootSig->SetRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
-	auto glbalRootSig = shadowDxrPso.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-	glbalRootSig->SetRootSignature(mRootSignature.Get());
-
-	auto pipelineConfig = shadowDxrPso.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+	auto pipelineConfig = dxrPso.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
 	UINT maxRecursionDepth = 1;
 	pipelineConfig->Config(maxRecursionDepth);
 
-	CheckHRESULT(md3dDevice->CreateStateObject(shadowDxrPso, IID_PPV_ARGS(&mPSO)));
+	CheckHRESULT(md3dDevice->CreateStateObject(dxrPso, IID_PPV_ARGS(&mPSO)));
 	CheckHRESULT(mPSO->QueryInterface(IID_PPV_ARGS(&mPSOProp)));
 
 	return true;
@@ -117,20 +107,24 @@ bool DxrShadowMapClass::BuildShaderTables() {
 	void* shadowMissShaderIdentifier = mPSOProp->GetShaderIdentifier(L"ShadowMiss");
 	void* shadowHitGroupShaderIdentifier = mPSOProp->GetShaderIdentifier(L"ShadowHitGroup");
 
-	ShaderTable shadowRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(shadowRayGenShaderTable.Initialze());
-	shadowRayGenShaderTable.push_back(ShaderRecord(shadowRayGenShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["shadowRayGen"] = shadowRayGenShaderTable.GetResource();
-
-	ShaderTable shadowMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(shadowMissShaderTable.Initialze());
-	shadowMissShaderTable.push_back(ShaderRecord(shadowMissShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["shadowMiss"] = shadowMissShaderTable.GetResource();
-
-	ShaderTable shadowHitGroupTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(shadowHitGroupTable.Initialze());
-	shadowHitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["shadowHitGroup"] = shadowHitGroupTable.GetResource();
+	{
+		ShaderTable shadowRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(shadowRayGenShaderTable.Initialze());
+		shadowRayGenShaderTable.push_back(ShaderRecord(shadowRayGenShaderIdentifier, shaderIdentifierSize));
+		mShaderTables["shadowRayGen"] = shadowRayGenShaderTable.GetResource();
+	}
+	{
+		ShaderTable shadowMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(shadowMissShaderTable.Initialze());
+		shadowMissShaderTable.push_back(ShaderRecord(shadowMissShaderIdentifier, shaderIdentifierSize));
+		mShaderTables["shadowMiss"] = shadowMissShaderTable.GetResource();
+	}
+	{
+		ShaderTable shadowHitGroupTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(shadowHitGroupTable.Initialze());
+		shadowHitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
+		mShaderTables["shadowHitGroup"] = shadowHitGroupTable.GetResource();
+	}
 
 	return true;
 }
@@ -143,17 +137,12 @@ void DxrShadowMapClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE i_indices,
 		D3D12_GPU_DESCRIPTOR_HANDLE i_depth) {
 	cmdList->SetPipelineState1(mPSO.Get());
-	cmdList->SetComputeRootSignature(mRootSignature.Get());
+	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
-	//cmdList->RSSetViewports(1, &mViewport);
-	//cmdList->RSSetScissorRects(1, &mScissorRect);
+	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::ESI_AccelerationStructure, accelStruct);
+	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Pass, cbAddress);
 
-	cmdList->SetComputeRootShaderResourceView(RootSignatureLayout::ESI_AccelerationStructure, accelStruct);
-	cmdList->SetComputeRootConstantBufferView(RootSignatureLayout::ECB_Pass, cbAddress);
-
-	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::ESB_Vertices, i_vertices);
-	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::EAB_Indices, i_indices);
-	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::ESI_Depth, i_depth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Depth, i_depth);
 
 	const auto shadow0 = mResources[Resources::EShadow0].get();
 	const auto shadow1 = mResources[Resources::EShadow1].get();
@@ -161,7 +150,7 @@ void DxrShadowMapClass::Run(
 	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	shadow1->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::EUO_Shadow, mhGpuDescs[Descriptors::EU_Shadow0]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Shadow, mhGpuDescs[Descriptors::EU_Shadow0]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	const auto& rayGen = mShaderTables["shadowRayGen"];

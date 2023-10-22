@@ -3,8 +3,8 @@
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
-uint3 Load3x32BitIndices(uint offsetBytes, uint instID) {
-	return gIndices[instID].Load3(offsetBytes);
+uint3 Load3x32BitIndices(uint offsetBytes, uint instID, ByteAddressBuffer indices) {
+	return indices.Load3(offsetBytes);
 }
 
 // Retrieve hit world position.

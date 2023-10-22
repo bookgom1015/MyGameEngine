@@ -29,6 +29,7 @@
 #include "IrradianceMap.h"
 #include "MipmapGenerator.h"
 #include "Pixelation.h"
+#include "Sharpen.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -118,6 +119,10 @@ namespace ShaderArgs {
 	namespace Pixelization {
 		float PixelSize = 5.0f;
 	}
+
+	namespace Sharpen {
+		float Amount = 0.8f;
+	}
 }
 
 DxRenderer::DxRenderer() {
@@ -154,6 +159,7 @@ DxRenderer::DxRenderer() {
 	mIrradianceMap = std::make_unique<IrradianceMap::IrradianceMapClass>();
 	mMipmapGenerator = std::make_unique<MipmapGenerator::MipmapGeneratorClass>();
 	mPixelation = std::make_unique<Pixelation::PixelationClass>();
+	mSharpen = std::make_unique<Sharpen::SharpenClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -239,6 +245,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
 	CheckReturn(mMipmapGenerator->Initialize(device, cmdList, shaderManager));
 	CheckReturn(mPixelation->Initialize(device, shaderManager, width, height));
+	CheckReturn(mSharpen->Initialize(device, shaderManager, width, height));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -344,7 +351,8 @@ bool DxRenderer::Draw() {
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 		if (bTaaEnabled) CheckReturn(ApplyTAA());
-		if (bPixelationEnabled) ApplyPixelation();
+		if (bSharpenEnabled) CheckReturn(ApplySharpen());
+		if (bPixelationEnabled) CheckReturn(ApplyPixelation());
 	}
 
 	if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) CheckReturn(DrawEquirectangulaToCube());
@@ -386,6 +394,7 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckReturn(mGammaCorrection->OnResize(width, height));
 	CheckReturn(mToneMapping->OnResize(width, height));
 	CheckReturn(mPixelation->OnResize(width, height));
+	CheckReturn(mSharpen->OnResize(width, height));
 
 	CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
 	CheckReturn(mRtao->OnResize(cmdList, width, height));
@@ -554,6 +563,7 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mIrradianceMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mMipmapGenerator->CompileShaders(ShaderFilePath));
 	CheckReturn(mPixelation->CompileShaders(ShaderFilePath));
+	CheckReturn(mSharpen->CompileShaders(ShaderFilePath));
 
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
@@ -726,6 +736,7 @@ void DxRenderer::BuildDescriptors() {
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mPixelation->BuildDescriptors(hCpu, hGpu, descSize);
+	mSharpen->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
@@ -758,6 +769,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mIrradianceMap->BuildRootSignature(staticSamplers));
 	CheckReturn(mMipmapGenerator->BuildRootSignature(staticSamplers));
 	CheckReturn(mPixelation->BuildRootSignature(staticSamplers));
+	CheckReturn(mSharpen->BuildRootSignature(staticSamplers));
 
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
@@ -799,6 +811,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
 	CheckReturn(mMipmapGenerator->BuildPso());
 	CheckReturn(mPixelation->BuildPso());
+	CheckReturn(mSharpen->BuildPso());
 	
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
@@ -1037,7 +1050,7 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4*const cmdList, MeshGeometry*
 bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4*const cmdList) {
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
 
-	const auto opaques = mRitemRefs[RenderType::E_Opaque];
+	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 
 	for (const auto ri : opaques) {
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
@@ -2119,6 +2132,32 @@ bool DxRenderer::ApplyGammaCorrection() {
 	return true;
 }
 
+bool DxRenderer::ApplySharpen() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+
+	const auto pDescHeap = mCbvSrvUavHeap.Get();
+	auto descSize = GetCbvSrvUavDescriptorSize();
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mSharpen->Run(
+		cmdList,
+		mScreenViewport,
+		mScissorRect,
+		mSwapChainBuffer->CurrentBackBuffer(),
+		mSwapChainBuffer->CurrentBackBufferRtv(),
+		ShaderArgs::Sharpen::Amount
+	);
+
+	CheckHRESULT(cmdList->Close());
+	ID3D12CommandList* cmdsLists[] = { cmdList };
+	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	return true;
+}
+
 bool DxRenderer::ApplyPixelation() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
@@ -2309,6 +2348,7 @@ bool DxRenderer::DrawImGui() {
 			ImGui::Checkbox("Gamma Correction", &bGammaCorrectionEnabled);
 			ImGui::Checkbox("Tone Mapping", &bToneMappingEnabled);
 			ImGui::Checkbox("Pixelation", &bPixelationEnabled);
+			ImGui::Checkbox("Sharpen", &bSharpenEnabled);
 		}
 		if (ImGui::CollapsingHeader("Lights")) {
 			ImGui::ColorPicker3("Amblient Light", ShaderArgs::Light::AmbientLight);
@@ -2416,6 +2456,11 @@ bool DxRenderer::DrawImGui() {
 			}
 			if (ImGui::TreeNode("Pixelization")) {
 				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.0f, 20.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Sharpen")) {
+				ImGui::SliderFloat("Amount", &ShaderArgs::Sharpen::Amount, 0.0f, 10.0f);
 
 				ImGui::TreePop();
 			}

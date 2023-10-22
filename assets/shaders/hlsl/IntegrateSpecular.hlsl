@@ -79,7 +79,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 lightW = reflect(-viewW, normalW);
 	const float3 halfW = normalize(viewW + lightW);
 
-	const float3 kS = FresnelSchlick(saturate(dot(halfW, viewW)), fresnelR0);
+	const float3 kS = FresnelSchlickRoughness(saturate(dot(halfW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
 
 	const float2 envBRDF = gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);

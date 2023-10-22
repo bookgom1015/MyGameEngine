@@ -110,6 +110,7 @@ private:
 	bool ApplyMotionBlur();
 	bool ResolveToneMapping();
 	bool ApplyGammaCorrection();
+	bool ApplySharpen();
 	bool ApplyPixelation();
 	bool DrawDebuggingInfo();
 	bool DrawImGui();
@@ -167,6 +168,7 @@ private:
 	std::unique_ptr<IrradianceMap::IrradianceMapClass> mIrradianceMap;
 	std::unique_ptr<MipmapGenerator::MipmapGeneratorClass> mMipmapGenerator;
 	std::unique_ptr<Pixelation::PixelationClass> mPixelation;
+	std::unique_ptr<Sharpen::SharpenClass> mSharpen;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

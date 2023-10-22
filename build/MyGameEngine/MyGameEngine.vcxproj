@@ -216,6 +216,7 @@
     <ClInclude Include="..\..\include\ShaderTable.h" />
     <ClInclude Include="..\..\include\ShadowMap.h" />
     <ClInclude Include="..\..\include\EnvironmentMap.h" />
+    <ClInclude Include="..\..\include\Sharpen.h" />
     <ClInclude Include="..\..\include\SphereActor.h" />
     <ClInclude Include="..\..\include\Ssao.h" />
     <ClInclude Include="..\..\include\Ssr.h" />
@@ -285,6 +286,7 @@
     <ClCompile Include="..\..\src\ShaderTable.cpp" />
     <ClCompile Include="..\..\src\ShadowMap.cpp" />
     <ClCompile Include="..\..\src\EnvironmentMap.cpp" />
+    <ClCompile Include="..\..\src\Sharpen.cpp" />
     <ClCompile Include="..\..\src\SphereActor.cpp" />
     <ClCompile Include="..\..\src\Ssao.cpp" />
     <ClCompile Include="..\..\src\Ssr.cpp" />
@@ -324,6 +326,7 @@
     <None Include="..\..\include\DxLowRenderer.inl" />
     <None Include="..\..\include\GBuffer.inl" />
     <None Include="..\..\include\MathHelper.inl" />
+    <None Include="..\..\include\Renderer.inl" />
     <None Include="..\..\include\ShadowMap.inl" />
     <None Include="..\..\include\Ssao.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
@@ -538,6 +541,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
