@@ -95,6 +95,7 @@ private:
 	bool UpdateObjectCBs(float delta);
 	bool UpdateMaterialCBs(float delta);
 	bool UpdateConvEquirectToCubeCB(float delta);
+	bool UpdateRtaoCB(float delta);
 	
 	bool DrawShadowMap();
 	bool DrawGBuffer();
@@ -169,6 +170,7 @@ private:
 	std::unique_ptr<MipmapGenerator::MipmapGeneratorClass> mMipmapGenerator;
 	std::unique_ptr<Pixelation::PixelationClass> mPixelation;
 	std::unique_ptr<Sharpen::SharpenClass> mSharpen;
+	std::unique_ptr<GaussianFilter::GaussianFilterClass> mGaussianFilter;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

@@ -19,9 +19,10 @@ GBufferClass::GBufferClass() {
 	mNormalMap = std::make_unique<GpuResource>();
 	mRMSMap = std::make_unique<GpuResource>();
 	mVelocityMap = std::make_unique<GpuResource>();
+	mReprojNormalDepthMap = std::make_unique<GpuResource>();
 }
 
-bool GBufferClass::Initialize(ID3D12Device* device, UINT width, UINT height, 
+bool GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, 
 		ShaderManager*const manager, GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -93,6 +94,7 @@ bool GBufferClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
 	psoDesc.RTVFormats[1] = NormalMapFormat;
 	psoDesc.RTVFormats[2] = RMSMapFormat;
 	psoDesc.RTVFormats[3] = VelocityMapFormat;
+	psoDesc.RTVFormats[4] = ReprojNormalDepthMapFormat;
 	psoDesc.DSVFormat = mDepthFormat;
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
@@ -115,14 +117,16 @@ void GBufferClass::Run(
 	mRMSMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	mReprojNormalDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	
 	cmdList->ClearRenderTargetView(mhAlbedoMapCpuRtv, GBuffer::AlbedoMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhNormalMapCpuRtv, GBuffer::NormalMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhRMSMapCpuRtv, GBuffer::RMSMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhVelocityMapCpuRtv, GBuffer::VelocityMapClearValues, 0, nullptr);
+	cmdList->ClearRenderTargetView(mhReprojNormalDepthMapCpuRtv, GBuffer::ReprojNormalDepthMapClearValues, 0, nullptr);
 	
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, GBuffer::NumRenderTargets> renderTargets = { 
-		mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhRMSMapCpuRtv, mhVelocityMapCpuRtv
+		mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhRMSMapCpuRtv, mhVelocityMapCpuRtv, mhReprojNormalDepthMapCpuRtv
 	};
 	
 	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &mhDepthMapCpuDsv);
@@ -139,6 +143,7 @@ void GBufferClass::Run(
 	mRMSMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+	mReprojNormalDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 
@@ -165,6 +170,10 @@ void GBufferClass::BuildDescriptors(
 	mhVelocityMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhVelocityMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhVelocityMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
+	mhReprojNormalDepthMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhReprojNormalDepthMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhReprojNormalDepthMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	hCpuSrv.Offset(1, descSize);
 	hGpuSrv.Offset(1, descSize);
@@ -225,6 +234,12 @@ void GBufferClass::BuildDescriptors() {
 		rtvDesc.Format = VelocityMapFormat;
 		md3dDevice->CreateShaderResourceView(mVelocityMap->Resource(), &srvDesc, mhVelocityMapCpuSrv);
 		md3dDevice->CreateRenderTargetView(mVelocityMap->Resource(), &rtvDesc, mhVelocityMapCpuRtv);
+	}
+	{
+		srvDesc.Format = ReprojNormalDepthMapFormat;
+		rtvDesc.Format = ReprojNormalDepthMapFormat;
+		md3dDevice->CreateShaderResourceView(mReprojNormalDepthMap->Resource(), &srvDesc, mhReprojNormalDepthMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mReprojNormalDepthMap->Resource(), &rtvDesc, mhReprojNormalDepthMapCpuRtv);
 	}
 }
 
@@ -299,6 +314,21 @@ bool GBufferClass::BuildResources() {
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
 			L"VelocityMap"
+		));
+	}
+	{
+		rscDesc.Format = ReprojNormalDepthMapFormat;
+
+		CD3DX12_CLEAR_VALUE optClear(ReprojNormalDepthMapFormat, ReprojNormalDepthMapClearValues);
+
+		CheckReturn(mReprojNormalDepthMap->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&optClear,
+			L"ReprojNormalDepthMap"
 		));
 	}
 

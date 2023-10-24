@@ -33,6 +33,11 @@ public:
 	UploadBuffer<DofConstants> DofCB;
 	UploadBuffer<SsrConstants> SsrCB;
 	UploadBuffer<ConvertEquirectangularToCubeConstantBuffer> ConvEquirectToCubeCB;
+	UploadBuffer<RtaoConstants> RtaoCB;
+	UploadBuffer<CrossBilateralFilterConstants> CrossBilateralFilterCB;
+	UploadBuffer<CalcLocalMeanVarianceConstants> CalcLocalMeanVarCB;
+	UploadBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> TsppBlendCB;
+	UploadBuffer<AtrousWaveletTransformFilterConstantBuffer> AtrousFilterCB;
 
 	UINT64 Fence;
 

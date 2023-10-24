@@ -21,18 +21,20 @@ namespace GBuffer {
 		};
 	}
 
-	static const UINT NumRenderTargets = 4;
+	static const UINT NumRenderTargets = 5;
 
-	const DXGI_FORMAT AlbedoMapFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
-	const DXGI_FORMAT NormalMapFormat	= DXGI_FORMAT_R8G8B8A8_SNORM;
-	const DXGI_FORMAT DepthMapFormat	= DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-	const DXGI_FORMAT RMSMapFormat		= DXGI_FORMAT_R8G8B8A8_UNORM;
-	const DXGI_FORMAT VelocityMapFormat	= DXGI_FORMAT_R8G8B8A8_SNORM;
+	const DXGI_FORMAT AlbedoMapFormat				= DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT NormalMapFormat				= DXGI_FORMAT_R8G8B8A8_SNORM;
+	const DXGI_FORMAT DepthMapFormat				= DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	const DXGI_FORMAT RMSMapFormat					= DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT VelocityMapFormat				= DXGI_FORMAT_R8G8B8A8_SNORM;
+	const DXGI_FORMAT ReprojNormalDepthMapFormat	= DXGI_FORMAT_R8G8B8A8_SNORM;
 
-	const float AlbedoMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 1.0f };
-	const float NormalMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float RMSMapClearValues[4]		= { 0.5f, 0.0f, 0.5f, 0.0f };
-	const float VelocityMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 1.0f };
+	const float NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
+	const float VelocityMapClearValues[4]			= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	class GBufferClass {
 	public:
@@ -47,20 +49,23 @@ namespace GBuffer {
 		__forceinline GpuResource* NormalMapResource();
 		__forceinline GpuResource* RMSMapResource();
 		__forceinline GpuResource* VelocityMapResource();
+		__forceinline GpuResource* ReprojNormalDepthMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE AlbedoMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE NormalMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RMSMapSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE VelocityMapSrv() const;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ReprojNormalDepthMapSrv() const;
 
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE AlbedoMapRtv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE NormalMapRtv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE RMSMapRtv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE VelocityMapRtv() const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ReprojNormalDepthMapRtv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, UINT width, UINT height, ShaderManager*const manager, 
+		bool Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager, 
 			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
@@ -101,6 +106,7 @@ namespace GBuffer {
 		std::unique_ptr<GpuResource> mNormalMap;
 		std::unique_ptr<GpuResource> mRMSMap;
 		std::unique_ptr<GpuResource> mVelocityMap;
+		std::unique_ptr<GpuResource> mReprojNormalDepthMap;
 
 		GpuResource* mDepthMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthMapCpuDsv;
@@ -124,6 +130,10 @@ namespace GBuffer {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhVelocityMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhVelocityMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhVelocityMapCpuRtv;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReprojNormalDepthMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhReprojNormalDepthMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReprojNormalDepthMapCpuRtv;
 	};
 }
 

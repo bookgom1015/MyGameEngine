@@ -1,6 +1,7 @@
 #include "D3D12Util.h"
 #include "Logger.h"
 #include "d3dx12.h"
+#include "GpuResource.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -161,12 +162,32 @@ void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* r
 	cmdList->ResourceBarrier(1, &uavBarrier);
 }
 
-void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource[], size_t length) {
+void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resources[], size_t length) {
 	std::vector<D3D12_RESOURCE_BARRIER> uavBarriers;
 	for (size_t i = 0; i < length; ++i) {
 		D3D12_RESOURCE_BARRIER uavBarrier;
 		uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-		uavBarrier.UAV.pResource = resource[i];
+		uavBarrier.UAV.pResource = resources[i];
+		uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		uavBarriers.push_back(uavBarrier);
+	}
+	cmdList->ResourceBarrier(static_cast<UINT>(uavBarriers.size()), uavBarriers.data());
+}
+
+void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* cmdList, GpuResource* resource) {
+	D3D12_RESOURCE_BARRIER uavBarrier;
+	uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+	uavBarrier.UAV.pResource = resource->Resource();
+	uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	cmdList->ResourceBarrier(1, &uavBarrier);
+}
+
+void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* cmdList, GpuResource* resources[], size_t length) {
+	std::vector<D3D12_RESOURCE_BARRIER> uavBarriers;
+	for (size_t i = 0; i < length; ++i) {
+		D3D12_RESOURCE_BARRIER uavBarrier;
+		uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		uavBarrier.UAV.pResource = resources[i]->Resource();
 		uavBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 		uavBarriers.push_back(uavBarrier);
 	}

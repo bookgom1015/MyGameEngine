@@ -23,6 +23,11 @@ bool FrameResource::Initialize() {
 	CheckReturn(DofCB.Initialize(Device, 1, true));
 	CheckReturn(SsrCB.Initialize(Device, 1, true));
 	CheckReturn(ConvEquirectToCubeCB.Initialize(Device, 1, true))
+	CheckReturn(RtaoCB.Initialize(Device, 1, true));
+	CheckReturn(CrossBilateralFilterCB.Initialize(Device, 1, true));
+	CheckReturn(CalcLocalMeanVarCB.Initialize(Device, 1, true));
+	CheckReturn(TsppBlendCB.Initialize(Device, 1, true));
+	CheckReturn(AtrousFilterCB.Initialize(Device, 1, true));
 
 	return true;
 }

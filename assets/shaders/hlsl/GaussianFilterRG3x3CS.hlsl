@@ -5,7 +5,7 @@
 #define HLSL
 #endif
 
-#include "./../../include/HlslCompaction.h"
+#include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
@@ -29,7 +29,7 @@ static const float weights[3][3] = {
 // Approximate 3x3 gaussian filter using HW bilinear filtering.
 // Ref: Moller2018, Real-Time Rendering (Fourth Edition), p517
 // Performance improvement over 3x3 2D version (4K on 2080 Ti): 0.18ms -> 0.11ms
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(GaussianFilter::Default::ThreadGroup::Width, GaussianFilter::Default::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	// Set weights based on availability of neightbor samples.
 	float4 weights;
@@ -105,7 +105,7 @@ void AddFilterContribution(inout float weightedValueSum, inout float weightSum, 
 	}
 }
 
-[numthreads(DefaultComputeShaderParams::ThreadGroup::Width, DefaultComputeShaderParams::ThreadGroup::Height, 1)]
+[numthreads(GaussianFilter::Default::ThreadGroup::Width, GaussianFilter::Default::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	float weightSum = 0;
 	float weightedValueSum = 0;

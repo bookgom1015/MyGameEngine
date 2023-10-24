@@ -10,6 +10,9 @@ public:
 	virtual ~Camera() = default;
 
 public:
+	__forceinline float FovY() const;
+
+public:
 	void UpdateViewMatrix();
 
 	void Pitch(float rad);
@@ -44,3 +47,7 @@ private:
 	DirectX::XMFLOAT4X4 mView;
 	DirectX::XMFLOAT4X4 mProj;
 };
+
+float Camera::FovY() const {
+	return mFovY;
+}

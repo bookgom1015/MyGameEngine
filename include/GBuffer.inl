@@ -25,6 +25,10 @@ GpuResource* GBuffer::GBufferClass::VelocityMapResource() {
 	return mVelocityMap.get();
 }
 
+GpuResource* GBuffer::GBufferClass::ReprojNormalDepthMapResource() {
+	return mReprojNormalDepthMap.get();
+}
+
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapSrv() const {
 	return mhAlbedoMapGpuSrv;
 }
@@ -45,6 +49,10 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::VelocityMapSrv() 
 	return mhVelocityMapGpuSrv;
 }
 
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ReprojNormalDepthMapSrv() const {
+	return mhReprojNormalDepthMapGpuSrv;
+}
+
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapRtv() const {
 	return mhAlbedoMapCpuRtv;
 }
@@ -59,6 +67,10 @@ constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::RMSMapRtv() const
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::VelocityMapRtv() const {
 	return mhVelocityMapCpuRtv;
+}
+
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::ReprojNormalDepthMapRtv() const {
+	return mhReprojNormalDepthMapCpuRtv;
 }
 
 #endif // __GBUFFER_INL__

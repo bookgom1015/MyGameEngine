@@ -13,20 +13,25 @@
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
-struct AORayPayload {
-	float	tHit;
+struct Ray {
+	float3 Origin;
+	float3 Direction;
 };
 
-ConstantBuffer<RtaoConstants> cb : register(b0);
+struct RayPayload {
+	float tHit;
+};
+
+ConstantBuffer<RtaoConstants> cbRtao : register(b0);
 
 cbuffer cbRootConstants : register(b1) {
 	uint2 gTextureDim;
 };
 
 // Nonnumeric values cannot be added to a cbuffer.
-RaytracingAccelerationStructure	gBVH : register(t0);
-Texture2D<float3> gi_Normal				: register(t1);
-Texture2D<float> gi_DepthMap			: register(t2);
+RaytracingAccelerationStructure	gBVH	: register(t0);
+Texture2D<float3>	gi_Normal			: register(t1);
+Texture2D<float>	gi_DepthMap			: register(t2);
 
 RWTexture2D<float> go_AOCoefficient		: register(u0);
 RWTexture2D<float> go_RayHitDistance	: register(u1);
@@ -50,14 +55,14 @@ uint InitRand(uint val0, uint val1, uint backoff = 16) {
 void CalculateHitPositionAndSurfaceNormal(float depth, uint2 launchIndex, out float3 hitPosition, out float3 surfaceNormal) {
 	float2 tex = (launchIndex + 0.5) / gTextureDim;
 	float4 posH = float4(tex.x * 2 - 1, (1 - tex.y) * 2 - 1, 0, 1);
-	float4 posV = mul(posH, cb.InvProj);
+	float4 posV = mul(posH, cbRtao.InvProj);
 	posV /= posV.w;
 
-	float dv = NdcDepthToViewDepth(depth, cb.Proj);
+	float dv = NdcDepthToViewDepth(depth, cbRtao.Proj);
 	posV = (dv / posV.z) * posV;
 
-	hitPosition = mul(float4(posV.xyz, 1), cb.InvView).xyz;
-	surfaceNormal = gi_Normal[launchIndex];
+	hitPosition = mul(float4(posV.xyz, 1), cbRtao.InvView).xyz;
+	surfaceNormal = gi_Normal[launchIndex].xyz;
 }
 
 bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surfaceNormal) {
@@ -69,7 +74,7 @@ bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surf
 	ray.TMin = 0;
 	ray.TMax = TMax;
 
-	AORayPayload payload = { TMax };
+	RayPayload payload = { TMax };
 
 	TraceRay(
 		gBVH,
@@ -89,11 +94,11 @@ bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surf
 
 float CalculateAO(out float tHit, uint2 launchIndex, Ray aoRay, float3 surfaceNormal) {
 	float occlusion = 0;
-	const float TMax = cb.OcclusionRadius;
+	const float TMax = cbRtao.OcclusionRadius;
 	if (TraceAORayAndReportIfHit(tHit, aoRay, TMax, surfaceNormal)) {
 		float3 hitPosition = aoRay.Origin + tHit * aoRay.Direction;
 		float distZ = distance(aoRay.Origin, hitPosition);
-		occlusion = OcclusionFunction(distZ, cb.SurfaceEpsilon, cb.OcclusionFadeStart, cb.OcclusionFadeEnd);
+		occlusion = OcclusionFunction(distZ, cbRtao.SurfaceEpsilon, cbRtao.OcclusionFadeStart, cbRtao.OcclusionFadeEnd);
 	}
 	return occlusion;
 }
@@ -112,7 +117,7 @@ void RtaoRayGen() {
 		float3 surfaceNormal;
 		CalculateHitPositionAndSurfaceNormal(depth, launchIndex, hitPosition, surfaceNormal);
 
-		uint seed = InitRand(launchIndex.x + launchIndex.y * gTextureDim.x, cb.FrameCount);
+		uint seed = InitRand(launchIndex.x + launchIndex.y * gTextureDim.x, cbRtao.FrameCount);
 
 		float3 direction = CosHemisphereSample(seed, surfaceNormal);
 		float flip = sign(dot(direction, surfaceNormal));
@@ -120,26 +125,26 @@ void RtaoRayGen() {
 
 		float occlusionSum = 0;
 
-		for (int i = 0; i < cb.SampleCount; ++i) {
+		for (int i = 0; i < cbRtao.SampleCount; ++i) {
 			Ray aoRay = { hitPosition, direction };
 			occlusionSum += CalculateAO(tHit, launchIndex, aoRay, surfaceNormal);
 		}
 
-		occlusionSum /= cb.SampleCount;
+		occlusionSum /= cbRtao.SampleCount;
 		ambientCoef = 1 - occlusionSum;
 	}
 
 	go_AOCoefficient[launchIndex] = ambientCoef;
-	go_RayHitDistance[launchIndex] = Rtao::HasAORayHitAnyGeometry(tHit) ? tHit : cb.OcclusionRadius;
+	go_RayHitDistance[launchIndex] = Rtao::HasAORayHitAnyGeometry(tHit) ? tHit : cbRtao.OcclusionRadius;
 }
 
 [shader("closesthit")]
-void RtaoClosestHit(inout AORayPayload payload, Attributes attrib) {
+void RtaoClosestHit(inout RayPayload payload, Attributes attrib) {
 	payload.tHit = RayTCurrent();
 }
 
 [shader("miss")]
-void RtaoMiss(inout AORayPayload payload) {
+void RtaoMiss(inout RayPayload payload) {
 	payload.tHit = Rtao::RayHitDistanceOnMiss;
 }
 

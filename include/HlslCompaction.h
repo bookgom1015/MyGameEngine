@@ -48,6 +48,18 @@ namespace BlurFilterCS {
 	}
 }
 
+namespace GaussianFilter {
+	namespace Default {
+		namespace ThreadGroup {
+			enum {
+				Width = 8,
+				Height = 8,
+				Size = Width * Height
+			};
+		}
+	}
+}
+
 namespace Rtao {
 	namespace Default {
 		namespace ThreadGroup {
@@ -186,6 +198,27 @@ struct SsrConstants {
 	float				ConstantPad2;
 };
 
+struct ConvertEquirectangularToCubeConstantBuffer {
+	DirectX::XMFLOAT4X4 Proj;
+	DirectX::XMFLOAT4X4 View[6];
+};
+
+struct RtaoConstants {
+	DirectX::XMFLOAT4X4	View;
+	DirectX::XMFLOAT4X4	InvView;
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4X4	InvProj;
+
+	float OcclusionRadius;
+	float OcclusionFadeStart;
+	float OcclusionFadeEnd;
+	float SurfaceEpsilon;
+
+	UINT FrameCount;
+	UINT SampleCount;
+	float ConstantPad[2];
+};
+
 struct CrossBilateralFilterConstants {
 	float	DepthSigma;
 	UINT	DepthNumMantissaBits;
@@ -240,11 +273,6 @@ struct AtrousWaveletTransformFilterConstantBuffer {
 	float DepthSigma;
 	float NormalSigma;
 	float FovY;
-};
-
-struct ConvertEquirectangularToCubeConstantBuffer {
-	DirectX::XMFLOAT4X4 Proj;
-	DirectX::XMFLOAT4X4 View[6];
 };
 
 #endif // __HLSLCOMPACTION_HLSL__

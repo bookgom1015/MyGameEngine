@@ -93,7 +93,7 @@ float4 PS(VertexOut pin) : SV_Target{
 
 	const float skyFactor = ceil(max(1 - dot(normalW, -viewW), 0));
 
-	return float4(radiance + skyFactor * integratedSpecRadiance * aoCoeff, 1);
+	return float4(radiance + skyFactor * aoCoeff * integratedSpecRadiance, 1);
 }
 
 #endif // __INTEGRATESPECULAR_HLSL__

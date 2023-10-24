@@ -8,6 +8,7 @@
 #include "GpuResource.h"
 
 class ShaderManager;
+class GpuResource;
 
 namespace Rtao {
 	namespace RootSignature {
@@ -174,33 +175,33 @@ namespace Rtao {
 	namespace Resource {
 		namespace AO {
 			enum {
-				EAmbientCoefficient = 0,
-				ERayHitDistance,
+				E_AmbientCoefficient = 0,
+				E_RayHitDistance,
 				Count
 			};
 		}
 
 		namespace TemporalCache {
 			enum {
-				ETspp = 0,
-				ERayHitDistance,
-				ECoefficientSquaredMean,
+				E_Tspp = 0,
+				E_RayHitDistance,
+				E_CoefficientSquaredMean,
 				Count
 			};
 		}
 
 		namespace LocalMeanVariance {
 			enum {
-				ERaw = 0,
-				ESmoothed,
+				E_Raw = 0,
+				E_Smoothed,
 				Count
 			};
 		}
 
 		namespace AOVariance {
 			enum {
-				ERaw = 0,
-				ESmoothed,
+				E_Raw = 0,
+				E_Smoothed,
 				Count
 			};
 		}
@@ -333,12 +334,17 @@ namespace Rtao {
 		__forceinline constexpr UINT TemporalCurrentFrameResourceIndex() const;
 		__forceinline constexpr UINT TemporalCurrentFrameTemporalAOCoefficientResourceIndex() const;
 
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolvedAOCoefficientSrv() const;
+
 	public:
 		bool Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignatures(const StaticSamplers& samplers);
 		bool BuildPSO();
 		bool BuildShaderTables();
+		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
+		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
+
 		void RunCalculatingAmbientOcclusion(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
@@ -402,16 +408,12 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient);
 		void BlurDisocclusion(
 			ID3D12GraphicsCommandList4* const cmdList,
-			ID3D12Resource* aoCoefficient,
+			GpuResource* aoCoefficient,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_blurStrength,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_aoCoefficient,
 			UINT width, UINT height,
 			UINT lowTsppBlurPasses);
-
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
-
-		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 		UINT MoveToNextFrame();
 		UINT MoveToNextFrameTemporalAOCoefficient();
@@ -482,90 +484,4 @@ namespace Rtao {
 	};
 }
 
-constexpr UINT Rtao::RtaoClass::Width() const {
-	return mWidth;
-}
-
-constexpr UINT Rtao::RtaoClass::Height() const {
-	return mHeight;
-}
-
-const Rtao::AOResourcesType& Rtao::RtaoClass::AOResources() const {
-	return mAOResources;
-}
-const Rtao::AOResourcesGpuDescriptors& Rtao::RtaoClass::AOResourcesGpuDescriptors() const {
-	return mhAOResourcesGpus;
-}
-
-const Rtao::TemporalCachesType& Rtao::RtaoClass::TemporalCaches() const {
-	return mTemporalCaches;
-}
-const Rtao::TemporalCachesGpuDescriptors& Rtao::RtaoClass::TemporalCachesGpuDescriptors() const {
-	return mhTemporalCachesGpus;
-}
-
-const Rtao::LocalMeanVarianceResourcesType& Rtao::RtaoClass::LocalMeanVarianceResources() const {
-	return mLocalMeanVarianceResources;
-}
-const Rtao::LocalMeanVarianceResourcesGpuDescriptors& Rtao::RtaoClass::LocalMeanVarianceResourcesGpuDescriptors() const {
-	return mhLocalMeanVarianceResourcesGpus;
-}
-
-const Rtao::AOVarianceResourcesType& Rtao::RtaoClass::AOVarianceResources() const {
-	return mAOVarianceResources;
-}
-const Rtao::AOVarianceResourcesGpuDescriptors& Rtao::RtaoClass::AOVarianceResourcesGpuDescriptors() const {
-	return mhAOVarianceResourcesGpus;
-}
-
-GpuResource* Rtao::RtaoClass::PrevFrameNormalDepth() {
-	return mPrevFrameNormalDepth.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::PrevFrameNormalDepthSrv() const {
-	return mhPrevFrameNormalDepthGpuSrv;
-}
-
-GpuResource* Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistance() {
-	return mTsppCoefficientSquaredMeanRayHitDistance.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistanceSrv() const {
-	return mhTsppCoefficientSquaredMeanRayHitDistanceGpuSrv;
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistanceUav() const {
-	return mhTsppCoefficientSquaredMeanRayHitDistanceGpuUav;
-}
-
-GpuResource* Rtao::RtaoClass::DisocclusionBlurStrengthResource() {
-	return mDisocclusionBlurStrength.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DisocclusionBlurStrengthSrv() const {
-	return mhDisocclusionBlurStrengthGpuSrv;
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DisocclusionBlurStrengthUav() const {
-	return mhDisocclusionBlurStrengthGpuUav;
-}
-
-const Rtao::TemporalAOCoefficientsType& Rtao::RtaoClass::TemporalAOCoefficients() {
-	return mTemporalAOCoefficients;
-}
-const Rtao::TemporalAOCoefficientsGpuDescriptors& Rtao::RtaoClass::TemporalAOCoefficientsGpuDescriptors() const {
-	return mhTemporalAOCoefficientsGpus;
-}
-
-GpuResource* Rtao::RtaoClass::DepthPartialDerivativeMapResource() {
-	return mDepthPartialDerivative.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DepthPartialDerivativeSrv() const {
-	return mhDepthPartialDerivativeGpuSrv;
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DepthPartialDerivativeUav() const {
-	return mhDepthPartialDerivativeGpuUav;
-}
-
-constexpr UINT Rtao::RtaoClass::TemporalCurrentFrameResourceIndex() const {
-	return mTemporalCurrentFrameResourceIndex;
-}
-
-constexpr UINT Rtao::RtaoClass::TemporalCurrentFrameTemporalAOCoefficientResourceIndex() const {
-	return mTemporalCurrentFrameTemporalAOCeofficientResourceIndex;
-}
+#include "Rtao.inl"

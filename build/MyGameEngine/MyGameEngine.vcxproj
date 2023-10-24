@@ -170,6 +170,7 @@
     <ClInclude Include="..\..\include\CameraComponent.h" />
     <ClInclude Include="..\..\include\Component.h" />
     <ClInclude Include="..\..\include\DDS.h" />
+    <ClInclude Include="..\..\include\GaussianFilter.h" />
     <ClInclude Include="..\..\include\IrradianceMap.h" />
     <ClInclude Include="..\..\include\D3D12Util.h" />
     <ClInclude Include="..\..\include\d3dx12.h" />
@@ -247,6 +248,7 @@
     <ClCompile Include="..\..\src\Camera.cpp" />
     <ClCompile Include="..\..\src\CameraComponent.cpp" />
     <ClCompile Include="..\..\src\Component.cpp" />
+    <ClCompile Include="..\..\src\GaussianFilter.cpp" />
     <ClCompile Include="..\..\src\IrradianceMap.cpp" />
     <ClCompile Include="..\..\src\D3D12Util.cpp" />
     <ClCompile Include="..\..\src\DebugCollision.cpp" />
@@ -327,6 +329,7 @@
     <None Include="..\..\include\GBuffer.inl" />
     <None Include="..\..\include\MathHelper.inl" />
     <None Include="..\..\include\Renderer.inl" />
+    <None Include="..\..\include\Rtao.inl" />
     <None Include="..\..\include\ShadowMap.inl" />
     <None Include="..\..\include\Ssao.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
@@ -546,6 +549,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilter3x3CS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

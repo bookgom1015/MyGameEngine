@@ -37,6 +37,8 @@ struct D3D12BufferCreateInfo {
 		Size(size), Alignment(alignment), HeapType(heapType), HeapFlags(heapFlags), Flags(flags), State(state) {}
 };
 
+class GpuResource;
+
 class D3D12Util {
 public:
 	static UINT CalcConstantBufferByteSize(UINT byteSize) {
@@ -78,8 +80,10 @@ public:
 	}
 
 	static void UavBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource);
-	static void UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource[], size_t length);
-
+	static void UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resources[], size_t length);
+	static void UavBarrier(ID3D12GraphicsCommandList* cmdList, GpuResource* resource);
+	static void UavBarriers(ID3D12GraphicsCommandList* cmdList, GpuResource* resources[], size_t length);
+	
 	static __forceinline D3D12_GRAPHICS_PIPELINE_STATE_DESC DefaultPsoDesc(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
 	static __forceinline D3D12_GRAPHICS_PIPELINE_STATE_DESC QuadPsoDesc();
 
