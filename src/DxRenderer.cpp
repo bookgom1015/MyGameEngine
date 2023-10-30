@@ -139,7 +139,8 @@ namespace ShaderArgs {
 
 		namespace Denoiser {
 			bool UseSmoothingVariance = false;
-			bool LowTspp = true;
+			bool FullscreenBlur = false;
+			bool DisocclusionBlur = false;
 			UINT LowTsppBlurPasses = 3;
 
 			namespace TemporalSupersampling {
@@ -371,6 +372,7 @@ bool DxRenderer::Update(float delta) {
 	CheckReturn(UpdateMaterialCBs(delta));
 	CheckReturn(UpdateConvEquirectToCubeCB(delta));
 	CheckReturn(UpdateRtaoCB(delta));
+	CheckReturn(UpdateDebugMapCB(delta));
 
 	CheckReturn(UpdateShadingObjects(delta));
 
@@ -385,7 +387,7 @@ bool DxRenderer::Draw() {
 		if (bRaytracing) {
 			CheckReturn(DrawGBuffer());
 			CheckReturn(DrawDxrShadowMap());
-			//CheckReturn(DrawRtao());
+			CheckReturn(DrawRtao());
 			CheckReturn(DrawDxrBackBuffer());
 		}
 		else {
@@ -1678,6 +1680,20 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 	return true;
 }
 
+bool DxRenderer::UpdateDebugMapCB(float delta) {
+	DebugMapConstantBuffer debugMapCB;
+
+	for (UINT i = 0; i < DebugMap::MaxDebugMap; ++i) {
+		auto desc = mDebugMap->SampleDesc(i);
+		debugMapCB.SampleDescs[i] = desc;
+	}
+
+	auto& currDebugMapCB = mCurrFrameResource->DebugMapCB;
+	currDebugMapCB.CopyData(0, debugMapCB);
+
+	return true;
+}
+
 bool DxRenderer::DrawShadowMap() {
 	const auto cmdList = mCommandList.Get();
 
@@ -1805,7 +1821,7 @@ bool DxRenderer::DrawSsao() {
 	mSsao->Run(
 		cmdList,
 		ssaoCBAddress,
-		mGBuffer->NormalMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
 		mGBuffer->DepthMapSrv()
 	);
 
@@ -1813,7 +1829,7 @@ bool DxRenderer::DrawSsao() {
 	mBlurFilter->Run(
 		cmdList,
 		blurPassCBAddress,
-		mGBuffer->NormalMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mSsao->AOCoefficientMapResource(0),
 		mSsao->AOCoefficientMapResource(1),
@@ -1848,7 +1864,7 @@ bool DxRenderer::DrawBackBuffer() {
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mShadowMap->Srv(),
@@ -1882,7 +1898,7 @@ bool DxRenderer::IntegrateSpecIrrad() {
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		aoCoeffDesc,
@@ -2019,7 +2035,7 @@ bool DxRenderer::BuildSsr() {
 			cmdList,
 			ssrCBAddress,
 			backBufferSrv,
-			mGBuffer->NormalMapSrv(),
+			mGBuffer->NormalDepthMapSrv(),
 			mGBuffer->DepthMapSrv(),
 			mGBuffer->RMSMapSrv()
 		);
@@ -2375,6 +2391,7 @@ bool DxRenderer::DrawDebuggingInfo() {
 		mScreenViewport,
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
+		mCurrFrameResource->DebugMapCB.Resource()->GetGPUVirtualAddress(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
 		DepthStencilView()
 	);
@@ -2418,8 +2435,13 @@ bool DxRenderer::DrawImGui() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	static const auto BuildDebugMaps = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, Debug::SampleMask::Type type) {
+	static const auto BuildDebugMap = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, Debug::SampleMask::Type type) {
 		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = false; }
+		else { mDebugMap->RemoveDebugMap(handle); }
+	};
+	static const auto BuildDebugMapWithSampleDesc = [&](
+			bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, Debug::SampleMask::Type type, DebugMapSampleDesc desc) {
+		if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = false; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
 
@@ -2431,82 +2453,106 @@ bool DxRenderer::DrawImGui() {
 		if (ImGui::CollapsingHeader("Debug")) {
 			if (ImGui::TreeNode("Map Info")) {
 				if (ImGui::Checkbox("Albedo", &mDebugMapStates[DebugMapLayout::E_Albedo])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Albedo],
 						mGBuffer->AlbedoMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::E_Normal])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Normal],
-						mGBuffer->NormalMapSrv(),
+						mGBuffer->NormalDepthMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::E_Depth])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Depth],
 						mGBuffer->DepthMapSrv(),
 						Debug::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("RoughnessMetalicSpecular", &mDebugMapStates[DebugMapLayout::E_RMS])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_RMS],
 						mGBuffer->RMSMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::E_Velocity])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Velocity],
 						mGBuffer->VelocityMapSrv(),
 						Debug::SampleMask::RG);
 				}
 				if (ImGui::Checkbox("Shadow", &mDebugMapStates[DebugMapLayout::E_Shadow])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Shadow],
 						mShadowMap->Srv(),
 						Debug::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("SSAO", &mDebugMapStates[DebugMapLayout::E_SSAO])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_SSAO],
 						mSsao->AOCoefficientMapSrv(0),
 						Debug::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("Bloom", &mDebugMapStates[DebugMapLayout::E_Bloom])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Bloom],
 						mBloom->BloomMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("SSR", &mDebugMapStates[DebugMapLayout::E_SSR])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_SSR],
 						mSsr->SsrMapSrv(0),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_Equirectangular])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Equirectangular],
 						mIrradianceMap->EquirectangularMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Temporary Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
 						mIrradianceMap->TemporaryEquirectangularMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
 						mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
 						Debug::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
-					BuildDebugMaps(
+					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_DxrShadow],
 						mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 						Debug::SampleMask::RRR);
+				}
+				if (ImGui::Checkbox("Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_RayHitDist])) {
+					DebugMapSampleDesc desc;
+					desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f};
+					desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+					desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+
+					BuildDebugMapWithSampleDesc(
+						mDebugMapStates[DebugMapLayout::E_RayHitDist],
+						mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
+						Debug::SampleMask::FLOAT,
+						desc);
+				}
+				if (ImGui::Checkbox("Temporal Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist])) {
+					DebugMapSampleDesc desc;
+					desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
+					desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+					desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+
+					BuildDebugMapWithSampleDesc(
+						mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
+						mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
+						Debug::SampleMask::FLOAT,
+						desc);
 				}
 
 				ImGui::TreePop();
@@ -2640,6 +2686,13 @@ bool DxRenderer::DrawImGui() {
 
 				ImGui::TreePop();
 			}
+			if (ImGui::TreeNode("RTAO")) {
+				ImGui::Checkbox("Use Smoothing Variance", &ShaderArgs::Rtao::Denoiser::UseSmoothingVariance);
+				ImGui::Checkbox("Fullscreen Blur", &ShaderArgs::Rtao::Denoiser::FullscreenBlur);
+				ImGui::Checkbox("Disocclusion Blur", &ShaderArgs::Rtao::Denoiser::DisocclusionBlur);
+
+				ImGui::TreePop();
+			}
 		}
 
 		ImGui::End();
@@ -2699,7 +2752,7 @@ bool DxRenderer::DrawDxrShadowMap() {
 	mBlurFilterCS->Run(
 		cmdList,
 		mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->NormalMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mDxrShadowMap->Resource(DxrShadowMap::Resources::EShadow0),
 		mDxrShadowMap->Resource(DxrShadowMap::Resources::EShadow1),
@@ -2735,7 +2788,7 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
@@ -2782,7 +2835,7 @@ bool DxRenderer::DrawRtao() {
 			cmdList,
 			mTLAS->Result->GetGPUVirtualAddress(),
 			mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress(),
-			mGBuffer->NormalMapSrv(),
+			mGBuffer->NormalDepthMapSrv(),
 			mGBuffer->DepthMapSrv(),
 			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_AmbientCoefficient],
 			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_RayHitDistance]
@@ -2832,7 +2885,7 @@ bool DxRenderer::DrawRtao() {
 			mRtao->ReverseReprojectPreviousFrame(
 				cmdList,
 				mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
-				mGBuffer->NormalMapSrv(),
+				mGBuffer->NormalDepthMapSrv(),
 				mRtao->DepthPartialDerivativeSrv(),
 				mGBuffer->ReprojNormalDepthMapSrv(),
 				mRtao->PrevFrameNormalDepthSrv(),
@@ -2852,7 +2905,7 @@ bool DxRenderer::DrawRtao() {
 
 			// Copy the current normal and depth values to the cached map.
 			{
-				const auto normal = mGBuffer->NormalMapResource();
+				const auto normal = mGBuffer->NormalDepthMapResource();
 				const auto prevFrameNormalDepth = mRtao->PrevFrameNormalDepth();
 
 				normal->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -2974,7 +3027,7 @@ bool DxRenderer::DrawRtao() {
 			}
 		}
 		// Applies a single pass of a Atrous wavelet transform filter.
-		{
+		if (ShaderArgs::Rtao::Denoiser::FullscreenBlur) {
 			UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
 			UINT inputAOCoefficientIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 			UINT outputAOCoefficientIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
@@ -2988,7 +3041,7 @@ bool DxRenderer::DrawRtao() {
 				cmdList,
 				mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
 				temporalAOCoefficientsGpuDescriptors[inputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
-				mGBuffer->NormalMapSrv(),
+				mGBuffer->NormalDepthMapSrv(),
 				varianceResourcesGpuDescriptors[ShaderArgs::Rtao::Denoiser::UseSmoothingVariance ?
 				Rtao::Descriptor::AOVariance::ES_Smoothed : Rtao::Descriptor::AOVariance::ES_Raw],
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
@@ -3000,7 +3053,7 @@ bool DxRenderer::DrawRtao() {
 			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
 		}
-		if (ShaderArgs::Rtao::Denoiser::LowTspp) {
+		if (ShaderArgs::Rtao::Denoiser::DisocclusionBlur) {
 			UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 
 			const auto aoCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();

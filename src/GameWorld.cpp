@@ -444,6 +444,16 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 			mRenderer->EnableRaytracing(!state);
 			return;
 		}
+		case VK_1: {
+			auto state = mRenderer->TaaEnabled();
+			mRenderer->EnableTaa(!state);
+			return;
+		}
+		case VK_2: {
+			auto state = mRenderer->DepthOfFieldEnabled();
+			mRenderer->EnableDepthOfField(!state);
+			return;
+		}
 		}
 	}
 }

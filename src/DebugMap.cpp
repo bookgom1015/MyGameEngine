@@ -42,7 +42,8 @@ bool DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
 	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 
-	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 0);
+	slotRootParameter[RootSignatureLayout::ECB_DebugMap].InitAsConstantBufferView(0);
+	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 1);
 	slotRootParameter[RootSignatureLayout::ESI_Debug0].InitAsDescriptorTable(1, &texTables[0]);
 	slotRootParameter[RootSignatureLayout::ESI_Debug1].InitAsDescriptorTable(1, &texTables[1]);
 	slotRootParameter[RootSignatureLayout::ESI_Debug2].InitAsDescriptorTable(1, &texTables[2]);
@@ -80,6 +81,7 @@ void DebugMapClass::Run(
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
 		GpuResource* backBuffer,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_debug,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv) {
 	cmdList->SetPipelineState(mPSO.Get());
@@ -91,6 +93,8 @@ void DebugMapClass::Run(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
+
+	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_DebugMap, cb_debug);
 
 	cmdList->SetGraphicsRoot32BitConstants(
 		RootSignatureLayout::EC_Consts, 
@@ -122,6 +126,18 @@ bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::Samp
 	return true;
 }
 
+bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleMask::Type mask, DebugMapSampleDesc desc) {
+	if (mNumEnabledMaps >= 5) return false;
+
+	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
+	mDebugMasks[mNumEnabledMaps] = mask;
+	mSampleDescs[mNumEnabledMaps] = desc;
+
+	++mNumEnabledMaps;
+
+	return true;
+}
+
 void DebugMapClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
 	for (int i = 0; i < mNumEnabledMaps; ++i) {
 		if (mhDebugGpuSrvs[i].ptr == hGpuSrv.ptr) {
@@ -129,6 +145,7 @@ void DebugMapClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
 				int next = curr + 1;
 				mhDebugGpuSrvs[curr] = mhDebugGpuSrvs[next];
 				mDebugMasks[curr] = mDebugMasks[next];
+				mSampleDescs[curr] = mSampleDescs[next];
 			}
 			
 

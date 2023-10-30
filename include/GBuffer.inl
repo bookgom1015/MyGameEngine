@@ -13,8 +13,8 @@ GpuResource* GBuffer::GBufferClass::AlbedoMapResource() {
 	return mAlbedoMap.get();
 }
 
-GpuResource* GBuffer::GBufferClass::NormalMapResource() {
-	return mNormalMap.get();
+GpuResource* GBuffer::GBufferClass::NormalDepthMapResource() {
+	return mNormalDepthMap.get();
 }
 
 GpuResource* GBuffer::GBufferClass::RMSMapResource() {
@@ -33,8 +33,8 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapSrv() co
 	return mhAlbedoMapGpuSrv;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalMapSrv() const {
-	return mhNormalMapGpuSrv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalDepthMapSrv() const {
+	return mhNormalDepthMapGpuSrv;
 }
 
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::DepthMapSrv() const {
@@ -57,8 +57,8 @@ constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::AlbedoMapRtv() co
 	return mhAlbedoMapCpuRtv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalMapRtv() const {
-	return mhNormalMapCpuRtv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalDepthMapRtv() const {
+	return mhNormalDepthMapCpuRtv;
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::RMSMapRtv() const {

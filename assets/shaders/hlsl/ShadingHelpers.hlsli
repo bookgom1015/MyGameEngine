@@ -208,9 +208,17 @@ float3 BoxCubeMapLookup(float3 rayOrigin, float3 unitRayDir, float3 boxCenter, f
 	return p + t * unitRayDir;
 }
 
-uint GetIndexOfValueClosest(float ref, float2 values) {
+uint GetIndexOfValueClosestToReference(float ref, float2 values) {
 	float2 delta = abs(ref - values);
 	uint index = delta[1] < delta[0] ? 1 : 0;
+	return index;
+}
+
+uint GetIndexOfValueClosestToReference(float ref, float4 values) {
+	float4 delta = abs(ref - values);
+	uint index = delta[1] < delta[0] ? 1 : 0;
+	index = delta[2] < delta[index] ? 2 : index;
+	index = delta[3] < delta[index] ? 3 : index;
 	return index;
 }
 

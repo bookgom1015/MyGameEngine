@@ -14,7 +14,8 @@ class GpuResource;
 namespace DebugMap {
 	namespace RootSignatureLayout {
 		enum {
-			EC_Consts = 0,
+			ECB_DebugMap = 0,
+			EC_Consts,
 			ESI_Debug0,
 			ESI_Debug1,
 			ESI_Debug2,
@@ -41,6 +42,9 @@ namespace DebugMap {
 		virtual ~DebugMapClass() = default;
 
 	public:
+		constexpr __forceinline DebugMapSampleDesc SampleDesc(UINT index) const;
+
+	public:
 		bool Initialize(ID3D12Device* device, ShaderManager*const manager, DXGI_FORMAT backBufferFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
@@ -50,12 +54,17 @@ namespace DebugMap {
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
 			GpuResource* backBuffer,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_debug,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv);
 
 		bool AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
 			Debug::SampleMask::Type mask = Debug::SampleMask::RGB);
+		bool AddDebugMap(
+			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+			Debug::SampleMask::Type mask,
+			DebugMapSampleDesc desc);
 		void RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv);
 
 	private:
@@ -67,8 +76,13 @@ namespace DebugMap {
 
 		DXGI_FORMAT mBackBufferFormat;
 
-		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, 5> mhDebugGpuSrvs;
-		std::array<Debug::SampleMask::Type, 5> mDebugMasks;
+		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, MaxDebugMap> mhDebugGpuSrvs;
+		std::array<Debug::SampleMask::Type, MaxDebugMap> mDebugMasks;
+		std::array<DebugMapSampleDesc, DebugMap::MaxDebugMap> mSampleDescs;
 		int mNumEnabledMaps;
 	};
 };
+
+constexpr DebugMapSampleDesc DebugMap::DebugMapClass::SampleDesc(UINT index) const {
+	return mSampleDescs[index];
+}

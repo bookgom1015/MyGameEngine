@@ -28,46 +28,46 @@ RWTexture2D<float>	go_Variance				: register(u4);
 RWTexture2D<float>	go_BlurStrength			: register(u5);
 
 [numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
-void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
-	uint4 encodedCachedValues = gi_ReprojTsppValueSquaredMeanRayHitDist[dispatchThreadID];
-	uint tspp = encodedCachedValues.x;
-	float4 cachedValues = float4(tspp, f16tof32(encodedCachedValues.yzw));
+void CS(uint2 DTid : SV_DispatchThreadID) {
+	const uint4 EncodedCachedValues = gi_ReprojTsppValueSquaredMeanRayHitDist[DTid];
+	uint tspp = EncodedCachedValues.x;
+	const float4 CachedValues = float4(tspp, f16tof32(EncodedCachedValues.yzw));
 
 	bool isCurrentFrameValueActive = true;
 	if (cb.CheckerboardEnabled) {
-		bool isEvenPixel = ((dispatchThreadID.x + dispatchThreadID.y) & 1) == 0;
+		bool isEvenPixel = ((DTid.x + DTid.y) & 1) == 0;
 		isCurrentFrameValueActive = cb.CheckerboardEvenPixelActivated == isEvenPixel;
 	}
 
-	float value = isCurrentFrameValueActive ? gi_CurrentFrameValue[dispatchThreadID] : Rtao::InvalidAOCoefficientValue;
-	bool isValidValue = value != Rtao::InvalidAOCoefficientValue;
-	float valueSquaredMean = isValidValue ? value * value : Rtao::InvalidAOCoefficientValue;
+	float value = isCurrentFrameValueActive ? gi_CurrentFrameValue[DTid] : Rtao::InvalidAOCoefficientValue;
+	const bool IsValidValue = value != Rtao::InvalidAOCoefficientValue;
+	float valueSquaredMean = IsValidValue ? value * value : Rtao::InvalidAOCoefficientValue;
 	float rayHitDistance = Rtao::InvalidAOCoefficientValue;
 	float variance = Rtao::InvalidAOCoefficientValue;
 
 	if (tspp > 0) {
-		uint maxTspp = 1 / cb.MinSmoothingFactor;
-		tspp = isValidValue ? min(tspp + 1, maxTspp) : tspp;
+		const uint MaxTspp = 1 / cb.MinSmoothingFactor;
+		tspp = IsValidValue ? min(tspp + 1, MaxTspp) : tspp;
 
-		float cachedValue = cachedValues.y;
+		float cachedValue = CachedValues.y;
 
-		float2 localMeanVariance = gi_CurrentFrameLocalMeanVariance[dispatchThreadID];
-		float localMean = localMeanVariance.x;
-		float localVariance = localMeanVariance.y;
+		const float2 LocalMeanVariance = gi_CurrentFrameLocalMeanVariance[DTid];
+		const float LocalMean = LocalMeanVariance.x;
+		const float LocalVariance = LocalMeanVariance.y;
 		if (cb.ClampCachedValues) {
-			float localStdDev = max(cb.StdDevGamma * sqrt(localVariance), cb.ClampingMinStdDevTolerance);
-			float nonClampedCachedValue = cachedValue;
+			const float LocalStdDev = max(cb.StdDevGamma * sqrt(LocalVariance), cb.ClampingMinStdDevTolerance);
+			const float NonClampedCachedValue = cachedValue;
 
 			// Clamp value to mean +/- std.dev of local neighborhood to supress ghosting on value changing due to other occluder movements.
 			// Ref: Salvi2016, Temporal-Super-Sampling
-			cachedValue = clamp(cachedValue, localMean - localStdDev, localMean + localStdDev);
+			cachedValue = clamp(cachedValue, LocalMean - LocalStdDev, LocalMean + LocalStdDev);
 
 			// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new smaples.
-			float tsppScale = saturate(cb.ClampDifferenceToTsppScale * abs(cachedValue - nonClampedCachedValue));
+			float tsppScale = saturate(cb.ClampDifferenceToTsppScale * abs(cachedValue - NonClampedCachedValue));
 			tspp = lerp(tspp, 0, tsppScale);
 		}
-		float invTspp = 1.0 / tspp;
-		float a = cb.ForceUseMinSmoothingFactor ? cb.MinSmoothingFactor : max(invTspp, cb.MinSmoothingFactor);
+		const float InvTspp = 1.0 / tspp;
+		float a = cb.ForceUseMinSmoothingFactor ? cb.MinSmoothingFactor : max(InvTspp, cb.MinSmoothingFactor);
 		const float MaxSmoothingFactor = 1;
 		a = min(a, MaxSmoothingFactor);
 
@@ -76,41 +76,41 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 		// Ref: Koskela2019, Blockwise Multi-Order Feature Regression for Real-Time Path-Tracing Reconstruction
 
 		// Value.
-		value = isValidValue ? lerp(cachedValue, value, a) : cachedValue;
+		value = IsValidValue ? lerp(cachedValue, value, a) : cachedValue;
 
 		// Value Squared Mean.
-		float cachedSquaredMeanValue = cachedValues.z;
-		valueSquaredMean = isValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
+		float cachedSquaredMeanValue = CachedValues.z;
+		valueSquaredMean = IsValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
 
 		// Variance.
 		float temporalVariance = valueSquaredMean - value * value;
 		temporalVariance = max(0, temporalVariance); // Ensure variance doesn't go negative due to imprecision.
-		variance = tspp >= cb.MinTsppToUseTemporalVariance ? temporalVariance : localVariance;
+		variance = tspp >= cb.MinTsppToUseTemporalVariance ? temporalVariance : LocalVariance;
 		variance = max(0.1, variance);
 
 		// RayHitDistance.
-		rayHitDistance = isValidValue ? gi_CurrentFrameRayHitDistance[dispatchThreadID] : 0;
-		float cachedRayHitDistance = cachedValues.w;
-		rayHitDistance = isValidValue ? lerp(cachedRayHitDistance, rayHitDistance, a) : cachedRayHitDistance;
+		rayHitDistance = IsValidValue ? gi_CurrentFrameRayHitDistance[DTid] : 0;
+		float cachedRayHitDistance = CachedValues.w;
+		rayHitDistance = IsValidValue ? lerp(cachedRayHitDistance, rayHitDistance, a) : cachedRayHitDistance;
 	}
-	else if (isValidValue) {
+	else if (IsValidValue) {
 		tspp = 1;
 		value = value;
 
-		rayHitDistance = gi_CurrentFrameRayHitDistance[dispatchThreadID];
-		variance = gi_CurrentFrameLocalMeanVariance[dispatchThreadID].y;
+		rayHitDistance = gi_CurrentFrameRayHitDistance[DTid];
+		variance = gi_CurrentFrameLocalMeanVariance[DTid].y;
 		valueSquaredMean = valueSquaredMean;
 	}
 
-	float tsppRatio = min(tspp, cb.BlurStrengthMaxTspp) / float(cb.BlurStrengthMaxTspp);
-	float blurStrength = pow(1 - tsppRatio, cb.BlurDecayStrength);
+	const float TsppRatio = min(tspp, cb.BlurStrengthMaxTspp) / float(cb.BlurStrengthMaxTspp);
+	const float BlurStrength = pow(1 - TsppRatio, cb.BlurDecayStrength);
 
-	gio_Tspp[dispatchThreadID] = tspp;
-	gio_Value[dispatchThreadID] = value;
-	gio_ValueSquaredMean[dispatchThreadID] = valueSquaredMean;
-	gio_RayHitDistance[dispatchThreadID] = rayHitDistance;
-	go_Variance[dispatchThreadID] = variance;
-	go_BlurStrength[dispatchThreadID] = blurStrength;
+	gio_Tspp[DTid] = tspp;
+	gio_Value[DTid] = value;
+	gio_ValueSquaredMean[DTid] = valueSquaredMean;
+	gio_RayHitDistance[DTid] = rayHitDistance;
+	go_Variance[DTid] = variance;
+	go_BlurStrength[DTid] = BlurStrength;
 }
 
 #endif // __TEMPORALSUPERSAMPLINGBLENDWIDTHCURRENTFRAMECS_HLSL__

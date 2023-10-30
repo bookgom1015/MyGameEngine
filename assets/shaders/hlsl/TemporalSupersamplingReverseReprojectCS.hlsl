@@ -76,25 +76,26 @@ float4 BilateralResampleWeights(
 }
 
 [numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
-void CS(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID, uint2 groupID : SV_GroupID) {
-	if (dispatchThreadID.x >= gTextureDim.x || dispatchThreadID.y >= gTextureDim.y) return;
+void CS(uint2 DTid : SV_DispatchThreadID) {
+	if (DTid.x >= gTextureDim.x || DTid.y >= gTextureDim.y) return;
+
+	float2 tex = (DTid + 0.5) * gInvTextureDim;
 
 	float3 reprojNormal;
 	float reprojDepth;
 	{
-		float4 nd = gi_ReprojectedNormalDepth[dispatchThreadID];
+		float4 nd = gi_ReprojectedNormalDepth[DTid];
 		reprojNormal = nd.xyz;
 		reprojDepth = nd.w;
 	}
 
-	float2 velocity = gi_Velocity[dispatchThreadID];
+	float2 velocity = gi_Velocity.SampleLevel(gsamLinearClamp, tex, 0);
 
 	if (reprojDepth == 1 || velocity.x > 100) {
-		go_CachedTspp[dispatchThreadID] = 0;
+		go_CachedTspp[DTid] = 0;
 		return;
 	}
 
-	float2 tex = (dispatchThreadID + 0.5) * gInvTextureDim;
 	float2 cacheTex = tex - velocity;
 	
 	// Find the nearest integer index samller than the texture position.
@@ -121,9 +122,10 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_G
 		cacheDepths[i] = nd.w;
 	}
 
-	float2 ddxy = gi_DepthPartialDerivative[dispatchThreadID];
+	float2 ddxy = gi_DepthPartialDerivative.SampleLevel(gsamPointClamp, tex, 0);
 
-	float4 weights = BilateralResampleWeights(reprojDepth, reprojNormal, cacheDepths, cacheNormals, cachePixelOffset, dispatchThreadID, cacheIndices, ddxy);
+	float4 weights = BilateralResampleWeights(
+		reprojDepth, reprojNormal, cacheDepths, cacheNormals, cachePixelOffset, DTid, cacheIndices, ddxy);
 
 	// Invalidate weights for invalid values in the cache.
 	float4 vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
@@ -135,7 +137,7 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_G
 	float cachedRayHitDist = 0;
 
 	uint tspp;
-	if (weightSum > 0.001f) {
+	if (weightSum > 0.001) {
 		uint4 vCachedTspp = gi_CachedTspp.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 		// Enforce tspp of at least 1 for reprojection for valid values.
 		// This is because the denoiser will fill in invalid values with filtered 
@@ -152,9 +154,9 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_G
 		// such as on disocclussions of surfaces on rotation, are kept around long enough to create 
 		// visible streaks that fade away very slow.
 		// Example: rotating camera around dragon's nose up close. 
-		const float tsppScale = 1;
+		const float TsppScale = 1;
 
-		float cachedTspp = tsppScale * dot(nWeights, vCachedTspp);
+		float cachedTspp = TsppScale * dot(nWeights, vCachedTspp);
 		tspp = round(cachedTspp);
 
 		if (tspp > 0) {
@@ -175,8 +177,8 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_G
 		tspp = 0;
 	}
 
-	go_CachedTspp[dispatchThreadID] = tspp;
-	go_ReprojectedCachedValues[dispatchThreadID] = uint4(tspp, f32tof16(float3(cachedValue, cachedValueSquaredMean, cachedRayHitDist)));
+	go_CachedTspp[DTid] = tspp;
+	go_ReprojectedCachedValues[DTid] = uint4(tspp, f32tof16(float3(cachedValue, cachedValueSquaredMean, cachedRayHitDist)));
 }
 
 #endif // __TEMPORALSUPERSAMPLINGREVERSEREPROJECTCS_HLSL__

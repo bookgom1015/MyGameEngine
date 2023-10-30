@@ -17,8 +17,8 @@ Texture2D<float>	gi_Depth					: register(t0);
 RWTexture2D<float2>	go_DepthPartialDerivative	: register(u0);
 
 [numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
-void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
-	float2 tex = (dispatchThreadID + 0.5) * gInvTextureDim;
+void CS(uint2 DTid : SV_DispatchThreadID) {
+	float2 tex = (DTid + 0.5) * gInvTextureDim;
 
 	float top	 = gi_Depth.SampleLevel(gsamPointClamp, tex + float2(0, -gInvTextureDim.y), 0);
 	float bottom = gi_Depth.SampleLevel(gsamPointClamp, tex + float2(0,  gInvTextureDim.y), 0);
@@ -37,8 +37,8 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	float2 ddy = float2(backwardDiff.y, forwardDiff.y);
 
 	uint2 minIndex = {
-		GetIndexOfValueClosest(0, ddx),
-		GetIndexOfValueClosest(0, ddy)
+		GetIndexOfValueClosestToReference(0, ddx),
+		GetIndexOfValueClosestToReference(0, ddy)
 	};
 	float2 ddxy = float2(ddx[minIndex.x], ddy[minIndex.y]);
 
@@ -48,7 +48,7 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	float2 _sign = sign(ddxy);
 	ddxy = _sign * min(abs(ddxy), maxDdxy);
 
-	go_DepthPartialDerivative[dispatchThreadID] = ddxy;
+	go_DepthPartialDerivative[DTid] = ddxy;
 }
 
 #endif // __CALCULATEPARTIALDERIVATIVECS_HLSL__

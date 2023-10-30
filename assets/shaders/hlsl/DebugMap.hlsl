@@ -9,7 +9,9 @@
 #include "Samplers.hlsli"
 #include "CoordinatesFittedToScreen.hlsli"
 
-cbuffer gRootConstants : register(b0) {
+ConstantBuffer<DebugMapConstantBuffer> cbDebug : register(b0);
+
+cbuffer gRootConstants : register(b1) {
 	uint gSampleMask0;
 	uint gSampleMask1;
 	uint gSampleMask2;
@@ -85,6 +87,11 @@ float4 SampleColor(in Texture2D map, int index, float2 tex) {
 	case Debug::SampleMask::AAA: {
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).aaa;
 		return float4(samp, 1);
+	}
+	case Debug::SampleMask::FLOAT: {
+		float samp = map.SampleLevel(gsamPointClamp, tex, 0).x;
+		float finalColor = samp / cbDebug.SampleDescs[index].Denominator;
+		return finalColor >= 0 ? lerp(cbDebug.SampleDescs[index].MinColor, cbDebug.SampleDescs[index].MaxColor, finalColor) : 1;
 	}
 	}
 	return 1;

@@ -40,33 +40,33 @@ int2 GetActivePixelIndex(int2 pixel) {
 
 // Load up to 16x16 pixels and filter them horizontally.
 // The output is cached in shared memory and contains NumRows x 8 results.
-void FilterHorizontally(uint2 groupID, uint groupIndex) {
+void FilterHorizontally(uint2 Gid, uint GI) {
 	const uint2 GroupDim = uint2(8, 8);
 	const uint NumValuesToLoadPerRowOrColumn = GroupDim.x + (cb.KernelWidth - 1);
 
 	// Processes the thread group as row-major 4x16, where each sub group of 16 threads processes one row.
 	// Each thread loads up to 4 values, with the subgroups loading rows interleaved.
 	// Loads up to 4x16x4 == 256 input values.
-	uint2 groupThreadID4x16_row0 = uint2(groupIndex % 16, groupIndex / 16);
-	const int2 KernelBasePixel = (groupID * GroupDim - int(cb.KernelRadius) * int2(1, cb.PixelStepY));
+	uint2 GTid4x16_row0 = uint2(GI % 16, GI / 16);
+	const int2 KernelBasePixel = (Gid * GroupDim - int(cb.KernelRadius)) * int2(1, cb.PixelStepY);
 	const uint NumRowsToLoadPerThread = 4;
 	const uint RowBaseWaveLaneIndex = (WaveGetLaneIndex() / 16) * 16;
-
+		
 	[unroll]
 	for (uint i = 0; i < NumRowsToLoadPerThread; ++i) {
-		uint2 groupThreadID4x16 = groupThreadID4x16_row0 + uint2(0, i * 4);
-		if (groupThreadID4x16.y >= NumValuesToLoadPerRowOrColumn) {
-			if (groupThreadID4x16.x < GroupDim.x) NumValuesCache[groupThreadID4x16.y][groupThreadID4x16.x] = 0;
+		uint2 GTid4x16 = GTid4x16_row0 + uint2(0, i * 4);
+		if (GTid4x16.y >= NumValuesToLoadPerRowOrColumn) {
+			if (GTid4x16.x < GroupDim.x) NumValuesCache[GTid4x16.y][GTid4x16.x] = 0;
 			break;
 		}
 
 		// Load all the contributing columns for each row.
-		int2 pixel = GetActivePixelIndex(KernelBasePixel + groupThreadID4x16 * int2(1, cb.PixelStepY));
+		int2 pixel = GetActivePixelIndex(KernelBasePixel + GTid4x16 * int2(1, cb.PixelStepY));
 		float value = Rtao::InvalidAOCoefficientValue;
 
 		// The lane is out of bounds of the GroupDim * kernel, but could be within bounds of the input texture, so don't read it form the texture.
 		// However, we need to keep it as an active lane for a below split sum.
-		if (groupThreadID4x16.x < NumValuesToLoadPerRowOrColumn && IsWithinBounds(pixel, cb.TextureDim))
+		if (GTid4x16.x < NumValuesToLoadPerRowOrColumn && IsWithinBounds(pixel, cb.TextureDim))
 			value = gi_Value[pixel];
 
 		// Filter the values for the first GroupDim columns.
@@ -81,7 +81,7 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 
 			// Initialize the first 8 lanes to the first cell contribution of the kernel.
 			// This covers the remainder of 1 in cb.KernelWidth / 2 used in the loop below.
-			if (groupThreadID4x16.x < GroupDim.x && value != Rtao::InvalidAOCoefficientValue) {
+			if (GTid4x16.x < GroupDim.x && value != Rtao::InvalidAOCoefficientValue) {
 				valueSum = value;
 				squaredValueSum = value * value;
 				++numValues;
@@ -89,7 +89,7 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 
 			// Get the lane index that has the first value for a kernel in this lane.
 			uint RowKernelStartLaneIndex = RowBaseWaveLaneIndex + 1 // Skip over the already accumulated firt cell of kernel.
-				+ (groupThreadID4x16.x < GroupDim.x ? groupThreadID4x16.x : (groupThreadID4x16.x - GroupDim.x) + cb.KernelRadius);
+				+ (GTid4x16.x < GroupDim.x ? GTid4x16.x : (GTid4x16.x - GroupDim.x) + cb.KernelRadius);
 
 			for (uint c = 0; c < cb.KernelRadius; ++c) {
 				uint laneToReadFrom = RowKernelStartLaneIndex + c;
@@ -102,35 +102,35 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 			}
 
 			// Combine the sub-results.
-			uint laneToReadFrom = min(WaveGetLaneCount() - 1, RowBaseWaveLaneIndex + groupThreadID4x16.x + GroupDim.x);
+			uint laneToReadFrom = min(WaveGetLaneCount() - 1, RowBaseWaveLaneIndex + GTid4x16.x + GroupDim.x);
 			valueSum += WaveReadLaneAt(valueSum, laneToReadFrom);
 			squaredValueSum += WaveReadLaneAt(squaredValueSum, laneToReadFrom);
 			numValues += WaveReadLaneAt(numValues, laneToReadFrom);
 
 			// Store only the valid results, i.e. first GroupDim columns.
-			if (groupThreadID4x16.x < GroupDim.x) {
-				PackedRowResultCache[groupThreadID4x16.y][groupThreadID4x16.x] = Float2ToHalf(float2(valueSum, squaredValueSum));
-				NumValuesCache[groupThreadID4x16.y][groupThreadID4x16.x] = numValues;
+			if (GTid4x16.x < GroupDim.x) {
+				PackedRowResultCache[GTid4x16.y][GTid4x16.x] = Float2ToHalf(float2(valueSum, squaredValueSum));
+				NumValuesCache[GTid4x16.y][GTid4x16.x] = numValues;
 			}
 		}
 	}
 }
 
-void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID) {
+void FilterVertically(uint2 DTid, uint2 GTid) {
 	float valueSum = 0;
 	float squaredValueSum = 0;
 	uint numValues = 0;
 
-	uint2 pixel = GetActivePixelIndex(int2(dispatchThreadID.x, dispatchThreadID.y * cb.PixelStepY));
+	uint2 pixel = GetActivePixelIndex(int2(DTid.x, DTid.y * cb.PixelStepY));
 
 	float4 val1, val2;
 	// Accumulate for the whole kernel.
 	for (uint r = 0; r < cb.KernelWidth; ++r) {
-		uint rowID = groupThreadID.y + r;
-		uint rNumValues = NumValuesCache[rowID][groupThreadID.x];
+		uint rowID = GTid.y + r;
+		uint rNumValues = NumValuesCache[rowID][GTid.x];
 
 		if (rNumValues > 0) {
-			float2 unpackedRowSum = HalfToFloat2(PackedRowResultCache[rowID][groupThreadID.x]);
+			float2 unpackedRowSum = HalfToFloat2(PackedRowResultCache[rowID][GTid.x]);
 			float rValueSum = unpackedRowSum.x;
 			float rSquaredValueSum = unpackedRowSum.y;
 
@@ -155,11 +155,11 @@ void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID) {
 }
 
 [numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
-void CS(uint2 groupID : SV_GroupID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex, uint2 dispatchThreadID : SV_DispatchThreadID) {
-	FilterHorizontally(groupID, groupIndex);
+void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex, uint2 DTid : SV_DispatchThreadID) {
+	FilterHorizontally(Gid, GI);
 	GroupMemoryBarrierWithGroupSync();
 
-	FilterVertically(dispatchThreadID, groupThreadID);
+	FilterVertically(DTid, GTid);
 }
 
 #endif // __CALCULATELOCALMEANVARIANCECS_HLSL__

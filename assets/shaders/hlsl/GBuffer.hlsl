@@ -34,7 +34,7 @@ struct VertexOut {
 
 struct PixelOut {
 	float4 Color					: SV_TARGET0;
-	float4 Normal					: SV_TARGET1;
+	float4 NormalDepth				: SV_TARGET1;
 	float4 RoughnessMetalicSpecular	: SV_TARGET2;
 	float4 Velocity					: SV_TARGET3;
 	float4 ReprojNormalDepth		: SV_TARGET4;
@@ -75,7 +75,7 @@ PixelOut PS(VertexOut pin) {
 
 	PixelOut pout = (PixelOut)0;
 	pout.Color = albedo;
-	pout.Normal = float4(pin.NormalW, 0);
+	pout.NormalDepth = float4(pin.NormalW, pin.NonJitPosH.z);
 	pout.RoughnessMetalicSpecular = float4(cbMat.Roughness, cbMat.Metalic, cbMat.Specular, 0);
 	pout.Velocity = float4(velocity, 0, 1);
 	pout.ReprojNormalDepth = float4(pin.PrevNormalW, pin.PrevPosH.z);

@@ -34,6 +34,8 @@ namespace DebugMapLayout {
 		E_Equirectangular,
 		E_DiffuseIrradianceEquirect,
 		E_DxrShadow,
+		E_RayHitDist,
+		E_TemporalRayHitDist,
 		Count
 	};
 }
@@ -96,6 +98,7 @@ private:
 	bool UpdateMaterialCBs(float delta);
 	bool UpdateConvEquirectToCubeCB(float delta);
 	bool UpdateRtaoCB(float delta);
+	bool UpdateDebugMapCB(float delta);
 	
 	bool DrawShadowMap();
 	bool DrawGBuffer();

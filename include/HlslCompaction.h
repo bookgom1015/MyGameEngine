@@ -24,12 +24,13 @@ namespace Debug {
 
 	namespace SampleMask {
 		enum Type {
-			RGB = 0,
-			RG = 1 << 0,
-			RRR = 1 << 1,
-			GGG = 1 << 2,
-			BBB = 1 << 3,
-			AAA = 1 << 4
+			RGB		= 0,
+			RG		= 1 << 0,
+			RRR		= 1 << 1,
+			GGG		= 1 << 2,
+			BBB		= 1 << 3,
+			AAA		= 1 << 4,
+			FLOAT	= 1 << 5
 		};
 	}
 }
@@ -90,6 +91,10 @@ namespace MipmapGenerator {
 			Size = Width * Height
 		};
 	}
+}
+
+namespace DebugMap {
+	static const UINT MaxDebugMap = 5;
 }
 
 struct Light {
@@ -273,6 +278,18 @@ struct AtrousWaveletTransformFilterConstantBuffer {
 	float DepthSigma;
 	float NormalSigma;
 	float FovY;
+};
+
+struct DebugMapSampleDesc {
+	DirectX::XMFLOAT4 MinColor;
+	DirectX::XMFLOAT4 MaxColor;
+
+	float Denominator;
+	float ConstantPads[3];
+};
+
+struct DebugMapConstantBuffer {
+	DebugMapSampleDesc SampleDescs[DebugMap::MaxDebugMap];
 };
 
 #endif // __HLSLCOMPACTION_HLSL__

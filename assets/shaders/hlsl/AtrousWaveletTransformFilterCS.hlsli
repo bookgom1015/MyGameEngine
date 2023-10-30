@@ -44,7 +44,7 @@ void AddFilterContribution(
 		uint row,
 		uint col,
 		uint2 kernelStep,
-		uint2 dispatchThreadID) {
+		uint2 DTid) {
 	const float ValueSigma = cb.ValueSigma;
 	const float NormalSigma = cb.NormalSigma;
 	const float DepthSigma = cb.DepthSigma;
@@ -54,14 +54,14 @@ void AddFilterContribution(
 	float varianceScale = 1;
 
 	pixelOffset = int2(row - FilterKernel::Radius, col - FilterKernel::Radius) * kernelStep;
-	int2 id = int2(dispatchThreadID) + pixelOffset;
+	int2 id = int2(DTid) + pixelOffset;
 
 	if (!IsWithinBounds(id, cb.TextureDim)) return;
 
-	float4 nd = gi_NormalDepth[dispatchThreadID];
+	float4 nd = gi_NormalDepth[DTid];
 	float iDepth = nd.w;
 	float3 iNormal = nd.xyz;
-	float iValue = gi_Value[dispatchThreadID];
+	float iValue = gi_Value[DTid];
 
 	bool isValidValue = iValue != Rtao::InvalidAOCoefficientValue;
 	if (!isValidValue || iDepth == 1) return;
@@ -114,22 +114,22 @@ void AddFilterContribution(
 }
 
 [numthreads(Rtao::Atrous::ThreadGroup::Width, Rtao::Atrous::ThreadGroup::Height, 1)]
-void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
-	if (!IsWithinBounds(dispatchThreadID, cb.TextureDim)) return;
+void CS(uint2 DTid : SV_DispatchThreadID) {
+	if (!IsWithinBounds(DTid, cb.TextureDim)) return;
 
 	// Initialize values to the current pixel / center filter kernel value.
-	float value = gi_Value[dispatchThreadID];
+	float value = gi_Value[DTid];
 
-	float4 nd = gi_NormalDepth[dispatchThreadID];
+	float4 nd = gi_NormalDepth[DTid];
 	float3 normal = nd.xyz;
 	float depth = nd.w;
 
 	bool isValidValue = value != Rtao::InvalidAOCoefficientValue;
 	float filteredValue = value;
-	float variance = gi_Variance[dispatchThreadID];
+	float variance = gi_Variance[DTid];
 
 	if (depth != 1) {
-		float2 ddxy = gi_DepthPartialDerivative[dispatchThreadID];
+		float2 ddxy = gi_DepthPartialDerivative[DTid];
 		float weightSum = 0;
 		float weightedValueSum = 0;
 		float stdDeviation = 1;
@@ -147,7 +147,7 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 		// Ref: [RTGCH19]
 		uint2 kernelStep = 0;
 		if (cb.UseAdaptiveKernelSize && isValidValue) {
-			float avgRayHitDistance = gi_HitDistance[dispatchThreadID];
+			float avgRayHitDistance = gi_HitDistance[DTid];
 
 			float perPixelViewAngle = cb.FovY / cb.TextureDim.y;
 			float tan_a = tan(perPixelViewAngle);
@@ -188,19 +188,19 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 							ddxy,
 							r, c,
 							kernelStep,
-							dispatchThreadID
+							DTid
 						);
 					}
 				}
 			}
 		}
 
-		float smallValue = 0.000001f;
+		float smallValue = 0.000001;
 		if (weightSum > smallValue) filteredValue = weightedValueSum / weightSum;
 		else filteredValue = Rtao::InvalidAOCoefficientValue;
 	}
 
-	go_FilteredValue[dispatchThreadID] = filteredValue;
+	go_FilteredValue[DTid] = filteredValue;
 }
 
 #endif // __ATROUSWAVELETTRANFORMFILTERCS_HLSLI__

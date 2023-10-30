@@ -3,9 +3,9 @@
 
 #include "Samplers.hlsli"
 
-Texture2D gInputMap		: register(t0);
-Texture2D gDepthMap		: register(t1);
-Texture2D gVelocityMap	: register(t2);
+Texture2D<float3>	gi_Input	: register(t0);
+Texture2D<float>	gi_Depth	: register(t1);
+Texture2D<float2>	gi_Velocity	: register(t2);
 
 cbuffer cbRootConstants : register(b0) {
 	float gIntensity;
@@ -13,8 +13,6 @@ cbuffer cbRootConstants : register(b0) {
 	float gDepthBias;
 	float gNumSamples;
 }
-
-static const int NumSamples = 10;
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -37,12 +35,16 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_TARGET{
-	float2 velocity = gVelocityMap.Sample(gsamPointWrap, pin.TexC) * gIntensity;
-	velocity = min(max(velocity, (float2)-gLimit), (float2)gLimit);
+float4 PS(VertexOut pin) : SV_TARGET {
+	float2 velocity = gi_Velocity.Sample(gsamPointWrap, pin.TexC);
+	float3 finalColor = gi_Input.Sample(gsamPointWrap, pin.TexC);
 
-	float3 finalColor = gInputMap.Sample(gsamPointWrap, pin.TexC).rgb;
-	float refDepth = gDepthMap.Sample(gsamDepthMap, pin.TexC).r;
+	if (velocity.x > 100) return float4(finalColor, 1);
+
+	velocity *= gIntensity;
+	velocity = min(max(velocity, (float2) - gLimit), (float2)gLimit);
+
+	float refDepth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
 	int cnt = 1;
 	float2 forward = pin.TexC;
@@ -51,12 +53,12 @@ float4 PS(VertexOut pin) : SV_TARGET{
 		forward += velocity;
 		inverse -= velocity;
 
-		if (refDepth < gDepthMap.Sample(gsamDepthMap, forward).r + gDepthBias) {
-			finalColor += gInputMap.Sample(gsamLinearClamp, forward).rgb;
+		if (refDepth < gi_Depth.Sample(gsamDepthMap, forward) + gDepthBias) {
+			finalColor += gi_Input.Sample(gsamLinearClamp, forward);
 			++cnt;
 		}
-		if (refDepth < gDepthMap.Sample(gsamDepthMap, inverse).r + gDepthBias) {
-			finalColor += gInputMap.Sample(gsamLinearClamp, inverse).rgb;
+		if (refDepth < gi_Depth.Sample(gsamDepthMap, inverse) + gDepthBias) {
+			finalColor += gi_Input.Sample(gsamLinearClamp, inverse);
 			++cnt;
 		}
 	}
