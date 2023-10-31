@@ -1683,7 +1683,7 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 bool DxRenderer::UpdateDebugMapCB(float delta) {
 	DebugMapConstantBuffer debugMapCB;
 
-	for (UINT i = 0; i < DebugMap::MaxDebugMap; ++i) {
+	for (UINT i = 0; i < DebugMap::MapSize; ++i) {
 		auto desc = mDebugMap->SampleDesc(i);
 		debugMapCB.SampleDescs[i] = desc;
 	}
@@ -2435,12 +2435,12 @@ bool DxRenderer::DrawImGui() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	static const auto BuildDebugMap = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, Debug::SampleMask::Type type) {
+	static const auto BuildDebugMap = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type) {
 		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = false; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
 	static const auto BuildDebugMapWithSampleDesc = [&](
-			bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, Debug::SampleMask::Type type, DebugMapSampleDesc desc) {
+			bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type, DebugMapSampleDesc desc) {
 		if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = false; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
@@ -2451,112 +2451,158 @@ bool DxRenderer::DrawImGui() {
 		ImGui::NewLine();
 
 		if (ImGui::CollapsingHeader("Debug")) {
-			if (ImGui::TreeNode("Map Info")) {
-				if (ImGui::Checkbox("Albedo", &mDebugMapStates[DebugMapLayout::E_Albedo])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Albedo],
-						mGBuffer->AlbedoMapSrv(),
-						Debug::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::E_Normal])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Normal],
-						mGBuffer->NormalDepthMapSrv(),
-						Debug::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::E_Depth])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Depth],
-						mGBuffer->DepthMapSrv(),
-						Debug::SampleMask::RRR);
-				}
-				if (ImGui::Checkbox("RoughnessMetalicSpecular", &mDebugMapStates[DebugMapLayout::E_RMS])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_RMS],
-						mGBuffer->RMSMapSrv(),
-						Debug::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::E_Velocity])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Velocity],
-						mGBuffer->VelocityMapSrv(),
-						Debug::SampleMask::RG);
-				}
+			if (ImGui::TreeNode("Texture Maps")) {
+				if (ImGui::TreeNode("G-Buffer")) {
+					if (ImGui::Checkbox("Albedo", &mDebugMapStates[DebugMapLayout::E_Albedo])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Albedo],
+							mGBuffer->AlbedoMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::E_Normal])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Normal],
+							mGBuffer->NormalDepthMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::E_Depth])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Depth],
+							mGBuffer->DepthMapSrv(),
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::Checkbox("RoughnessMetalicSpecular", &mDebugMapStates[DebugMapLayout::E_RMS])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_RMS],
+							mGBuffer->RMSMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::E_Velocity])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Velocity],
+							mGBuffer->VelocityMapSrv(),
+							DebugMap::SampleMask::RG);
+					}
+					ImGui::TreePop();
+				} // ImGui::TreeNode("G-Buffer")
 				if (ImGui::Checkbox("Shadow", &mDebugMapStates[DebugMapLayout::E_Shadow])) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Shadow],
 						mShadowMap->Srv(),
-						Debug::SampleMask::RRR);
+						DebugMap::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("SSAO", &mDebugMapStates[DebugMapLayout::E_SSAO])) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_SSAO],
 						mSsao->AOCoefficientMapSrv(0),
-						Debug::SampleMask::RRR);
+						DebugMap::SampleMask::RRR);
 				}
 				if (ImGui::Checkbox("Bloom", &mDebugMapStates[DebugMapLayout::E_Bloom])) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Bloom],
 						mBloom->BloomMapSrv(0),
-						Debug::SampleMask::RGB);
+						DebugMap::SampleMask::RGB);
 				}
 				if (ImGui::Checkbox("SSR", &mDebugMapStates[DebugMapLayout::E_SSR])) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_SSR],
 						mSsr->SsrMapSrv(0),
-						Debug::SampleMask::RGB);
+						DebugMap::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_Equirectangular])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Equirectangular],
-						mIrradianceMap->EquirectangularMapSrv(),
-						Debug::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("Temporary Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
-						mIrradianceMap->TemporaryEquirectangularMapSrv(),
-						Debug::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect])) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
-						mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
-						Debug::SampleMask::RGB);
-				}
+				if (ImGui::TreeNode("Irradiance")) {
+					if (ImGui::Checkbox("Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_Equirectangular])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Equirectangular],
+							mIrradianceMap->EquirectangularMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Temporary Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
+							mIrradianceMap->TemporaryEquirectangularMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
+							mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					ImGui::TreePop();
+				} // ImGui::TreeNode("Irradiance")
 				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_DxrShadow],
 						mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
-						Debug::SampleMask::RRR);
+						DebugMap::SampleMask::RRR);
 				}
-				if (ImGui::Checkbox("Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_RayHitDist])) {
-					DebugMapSampleDesc desc;
-					desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f};
-					desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-					desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+				if (ImGui::TreeNode("RTAO")) {
+					auto index = mRtao->TemporalCurrentFrameResourceIndex();
 
-					BuildDebugMapWithSampleDesc(
-						mDebugMapStates[DebugMapLayout::E_RayHitDist],
-						mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
-						Debug::SampleMask::FLOAT,
-						desc);
-				}
-				if (ImGui::Checkbox("Temporal Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist])) {
-					DebugMapSampleDesc desc;
-					desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
-					desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
-					desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+					if (ImGui::Checkbox("AO Coefficients", &mDebugMapStates[DebugMapLayout::E_AOCoeff])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_AOCoeff],
+							mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_AmbientCoefficient],
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::Checkbox("Temporal AO Coefficients", &mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
+							mRtao->TemporalAOCoefficientsGpuDescriptors()[index][Rtao::Descriptor::TemporalAOCoefficient::Srv],
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::Checkbox("Tspp", &mDebugMapStates[DebugMapLayout::E_Tspp])) {
+						DebugMapSampleDesc desc;
+						desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
+						desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+						desc.Denominator = 22.0f;
 
-					BuildDebugMapWithSampleDesc(
-						mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
-						mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
-						Debug::SampleMask::FLOAT,
-						desc);
-				}
+						BuildDebugMapWithSampleDesc(
+							mDebugMapStates[DebugMapLayout::E_Tspp],
+							mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_Tspp],
+							DebugMap::SampleMask::UINT,
+							desc);
+					}
+					if (ImGui::Checkbox("Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_RayHitDist])) {
+						DebugMapSampleDesc desc;
+						desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
+						desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+						desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
 
+						BuildDebugMapWithSampleDesc(
+							mDebugMapStates[DebugMapLayout::E_RayHitDist],
+							mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
+							DebugMap::SampleMask::FLOAT,
+							desc);
+					}
+					if (ImGui::Checkbox("Temporal Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist])) {
+						DebugMapSampleDesc desc;
+						desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
+						desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+						desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+
+						BuildDebugMapWithSampleDesc(
+							mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
+							mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
+							DebugMap::SampleMask::FLOAT,
+							desc);
+					}
+					if (ImGui::Checkbox("Local Mean Variance", &mDebugMapStates[DebugMapLayout::E_LocalMeanVariance])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
+							mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
+							DebugMap::SampleMask::RG);
+					}
+					if (ImGui::Checkbox("Disocclusion Blur Strength", &mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength])) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
+							mRtao->DisocclusionBlurStrengthSrv(),
+							DebugMap::SampleMask::RRR);
+					}
+					ImGui::TreePop();
+				} // ImGui::TreeNode("RTAO")
 				ImGui::TreePop();
-			}
+			} // ImGui::TreeNode("Texture Maps")
 			ImGui::Checkbox("Show Collision Box", &ShaderArgs::Debug::ShowCollisionBox);
 		}
 		if (ImGui::CollapsingHeader("Effects")) {

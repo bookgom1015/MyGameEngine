@@ -19,13 +19,19 @@ cbuffer gRootConstants : register(b1) {
 	uint gSampleMask4;
 }
 
-Texture2D gi_Debug0	: register(t0);
-Texture2D gi_Debug1	: register(t1);
-Texture2D gi_Debug2	: register(t2);
-Texture2D gi_Debug3	: register(t3);
-Texture2D gi_Debug4	: register(t4);
+Texture2D gi_Debug0 : register(t0);
+Texture2D gi_Debug1 : register(t1);
+Texture2D gi_Debug2 : register(t2);
+Texture2D gi_Debug3 : register(t3);
+Texture2D gi_Debug4 : register(t4);
 
-static const float2 gOffsets[Debug::MapCount] = {
+Texture2D<uint> gi_Debug0_uint : register(t0, space1);
+Texture2D<uint> gi_Debug1_uint : register(t1, space1);
+Texture2D<uint> gi_Debug2_uint : register(t2, space1);
+Texture2D<uint> gi_Debug3_uint : register(t3, space1);
+Texture2D<uint> gi_Debug4_uint : register(t4, space1);
+
+static const float2 gOffsets[DebugMap::MapSize] = {
 	float2(0.8,  0.8),
 	float2(0.8,  0.4),
 	float2(0.8,  0.0),
@@ -65,33 +71,67 @@ uint GetSampleMask(int index) {
 	return 0;
 }
 
-float4 SampleColor(in Texture2D map, int index, float2 tex) {
+Texture2D TextureObject(int index) {
+	switch (index) {
+	case 0: return gi_Debug0;
+	case 1: return gi_Debug1;
+	case 2: return gi_Debug2;
+	case 3: return gi_Debug3;
+	case 4: return gi_Debug4;
+	}
+	return gi_Debug0;
+}
+
+Texture2D<uint> TextureObject_uint(int index) {
+	switch (index) {
+	case 0: return gi_Debug0_uint;
+	case 1: return gi_Debug1_uint;
+	case 2: return gi_Debug2_uint;
+	case 3: return gi_Debug3_uint;
+	case 4: return gi_Debug4_uint;
+	}
+	return gi_Debug0_uint;
+}
+
+float4 SampleColor(int index, float2 tex) {
 	uint mask = GetSampleMask(index);
 	switch (mask) {
-	case Debug::SampleMask::RGB: {
+	case DebugMap::SampleMask::RGB: {
+		Texture2D map = TextureObject(index);
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).rgb;
 		return float4(samp, 1);
 	}
-	case Debug::SampleMask::RG: {
+	case DebugMap::SampleMask::RG: {
+		Texture2D map = TextureObject(index);
 		float2 samp = map.SampleLevel(gsamPointClamp, tex, 0).rg;
 		return float4(samp, 0, 1);
 	}
-	case Debug::SampleMask::RRR: {
+	case DebugMap::SampleMask::RRR: {
+		Texture2D map = TextureObject(index);
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).rrr;
 		return float4(samp, 1);
 	}
-	case Debug::SampleMask::GGG: {
+	case DebugMap::SampleMask::GGG: {
+		Texture2D map = TextureObject(index);
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).ggg;
 		return float4(samp, 1);
 	}
-	case Debug::SampleMask::AAA: {
+	case DebugMap::SampleMask::AAA: {
+		Texture2D map = TextureObject(index);
 		float3 samp = map.SampleLevel(gsamPointClamp, tex, 0).aaa;
 		return float4(samp, 1);
 	}
-	case Debug::SampleMask::FLOAT: {
+	case DebugMap::SampleMask::FLOAT: {
+		Texture2D map = TextureObject(index);
 		float samp = map.SampleLevel(gsamPointClamp, tex, 0).x;
 		float finalColor = samp / cbDebug.SampleDescs[index].Denominator;
 		return finalColor >= 0 ? lerp(cbDebug.SampleDescs[index].MinColor, cbDebug.SampleDescs[index].MaxColor, finalColor) : 1;
+	}
+	case DebugMap::SampleMask::UINT: {
+		Texture2D<uint> map = TextureObject_uint(index);
+		uint samp = map.Load(int3(tex.x * 800, tex.y * 600, 0)).x;
+		float finalColor = min(1, samp / cbDebug.SampleDescs[index].Denominator);
+		return lerp(cbDebug.SampleDescs[index].MinColor, cbDebug.SampleDescs[index].MaxColor, finalColor);
 	}
 	}
 	return 1;
@@ -99,11 +139,11 @@ float4 SampleColor(in Texture2D map, int index, float2 tex) {
 
 float4 PS(VertexOut pin) : SV_Target {
 	switch (pin.InstID) {
-	case 0: return SampleColor(gi_Debug0, 0, pin.TexC);
-	case 1: return SampleColor(gi_Debug1, 1, pin.TexC);
-	case 2: return SampleColor(gi_Debug2, 2, pin.TexC);
-	case 3: return SampleColor(gi_Debug3, 3, pin.TexC);
-	case 4: return SampleColor(gi_Debug4, 4, pin.TexC);
+	case 0: return SampleColor(0, pin.TexC);
+	case 1: return SampleColor(1, pin.TexC);
+	case 2: return SampleColor(2, pin.TexC);
+	case 3: return SampleColor(3, pin.TexC);
+	case 4: return SampleColor(4, pin.TexC);
 	}
 	return float4(1, 0, 1, 1);
 }

@@ -19,23 +19,36 @@ class ImGuiManager;
 
 namespace DebugMapLayout {
 	enum Type {
+		// G-Buffer
 		E_Albedo = 0,
 		E_Normal,
 		E_Depth,
 		E_RMS,
 		E_Velocity,
+
 		E_Shadow,
 		E_SSAO,
 		E_Bloom,
 		E_SSR,
+
+		// Irradiance
 		E_DiffuseReflectance,
 		E_SpecularReflectance,
 		E_TemporaryEquirectangular,
 		E_Equirectangular,
 		E_DiffuseIrradianceEquirect,
+
 		E_DxrShadow,
+
+		// RTAO
+		E_AOCoeff,
+		E_TemporalAOCoeff,
+		E_Tspp,
 		E_RayHitDist,
 		E_TemporalRayHitDist,
+		E_LocalMeanVariance,
+		E_DiocclusionBlurStrength,
+
 		Count
 	};
 }

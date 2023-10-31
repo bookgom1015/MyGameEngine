@@ -21,6 +21,11 @@ namespace DebugMap {
 			ESI_Debug2,
 			ESI_Debug3,
 			ESI_Debug4,
+			ESI_Debug0_uint,
+			ESI_Debug1_uint,
+			ESI_Debug2_uint,
+			ESI_Debug3_uint,
+			ESI_Debug4_uint,
 			Count
 		};
 	}
@@ -60,10 +65,10 @@ namespace DebugMap {
 
 		bool AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
-			Debug::SampleMask::Type mask = Debug::SampleMask::RGB);
+			SampleMask::Type mask = SampleMask::RGB);
 		bool AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-			Debug::SampleMask::Type mask,
+			SampleMask::Type mask,
 			DebugMapSampleDesc desc);
 		void RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv);
 
@@ -76,9 +81,9 @@ namespace DebugMap {
 
 		DXGI_FORMAT mBackBufferFormat;
 
-		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, MaxDebugMap> mhDebugGpuSrvs;
-		std::array<Debug::SampleMask::Type, MaxDebugMap> mDebugMasks;
-		std::array<DebugMapSampleDesc, DebugMap::MaxDebugMap> mSampleDescs;
+		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, MapSize> mhDebugGpuSrvs;
+		std::array<SampleMask::Type, MapSize> mDebugMasks;
+		std::array<DebugMapSampleDesc, MapSize> mSampleDescs;
 		int mNumEnabledMaps;
 	};
 };

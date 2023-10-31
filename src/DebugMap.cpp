@@ -35,12 +35,17 @@ bool DebugMapClass::CompileShaders(const std::wstring& filePath) {
 bool DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[5];
+	CD3DX12_DESCRIPTOR_RANGE texTables[10];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
 	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+	texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
+	texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1);
+	texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 1);
+	texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 1);
+	texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 1);
 
 	slotRootParameter[RootSignatureLayout::ECB_DebugMap].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 1);
@@ -49,6 +54,11 @@ bool DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	slotRootParameter[RootSignatureLayout::ESI_Debug2].InitAsDescriptorTable(1, &texTables[2]);
 	slotRootParameter[RootSignatureLayout::ESI_Debug3].InitAsDescriptorTable(1, &texTables[3]);
 	slotRootParameter[RootSignatureLayout::ESI_Debug4].InitAsDescriptorTable(1, &texTables[4]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug0_uint].InitAsDescriptorTable(1, &texTables[5]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug1_uint].InitAsDescriptorTable(1, &texTables[6]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug2_uint].InitAsDescriptorTable(1, &texTables[7]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug3_uint].InitAsDescriptorTable(1, &texTables[8]);
+	slotRootParameter[RootSignatureLayout::ESI_Debug4_uint].InitAsDescriptorTable(1, &texTables[9]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -104,7 +114,10 @@ void DebugMapClass::Run(
 	);
 
 	for (int i = 0; i < mNumEnabledMaps; ++i) {
-		cmdList->SetGraphicsRootDescriptorTable(static_cast<UINT>(RootSignatureLayout::ESI_Debug0 + i), mhDebugGpuSrvs[i]);
+		if (mDebugMasks[i] == SampleMask::UINT) 
+			cmdList->SetGraphicsRootDescriptorTable(static_cast<UINT>(RootSignatureLayout::ESI_Debug0_uint + i), mhDebugGpuSrvs[i]);
+		else
+			cmdList->SetGraphicsRootDescriptorTable(static_cast<UINT>(RootSignatureLayout::ESI_Debug0 + i), mhDebugGpuSrvs[i]);
 	}
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -115,7 +128,7 @@ void DebugMapClass::Run(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleMask::Type mask) {
+bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask) {
 	if (mNumEnabledMaps >= 5) return false;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
@@ -126,7 +139,7 @@ bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::Samp
 	return true;
 }
 
-bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, Debug::SampleMask::Type mask, DebugMapSampleDesc desc) {
+bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask, DebugMapSampleDesc desc) {
 	if (mNumEnabledMaps >= 5) return false;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;

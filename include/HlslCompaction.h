@@ -19,8 +19,8 @@
 
 #define MaxLights 16
 
-namespace Debug {
-	static const int MapCount = 5;
+namespace DebugMap {
+	static const int MapSize = 5;
 
 	namespace SampleMask {
 		enum Type {
@@ -30,7 +30,8 @@ namespace Debug {
 			GGG		= 1 << 2,
 			BBB		= 1 << 3,
 			AAA		= 1 << 4,
-			FLOAT	= 1 << 5
+			FLOAT	= 1 << 5,
+			UINT	= 1 << 6
 		};
 	}
 }
@@ -91,10 +92,6 @@ namespace MipmapGenerator {
 			Size = Width * Height
 		};
 	}
-}
-
-namespace DebugMap {
-	static const UINT MaxDebugMap = 5;
 }
 
 struct Light {
@@ -285,11 +282,13 @@ struct DebugMapSampleDesc {
 	DirectX::XMFLOAT4 MaxColor;
 
 	float Denominator;
-	float ConstantPads[3];
+	float ConstantPad0;
+	float ConstantPad1;
+	float ConstantPad2;
 };
 
 struct DebugMapConstantBuffer {
-	DebugMapSampleDesc SampleDescs[DebugMap::MaxDebugMap];
+	DebugMapSampleDesc SampleDescs[DebugMap::MapSize];
 };
 
 #endif // __HLSLCOMPACTION_HLSL__
