@@ -3,6 +3,7 @@
 #include "RenderMacros.h"
 
 #include <d3dcompiler.h>
+#include <fstream>
 
 using namespace Microsoft::WRL;
 
@@ -14,14 +15,12 @@ ShaderManager::~ShaderManager() {
 
 bool ShaderManager::Initialize() {
 	CheckHRESULT(mDxcDllHelper.Initialize());
-	CheckHRESULT(mDxcDllHelper.CreateInstance(CLSID_DxcCompiler, &mCompiler));
-	CheckHRESULT(mDxcDllHelper.CreateInstance(CLSID_DxcLibrary, &mLibrary));
+	DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&mUtils));
+	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&mCompiler));
 	return true;
 }
 
 void ShaderManager::CleanUp() {
-	ReleaseCom(mCompiler);
-	ReleaseCom(mLibrary);
 	//mDxcDllHelper.Cleanup();
 	bIsCleanedUp = true;
 }
@@ -56,27 +55,60 @@ bool ShaderManager::CompileShader(
 	return true;
 }
 
-bool ShaderManager::CompileShader(const D3D12ShaderInfo& inShaderInfo, const std::string& inName) {
-	UINT32 code = 0;
+bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name) {
+	std::ifstream file(shaderInfo.FileName, std::ios::ate | std::ios::binary);
+	if (!file.is_open()) {
+		std::wstring msg(L"Failed to open shader file: ");
+		msg.append(shaderInfo.FileName);
+		ReturnFalse(msg);
+	}
+
+	size_t fileSize = static_cast<size_t>(file.tellg());
+	
+	std::vector<char> data(fileSize);
+
+	file.seekg(0);
+	file.read(data.data(), fileSize);
+	file.close();
+
 	IDxcBlobEncoding* shaderText = nullptr;
-	CheckHRESULT(mLibrary->CreateBlobFromFile(inShaderInfo.FileName, &code, &shaderText));
+	mUtils->CreateBlob(data.data(), static_cast<UINT32>(fileSize), 0, &shaderText);
 
 	ComPtr<IDxcIncludeHandler> includeHandler;
-	CheckHRESULT(mLibrary->CreateIncludeHandler(&includeHandler));
+	mUtils->CreateDefaultIncludeHandler(&includeHandler);
+		
+	DxcBuffer sourceBuffer;
+	sourceBuffer.Ptr = shaderText->GetBufferPointer();
+	sourceBuffer.Size = shaderText->GetBufferSize();
+	sourceBuffer.Encoding = 0;
+
+	std::vector<LPCWSTR> arguments;
+
+	// Strip reflection data and pdbs
+	arguments.push_back(L"-Qstrip_debug");
+	arguments.push_back(L"-Qstrip_reflect");
+
+	arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS); // -WX
+	arguments.push_back(DXC_ARG_DEBUG); // -Zi
+
+	ComPtr<IDxcCompilerArgs> compilerArgs;
+	mUtils->BuildArguments(
+		shaderInfo.FileName,
+		shaderInfo.EntryPoint, 
+		shaderInfo.TargetProfile, 
+		arguments.data(), 
+		static_cast<UINT32>(arguments.size()),
+		shaderInfo.Defines, 
+		shaderInfo.DefineCount, 
+		&compilerArgs);
 
 	IDxcOperationResult* result;
-	CheckHRESULT(mCompiler->Compile(
-		shaderText,
-		inShaderInfo.FileName,
-		inShaderInfo.EntryPoint,
-		inShaderInfo.TargetProfile,
-		inShaderInfo.Arguments,
-		inShaderInfo.ArgCount,
-		inShaderInfo.Defines,
-		inShaderInfo.DefineCount,
-		includeHandler.Get(),
-		&result
-	));
+	mCompiler->Compile(
+		&sourceBuffer, 
+		compilerArgs->GetArguments(), 
+		static_cast<UINT32>(compilerArgs->GetCount()), 
+		includeHandler.Get(), 
+		IID_PPV_ARGS(&result));
 
 	HRESULT hr;
 	CheckHRESULT(result->GetStatus(&hr));
@@ -98,7 +130,7 @@ bool ShaderManager::CompileShader(const D3D12ShaderInfo& inShaderInfo, const std
 		ReturnFalse(errorMsgW);
 	}
 
-	CheckHRESULT(result->GetResult(&mDxcShaders[inName]));
+	CheckHRESULT(result->GetResult(&mDxcShaders[name]));
 
 	return true;
 }

@@ -74,6 +74,11 @@ bool RtaoClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+
+		//std::vector<LPCWSTR> args = { L"-Zi" };
+		//shaderInfo.ArgCount = args.size();
+		//shaderInfo.Arguments = args.data();
+
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS));
 	}
 	{

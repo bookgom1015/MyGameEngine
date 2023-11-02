@@ -139,7 +139,6 @@ namespace ShaderArgs {
 
 		namespace Denoiser {
 			bool UseSmoothingVariance = false;
-			bool FullscreenBlur = false;
 			bool DisocclusionBlur = false;
 			UINT LowTsppBlurPasses = 3;
 
@@ -2734,7 +2733,6 @@ bool DxRenderer::DrawImGui() {
 			}
 			if (ImGui::TreeNode("RTAO")) {
 				ImGui::Checkbox("Use Smoothing Variance", &ShaderArgs::Rtao::Denoiser::UseSmoothingVariance);
-				ImGui::Checkbox("Fullscreen Blur", &ShaderArgs::Rtao::Denoiser::FullscreenBlur);
 				ImGui::Checkbox("Disocclusion Blur", &ShaderArgs::Rtao::Denoiser::DisocclusionBlur);
 
 				ImGui::TreePop();
@@ -3073,7 +3071,7 @@ bool DxRenderer::DrawRtao() {
 			}
 		}
 		// Applies a single pass of a Atrous wavelet transform filter.
-		if (ShaderArgs::Rtao::Denoiser::FullscreenBlur) {
+		{
 			UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
 			UINT inputAOCoefficientIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 			UINT outputAOCoefficientIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();

@@ -101,7 +101,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float3 kD = 1 - kS;
 
 	const float3 diffSamp = gi_Diffuse.SampleLevel(gsamLinearClamp, normalW, 0);
-	const float3 diffuseIrradiance = diffSamp * albedo;
+	const float3 diffuseIrradiance = diffSamp * albedo.rgb;
 
 	const float aoCoeiff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 

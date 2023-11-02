@@ -15,7 +15,7 @@
 #include "CrossBilateralWeights.hlsli"
 #include "Rtao.hlsli"
 
-ConstantBuffer<CrossBilateralFilterConstants> cb : register (b0);
+ConstantBuffer<CrossBilateralFilterConstants> cbReproject : register (b0);
 
 cbuffer cbRootConstants : register (b1) {
 	uint2	gTextureDim;
@@ -52,9 +52,9 @@ float4 BilateralResampleWeights(
 	);
 
 	CrossBilateral::BilinearDepthNormal::Parameters params;
-	params.Depth.Sigma = cb.DepthSigma;
+	params.Depth.Sigma = cbReproject.DepthSigma;
 	params.Depth.WeightCutoff = 0.5;
-	params.Depth.NumMantissaBits = cb.DepthNumMantissaBits;
+	params.Depth.NumMantissaBits = cbReproject.DepthNumMantissaBits;
 	params.Normal.Sigma = 1.1; // Bump the sigma a bit to add tolerance for slight geometry misalignments and/or format precision limitations.
 	params.Normal.SigmaExponent = 32;
 

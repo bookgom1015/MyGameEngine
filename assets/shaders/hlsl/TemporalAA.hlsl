@@ -3,9 +3,9 @@
 
 #include "Samplers.hlsli"
 
-Texture2D gInputMap		: register(t0);
-Texture2D gHistoryMap	: register(t1);
-Texture2D gVelocityMap	: register(t2);
+Texture2D<float3> gi_Input		: register(t0);
+Texture2D<float3> gi_History	: register(t1);
+Texture2D<float2> gi_Velocity	: register(t2);
 
 cbuffer cbRootConstants : register(b0) {
 	float gModulationFactor;
@@ -34,21 +34,21 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 
 float4 PS(VertexOut pin) : SV_TARGET {
 	uint width, height, numMips;
-	gInputMap.GetDimensions(0, width, height, numMips);
+	gi_Input.GetDimensions(0, width, height, numMips);
 
 	float dx = 1.0f / width;
 	float dy = 1.0f / height;
 
-	float2 velocity = gVelocityMap.Sample(gsamPointClamp, pin.TexC);
+	float2 velocity = gi_Velocity.Sample(gsamPointClamp, pin.TexC);
 	float2 prevTexC = pin.TexC - velocity;
 
-	float3 inputColor = gInputMap.Sample(gsamPointClamp, pin.TexC).rgb;
-	float3 historyColor = gHistoryMap.Sample(gsamLinearClamp, prevTexC).rgb;
+	float3 inputColor = gi_Input.Sample(gsamPointClamp, pin.TexC);
+	float3 historyColor = gi_History.Sample(gsamLinearClamp, prevTexC).rgb;
 
-	float3 nearColor0 = gInputMap.Sample(gsamPointClamp, pin.TexC + dx).rgb;
-	float3 nearColor1 = gInputMap.Sample(gsamPointClamp, pin.TexC - dx).rgb;
-	float3 nearColor2 = gInputMap.Sample(gsamPointClamp, pin.TexC + dy).rgb;
-	float3 nearColor3 = gInputMap.Sample(gsamPointClamp, pin.TexC - dy).rgb;
+	float3 nearColor0 = gi_Input.Sample(gsamPointClamp, pin.TexC + dx);
+	float3 nearColor1 = gi_Input.Sample(gsamPointClamp, pin.TexC - dx);
+	float3 nearColor2 = gi_Input.Sample(gsamPointClamp, pin.TexC + dy);
+	float3 nearColor3 = gi_Input.Sample(gsamPointClamp, pin.TexC - dy);
 
 	float3 minColor = min(inputColor, min(nearColor0, min(nearColor1, min(nearColor2, nearColor3))));
 	float3 maxColor = max(inputColor, max(nearColor0, max(nearColor1, max(nearColor2, nearColor3))));

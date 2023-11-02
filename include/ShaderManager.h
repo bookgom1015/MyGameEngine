@@ -57,8 +57,8 @@ private:
 	bool bIsCleanedUp = false;
 
 	dxc::DxcDllSupport mDxcDllHelper;
-	IDxcCompiler* mCompiler = nullptr;
-	IDxcLibrary* mLibrary = nullptr;
+	Microsoft::WRL::ComPtr<IDxcUtils> mUtils;
+	Microsoft::WRL::ComPtr<IDxcCompiler3> mCompiler;
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<IDxcBlob>> mDxcShaders;
