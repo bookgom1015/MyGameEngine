@@ -4,6 +4,7 @@
 
 assets/meshes/
 assets/textures/
+assets/shaders/hlsl/debug/
 
 bin/
 

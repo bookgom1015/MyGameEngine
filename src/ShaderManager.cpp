@@ -4,6 +4,7 @@
 
 #include <d3dcompiler.h>
 #include <fstream>
+#include <filesystem>
 
 using namespace Microsoft::WRL;
 
@@ -56,20 +57,20 @@ bool ShaderManager::CompileShader(
 }
 
 bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name) {
-	std::ifstream file(shaderInfo.FileName, std::ios::ate | std::ios::binary);
-	if (!file.is_open()) {
+	std::ifstream fin(shaderInfo.FileName, std::ios::ate | std::ios::binary);
+	if (!fin.is_open()) {
 		std::wstring msg(L"Failed to open shader file: ");
 		msg.append(shaderInfo.FileName);
 		ReturnFalse(msg);
 	}
 
-	size_t fileSize = static_cast<size_t>(file.tellg());
+	size_t fileSize = static_cast<size_t>(fin.tellg());
 	
 	std::vector<char> data(fileSize);
 
-	file.seekg(0);
-	file.read(data.data(), fileSize);
-	file.close();
+	fin.seekg(0);
+	fin.read(data.data(), fileSize);
+	fin.close();
 
 	IDxcBlobEncoding* shaderText = nullptr;
 	mUtils->CreateBlob(data.data(), static_cast<UINT32>(fileSize), 0, &shaderText);
@@ -85,8 +86,9 @@ bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 	std::vector<LPCWSTR> arguments;
 
 	// Strip reflection data and pdbs
-	arguments.push_back(L"-Qstrip_debug");
-	arguments.push_back(L"-Qstrip_reflect");
+	arguments.push_back(L"-Qembed_debug");
+	//arguments.push_back(L"-Qstrip_debug");
+	//arguments.push_back(L"-Qstrip_reflect");
 
 	arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS); // -WX
 	arguments.push_back(DXC_ARG_DEBUG); // -Zi
@@ -102,14 +104,14 @@ bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 		shaderInfo.DefineCount, 
 		&compilerArgs);
 
-	IDxcOperationResult* result;
+	IDxcResult* result;
 	mCompiler->Compile(
 		&sourceBuffer, 
 		compilerArgs->GetArguments(), 
 		static_cast<UINT32>(compilerArgs->GetCount()), 
 		includeHandler.Get(), 
 		IID_PPV_ARGS(&result));
-
+	
 	HRESULT hr;
 	CheckHRESULT(result->GetStatus(&hr));
 	if (FAILED(hr)) {
@@ -129,6 +131,47 @@ bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 
 		ReturnFalse(errorMsgW);
 	}
+
+#if _DEBUG
+	{
+		ComPtr<IDxcBlob> pdbBlob;
+		ComPtr<IDxcBlobUtf16> debugDataPath;
+		result->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdbBlob), &debugDataPath);
+
+		std::wstring fileNameW = shaderInfo.FileName;
+		auto extIdx = fileNameW.rfind(L'.');
+		std::wstring fileNameWithExtW = fileNameW.substr(0, extIdx);
+		//fileNameWithExtW.append(L"_");
+		//fileNameWithExtW.append(shaderInfo.EntryPoint);
+		fileNameWithExtW.append(L".pdb");
+		auto delimIdx = fileNameWithExtW.rfind(L'\\');
+		
+		{
+			std::wstring filePathW = fileNameWithExtW.substr(0, delimIdx);
+			filePathW.append(L"\\debug");
+			
+			std::filesystem::path debugDir(filePathW);
+			if (!std::filesystem::exists(debugDir)) std::filesystem::create_directory(debugDir);
+		}
+
+		fileNameWithExtW.insert(delimIdx, L"\\debug");
+
+		std::string fileName;
+		for (auto ch : fileNameWithExtW)
+			fileName.push_back(static_cast<char>(ch));
+
+		std::ofstream fout;
+		fout.open(fileName, std::ios::beg | std::ios::binary | std::ios::trunc);
+		if (!fout.is_open()) {
+			std::wstring msg = L"Failed to open file for PDB: ";
+			msg.append(fileNameWithExtW);
+			ReturnFalse(msg);
+		}
+
+		fout.write(reinterpret_cast<const char*>(pdbBlob->GetBufferPointer()), pdbBlob->GetBufferSize());
+		fout.close();
+	}
+#endif 
 
 	CheckHRESULT(result->GetResult(&mDxcShaders[name]));
 
