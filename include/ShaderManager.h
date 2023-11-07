@@ -6,6 +6,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <set>
 #include <wrl.h>
 
 struct D3D12ShaderInfo {
@@ -62,4 +63,6 @@ private:
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<IDxcBlob>> mDxcShaders;
+
+	std::set<std::string> mExportedPDBs;
 };

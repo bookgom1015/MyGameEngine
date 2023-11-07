@@ -785,5 +785,8 @@
     <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
+    <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli">
+      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
   </ItemGroup>
 </Project>

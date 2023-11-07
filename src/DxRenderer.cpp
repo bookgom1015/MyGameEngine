@@ -162,7 +162,7 @@ namespace ShaderArgs {
 				float ValueSigma = 1.0f;
 				float DepthSigma = 1.0f;
 				float DepthWeightCutoff = 0.2f;
-				float NormalSigma = 64;
+				float NormalSigma = 64.0f;
 				float MinVarianceToDenoise = 0.0f;
 				bool UseSmoothedVariance = false;
 				bool PerspectiveCorrectDepthInterpolation = true;
@@ -2734,6 +2734,8 @@ bool DxRenderer::DrawImGui() {
 			if (ImGui::TreeNode("RTAO")) {
 				ImGui::Checkbox("Use Smoothing Variance", &ShaderArgs::Rtao::Denoiser::UseSmoothingVariance);
 				ImGui::Checkbox("Disocclusion Blur", &ShaderArgs::Rtao::Denoiser::DisocclusionBlur);
+				ImGui::Checkbox("Clamp Cached Values", 
+					reinterpret_cast<bool*>(&ShaderArgs::Rtao::Denoiser::TemporalSupersampling::ClampCachedValues::UseClamping));
 
 				ImGui::TreePop();
 			}

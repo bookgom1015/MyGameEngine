@@ -240,14 +240,18 @@ uint SmallestPowerOf2GreaterThan(uint x) {
 	return x + 1;
 }
 
-float FloatPrecision(float x, uint numMantissaBits) {
+// Returns float precision for a given float value.
+// Values within (value -precision, value + precision) map to the same value. 
+// Precision = exponentRange/MaxMantissaValue = (2^e+1 - 2^e) / (2^NumMantissaBits)
+// Ref: https://blog.demofox.org/2017/11/21/floating-point-precision/
+float FloatPrecision(float x, uint NumMantissaBits) {
 	// Find the exponent range the value is in.
 	uint nextPowerOfTwo = SmallestPowerOf2GreaterThan(x);
 	float exponentRange = nextPowerOfTwo - (nextPowerOfTwo >> 1);
 
-	float maxMantissaValue = 1u << numMantissaBits;
+	float MaxMantissaValue = 1u << NumMantissaBits;
 
-	return exponentRange / maxMantissaValue;
+	return exponentRange / MaxMantissaValue;
 }
 
 uint Float2ToHalf(float2 val) {

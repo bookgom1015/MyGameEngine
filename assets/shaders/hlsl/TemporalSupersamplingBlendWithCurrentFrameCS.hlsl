@@ -57,14 +57,14 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		if (cbBlend.ClampCachedValues) {
 			const float LocalStdDev = max(cbBlend.StdDevGamma * sqrt(LocalVariance), cbBlend.ClampingMinStdDevTolerance);
 			const float NonClampedCachedValue = cachedValue;
-
+		
 			// Clamp value to mean +/- std.dev of local neighborhood to supress ghosting on value changing due to other occluder movements.
 			// Ref: Salvi2016, Temporal-Super-Sampling
 			cachedValue = clamp(cachedValue, LocalMean - LocalStdDev, LocalMean + LocalStdDev);
-
+		
 			// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new smaples.
 			float tsppScale = saturate(cbBlend.ClampDifferenceToTsppScale * abs(cachedValue - NonClampedCachedValue));
-			tspp = lerp(tspp, 1, tsppScale);
+			tspp = lerp(tspp, 0, tsppScale);
 		}
 		const float InvTspp = 1.0 / tspp;
 		float a = cbBlend.ForceUseMinSmoothingFactor ? cbBlend.MinSmoothingFactor : max(InvTspp, cbBlend.MinSmoothingFactor);

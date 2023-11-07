@@ -10,7 +10,7 @@
 #include "Kernels.hlsli"
 #include "Rtao.hlsli"
 
-ConstantBuffer<AtrousWaveletTransformFilterConstantBuffer> cb : register(b0);
+ConstantBuffer<AtrousWaveletTransformFilterConstantBuffer> cbAtrous : register(b0);
 
 Texture2D<float>	gi_Value					: register(t0);
 Texture2D<float4>	gi_NormalDepth				: register(t1);
@@ -23,7 +23,7 @@ RWTexture2D<float>	go_FilteredValue			: register(u0);
 
 float DepthThreshold(float depth, float2 ddxy, float2 pixelOffset) {
 	float depthThreshold;
-	if (cb.PerspectiveCorrectDepthInterpolation) {
+	if (cbAtrous.PerspectiveCorrectDepthInterpolation) {
 		float2 newDdxy = RemapDdxy(depth, ddxy, pixelOffset);
 		depthThreshold = dot(1, abs(newDdxy));
 	}
@@ -45,9 +45,9 @@ void AddFilterContribution(
 		uint col,
 		uint2 kernelStep,
 		uint2 DTid) {
-	const float ValueSigma = cb.ValueSigma;
-	const float NormalSigma = cb.NormalSigma;
-	const float DepthSigma = cb.DepthSigma;
+	const float ValueSigma = cbAtrous.ValueSigma;
+	const float NormalSigma = cbAtrous.NormalSigma;
+	const float DepthSigma = cbAtrous.DepthSigma;
 
 	int2 pixelOffset;
 	float kernelWidth;
@@ -56,7 +56,7 @@ void AddFilterContribution(
 	pixelOffset = int2(row - FilterKernel::Radius, col - FilterKernel::Radius) * kernelStep;
 	int2 id = int2(DTid) + pixelOffset;
 
-	if (!IsWithinBounds(id, cb.TextureDim)) return;
+	if (!IsWithinBounds(id, cbAtrous.TextureDim)) return;
 
 	float4 nd = gi_NormalDepth[DTid];
 	float iDepth = nd.w;
@@ -85,7 +85,7 @@ void AddFilterContribution(
 			float2 pixelOffsetForDepth = pixelOffset;
 
 			// Account for sample offset in bilateral downsampled partial depth derivative buffer.
-			if (cb.UsingBilateralDownsamplingBuffers) {
+			if (cbAtrous.UsingBilateralDownsamplingBuffers) {
 				float2 offsetSign = sign(pixelOffset);
 				pixelOffsetForDepth = pixelOffset + offsetSign * float2(0.5, 0.5);
 			}
@@ -99,7 +99,7 @@ void AddFilterContribution(
 			w_d = exp(-delta / depthTolerance);
 
 			// Scale down contributions for samples beyond tolerance, but completely disable contribution for samples too far away.
-			w_d *= w_d >= cb.DepthWeightCutoff;
+			w_d *= w_d >= cbAtrous.DepthWeightCutoff;
 		}
 
 		// Filter kernel weight.
@@ -115,7 +115,7 @@ void AddFilterContribution(
 
 [numthreads(Rtao::Atrous::ThreadGroup::Width, Rtao::Atrous::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
-	if (!IsWithinBounds(DTid, cb.TextureDim)) return;
+	if (!IsWithinBounds(DTid, cbAtrous.TextureDim)) return;
 
 	// Initialize values to the current pixel / center filter kernel value.
 	float value = gi_Value[DTid];
@@ -146,10 +146,10 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		// This helps filter out lower frequency noise, a.k.a biling artifacts.
 		// Ref: [RTGCH19]
 		uint2 kernelStep = 0;
-		if (cb.UseAdaptiveKernelSize && isValidValue) {
+		if (cbAtrous.UseAdaptiveKernelSize && isValidValue) {
 			float avgRayHitDistance = gi_HitDistance[DTid];
 
-			float perPixelViewAngle = cb.FovY / cb.TextureDim.y;
+			float perPixelViewAngle = cbAtrous.FovY / cbAtrous.TextureDim.y;
 			float tan_a = tan(perPixelViewAngle);
 			float2 projectedSurfaceDim = ApproximateProjectedSurfaceDimensionsPerPixel(depth, ddxy, tan_a);
 
@@ -158,20 +158,20 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 			// This is because average ray hit distance grows large fast if the closeby occluders cover only part if the hemisphere.
 			// Having a smaller kernel for such cases helps preserve occlusion detail.
 			float t = min(avgRayHitDistance / 22.0, 1); // 22 was seleted emprically.
-			float k = cb.RayHitDistanceToKernelWidthScale * pow(t, cb.RayHitDistanceToKernelSizeScaleExponent);
+			float k = cbAtrous.RayHitDistanceToKernelWidthScale * pow(t, cbAtrous.RayHitDistanceToKernelSizeScaleExponent);
 			kernelStep = max(1, round(k * avgRayHitDistance / projectedSurfaceDim));
 
-			uint2 targetKernelStep = clamp(kernelStep, (cb.MinKernelWidth - 1) / 2, (cb.MaxKernelWidth - 1) / 2);
+			uint2 targetKernelStep = clamp(kernelStep, (cbAtrous.MinKernelWidth - 1) / 2, (cbAtrous.MaxKernelWidth - 1) / 2);
 
 			// TODO: additional options to explore
 			// - non-uniform X, Y kernel radius cause visible streaking. Use same ratio across both X, Y? That may overblur one dimension at sharp angles.
 			// - use larger kernel on lower tspp.
 			// - use varying number of cycles for better spatial coverage over time, depending on the target kernel step. More cycles on larget kernels.
-			uint2 adjustedKernelStep = lerp(1, targetKernelStep, cb.KernelRadiusLerfCoef);
+			uint2 adjustedKernelStep = lerp(1, targetKernelStep, cbAtrous.KernelRadiusLerfCoef);
 			kernelStep = adjustedKernelStep;
 		}
 
-		if (variance >= cb.MinVarianceToDenoise) {
+		if (variance >= cbAtrous.MinVarianceToDenoise) {
 			// Add contributions from the neighborhood.
 			[unroll]
 			for (UINT r = 0; r < FilterKernel::Width; ++r) {

@@ -160,16 +160,21 @@ bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 		for (auto ch : fileNameWithExtW)
 			fileName.push_back(static_cast<char>(ch));
 
-		std::ofstream fout;
-		fout.open(fileName, std::ios::beg | std::ios::binary | std::ios::trunc);
-		if (!fout.is_open()) {
-			std::wstring msg = L"Failed to open file for PDB: ";
-			msg.append(fileNameWithExtW);
-			ReturnFalse(msg);
-		}
+		auto nameIdx = mExportedPDBs.find(fileName);
+		if (nameIdx == mExportedPDBs.end()) {
+			mExportedPDBs.insert(fileName);
 
-		fout.write(reinterpret_cast<const char*>(pdbBlob->GetBufferPointer()), pdbBlob->GetBufferSize());
-		fout.close();
+			std::ofstream fout;
+			fout.open(fileName, std::ios::beg | std::ios::binary | std::ios::trunc);
+			if (!fout.is_open()) {
+				std::wstring msg = L"Failed to open file for PDB: ";
+				msg.append(fileNameWithExtW);
+				ReturnFalse(msg);
+			}
+
+			fout.write(reinterpret_cast<const char*>(pdbBlob->GetBufferPointer()), pdbBlob->GetBufferSize());
+			fout.close();
+		}
 	}
 #endif 
 

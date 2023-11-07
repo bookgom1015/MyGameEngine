@@ -319,6 +319,7 @@
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\DxrShadingHelpers.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli" />
