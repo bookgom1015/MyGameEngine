@@ -65,9 +65,6 @@ namespace ShadowMap {
 		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);
 
-	protected:
-		const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
 	private:
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;

@@ -336,6 +336,12 @@
     <ClInclude Include="..\..\include\GaussianFilter.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\ConstantsBufferDeclarations.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ShaderArguments.h">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -787,6 +793,9 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli">
       <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\include\Ssr.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
   </ItemGroup>
 </Project>

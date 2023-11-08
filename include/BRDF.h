@@ -13,8 +13,14 @@ class GpuResource;
 namespace DxrBackBuffer { class DxrBackBufferClass; }
 
 namespace BRDF {
-	namespace CalcReflectanceEquation {
-		namespace RootSignatureLayout {
+	namespace RootSignature {
+		enum Type {
+			E_CalcReflectanceEquation,
+			E_IntegrateSpecular,
+			Count
+		};
+
+		namespace CalcReflectanceEquation {
 			enum {
 				ECB_Pass = 0,
 				ESI_Albedo,
@@ -27,10 +33,8 @@ namespace BRDF {
 				Count
 			};
 		}
-	}
 
-	namespace IntegrateSpecular {
-		namespace RootSignatureLayout {
+		namespace IntegrateSpecular {
 			enum {
 				ECB_Pass = 0,
 				ESI_BackBuffer,
@@ -60,13 +64,6 @@ namespace BRDF {
 			E_BlinnPhong = 0,
 			E_CookTorrance,
 			Count
-		};
-	}
-
-	namespace RootSignature {
-		enum Type {
-			E_CalcReflectanceEquation,
-			E_IntegrateSpecular,
 		};
 	}
 

@@ -169,6 +169,7 @@
     <ClInclude Include="..\..\include\Camera.h" />
     <ClInclude Include="..\..\include\CameraComponent.h" />
     <ClInclude Include="..\..\include\Component.h" />
+    <ClInclude Include="..\..\include\ConstantsBufferDeclarations.h" />
     <ClInclude Include="..\..\include\DDS.h" />
     <ClInclude Include="..\..\include\GaussianFilter.h" />
     <ClInclude Include="..\..\include\IrradianceMap.h" />
@@ -213,6 +214,7 @@
     <ClInclude Include="..\..\include\RotatingMonkey.h" />
     <ClInclude Include="..\..\include\Rtao.h" />
     <ClInclude Include="..\..\include\Samplers.h" />
+    <ClInclude Include="..\..\include\ShaderArguments.h" />
     <ClInclude Include="..\..\include\ShaderManager.h" />
     <ClInclude Include="..\..\include\ShaderTable.h" />
     <ClInclude Include="..\..\include\ShadowMap.h" />
@@ -333,6 +335,7 @@
     <None Include="..\..\include\Rtao.inl" />
     <None Include="..\..\include\ShadowMap.inl" />
     <None Include="..\..\include\Ssao.inl" />
+    <None Include="..\..\include\Ssr.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
     <None Include="..\..\include\UploadBuffer.inl" />
     <None Include="..\..\include\VkLowRenderer.inl" />

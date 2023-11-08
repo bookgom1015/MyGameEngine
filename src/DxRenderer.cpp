@@ -84,6 +84,7 @@ namespace ShaderArgs {
 	}
 
 	namespace Ssao {
+		int SampleCount = 14;
 		int BlurCount = 3;
 	}
 
@@ -1388,6 +1389,8 @@ bool DxRenderer::UpdateSsaoPassCB(float delta) {
 	ssaoCB.OcclusionFadeEnd = 2.0f;
 	ssaoCB.SurfaceEpsilon = 0.05f;
 
+	ssaoCB.SampleCount = ShaderArgs::Ssao::SampleCount;
+
 	auto& currSsaoCB = mCurrFrameResource->SsaoCB;
 	currSsaoCB.CopyData(0, ssaoCB);
 
@@ -1820,7 +1823,7 @@ bool DxRenderer::DrawSsao() {
 	mSsao->Run(
 		cmdList,
 		ssaoCBAddress,
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv()
 	);
 
@@ -1828,7 +1831,7 @@ bool DxRenderer::DrawSsao() {
 	mBlurFilter->Run(
 		cmdList,
 		blurPassCBAddress,
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mSsao->AOCoefficientMapResource(0),
 		mSsao->AOCoefficientMapResource(1),
@@ -1863,7 +1866,7 @@ bool DxRenderer::DrawBackBuffer() {
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mShadowMap->Srv(),
@@ -1897,7 +1900,7 @@ bool DxRenderer::IntegrateSpecIrrad() {
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		aoCoeffDesc,
@@ -2034,7 +2037,7 @@ bool DxRenderer::BuildSsr() {
 			cmdList,
 			ssrCBAddress,
 			backBufferSrv,
-			mGBuffer->NormalDepthMapSrv(),
+			mGBuffer->NormalMapSrv(),
 			mGBuffer->DepthMapSrv(),
 			mGBuffer->RMSMapSrv()
 		);
@@ -2076,17 +2079,6 @@ bool DxRenderer::BuildSsr() {
 			bSsrMapCleanedUp = true;
 		};
 	}
-
-	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
-	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	
-
-	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	return true;
 }
@@ -2461,7 +2453,7 @@ bool DxRenderer::DrawImGui() {
 					if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::E_Normal])) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Normal],
-							mGBuffer->NormalDepthMapSrv(),
+							mGBuffer->NormalMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
 					if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::E_Depth])) {
@@ -2663,6 +2655,7 @@ bool DxRenderer::DrawImGui() {
 
 		if (ImGui::CollapsingHeader("Pre Pass")) {
 			if (ImGui::TreeNode("SSAO")) {
+				ImGui::SliderInt("Sample Count", &ShaderArgs::Ssao::SampleCount, 1, 32);
 				ImGui::SliderInt("Number of Blurs", &ShaderArgs::Ssao::BlurCount, 0, 8);
 
 				ImGui::TreePop();
@@ -2798,7 +2791,7 @@ bool DxRenderer::DrawDxrShadowMap() {
 	mBlurFilterCS->Run(
 		cmdList,
 		mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mDxrShadowMap->Resource(DxrShadowMap::Resources::EShadow0),
 		mDxrShadowMap->Resource(DxrShadowMap::Resources::EShadow1),
@@ -2834,7 +2827,7 @@ bool DxRenderer::DrawDxrBackBuffer() {
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
@@ -2950,18 +2943,18 @@ bool DxRenderer::DrawRtao() {
 			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
 			// Copy the current normal and depth values to the cached map.
-			{
-				const auto normal = mGBuffer->NormalDepthMapResource();
-				const auto prevFrameNormalDepth = mRtao->PrevFrameNormalDepth();
-
-				normal->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-				prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-
-				cmdList->CopyResource(prevFrameNormalDepth->Resource(), normal->Resource());
-
-				normal->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			}
+			//{
+			//	const auto normal = mGBuffer->NormalDepthMapResource();
+			//	const auto prevFrameNormalDepth = mRtao->PrevFrameNormalDepth();
+			//
+			//	normal->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+			//	prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+			//
+			//	cmdList->CopyResource(prevFrameNormalDepth->Resource(), normal->Resource());
+			//
+			//	normal->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			//	prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			//}
 		}
 		// Stage 2: Blending current frame value with the reprojected cachec value
 		{

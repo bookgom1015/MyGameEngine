@@ -33,11 +33,12 @@ struct VertexOut {
 };
 
 struct PixelOut {
-	float4 Color					: SV_TARGET0;
-	float4 NormalDepth				: SV_TARGET1;
-	float4 RoughnessMetalicSpecular	: SV_TARGET2;
-	float4 Velocity					: SV_TARGET3;
-	float4 ReprojNormalDepth		: SV_TARGET4;
+	GBuffer::AlbedoMapFormat			Color						: SV_TARGET0;
+	GBuffer::NormalMapFormat			Normal						: SV_TARGET1;
+	GBuffer::NormalDepthMapFormat		NormalDepth					: SV_TARGET2;
+	GBuffer::RMSMapFormat				RoughnessMetalicSpecular	: SV_TARGET3;
+	GBuffer::VelocityMapFormat			Velocity					: SV_TARGET4;
+	GBuffer::ReprojNormalDepthMapFormat	ReprojNormalDepth			: SV_TARGET5;
 };
 
 VertexOut VS(VertexIn vin) {
@@ -75,10 +76,11 @@ PixelOut PS(VertexOut pin) {
 
 	PixelOut pout = (PixelOut)0;
 	pout.Color = albedo;
-	pout.NormalDepth = float4(pin.NormalW, pin.NonJitPosH.z);
+	pout.Normal = float4(pin.NormalW, 0);
+	pout.NormalDepth = EncodeNormalDepth(pin.NormalW, pin.NonJitPosH.z);
 	pout.RoughnessMetalicSpecular = float4(cbMat.Roughness, cbMat.Metalic, cbMat.Specular, 0);
-	pout.Velocity = float4(velocity, 0, 1);
-	pout.ReprojNormalDepth = float4(pin.PrevNormalW, pin.PrevPosH.z);
+	pout.Velocity = velocity;
+	pout.ReprojNormalDepth = EncodeNormalDepth(pin.PrevNormalW, pin.PrevPosH.z);
 	return pout;
 }
 

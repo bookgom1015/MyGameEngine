@@ -1,6 +1,12 @@
 #ifndef __GAUSSIANBLUR_HLSL__
 #define __GAUSSIANBLUR_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
+#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
 cbuffer cbBlur : register(b0) {
@@ -17,9 +23,9 @@ cbuffer cbRootConstants : register(b1) {
 	bool gBilateral;
 };
 
-Texture2D gNormalMap	: register(t0);
-Texture2D gDepthMap		: register(t1);
-Texture2D gInputMap		: register(t2);
+Texture2D<GBuffer::NormalMapFormat>	gi_Normal	: register(t0);
+Texture2D<float>					gi_Depth	: register(t1);
+Texture2D<float4>					gi_Input	: register(t2);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -47,31 +53,31 @@ float NdcDepthToViewDepth(float z_ndc) {
 
 float4 PS(VertexOut pin) : SV_Target {
 	// unpack into float array.
-	float blurWeights[12] =	{
+	const float blurWeights[12] = {
 		gBlurWeights[0].x, gBlurWeights[0].y, gBlurWeights[0].z, gBlurWeights[0].w,
 		gBlurWeights[1].x, gBlurWeights[1].y, gBlurWeights[1].z, gBlurWeights[1].w,
 		gBlurWeights[2].x, gBlurWeights[2].y, gBlurWeights[2].z, gBlurWeights[2].w,
 	};
 
 	uint width, height;
-	gInputMap.GetDimensions(width, height);
+	gi_Input.GetDimensions(width, height);
 
-	float dx = 1.0f / width;
-	float dy = 1.0f / height;
+	const float dx = 1.0f / width;
+	const float dy = 1.0f / height;
 
 	float2 texOffset;
 	if (gHorizontal) texOffset = float2(dx, 0.0f);
 	else texOffset = float2(0.0f, dy);
 
 	// The center value always contributes to the sum.
-	float4 color = blurWeights[gBlurRadius] * gInputMap.SampleLevel(gsamLinearClamp, pin.TexC, 0.0);
+	float4 color = blurWeights[gBlurRadius] * gi_Input.Sample(gsamLinearClamp, pin.TexC);
 	float totalWeight = blurWeights[gBlurRadius];
 
 	float3 centerNormal;
 	float centerDepth;
-	if (gBilateral) {
-		centerNormal = gNormalMap.SampleLevel(gsamPointClamp, pin.TexC, 0.0f).xyz;
-		centerDepth = NdcDepthToViewDepth(gDepthMap.SampleLevel(gsamDepthMap, pin.TexC, 0.0f).r);
+	if (gBilateral) {		
+		centerNormal = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
+		centerDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, pin.TexC));
 	}
 
 	for (int i = -gBlurRadius; i <= gBlurRadius; ++i)	{
@@ -81,8 +87,8 @@ float4 PS(VertexOut pin) : SV_Target {
 		float2 tex = pin.TexC + i * texOffset;
 
 		if (gBilateral) {
-			float3 neighborNormal = gNormalMap.SampleLevel(gsamPointClamp, tex, 0.0f).xyz;
-			float neighborDepth = NdcDepthToViewDepth(gDepthMap.SampleLevel(gsamDepthMap, tex, 0.0f).r);
+			const float3 neighborNormal = normalize(gi_Normal.Sample(gsamLinearClamp, tex).xyz);
+			const float neighborDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, tex));
 
 			//
 			// If the center value and neighbor values differ too much (either in 
@@ -93,15 +99,15 @@ float4 PS(VertexOut pin) : SV_Target {
 				float weight = blurWeights[i + gBlurRadius];
 
 				// Add neighbor pixel to blur.
-				color += weight * gInputMap.SampleLevel(gsamLinearClamp, tex, 0.0);
+				color += weight * gi_Input.Sample(gsamLinearClamp, tex);
 
 				totalWeight += weight;
 			}
 		}
 		else {
-			float weight = blurWeights[i + gBlurRadius];
+			const float weight = blurWeights[i + gBlurRadius];
 
-			color += weight * gInputMap.SampleLevel(gsamLinearClamp, tex, 0.0);
+			color += weight * gi_Input.Sample(gsamLinearClamp, tex);
 
 			totalWeight += weight;
 		}

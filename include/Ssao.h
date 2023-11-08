@@ -4,14 +4,13 @@
 #include <array>
 
 #include "MathHelper.h"
-#include "FrameResource.h"
 #include "Samplers.h"
 #include "GpuResource.h"
 
 class ShaderManager;
 
 namespace Ssao {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			ECB_Pass = 0,
 			ESI_Normal,
@@ -22,9 +21,6 @@ namespace Ssao {
 	}
 
 	const UINT NumRenderTargets = 2;
-
-	const DXGI_FORMAT AOCoefficientMapFormat = DXGI_FORMAT_R16_UNORM;
-	const DXGI_FORMAT RandomVectorMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	const float AOCoefficientMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
