@@ -12,14 +12,14 @@
 
 ConstantBuffer<AtrousWaveletTransformFilterConstantBuffer> cbAtrous : register(b0);
 
-Texture2D<float>	gi_Value					: register(t0);
-Texture2D<float4>	gi_NormalDepth				: register(t1);
-Texture2D<float>	gi_Variance					: register(t2);
-Texture2D<float>	gi_HitDistance				: register(t3);
-Texture2D<float2>	gi_DepthPartialDerivative	: register(t4);
-Texture2D<uint>		gi_Tspp						: register(t5);
+Texture2D<Rtao::AOCoefficientMapFormat>				gi_Value					: register(t0);
+Texture2D<GBuffer::NormalDepthMapFormat>			gi_NormalDepth				: register(t1);
+Texture2D<Rtao::VarianceMapFormat>					gi_Variance					: register(t2);
+Texture2D<Rtao::RayHitDistanceFormat>				gi_HitDistance				: register(t3);
+Texture2D<Rtao::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t4);
+Texture2D<Rtao::TsppMapFormat>						gi_Tspp						: register(t5);
 
-RWTexture2D<float>	go_FilteredValue			: register(u0);
+RWTexture2D<Rtao::AOCoefficientMapFormat>			go_FilteredValue			: register(u0);
 
 float DepthThreshold(float depth, float2 ddxy, float2 pixelOffset) {
 	float depthThreshold;
@@ -58,13 +58,14 @@ void AddFilterContribution(
 
 	if (!IsWithinBounds(id, cbAtrous.TextureDim)) return;
 
-	float4 nd = gi_NormalDepth[DTid];
-	float iDepth = nd.w;
-	float3 iNormal = nd.xyz;
+	float iDepth;
+	float3 iNormal;
+	DecodeNormalDepth(gi_NormalDepth[DTid], iNormal, iDepth);
+
 	float iValue = gi_Value[DTid];
 
 	bool isValidValue = iValue != Rtao::InvalidAOCoefficientValue;
-	if (!isValidValue || iDepth == 1) return;
+	if (!isValidValue || iDepth == Rtao::RayHitDistanceOnMiss) return;
 
 	// Calculate a weight for the neighbor's contribution.
 	float w;
@@ -90,7 +91,7 @@ void AddFilterContribution(
 				pixelOffsetForDepth = pixelOffset + offsetSign * float2(0.5, 0.5);
 			}
 
-			float depthFloatPrecision = max(depth, iDepth);
+			float depthFloatPrecision = FloatPrecision(max(depth, iDepth), cbAtrous.DepthNumMantissaBits);
 			float depthThreshold = DepthThreshold(depth, ddxy, pixelOffsetForDepth);
 			float depthTolerance = DepthSigma * depthThreshold + depthFloatPrecision;
 			float delta = abs(depth - iDepth);
@@ -120,15 +121,15 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	// Initialize values to the current pixel / center filter kernel value.
 	float value = gi_Value[DTid];
 
-	float4 nd = gi_NormalDepth[DTid];
-	float3 normal = nd.xyz;
-	float depth = nd.w;
+	float3 normal;
+	float depth;
+	DecodeNormalDepth(gi_NormalDepth[DTid], normal, depth);
 
 	bool isValidValue = value != Rtao::InvalidAOCoefficientValue;
 	float filteredValue = value;
 	float variance = gi_Variance[DTid];
 
-	if (depth != 1) {
+	if (depth != Rtao::RayHitDistanceOnMiss) {
 		float2 ddxy = gi_DepthPartialDerivative[DTid];
 		float weightSum = 0;
 		float weightedValueSum = 0;

@@ -23,12 +23,12 @@ namespace GBuffer {
 
 	static const UINT NumRenderTargets = 6;
 
-	const float AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 1.0f };
-	const float NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 1.0f };
-	const float NormalDepthMapClearValues[4]		= { 1.0f, 0.0f, 0.0f, 0.0f };
+	const float AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float NormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
 	const float RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
 	const float VelocityMapClearValues[2]			= { 1000.0f, 1000.0f };
-	const float ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 1.0f };
+	const float ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class GBufferClass {
 	public:

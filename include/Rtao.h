@@ -281,17 +281,6 @@ namespace Rtao {
 
 	const float AmbientMapClearValues[1] = { 1.0f };
 
-	const DXGI_FORMAT AOCoefficientMapFormat							= DXGI_FORMAT_R16_FLOAT;
-	const DXGI_FORMAT NormalDepthMapFormat								= DXGI_FORMAT_R8G8B8A8_SNORM;
-	const DXGI_FORMAT DepthPartialDerivativeMapFormat					= DXGI_FORMAT_R16G16_FLOAT;
-	const DXGI_FORMAT TsppCoefficientSquaredMeanRayHitDistanceFormat	= DXGI_FORMAT_R16G16B16A16_UINT;
-	const DXGI_FORMAT DisocclusionBlurStrengthMapFormat					= DXGI_FORMAT_R8_UNORM;
-	const DXGI_FORMAT TsppMapFormat										= DXGI_FORMAT_R8_UINT;
-	const DXGI_FORMAT CoefficientSquaredMeanMapFormat					= DXGI_FORMAT_R16_FLOAT;
-	const DXGI_FORMAT RayHitDistanceFormat								= DXGI_FORMAT_R16_FLOAT;
-	const DXGI_FORMAT LocalMeanVarianceMapFormat						= DXGI_FORMAT_R16G16_FLOAT;
-	const DXGI_FORMAT VarianceMapFormat									= DXGI_FORMAT_R16_FLOAT;
-
 	class RtaoClass {
 	public:
 		RtaoClass();

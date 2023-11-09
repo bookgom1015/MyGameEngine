@@ -29,9 +29,9 @@ cbuffer cbRootConstants : register(b1) {
 };
 
 // Nonnumeric values cannot be added to a cbuffer.
-RaytracingAccelerationStructure	gBVH	: register(t0);
-Texture2D<float3>	gi_Normal			: register(t1);
-Texture2D<float>	gi_DepthMap			: register(t2);
+RaytracingAccelerationStructure				gBVH			: register(t0);
+Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t1);
+Texture2D<float>							gi_DepthMap		: register(t2);
 
 RWTexture2D<float> go_AOCoefficient		: register(u0);
 RWTexture2D<float> go_RayHitDistance	: register(u1);
@@ -52,7 +52,7 @@ uint InitRand(uint val0, uint val1, uint backoff = 16) {
 	return v0;
 }
 
-void CalculateHitPositionAndSurfaceNormal(float depth, uint2 launchIndex, out float3 hitPosition, out float3 surfaceNormal) {
+void CalculateHitPosition(float depth, uint2 launchIndex, out float3 hitPosition) {
 	float2 tex = (launchIndex + 0.5) / gTextureDim;
 	float4 posH = float4(tex.x * 2 - 1, (1 - tex.y) * 2 - 1, 0, 1);
 	float4 posV = mul(posH, cbRtao.InvProj);
@@ -62,7 +62,6 @@ void CalculateHitPositionAndSurfaceNormal(float depth, uint2 launchIndex, out fl
 	posV = (dv / posV.z) * posV;
 
 	hitPosition = mul(float4(posV.xyz, 1), cbRtao.InvView).xyz;
-	surfaceNormal = gi_Normal[launchIndex].xyz;
 }
 
 bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surfaceNormal) {
@@ -107,15 +106,16 @@ float CalculateAO(out float tHit, uint2 launchIndex, Ray aoRay, float3 surfaceNo
 void RtaoRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 
-	float depth = gi_DepthMap[launchIndex];
+	float3 surfaceNormal;
+	float depth;
+	DecodeNormalDepth(gi_NormalDepth[launchIndex], surfaceNormal, depth);
 
 	float tHit = Rtao::RayHitDistanceOnMiss;
 	float ambientCoef = Rtao::InvalidAOCoefficientValue;
 
-	if (depth < 1) {
+	if (depth != Rtao::RayHitDistanceOnMiss) {
 		float3 hitPosition;
-		float3 surfaceNormal;
-		CalculateHitPositionAndSurfaceNormal(depth, launchIndex, hitPosition, surfaceNormal);
+		CalculateHitPosition(depth, launchIndex, hitPosition);
 
 		uint seed = InitRand(launchIndex.x + launchIndex.y * gTextureDim.x, cbRtao.FrameCount);
 

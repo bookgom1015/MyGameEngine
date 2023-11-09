@@ -147,7 +147,7 @@ namespace ShaderArgs {
 				UINT MaxTspp = 33;
 
 				namespace ClampCachedValues {
-					BOOL UseClamping = true;
+					BOOL UseClamping = false;
 					float StdDevGamma = 0.6f;
 					float MinStdDevTolerance = 0.05f;
 					float DepthSigma = 1.0f;
@@ -1661,7 +1661,8 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 		atrousFilterCB.MinKernelWidth = ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::FilterMinKernelWidth;
 		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100) * mRtao->Width());
 
-		atrousFilterCB.RayHitDistanceToKernelWidthScale = 22 / ShaderArgs::Rtao::MaxRayHitTime * ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
+		atrousFilterCB.RayHitDistanceToKernelWidthScale = 22 / ShaderArgs::Rtao::MaxRayHitTime *
+			ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
 		atrousFilterCB.RayHitDistanceToKernelSizeScaleExponent = D3D12Util::Lerp(
 			1,
 			ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleExponent,
@@ -1674,6 +1675,8 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 		atrousFilterCB.DepthSigma = ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::DepthSigma;
 		atrousFilterCB.NormalSigma = ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::NormalSigma;
 		atrousFilterCB.FovY = mCamera->FovY();
+
+		atrousFilterCB.DepthNumMantissaBits = D3D12Util::NumMantissaBitsInFloatFormat(16);
 
 		auto& currAtrousFilterCB = mCurrFrameResource->AtrousFilterCB;
 		currAtrousFilterCB.CopyData(0, atrousFilterCB);
@@ -2943,18 +2946,18 @@ bool DxRenderer::DrawRtao() {
 			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
 			// Copy the current normal and depth values to the cached map.
-			//{
-			//	const auto normal = mGBuffer->NormalDepthMapResource();
-			//	const auto prevFrameNormalDepth = mRtao->PrevFrameNormalDepth();
-			//
-			//	normal->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-			//	prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-			//
-			//	cmdList->CopyResource(prevFrameNormalDepth->Resource(), normal->Resource());
-			//
-			//	normal->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			//	prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			//}
+			{
+				const auto normal = mGBuffer->NormalDepthMapResource();
+				const auto prevFrameNormalDepth = mRtao->PrevFrameNormalDepth();
+			
+				normal->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+				prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+			
+				cmdList->CopyResource(prevFrameNormalDepth->Resource(), normal->Resource());
+			
+				normal->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			}
 		}
 		// Stage 2: Blending current frame value with the reprojected cachec value
 		{
@@ -3070,12 +3073,12 @@ bool DxRenderer::DrawRtao() {
 			UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
 			UINT inputAOCoefficientIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 			UINT outputAOCoefficientIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
-
+			
 			const auto outputAOCoefficient = temporalAOCoefficients[outputAOCoefficientIndex].get();
-
+			
 			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
-
+			
 			mRtao->ApplyAtrousWaveletTransformFilter(
 				cmdList,
 				mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
@@ -3088,7 +3091,7 @@ bool DxRenderer::DrawRtao() {
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
 				temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav]
 			);
-
+			
 			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
 		}

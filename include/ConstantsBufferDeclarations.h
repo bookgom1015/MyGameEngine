@@ -178,6 +178,9 @@ struct AtrousWaveletTransformFilterConstantBuffer {
 	float DepthSigma;
 	float NormalSigma;
 	float FovY;
+
+	UINT DepthNumMantissaBits;
+	float ConstantPads[3];
 };
 
 struct DebugMapSampleDesc {

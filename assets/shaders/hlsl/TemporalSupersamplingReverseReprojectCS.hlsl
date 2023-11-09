@@ -22,18 +22,18 @@ cbuffer cbRootConstants : register (b1) {
 	float2	gInvTextureDim;
 };
 
-Texture2D<float4>	gi_CurrentFrameNormalDepth	: register(t0);
-Texture2D<float2>	gi_DepthPartialDerivative	: register(t1);
-Texture2D<float4>	gi_ReprojectedNormalDepth	: register(t2);
-Texture2D<float4>	gi_CachedNormalDepth		: register(t3);
-Texture2D<float2>	gi_Velocity					: register(t4);
-Texture2D<float>	gi_CachedValue				: register(t5);
-Texture2D<uint>		gi_CachedTspp				: register(t6);
-Texture2D<float>	gi_CachedValueSquaredMean	: register(t7);
-Texture2D<float>	gi_CachedRayHitDistance		: register(t8);
+Texture2D<GBuffer::NormalDepthMapFormat>			gi_CurrentFrameNormalDepth	: register(t0);
+Texture2D<Rtao::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t1);
+Texture2D<GBuffer::ReprojNormalDepthMapFormat>		gi_ReprojectedNormalDepth	: register(t2);
+Texture2D<Rtao::NormalDepthMapFormat>				gi_CachedNormalDepth		: register(t3);
+Texture2D<GBuffer::VelocityMapFormat>				gi_Velocity					: register(t4);
+Texture2D<Rtao::AOCoefficientMapFormat>				gi_CachedValue				: register(t5);
+Texture2D<Rtao::TsppMapFormat>						gi_CachedTspp				: register(t6);
+Texture2D<Rtao::CoefficientSquaredMeanMapFormat>	gi_CachedValueSquaredMean	: register(t7);
+Texture2D<Rtao::RayHitDistanceFormat>				gi_CachedRayHitDistance		: register(t8);
 
-RWTexture2D<uint>	go_CachedTspp				: register(u0);
-RWTexture2D<uint4>	go_ReprojectedCachedValues	: register(u1);
+RWTexture2D<Rtao::TsppMapFormat>									go_CachedTspp				: register(u0);
+RWTexture2D<Rtao::TsppCoefficientSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u1);
 
 float4 BilateralResampleWeights(
 		float	targetDepth, 
@@ -83,15 +83,11 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	float3 reprojNormal;
 	float reprojDepth;
-	{
-		float4 nd = gi_ReprojectedNormalDepth[DTid];
-		reprojNormal = nd.xyz;
-		reprojDepth = nd.w;
-	}
+	DecodeNormalDepth(gi_ReprojectedNormalDepth[DTid], reprojNormal, reprojDepth);
 
 	float2 velocity = gi_Velocity.SampleLevel(gsamLinearClamp, tex, 0);
 
-	if (reprojDepth == 1 || velocity.x > 100) {
+	if (reprojDepth == Rtao::RayHitDistanceOnMiss || velocity.x > 100) {
 		go_CachedTspp[DTid] = 0;
 		return;
 	}
@@ -117,9 +113,10 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	float3 cacheNormals[4];
 	float4 cacheDepths = 0;
 	for (int i = 0; i < 4; ++i) {
-		float4 nd = gi_CachedNormalDepth.SampleLevel(gsamPointClamp, adjustedCacheTex + srcIndexOffsets[i] * gInvTextureDim, 0);
-		cacheNormals[i] = nd.xyz;
-		cacheDepths[i] = nd.w;
+		uint4 packed = gi_CachedNormalDepth.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
+		[unroll]
+		for (int i = 0; i < 4; ++i)
+			DecodeNormalDepth(packed[i], cacheNormals[i], cacheDepths[i]);
 	}
 
 	float2 ddxy = gi_DepthPartialDerivative.SampleLevel(gsamPointClamp, tex, 0);
