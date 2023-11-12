@@ -17,4 +17,8 @@ constexpr UINT64 DxLowRenderer::GetCurrentFence() const {
 	return mCurrentFence;
 }
 
+constexpr BOOL DxLowRenderer::AllowTearing() const {
+	return bAllowTearing;
+}
+
 #endif // __DXLOWRENDERER_INL__

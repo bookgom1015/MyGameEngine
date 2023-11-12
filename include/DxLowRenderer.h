@@ -13,23 +13,26 @@ public:
 	virtual ~DxLowRenderer();
 
 protected:
+	__forceinline constexpr UINT GetRtvDescriptorSize() const;
+	__forceinline constexpr UINT GetDsvDescriptorSize() const;
+	__forceinline constexpr UINT GetCbvSrvUavDescriptorSize() const;
+
+	__forceinline constexpr UINT64 GetCurrentFence() const;
+
+	__forceinline constexpr BOOL AllowTearing() const;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
+
+	HRESULT GetDeviceRemovedReason() const;
+
+protected:
 	bool LowInitialize(HWND hwnd, UINT width, UINT height);
 	void LowCleanUp();
 	
 	bool LowOnResize(UINT width, UINT height);
 
 	virtual bool CreateRtvAndDsvDescriptorHeaps();
-
-	__forceinline constexpr UINT GetRtvDescriptorSize() const;
-	__forceinline constexpr UINT GetDsvDescriptorSize() const;
-	__forceinline constexpr UINT GetCbvSrvUavDescriptorSize() const;
-
-	__forceinline constexpr UINT64 GetCurrentFence() const;
 	UINT64 IncreaseFence();
-	
-	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
-
-	HRESULT GetDeviceRemovedReason() const;
 
 	bool FlushCommandQueue();
 
@@ -81,6 +84,8 @@ protected:
 private:
 	bool bIsCleanedUp;
 
+	BOOL bAllowTearing;
+
 	Microsoft::WRL::ComPtr<ID3D12Debug> mDebugController;
 	DWORD mCallbakCookie;
 
@@ -92,8 +97,6 @@ private:
 	UINT mCbvSrvUavDescriptorSize;
 
 	UINT64 mCurrentFence;
-
-	UINT mRefreshRate;
 };
 
 #include "DxLowRenderer.inl"

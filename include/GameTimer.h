@@ -3,12 +3,12 @@
 class GameTimer {
 public:
 	enum LimitFrameRate {
-		ELimitFrameRateNone,
-		ELimitFrameRate30f,
-		ELimitFrameRate60f,
-		ELimitFrameRate120f,
-		ELimitFrameRate144f,
-		ELimitFrameRate244f
+		E_LimitFrameRateNone,
+		E_LimitFrameRate30f,
+		E_LimitFrameRate60f,
+		E_LimitFrameRate120f,
+		E_LimitFrameRate144f,
+		E_LimitFrameRate244f
 	};
 
 public:

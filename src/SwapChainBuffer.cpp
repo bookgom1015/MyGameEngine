@@ -23,7 +23,7 @@ bool SwapChainBufferClass::Initialize(ID3D12Device* device, ID3D12DescriptorHeap
 	return true;
 }
 
-bool SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height) {
+bool SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height, BOOL tearing) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	// Resize the previous resources we will be creating.
@@ -36,8 +36,9 @@ bool SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT widt
 		width,
 		height,
 		BackBufferFormat,
-		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH)
-	);
+		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | 
+		(tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0)
+	));
 
 	for (UINT i = 0; i < mSwapChainBufferCount; ++i) {
 		auto buffer = mSwapChainBuffer[i].get();

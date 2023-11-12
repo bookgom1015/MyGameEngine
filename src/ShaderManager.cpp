@@ -22,7 +22,7 @@ bool ShaderManager::Initialize() {
 }
 
 void ShaderManager::CleanUp() {
-	//mDxcDllHelper.Cleanup();
+	mDxcDllHelper.Cleanup();
 	bIsCleanedUp = true;
 }
 
@@ -63,54 +63,55 @@ bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 		msg.append(shaderInfo.FileName);
 		ReturnFalse(msg);
 	}
-
-	size_t fileSize = static_cast<size_t>(fin.tellg());
 	
+	size_t fileSize = static_cast<size_t>(fin.tellg());
 	std::vector<char> data(fileSize);
 
 	fin.seekg(0);
 	fin.read(data.data(), fileSize);
 	fin.close();
 
-	IDxcBlobEncoding* shaderText = nullptr;
-	mUtils->CreateBlob(data.data(), static_cast<UINT32>(fileSize), 0, &shaderText);
-
+	ComPtr<IDxcBlobEncoding> shaderText;
+	CheckHRESULT(mUtils->CreateBlob(data.data(), static_cast<UINT32>(fileSize), 0, &shaderText));
+	
 	ComPtr<IDxcIncludeHandler> includeHandler;
-	mUtils->CreateDefaultIncludeHandler(&includeHandler);
+	CheckHRESULT(mUtils->CreateDefaultIncludeHandler(&includeHandler));
 		
 	DxcBuffer sourceBuffer;
 	sourceBuffer.Ptr = shaderText->GetBufferPointer();
 	sourceBuffer.Size = shaderText->GetBufferSize();
 	sourceBuffer.Encoding = 0;
-
+	
 	std::vector<LPCWSTR> arguments;
 
-	// Strip reflection data and pdbs
+#ifdef _DEBUG
 	arguments.push_back(L"-Qembed_debug");
-	//arguments.push_back(L"-Qstrip_debug");
-	//arguments.push_back(L"-Qstrip_reflect");
-
 	arguments.push_back(DXC_ARG_WARNINGS_ARE_ERRORS); // -WX
 	arguments.push_back(DXC_ARG_DEBUG); // -Zi
+#else
+	// Strip reflection data and pdbs
+	//arguments.push_back(L"-Qstrip_debug");
+	//arguments.push_back(L"-Qstrip_reflect");
+#endif
 
 	ComPtr<IDxcCompilerArgs> compilerArgs;
-	mUtils->BuildArguments(
+	CheckHRESULT(mUtils->BuildArguments(
 		shaderInfo.FileName,
-		shaderInfo.EntryPoint, 
-		shaderInfo.TargetProfile, 
-		arguments.data(), 
+		shaderInfo.EntryPoint,
+		shaderInfo.TargetProfile,
+		arguments.data(),
 		static_cast<UINT32>(arguments.size()),
-		shaderInfo.Defines, 
-		shaderInfo.DefineCount, 
-		&compilerArgs);
+		shaderInfo.Defines,
+		shaderInfo.DefineCount,
+		&compilerArgs));
 
 	IDxcResult* result;
-	mCompiler->Compile(
-		&sourceBuffer, 
-		compilerArgs->GetArguments(), 
-		static_cast<UINT32>(compilerArgs->GetCount()), 
-		includeHandler.Get(), 
-		IID_PPV_ARGS(&result));
+	CheckHRESULT(mCompiler->Compile(
+		&sourceBuffer,
+		compilerArgs->GetArguments(),
+		static_cast<UINT32>(compilerArgs->GetCount()),
+		includeHandler.Get(),
+		IID_PPV_ARGS(&result)));
 	
 	HRESULT hr;
 	CheckHRESULT(result->GetStatus(&hr));

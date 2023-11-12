@@ -114,14 +114,13 @@ bool GameWorld::Initialize() {
 	Logger::LogHelper::StaticInit();
 
 	CheckReturn(InitMainWindow());
-
 	CheckReturn(mInputManager->Initialize(mhMainWnd));
 	CheckReturn(mRenderer->Initialize(mhMainWnd, mGlfwWnd, InitClientWidth, InitClientHeight));
 
 	mInputManager->SetMouseRelative(true);
 	mInputManager->SetCursorVisibility(false);
 
-	mTimer->SetLimitFrameRate(GameTimer::ELimitFrameRateNone);
+	mTimer->SetLimitFrameRate(GameTimer::E_LimitFrameRate60f);
 
 	return true;
 }

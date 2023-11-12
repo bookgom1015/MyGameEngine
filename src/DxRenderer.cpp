@@ -307,12 +307,11 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
-
+	
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 	CheckReturn(FlushCommandQueue());
-
 	CheckReturn(CompileShaders());
 	CheckReturn(BuildGeometries());
 
@@ -418,7 +417,7 @@ bool DxRenderer::Draw() {
 	CheckReturn(DrawDebuggingInfo());
 	if (bShowImGui) CheckReturn(DrawImGui());
 
-	CheckHRESULT(mSwapChain->Present(0, 0));
+	CheckHRESULT(mSwapChain->Present(0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0));
 	mSwapChainBuffer->NextBackBuffer();
 
 	mCurrFrameResource->Fence = static_cast<UINT>(IncreaseFence());
@@ -2663,6 +2662,14 @@ bool DxRenderer::DrawImGui() {
 
 				ImGui::TreePop();
 			}
+			if (ImGui::TreeNode("RTAO")) {
+				ImGui::Checkbox("Use Smoothing Variance", &ShaderArgs::Rtao::Denoiser::UseSmoothingVariance);
+				ImGui::Checkbox("Disocclusion Blur", &ShaderArgs::Rtao::Denoiser::DisocclusionBlur);
+				ImGui::Checkbox("Clamp Cached Values",
+					reinterpret_cast<bool*>(&ShaderArgs::Rtao::Denoiser::TemporalSupersampling::ClampCachedValues::UseClamping));
+
+				ImGui::TreePop();
+			}
 		}
 		if (ImGui::CollapsingHeader("Post Pass")) {
 			if (ImGui::TreeNode("TAA")) {
@@ -2727,14 +2734,7 @@ bool DxRenderer::DrawImGui() {
 
 				ImGui::TreePop();
 			}
-			if (ImGui::TreeNode("RTAO")) {
-				ImGui::Checkbox("Use Smoothing Variance", &ShaderArgs::Rtao::Denoiser::UseSmoothingVariance);
-				ImGui::Checkbox("Disocclusion Blur", &ShaderArgs::Rtao::Denoiser::DisocclusionBlur);
-				ImGui::Checkbox("Clamp Cached Values", 
-					reinterpret_cast<bool*>(&ShaderArgs::Rtao::Denoiser::TemporalSupersampling::ClampCachedValues::UseClamping));
-
-				ImGui::TreePop();
-			}
+			
 		}
 
 		ImGui::End();

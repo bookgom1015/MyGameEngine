@@ -11,7 +11,7 @@ namespace {
 }
 
 GameTimer::GameTimer()
-	: mLimitFrameRate(LimitFrameRate::ELimitFrameRateNone),
+	: mLimitFrameRate(LimitFrameRate::E_LimitFrameRateNone),
 	mSecondsPerCount(0.0),
 	mDeltaTime(-1.0),
 	mBaseTime(0),
@@ -103,32 +103,36 @@ void GameTimer::Tick() {
 	QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currTime));
 	mCurrTime = currTime;
 
-	// Time difference between this frame and the previous.
-	mDeltaTime = (mCurrTime - mPrevTime) * mSecondsPerCount;
+	double delta = (mCurrTime - mPrevTime)* mSecondsPerCount;
 
-	// Prepare for next frame.
-	mPrevTime = mCurrTime;
+	if (delta >= GetLimitFrameRate()) {
+		// Time difference between this frame and the previous.
+		mDeltaTime = delta;
+
+		// Prepare for next frame.
+		mPrevTime = mCurrTime;
+	}	
 
 	// Force nonnegative.  The DXSDK's CDXUTTimer mentions that if the 
 	// processor goes into a power save mode or we get shuffled to another
 	// processor, then mDeltaTime can be negative.
-	if (mDeltaTime < 0.0)
+	if (delta < 0.0)
 		mDeltaTime = 0.0;
 }
 
 float GameTimer::GetLimitFrameRate() const {
 	switch (mLimitFrameRate) {
-	case ELimitFrameRateNone:
+	case E_LimitFrameRateNone:
 		return 0.0f;
-	case ELimitFrameRate30f:
+	case E_LimitFrameRate30f:
 		return FrameTime30f;
-	case ELimitFrameRate60f:
+	case E_LimitFrameRate60f:
 		return FrameTime60f;
-	case ELimitFrameRate120f:
+	case E_LimitFrameRate120f:
 		return FrameTime120f;
-	case ELimitFrameRate144f:
+	case E_LimitFrameRate144f:
 		return FrameTime144f;
-	case ELimitFrameRate244f:
+	case E_LimitFrameRate244f:
 		return FrameTime244f;
 	default:
 		return 0.0f;

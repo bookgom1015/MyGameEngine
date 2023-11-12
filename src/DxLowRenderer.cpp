@@ -1,6 +1,8 @@
 #include "DxLowRenderer.h"
 #include "Logger.h"
 
+using namespace Microsoft::WRL;
+
 namespace {
 	void D3D12MessageCallback(
 			D3D12_MESSAGE_CATEGORY category,
@@ -53,8 +55,6 @@ DxLowRenderer::DxLowRenderer() {
 
 	mCurrentFence = 0;
 
-	mRefreshRate = 60;
-
 	mSwapChainBuffer = std::make_unique<SwapChainBuffer::SwapChainBufferClass>();
 	mDepthStencilBuffer = std::make_unique<DepthStencilBuffer::DepthStencilBufferClass>();
 }
@@ -100,7 +100,7 @@ bool DxLowRenderer::LowOnResize(UINT width, UINT height) {
 
 	CheckHRESULT(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	CheckReturn(mSwapChainBuffer->LowOnResize(mSwapChain.Get(), width, height));
+	CheckReturn(mSwapChainBuffer->LowOnResize(mSwapChain.Get(), width, height, bAllowTearing));
 	CheckReturn(mDepthStencilBuffer->LowOnResize(width, height));
 
 	// Execute the resize commands.
@@ -188,6 +188,13 @@ bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 #endif
 	
 	CheckHRESULT(CreateDXGIFactory2(mdxgiFactoryFlags, IID_PPV_ARGS(&mdxgiFactory)));
+
+	ComPtr<IDXGIFactory5> factory5;
+	CheckHRESULT(mdxgiFactory.As(&factory5));
+
+	auto supported = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &bAllowTearing, sizeof(bAllowTearing));
+	if (SUCCEEDED(supported)) bAllowTearing = TRUE;
+	else bAllowTearing = FALSE;
 
 	Adapters adapters;
 	SortAdapters(adapters);
@@ -309,8 +316,8 @@ bool DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
 	DXGI_SWAP_CHAIN_DESC sd;
 	sd.BufferDesc.Width = width;
 	sd.BufferDesc.Height = height;
-	sd.BufferDesc.RefreshRate.Numerator = mRefreshRate;
-	sd.BufferDesc.RefreshRate.Denominator = 1;
+	sd.BufferDesc.RefreshRate.Numerator = 0;
+	sd.BufferDesc.RefreshRate.Denominator = 0;
 	sd.BufferDesc.Format = SwapChainBuffer::BackBufferFormat;
 	sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
@@ -321,10 +328,10 @@ bool DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
 	sd.OutputWindow = mhMainWnd;
 	sd.Windowed = true;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 	// Note: Swap chain uses queue to perfrom flush.
-	CheckHRESULT(mdxgiFactory->CreateSwapChain(mCommandQueue.Get(), &sd, mSwapChain.GetAddressOf()));
+	CheckHRESULT(mdxgiFactory->CreateSwapChain(mCommandQueue.Get(), &sd, &mSwapChain));
 
 	return true;
 }

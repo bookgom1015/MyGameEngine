@@ -24,7 +24,7 @@ namespace SwapChainBuffer {
 
 	public:
 		bool Initialize(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, UINT count, UINT descSize);
-		bool LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height);
+		bool LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height, BOOL tearing = FALSE);
 		bool OnResize();
 
 		void NextBackBuffer();
