@@ -17,10 +17,10 @@ cbuffer cbRootConstants : register(b0) {
 	uint	gStep;
 };
 
-Texture2D<float> gi_Depth			: register(t0);
-Texture2D<float> gi_BlurStrength	: register(t1);
+Texture2D<float>									gi_Depth		: register(t0);
+Texture2D<Rtao::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
 
-RWTexture2D<float> gio_Value		: register(u0);
+RWTexture2D<Rtao::AOCoefficientMapFormat>			gio_Value		: register(u0);
 
 // Group shared memory cache for the row aggregated results.
 static const uint NumValuesToLoadPerRowOrColumn =
@@ -30,52 +30,48 @@ groupshared uint PackedValueDepthCache[NumValuesToLoadPerRowOrColumn][8]; // 16b
 groupshared float FilteredResultCache[NumValuesToLoadPerRowOrColumn][8];	// 32bit float filtered value.
 
 // Find a dispatchThreadID with steps in between the group threads and groups interleaved to cover all pixels.
-uint2 GetPixelIndex(uint2 groupID, uint2 groupThreadID) {
+uint2 GetPixelIndex(uint2 Gid, uint2 GTid) {
 	const uint2 GroupDim = uint2(8, 8);
-	uint2 groupBase = (groupID / gStep) * GroupDim * gStep + groupID % gStep;
-	uint2 groupThreadOffset = groupThreadID * gStep;
-	uint2 sDispatchThreadID = groupBase + groupThreadOffset;
-	return sDispatchThreadID;
-}
-
-bool IsInRange(float val, float min, float max) {
-	return (val >= min && val <= max);
+	const uint2 GroupBase = (Gid / gStep) * GroupDim * gStep + Gid % gStep;
+	const uint2 GroupThreadOffset = GTid * gStep;
+	const uint2 sDTid = GroupBase + GroupThreadOffset;
+	return sDTid;
 }
 
 // Load up to 16x16 pixels and filter them horizontally.
 // The output is cached in Shared Memory and constants NumRows x 8 results.
-void FilterHorizontally(uint2 groupID, uint groupIndex) {
+void FilterHorizontally(uint2 Gid, uint GI) {
 	const uint2 GroupDim = uint2(8, 8);
 
 	// Processes the thread group as row-major 4x16, where each sub group of 16 threads processes one row.
 	// Each thread loads up to 4 values, with the sub groups loading rows interleaved.
 	// Loads up to 4x16x4 == 256 input values.
-	const uint2 GroupThreadID4x16_row0 = uint2(groupIndex % 16, groupIndex / 16);
-	const int2 GroupKernelBasePixel = GetPixelIndex(groupID, 0) - int(FilterKernel::Radius * gStep);
+	const uint2 GTid4x16_row0 = uint2(GI % 16, GI / 16);
+	const int2 GroupKernelBasePixel = GetPixelIndex(Gid, 0) - int(FilterKernel::Radius * gStep);
 	const uint NumRowsToLoadPerThread = 4;
 	const uint RowBaseWaveLaneIndex = (WaveGetLaneIndex() / 16) * 16;
 
 	[unroll]
 	for (uint i = 0; i < NumRowsToLoadPerThread; ++i) {
-		uint2 groupThreadID4x16 = GroupThreadID4x16_row0 + uint2(0, i * 4);
-		if (groupThreadID4x16.y >= NumValuesToLoadPerRowOrColumn) break;
+		uint2 GTid4x16 = GTid4x16_row0 + uint2(0, i * 4);
+		if (GTid4x16.y >= NumValuesToLoadPerRowOrColumn) break;
 
 		// Load all the contributing columns for each row.
-		int2 pixel = GroupKernelBasePixel + groupThreadID4x16 * gStep;
+		int2 pixel = GroupKernelBasePixel + GTid4x16 * gStep;
 		float value = Rtao::InvalidAOCoefficientValue;
 		float depth = 0;
 
 		// The lane is out of bounds of the GroupDim + kernel, but could be within bounds of the input texture,
 		//  so don't read it from the texture.
 		// However, we need to keep it as an active lane for a below split sum.
-		if (groupThreadID4x16.x < NumValuesToLoadPerRowOrColumn && IsWithinBounds(pixel, gTextureDim)) {
+		if (GTid4x16.x < NumValuesToLoadPerRowOrColumn && IsWithinBounds(pixel, gTextureDim)) {
 			value = gio_Value[pixel];
 			depth = gi_Depth[pixel];
 		}
 
 		// Cache the kernel center values.
-		if (IsInRange(groupThreadID4x16.x, FilterKernel::Radius, FilterKernel::Radius + GroupDim.x - 1)) {
-			PackedValueDepthCache[groupThreadID4x16.y][groupThreadID4x16.x - FilterKernel::Radius] = Float2ToHalf(float2(value, depth));
+		if (IsInRange(GTid4x16.x, FilterKernel::Radius, FilterKernel::Radius + GroupDim.x - 1)) {
+			PackedValueDepthCache[GTid4x16.y][GTid4x16.x - FilterKernel::Radius] = Float2ToHalf(float2(value, depth));
 		}
 
 		// Filter the values for the first GroupDim columns.
@@ -91,8 +87,8 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 
 			// Get the lane index that has the first value for a kernel in this lane.
 			uint RowKernelStartLaneIndex =
-				(RowBaseWaveLaneIndex + groupThreadID4x16.x)
-				- (groupThreadID4x16.x < GroupDim.x ? 0 : GroupDim.x);
+				(RowBaseWaveLaneIndex + GTid4x16.x)
+				- (GTid4x16.x < GroupDim.x ? 0 : GroupDim.x);
 
 			// Get values for the kernel center.
 			uint kcLaneIndex = RowKernelStartLaneIndex + FilterKernel::Radius;
@@ -101,16 +97,16 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 
 			// Initialize the first 8 lanes to the center cell contribution of the kernel.
 			// This covers the remainder of 1 in FilterKernel::Width / 2 used in the loop below.
-			if (groupThreadID4x16.x < GroupDim.x && kcValue != Rtao::InvalidAOCoefficientValue && kcDepth != 1) {
+			if (GTid4x16.x < GroupDim.x && kcValue != Rtao::InvalidAOCoefficientValue && kcDepth != Rtao::RayHitDistanceOnMiss) {
 				float w_h = FilterKernel::Kernel1D[FilterKernel::Radius];
 				gaussianWeightedValueSum = w_h * kcValue;
 				gaussianWeightedSum = w_h;
-				weightedValueSum = gaussianWeightedSum;
+				weightedValueSum = gaussianWeightedValueSum;
 				weightSum = w_h;
 			}
 
 			// Second 8 lanes start just past the kernel center.
-			uint KernelCellIndexOffset = groupThreadID4x16.x < GroupDim.x ? 
+			uint KernelCellIndexOffset = GTid4x16.x < GroupDim.x ?
 				0 : (FilterKernel::Radius + 1); // Skip over the already accumulated center cell of the kernel.
 
 			// For all columns in the kernel.
@@ -121,7 +117,7 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 				float cValue = WaveReadLaneAt(value, laneToReadFrom);
 				float cDepth = WaveReadLaneAt(depth, laneToReadFrom);
 
-				if (cValue != Rtao::InvalidAOCoefficientValue && kcDepth != 1 && cDepth != 1) {
+				if (cValue != Rtao::InvalidAOCoefficientValue && kcDepth != Rtao::RayHitDistanceOnMiss && cDepth != Rtao::RayHitDistanceOnMiss) {
 					float w_h = FilterKernel::Kernel1D[kernelCellIndex];
 
 					// Simple depth test with tolerance growing as the kernel radius increases.
@@ -139,31 +135,31 @@ void FilterHorizontally(uint2 groupID, uint groupIndex) {
 			}
 
 			// Combine the sub-results.
-			uint laneToReadFrom = min(WaveGetLaneCount() - 1, RowBaseWaveLaneIndex + groupThreadID4x16.x + GroupDim.x);
+			uint laneToReadFrom = min(WaveGetLaneCount() - 1, RowBaseWaveLaneIndex + GTid4x16.x + GroupDim.x);
 			weightedValueSum += WaveReadLaneAt(weightedValueSum, laneToReadFrom);
 			weightSum += WaveReadLaneAt(weightSum, laneToReadFrom);
 			gaussianWeightedValueSum += WaveReadLaneAt(gaussianWeightedValueSum, laneToReadFrom);
 			gaussianWeightedSum += WaveReadLaneAt(gaussianWeightedSum, laneToReadFrom);
 
 			// Store only the valid results, i.e. first GroupDim columns.
-			if (groupThreadID4x16.x < GroupDim.x) {
+			if (GTid4x16.x < GroupDim.x) {
 				float gaussianFilteredValue = gaussianWeightedSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightedSum : Rtao::InvalidAOCoefficientValue;
 				float filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
 
-				FilteredResultCache[groupThreadID4x16.y][groupThreadID4x16.x] = filteredValue;
+				FilteredResultCache[GTid4x16.y][GTid4x16.x] = filteredValue;
 			}
 		}
 	}
 }
 
-void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID, float blurStrength) {
+void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 	// Kernel center values.
-	float2 kcValueDepth = HalfToFloat2(PackedValueDepthCache[groupThreadID.y + FilterKernel::Radius][groupThreadID.x]);
+	float2 kcValueDepth = HalfToFloat2(PackedValueDepthCache[GTid.y + FilterKernel::Radius][GTid.x]);
 	float kcValue = kcValueDepth.x;
 	float kcDepth = kcValueDepth.y;
 
 	float filteredValue = kcValue;
-	if (blurStrength >= 0.01 && kcDepth != 1) {
+	if (blurStrength >= 0.01 && kcDepth != Rtao::RayHitDistanceOnMiss) {
 		float weightedValueSum = 0;
 		float weightSum = 0;
 		float gaussianWeightedValueSum = 0;
@@ -172,13 +168,13 @@ void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID, float blurStr
 		// For all rows in the kernel.
 		[unroll]
 		for (uint r = 0; r < FilterKernel::Width; ++r) {
-			uint rowID = groupThreadID.y + r;
+			uint rowID = GTid.y + r;
 
-			float2 rUnpackedValueDepth = HalfToFloat2(PackedValueDepthCache[rowID][groupThreadID.x]);
+			float2 rUnpackedValueDepth = HalfToFloat2(PackedValueDepthCache[rowID][GTid.x]);
 			float rDepth = rUnpackedValueDepth.y;
-			float rFilteredValue = FilteredResultCache[rowID][groupThreadID.x];
+			float rFilteredValue = FilteredResultCache[rowID][GTid.x];
 
-			if (rDepth != 1 && rFilteredValue != Rtao::InvalidAOCoefficientValue) {
+			if (rDepth != Rtao::RayHitDistanceOnMiss && rFilteredValue != Rtao::InvalidAOCoefficientValue) {
 				float w_h = FilterKernel::Kernel1D[r];
 
 				// Simple depth test with tolerance growing as the kernel radius increases.
@@ -198,33 +194,33 @@ void FilterVertically(uint2 dispatchThreadID, uint2 groupThreadID, float blurStr
 		filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
 		filteredValue = filteredValue != Rtao::InvalidAOCoefficientValue ? lerp(kcValue, filteredValue, blurStrength) : filteredValue;
 	}
-	gio_Value[dispatchThreadID] = filteredValue;
+	gio_Value[DTid] = filteredValue;
 }
 
 [numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
-void CS(uint2 groupID : SV_GroupID, uint2 groupThreadID : SV_GroupThreadID, uint groupIndex : SV_GroupIndex) {
-	uint2 sDispatchThreadID = GetPixelIndex(groupID, groupThreadID);
+void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex) {
+	const uint2 sDTid = GetPixelIndex(Gid, GTid);
 	// Pass through if all pixels have 0 blur strength set.
 	float blurStrength;
 	{
-		if (groupIndex == 0) FilteredResultCache[0][0] = 0;
+		if (GI == 0) FilteredResultCache[0][0] = 0;
 		GroupMemoryBarrierWithGroupSync();
 
-		blurStrength = gi_BlurStrength[sDispatchThreadID];
+		blurStrength = gi_BlurStrength[sDTid];
 
 		const float MinBlurStrength = 0.01;
-		bool valueNeedsFiltering = blurStrength >= MinBlurStrength;
-		if (valueNeedsFiltering) FilteredResultCache[0][0] = 1;
+		const bool ValueNeedsFiltering = blurStrength >= MinBlurStrength;
+		if (ValueNeedsFiltering) FilteredResultCache[0][0] = 1;
 
 		GroupMemoryBarrierWithGroupSync();
 
 		if (FilteredResultCache[0][0] == 0) return;
 	}
 
-	FilterHorizontally(groupID, groupIndex);
+	FilterHorizontally(Gid, GI);
 	GroupMemoryBarrierWithGroupSync();
 
-	FilterVertically(sDispatchThreadID, groupThreadID, blurStrength);
+	FilterVertically(sDTid, GTid, blurStrength);
 }
 
 #endif // __DISOCCLUSIONBLUR3X3CS_HLSL__

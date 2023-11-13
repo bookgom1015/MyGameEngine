@@ -128,7 +128,7 @@ namespace DepthOfField {
 			UINT width, UINT height, DXGI_FORMAT backBufferFormat);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
+		bool BuildPso();
 
 		void CalcFocalDist(
 			ID3D12GraphicsCommandList*const cmdList,

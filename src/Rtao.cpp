@@ -778,7 +778,7 @@ void RtaoClass::BlurDisocclusion(
 	cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_DisocclusionBlur].Get());
 
-	UINT values[2] = { width, height };
+	UINT values[2] = { mWidth, mHeight };
 	cmdList->SetComputeRoot32BitConstants(RootSignature::DisocclusionBlur::EC_Consts, _countof(values), values, 0);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::DisocclusionBlur::ESI_Depth, si_depth);

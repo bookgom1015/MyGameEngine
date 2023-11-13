@@ -105,7 +105,7 @@ bool BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool BloomClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
+bool BloomClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC extHlightsPsoDesc = quadPsoDesc;

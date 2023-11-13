@@ -172,6 +172,7 @@
     <ClInclude Include="..\..\include\ConstantsBufferDeclarations.h" />
     <ClInclude Include="..\..\include\DDS.h" />
     <ClInclude Include="..\..\include\GaussianFilter.h" />
+    <ClInclude Include="..\..\include\HashUtil.h" />
     <ClInclude Include="..\..\include\IrradianceMap.h" />
     <ClInclude Include="..\..\include\D3D12Util.h" />
     <ClInclude Include="..\..\include\d3dx12.h" />
@@ -251,6 +252,7 @@
     <ClCompile Include="..\..\src\CameraComponent.cpp" />
     <ClCompile Include="..\..\src\Component.cpp" />
     <ClCompile Include="..\..\src\GaussianFilter.cpp" />
+    <ClCompile Include="..\..\src\HashUtil.cpp" />
     <ClCompile Include="..\..\src\IrradianceMap.cpp" />
     <ClCompile Include="..\..\src\D3D12Util.cpp" />
     <ClCompile Include="..\..\src\DebugCollision.cpp" />

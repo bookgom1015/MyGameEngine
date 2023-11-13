@@ -60,9 +60,9 @@ void AddFilterContribution(
 
 	float iDepth;
 	float3 iNormal;
-	DecodeNormalDepth(gi_NormalDepth[DTid], iNormal, iDepth);
+	DecodeNormalDepth(gi_NormalDepth[id], iNormal, iDepth);
 
-	float iValue = gi_Value[DTid];
+	float iValue = gi_Value[id];
 
 	bool isValidValue = iValue != Rtao::InvalidAOCoefficientValue;
 	if (!isValidValue || iDepth == Rtao::RayHitDistanceOnMiss) return;

@@ -48,7 +48,7 @@ namespace Ssao {
 			UINT width, UINT height, UINT divider);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout);
+		bool BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,

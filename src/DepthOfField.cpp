@@ -2,6 +2,8 @@
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "D3D12Util.h"
+#include "Vertex.h"
+#include "DepthStencilBuffer.h"
 
 using namespace DepthOfField;
 
@@ -171,8 +173,8 @@ bool DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool DepthOfFieldClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC defaultPsoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
+bool DepthOfFieldClass::BuildPso() {
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC defaultPsoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::Format);
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC cocPsoDesc = quadPsoDesc;

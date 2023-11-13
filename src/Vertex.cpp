@@ -1,6 +1,14 @@
 #include "Vertex.h"
 #include "MathHelper.h"
 
+const std::vector<D3D12_INPUT_ELEMENT_DESC> Vertex::mInputLayout = {
+		{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,			0, 0,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,			0, 12,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,			0, 24,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+};
+
+const D3D12_INPUT_LAYOUT_DESC Vertex::mInputLayoutDesc = { mInputLayout.data(), static_cast<UINT>(mInputLayout.size()) };
+
 bool Vertex::operator==(const Vertex& other) const {
 	return MathHelper::IsEqual(Position, other.Position) && 
 		MathHelper::IsEqual(Normal, other.Normal) &&
@@ -34,4 +42,8 @@ std::array<VkVertexInputAttributeDescription, 3> Vertex::GetAttributeDescription
 	attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
 
 	return attributeDescriptions;
+}
+
+D3D12_INPUT_LAYOUT_DESC Vertex::InputLayoutDesc() {
+	return mInputLayoutDesc;
 }

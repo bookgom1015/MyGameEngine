@@ -6,6 +6,7 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
+#include "./../../../include/Vertex.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
@@ -15,11 +16,7 @@ ConstantBuffer<MaterialConstants>	cbMat	: register(b2);
 
 Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]		: register(t0);
 
-struct VertexIn {
-	float3 PosL		: POSITION;
-	float3 NormalL	: NORMAL;
-	float2 TexC		: TEXCOORD;
-};
+VERTEX_IN
 
 struct VertexOut {
 	float4 PosH			: SV_POSITION;

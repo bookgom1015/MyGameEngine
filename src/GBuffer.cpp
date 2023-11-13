@@ -6,6 +6,7 @@
 #include "D3D12Util.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
+#include "Vertex.h"
 
 using namespace GBuffer;
 
@@ -73,9 +74,9 @@ bool GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool GBufferClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
+bool GBufferClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-	psoDesc.InputLayout = inputLayout;
+	psoDesc.InputLayout = Vertex::InputLayoutDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
 		auto vs = mShaderManager->GetDxcShader(GBufferVS);

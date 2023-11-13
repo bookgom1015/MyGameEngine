@@ -7,6 +7,8 @@
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
 #include "GpuResource.h"
+#include "Vertex.h"
+#include "DepthStencilBuffer.h"
 
 #include <ddraw.h>
 #include <DDS.h>
@@ -296,9 +298,10 @@ bool IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool IrradianceMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
+bool IrradianceMapClass::BuildPso() {
+	auto inputLayoutDesc = Vertex::InputLayoutDesc();
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayout, DXGI_FORMAT_UNKNOWN);
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvEquirectToCube].Get();
 		{
 			auto vs = mShaderManager->GetDxcShader(ConvRectToCubeVS);
@@ -326,7 +329,7 @@ bool IrradianceMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORM
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ConvCubeToEquirect])));
 	}
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayout, DXGI_FORMAT_UNKNOWN);
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_DrawCube].Get();
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = D3D12Util::SDRMapFormat;
@@ -349,7 +352,7 @@ bool IrradianceMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORM
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DrawEquirectangular])));
 	}
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayout, DXGI_FORMAT_UNKNOWN);
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvoluteDiffuseIrradiance].Get();
 		{
 			auto vs = mShaderManager->GetDxcShader(ConvoluteDiffuseIrradianceVS);
@@ -386,7 +389,7 @@ bool IrradianceMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORM
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_IntegrateBrdf])));
 	}
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DepthStencilBuffer::Format);
 		skyPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DrawSkySphere].Get();
 		{
 			auto vs = mShaderManager->GetDxcShader(SkySphereVS);

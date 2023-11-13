@@ -6,6 +6,7 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
+#include "./../../../include/Vertex.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
@@ -19,11 +20,7 @@ cbuffer cbRootConstants : register(b1) {
 
 TextureCube<float3> gi_Environment	: register(t0);
 
-struct VertexIn {
-	float3 PosL		: POSITION;
-	float3 NormalL	: NORMAL;
-	float2 TexC		: TEXCOORD;
-};
+VERTEX_IN
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;

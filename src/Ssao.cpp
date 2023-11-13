@@ -74,7 +74,7 @@ bool SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool SsaoClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout) {
+bool SsaoClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{

@@ -6,6 +6,7 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
+#include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
 ConstantBuffer<PassConstants>	cbPass	: register(b0);
@@ -13,11 +14,7 @@ ConstantBuffer<ObjectConstants> cbObj	: register(b1);
 
 TextureCube gi_Cube : register(t0);
 
-struct VertexIn {
-	float3 PosL		: POSITION;
-	float3 NormalL	: NORMAL;
-	float2 TexC		: TEXCOORD;
-};
+VERTEX_IN
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;

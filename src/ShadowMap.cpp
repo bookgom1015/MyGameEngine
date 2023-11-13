@@ -6,6 +6,8 @@
 #include "MathHelper.h"
 #include "HlslCompaction.h"
 #include "D3D12Util.h"
+#include "Vertex.h"
+#include "DepthStencilBuffer.h"
 
 using namespace ShadowMap;
 
@@ -60,8 +62,8 @@ bool ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool ShadowMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
+bool ShadowMapClass::BuildPso() {
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::Format);
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
 		auto vs = mShaderManager->GetDxcShader("ShadowVS");

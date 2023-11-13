@@ -6,6 +6,7 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
+#include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
 ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer>	cbCube	: register(b0);
@@ -16,11 +17,7 @@ cbuffer cbRootConstants : register(b1) {
 
 Texture2D<float3> gi_Equirectangular : register(t0);
 
-struct VertexIn {
-	float3 PosL		: POSITION;
-	float3 NormalL	: NORMAL;
-	float2 TexC		: TEXCOORD;
-};
+VERTEX_IN
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;

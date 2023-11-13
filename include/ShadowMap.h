@@ -43,7 +43,7 @@ namespace ShadowMap {
 		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
+		bool BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,

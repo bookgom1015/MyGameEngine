@@ -342,6 +342,9 @@
     <ClInclude Include="..\..\include\ShaderArguments.h">
       <Filter>Header Files\Render\DirectX</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\HashUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -550,6 +553,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\GaussianFilter.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\HashUtil.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

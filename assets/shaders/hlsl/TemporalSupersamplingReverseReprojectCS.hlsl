@@ -77,7 +77,7 @@ float4 BilateralResampleWeights(
 
 [numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
-	if (DTid.x >= gTextureDim.x || DTid.y >= gTextureDim.y) return;
+	if (!IsWithinBounds(DTid, gTextureDim)) return;
 
 	float2 tex = (DTid + 0.5) * gInvTextureDim;
 

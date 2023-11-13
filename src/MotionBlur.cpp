@@ -61,7 +61,7 @@ bool MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool MotionBlurClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
+bool MotionBlurClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC motionBlurPsoDesc = quadPsoDesc;

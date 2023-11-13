@@ -847,28 +847,21 @@ bool DxRenderer::BuildPSOs() {
 	WLogln(L"Building pipeline state objects...");
 #endif
 
-	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout = {
-		{ "POSITION",	0, DXGI_FORMAT_R32G32B32_FLOAT,			0, 0,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",		0, DXGI_FORMAT_R32G32B32_FLOAT,			0, 12,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD",	0, DXGI_FORMAT_R32G32_FLOAT,			0, 24,	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-	};
-
-	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 	CheckReturn(mBRDF->BuildPso());
-	CheckReturn(mGBuffer->BuildPso(inputLayoutDesc));
-	CheckReturn(mShadowMap->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
-	CheckReturn(mSsao->BuildPso(inputLayoutDesc));
-	CheckReturn(mBloom->BuildPso(inputLayoutDesc));
+	CheckReturn(mGBuffer->BuildPso());
+	CheckReturn(mShadowMap->BuildPso());
+	CheckReturn(mSsao->BuildPso());
+	CheckReturn(mBloom->BuildPso());
 	CheckReturn(mBlurFilter->BuildPso());
 	CheckReturn(mSsr->BuildPso());
-	CheckReturn(mDof->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
-	CheckReturn(mMotionBlur->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
+	CheckReturn(mDof->BuildPso());
+	CheckReturn(mMotionBlur->BuildPso());
 	CheckReturn(mTaa->BuildPso());
 	CheckReturn(mDebugMap->BuildPso());
 	CheckReturn(mDebugCollision->BuildPso());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
-	CheckReturn(mIrradianceMap->BuildPso(inputLayoutDesc, DepthStencilBuffer::Format));
+	CheckReturn(mIrradianceMap->BuildPso());
 	CheckReturn(mMipmapGenerator->BuildPso());
 	CheckReturn(mPixelation->BuildPso());
 	CheckReturn(mSharpen->BuildPso());

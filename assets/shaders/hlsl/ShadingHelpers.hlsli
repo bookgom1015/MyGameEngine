@@ -311,6 +311,10 @@ float FloatPrecisionR32(float x) {
 	return FloatPrecision(x, 23);
 }
 
+bool IsInRange(float val, float min, float max) {
+	return (val >= min && val <= max);
+}
+
 // Returns an approximate surface dimensions covered in a pixel. 
 // This is a simplified model assuming pixel to pixel view angles are the same.
 // z - linear depth of the surface at the pixel
