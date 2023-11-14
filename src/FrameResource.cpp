@@ -29,6 +29,7 @@ bool FrameResource::Initialize() {
 	CheckReturn(TsppBlendCB.Initialize(Device, 1, true));
 	CheckReturn(AtrousFilterCB.Initialize(Device, 1, true));
 	CheckReturn(DebugMapCB.Initialize(Device, 1, true));
+	CheckReturn(RrCB.Initialize(Device, 1, true));
 
 	return true;
 }

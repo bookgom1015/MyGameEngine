@@ -13,15 +13,15 @@
 
 ConstantBuffer<PassConstants> cbPass	: register(b0);
 
-Texture2D<float3>						gi_BackBuffer	: register(t0);
-Texture2D<GBuffer::AlbedoMapFormat>		gi_Albedo		: register(t1);
-Texture2D<GBuffer::NormalMapFormat>		gi_Normal		: register(t2);
-Texture2D<float>						gi_Depth		: register(t3);
-Texture2D<GBuffer::RMSMapFormat>		gi_RMS			: register(t4);
-Texture2D<Ssao::AOCoefficientMapFormat>	gi_AOCoeiff		: register(t5);
-TextureCube<float3>						gi_Prefiltered	: register(t6);
-Texture2D<float2>						gi_BrdfLUT		: register(t7);
-Texture2D<float4>						gi_Ssr			: register(t8);
+Texture2D<float3>										gi_BackBuffer	: register(t0);
+Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t1);
+Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t2);
+Texture2D<DepthStencilBuffer::BufferFormat>				gi_Depth		: register(t3);
+Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t4);
+Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t5);
+TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered	: register(t6);
+Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT		: register(t7);
+Texture2D<Ssr::SsrMapFormat>							gi_Ssr			: register(t8);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -48,6 +48,10 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target{
 	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
+
+	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
+	if (pz == DepthStencilBuffer::InvalidDepthValue) return float4(radiance, 1);
+
 	pz = NdcDepthToViewDepth(pz, cbPass.Proj);
 
 	const float3 posV = (pz / pin.PosV.z) * pin.PosV;
@@ -66,12 +70,11 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 reflectedW = reflect(-viewW, normalW);
 	const float MaxMipLevel = 5;
 
-	const float3 prefilteredColor = gi_Prefiltered.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel);
+	const float3 prefilteredColor = gi_Prefiltered.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel).rgb;
 
 	const float NdotV = max(dot(normalW, viewW), 0);
 
 	const float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
-	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
 	const float k = ssr.a;
 
 	const float shiness = 1 - roughness;
@@ -92,9 +95,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 integratedSpecRadiance = (1 - t) * specRadiance + t * ssrRadiance;
 	const float aoCoeff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 
-	const float skyFactor = ceil(max(1 - dot(normalW, -viewW), 0));
-
-	return float4(radiance + skyFactor * aoCoeff * integratedSpecRadiance, 1);
+	return float4(radiance + aoCoeff * integratedSpecRadiance, 1);
 }
 
 #endif // __INTEGRATESPECULAR_HLSL__

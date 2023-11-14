@@ -111,6 +111,7 @@ private:
 	bool UpdateMaterialCBs(float delta);
 	bool UpdateConvEquirectToCubeCB(float delta);
 	bool UpdateRtaoCB(float delta);
+	bool UpdateRrCB(float delta);
 	bool UpdateDebugMapCB(float delta);
 	
 	bool DrawShadowMap();
@@ -187,6 +188,7 @@ private:
 	std::unique_ptr<Pixelation::PixelationClass> mPixelation;
 	std::unique_ptr<Sharpen::SharpenClass> mSharpen;
 	std::unique_ptr<GaussianFilter::GaussianFilterClass> mGaussianFilter;
+	std::unique_ptr<RaytracedReflection::RaytracedReflectionClass> mRr;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

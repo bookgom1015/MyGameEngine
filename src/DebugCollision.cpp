@@ -13,11 +13,9 @@ namespace {
 	const std::string DebugCollisionPS = "DebugCollisionPS";
 }
 
-bool DebugCollisionClass::Initialize(ID3D12Device* device, ShaderManager* const manager, DXGI_FORMAT backBufferFormat) {
+bool DebugCollisionClass::Initialize(ID3D12Device* device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
-
-	mBackBufferFormat = backBufferFormat;
 
 	return true;
 }
@@ -64,7 +62,7 @@ bool DebugCollisionClass::BuildPso() {
 	}
 	debugPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	debugPsoDesc.NumRenderTargets = 1;
-	debugPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	debugPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	debugPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 	debugPsoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	debugPsoDesc.DepthStencilState.DepthEnable = false;

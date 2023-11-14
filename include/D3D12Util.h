@@ -94,10 +94,6 @@ public:
 	static __forceinline float RelativeCoef(float a, float _min, float _max);
 	static __forceinline UINT NumMantissaBitsInFloatFormat(UINT FloatFormatBitLength);
 
-public:
-	static const DXGI_FORMAT HDRMapFormat;
-	static const DXGI_FORMAT SDRMapFormat;
-
 private:
 	static const size_t SizeOfUint;
 };

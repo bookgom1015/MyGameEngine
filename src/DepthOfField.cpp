@@ -3,7 +3,7 @@
 #include "ShaderManager.h"
 #include "D3D12Util.h"
 #include "Vertex.h"
-#include "DepthStencilBuffer.h"
+#include "HlslCompaction.h"
 
 using namespace DepthOfField;
 
@@ -18,15 +18,12 @@ bool DepthOfFieldClass::Initialize(
 		ID3D12Device* device, 
 		ShaderManager*const manager, 
 		ID3D12GraphicsCommandList* cmdList, 
-		UINT width, UINT height,
-		DXGI_FORMAT backBufferFormat) {
+		UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
-	
-	mBackBufferFormat = backBufferFormat;
 
 	mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
 	mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
@@ -174,7 +171,7 @@ bool DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 }
 
 bool DepthOfFieldClass::BuildPso() {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC defaultPsoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::Format);
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC defaultPsoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::BufferFormat);
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC cocPsoDesc = quadPsoDesc;
@@ -196,7 +193,7 @@ bool DepthOfFieldClass::BuildPso() {
 		dofPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		dofPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	dofPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	dofPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&dofPsoDesc, IID_PPV_ARGS(&mPSOs["dof"])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC dofBlurPsoDesc = dofPsoDesc;
@@ -400,8 +397,8 @@ void DepthOfFieldClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCocMap->Resource(), &srvDesc, mhCocMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mCocMap->Resource(), &rtvDesc, mhCocMapCpuRtv);
 
-	srvDesc.Format = mBackBufferFormat;
-	rtvDesc.Format = mBackBufferFormat;	
+	srvDesc.Format = SDR_FORMAT;
+	rtvDesc.Format = SDR_FORMAT;
 	for (int i = 0; i < 2; ++i) {
 		md3dDevice->CreateShaderResourceView(mDofMaps[i]->Resource(), &srvDesc, mhDofMapCpuSrvs[i]);
 		md3dDevice->CreateRenderTargetView(mDofMaps[i]->Resource(), &rtvDesc, mhDofMapCpuRtvs[i]);
@@ -427,7 +424,7 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 		rscDesc.Width = mWidth;
 		rscDesc.Height = mHeight;
 		rscDesc.Format = CocMapFormat;
-		CheckHRESULT(mCocMap->Initialize(
+		CheckReturn(mCocMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
@@ -438,15 +435,15 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 		));		
 	}
 	{
-		CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, DofMapClearValues);
+		CD3DX12_CLEAR_VALUE optClear(SDR_FORMAT, DofMapClearValues);
 
 		rscDesc.Width = mWidth;
 		rscDesc.Height = mHeight;
-		rscDesc.Format = mBackBufferFormat;
+		rscDesc.Format = SDR_FORMAT;
 		for (int i = 0; i < 2; ++i) {
 			std::wstringstream wsstream;
 			wsstream << L"DepthOfFieldMap_" << i;
-			CheckHRESULT(mDofMaps[i]->Initialize(
+			CheckReturn(mDofMaps[i]->Initialize(
 				md3dDevice,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
@@ -458,7 +455,7 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 		}
 	}
 	{
-		CheckHRESULT(mFocalDistanceBuffer->Initialize(
+		CheckReturn(mFocalDistanceBuffer->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,

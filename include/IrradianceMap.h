@@ -195,8 +195,6 @@ namespace IrradianceMap {
 	static const UINT NumRenderTargets = 
 		MaxMipLevel + (CubeMapFace::Count * MaxMipLevel) + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
 
-	static const DXGI_FORMAT IntegratedBrdfMapFormat = DXGI_FORMAT_R16G16_FLOAT;
-
 	class IrradianceMapClass {
 	public:
 		IrradianceMapClass();

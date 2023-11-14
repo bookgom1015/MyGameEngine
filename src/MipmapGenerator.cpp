@@ -63,7 +63,7 @@ bool MipmapGeneratorClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+	psoDesc.RTVFormats[0] = HDR_FORMAT;
 	{
 		auto vs = mShaderManager->GetDxcShader(VS);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };

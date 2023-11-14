@@ -208,6 +208,7 @@
     <ClInclude Include="..\..\include\MotionBlur.h" />
     <ClInclude Include="..\..\include\Pixelation.h" />
     <ClInclude Include="..\..\include\PlaneActor.h" />
+    <ClInclude Include="..\..\include\RaytracedReflection.h" />
     <ClInclude Include="..\..\include\Renderer.h" />
     <ClInclude Include="..\..\include\RenderItem.h" />
     <ClInclude Include="..\..\include\RenderMacros.h" />
@@ -283,6 +284,7 @@
     <ClCompile Include="..\..\src\MotionBlur.cpp" />
     <ClCompile Include="..\..\src\Pixelation.cpp" />
     <ClCompile Include="..\..\src\PlaneActor.cpp" />
+    <ClCompile Include="..\..\src\RaytracedReflection.cpp" />
     <ClCompile Include="..\..\src\Renderer.cpp" />
     <ClCompile Include="..\..\src\RenderItem.cpp" />
     <ClCompile Include="..\..\src\RotatingMonkey.cpp" />
@@ -504,11 +506,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\ReflectanceComposition.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
       <FileType>Document</FileType>
     </None>
@@ -563,6 +560,11 @@
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

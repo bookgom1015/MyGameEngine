@@ -3,6 +3,7 @@
 #include "GpuResource.h"
 #include "D3D12Util.h"
 #include "ShaderManager.h"
+#include "HlslCompaction.h"
 
 using namespace ToneMapping;
 
@@ -17,16 +18,12 @@ ToneMappingClass::ToneMappingClass() {
 	mIntermediateMap = std::make_unique<GpuResource>();
 }
 
-bool ToneMappingClass::Initialize(
-		ID3D12Device* device, ShaderManager* const manager, 
-		UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
+bool ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
-
-	mBackBufferFormat = backBufferFormat;
 
 	CheckReturn(BuildResources());
 
@@ -80,7 +77,7 @@ bool ToneMappingClass::BuildPso() {
 		auto vs = mShaderManager->GetDxcShader(ToneMappingVS);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 	}
-	psoDesc.RTVFormats[0] = mBackBufferFormat;
+	psoDesc.RTVFormats[0] = SDR_FORMAT;
 
 	{
 		auto ps = mShaderManager->GetDxcShader(ToneMappingPS);
@@ -187,13 +184,13 @@ void ToneMappingClass::BuildDescriptors() {
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Format = D3D12Util::HDRMapFormat;
+	srvDesc.Format = HDR_FORMAT;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
-	rtvDesc.Format = D3D12Util::HDRMapFormat;
+	rtvDesc.Format = HDR_FORMAT;
 
 	md3dDevice->CreateShaderResourceView(mIntermediateMap->Resource(), &srvDesc, mhIntermediateMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mIntermediateMap->Resource(), &rtvDesc, mhIntermediateMapCpuRtv);
@@ -205,7 +202,7 @@ bool ToneMappingClass::BuildResources() {
 	rscDesc.Alignment = 0;
 	rscDesc.Width = mWidth;
 	rscDesc.Height = mHeight;
-	rscDesc.Format = D3D12Util::HDRMapFormat;
+	rscDesc.Format = HDR_FORMAT;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
@@ -213,7 +210,7 @@ bool ToneMappingClass::BuildResources() {
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	CD3DX12_CLEAR_VALUE optClear(D3D12Util::HDRMapFormat, ClearValues);
+	CD3DX12_CLEAR_VALUE optClear(HDR_FORMAT, ClearValues);
 
 	CheckReturn(mIntermediateMap->Initialize(
 		md3dDevice,

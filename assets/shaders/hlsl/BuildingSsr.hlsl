@@ -11,10 +11,9 @@
 
 ConstantBuffer<SsrConstants> cbSsr	: register(b0);
 
-Texture2D<float4> gi_BackBuffer	: register(t0);
-Texture2D<GBuffer::NormalMapFormat>	gi_Normal	: register(t1);
-Texture2D<float>					gi_Depth	: register(t2);
-Texture2D<float4>					gi_Specular	: register(t3);
+Texture2D<float4>							gi_BackBuffer	: register(t0);
+Texture2D<GBuffer::NormalMapFormat>			gi_Normal		: register(t1);
+Texture2D<DepthStencilBuffer::BufferFormat>	gi_Depth		: register(t2);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -41,6 +40,8 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target {
 	float pz = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0);
+	if (pz == DepthStencilBuffer::InvalidDepthValue) return 0;
+
 	pz = NdcDepthToViewDepth(pz, cbSsr.Proj);
 
 	//

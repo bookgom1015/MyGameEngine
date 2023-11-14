@@ -4,7 +4,17 @@
 #define COMPACT_NORMAL_DEPTH_DXGI_FORMAT DXGI_FORMAT_R32_UINT
 #endif
 
+#ifndef HDR_FORMAT
+#define HDR_FORMAT DXGI_FORMAT_R16G16B16A16_FLOAT
+#endif
+
+#ifndef SDR_FORMAT
+#define SDR_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+#endif
+
 namespace GBuffer {
+	static const float RayHitDistanceOnMiss = 1.0f;
+
 #ifdef HLSL
 	typedef float4	AlbedoMapFormat;
 	typedef float4	NormalMapFormat;
@@ -32,6 +42,16 @@ namespace ShadowMap {
 #endif 
 }
 
+namespace DepthStencilBuffer {
+#ifdef HLSL
+	typedef float BufferFormat;
+#else
+	const DXGI_FORMAT BufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+#endif
+
+	static const float InvalidDepthValue = 1.0f;
+}
+
 namespace Ssao {
 #ifdef HLSL
 	typedef float	AOCoefficientMapFormat;
@@ -39,6 +59,42 @@ namespace Ssao {
 #else
 	static const DXGI_FORMAT AOCoefficientMapFormat	= DXGI_FORMAT_R16_UNORM;
 	static const DXGI_FORMAT RandomVectorMapFormat	= DXGI_FORMAT_R8G8B8A8_SNORM;
+#endif
+}
+
+namespace Ssr {
+#ifdef HLSL
+	typedef float4 SsrMapFormat;
+#else
+	static const DXGI_FORMAT SsrMapFormat = HDR_FORMAT;
+#endif
+}
+
+namespace IrradianceMap {
+#ifdef HLSL
+	typedef float4 DiffuseIrradCubeMapFormat;
+	typedef float4 DiffuseIrradEquirectMapFormat;
+	typedef float4 EnvCubeMapFormat;
+	typedef float4 PrefilteredEnvCubeMapFormat;
+	typedef float4 PrefilteredEnvEquirectMapFormat;
+	typedef float4 EquirectMapFormat;
+	typedef float2 IntegratedBrdfMapFormat;
+#else
+	static const DXGI_FORMAT DiffuseIrradCubeMapFormat			= HDR_FORMAT;
+	static const DXGI_FORMAT DiffuseIrradEquirectMapFormat		= HDR_FORMAT;
+	static const DXGI_FORMAT EnvCubeMapFormat					= HDR_FORMAT;
+	static const DXGI_FORMAT PrefilteredEnvCubeMapFormat		= HDR_FORMAT;
+	static const DXGI_FORMAT PrefilteredEnvEquirectMapFormat	= HDR_FORMAT;
+	static const DXGI_FORMAT EquirectMapFormat					= HDR_FORMAT;
+	static const DXGI_FORMAT IntegratedBrdfMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
+#endif
+}
+
+namespace RaytracedReflection{
+#ifdef HLSL
+	typedef float4 ReflectionMapFormat;
+#else
+	static const DXGI_FORMAT ReflectionMapFormat = SDR_FORMAT;
 #endif
 }
 

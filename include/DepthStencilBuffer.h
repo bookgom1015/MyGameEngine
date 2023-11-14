@@ -6,8 +6,6 @@
 #include "GpuResource.h"
 
 namespace DepthStencilBuffer {
-	const DXGI_FORMAT Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
 	class DepthStencilBufferClass {
 	public:
 		DepthStencilBufferClass();

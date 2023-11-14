@@ -25,7 +25,7 @@ GBufferClass::GBufferClass() {
 }
 
 bool GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, 
-		ShaderManager*const manager, GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat) {
+		ShaderManager*const manager, GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -34,7 +34,6 @@ bool GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height
 
 	mDepthMap = depth;
 	mhDepthMapCpuDsv = dsv;
-	mDepthFormat = depthFormat;
 
 	CheckReturn(BuildResources());
 
@@ -98,7 +97,7 @@ bool GBufferClass::BuildPso() {
 	psoDesc.RTVFormats[3] = RMSMapFormat;
 	psoDesc.RTVFormats[4] = VelocityMapFormat;
 	psoDesc.RTVFormats[5] = ReprojNormalDepthMapFormat;
-	psoDesc.DSVFormat = mDepthFormat;
+	psoDesc.DSVFormat = DepthStencilBuffer::BufferFormat;
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 

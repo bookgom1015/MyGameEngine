@@ -31,6 +31,7 @@
 #include "Pixelation.h"
 #include "Sharpen.h"
 #include "GaussianFilter.h"
+#include "RaytracedReflection.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -139,15 +140,15 @@ namespace ShaderArgs {
 		float MaxRayHitTime = 22.0f;
 
 		namespace Denoiser {
-			bool UseSmoothingVariance = false;
-			bool DisocclusionBlur = false;
+			bool UseSmoothingVariance = true;
+			bool DisocclusionBlur = true;
 			UINT LowTsppBlurPasses = 3;
 
 			namespace TemporalSupersampling {
 				UINT MaxTspp = 33;
 
 				namespace ClampCachedValues {
-					BOOL UseClamping = false;
+					BOOL UseClamping = true;
 					float StdDevGamma = 0.6f;
 					float MinStdDevTolerance = 0.05f;
 					float DepthSigma = 1.0f;
@@ -177,6 +178,10 @@ namespace ShaderArgs {
 
 			}
 		}
+	}
+
+	namespace RaytracedReflection {
+		float ReflectionRadius = 10.0f;
 	}
 }
 
@@ -216,6 +221,7 @@ DxRenderer::DxRenderer() {
 	mPixelation = std::make_unique<Pixelation::PixelationClass>();
 	mSharpen = std::make_unique<Sharpen::SharpenClass>();
 	mGaussianFilter = std::make_unique<GaussianFilter::GaussianFilterClass>();
+	mRr = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
@@ -281,28 +287,28 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	WLogln(L"Initializing shading components...");
 #endif
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
-	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, 
-		mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv(), DepthStencilBuffer::Format));
+	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
 	CheckReturn(mShadowMap->Initialize(device, shaderManager, 2048, 2048));
 	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4));
 	CheckReturn(mSsr->Initialize(device, shaderManager, width, height, 2));
-	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mTaa->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mDebugMap->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
+	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height));
+	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
+	CheckReturn(mTaa->Initialize(device, shaderManager, width, height));
+	CheckReturn(mDebugMap->Initialize(device, shaderManager));
 	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
 	CheckReturn(mRtao->Initialize(device, cmdList, shaderManager, width, height));
-	CheckReturn(mDebugCollision->Initialize(device, shaderManager, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
-	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height, SwapChainBuffer::BackBufferFormat));
+	CheckReturn(mDebugCollision->Initialize(device, shaderManager));
+	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height));
+	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height));
 	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
 	CheckReturn(mMipmapGenerator->Initialize(device, cmdList, shaderManager));
 	CheckReturn(mPixelation->Initialize(device, shaderManager, width, height));
 	CheckReturn(mSharpen->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGaussianFilter->Initialize(device, shaderManager));
+	CheckReturn(mRr->Initialize(device, cmdList, shaderManager, width, height));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -371,6 +377,7 @@ bool DxRenderer::Update(float delta) {
 	CheckReturn(UpdateMaterialCBs(delta));
 	CheckReturn(UpdateConvEquirectToCubeCB(delta));
 	CheckReturn(UpdateRtaoCB(delta));
+	CheckReturn(UpdateRrCB(delta));
 	CheckReturn(UpdateDebugMapCB(delta));
 
 	CheckReturn(UpdateShadingObjects(delta));
@@ -456,6 +463,7 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 
 	CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
 	CheckReturn(mRtao->OnResize(cmdList, width, height));
+	CheckReturn(mRr->OnResize(cmdList, width, height));
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -627,6 +635,7 @@ bool DxRenderer::CompileShaders() {
 	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
 	CheckReturn(mRtao->CompileShaders(ShaderFilePath));
+	CheckReturn(mRr->CompileShaders(ShaderFilePath));
 
 #ifdef _DEBUG
 	WLogln(L"Finished compiling shaders \n");
@@ -800,6 +809,7 @@ void DxRenderer::BuildDescriptors() {
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 	mRtao->BuildDescriptors(hCpu, hGpu, descSize);
+	mRr->BuildDesscriptors(hCpu, hGpu, descSize);
 
 	mhCpuDescForTexMaps = hCpu;
 	mhGpuDescForTexMaps = hGpu;
@@ -834,6 +844,7 @@ bool DxRenderer::BuildRootSignatures() {
 	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
 	CheckReturn(mRtao->BuildRootSignatures(staticSamplers));
+	CheckReturn(mRr->BuildRootSignatures(staticSamplers));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -870,6 +881,7 @@ bool DxRenderer::BuildPSOs() {
 	CheckReturn(mDxrShadowMap->BuildPso());
 	CheckReturn(mBlurFilterCS->BuildPso());
 	CheckReturn(mRtao->BuildPSO());
+	CheckReturn(mRr->BuildPSO());
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
@@ -881,6 +893,7 @@ bool DxRenderer::BuildPSOs() {
 bool DxRenderer::BuildShaderTables() {
 	CheckReturn(mDxrShadowMap->BuildShaderTables());
 	CheckReturn(mRtao->BuildShaderTables());
+	CheckReturn(mRr->BuildShaderTables());
 
 	return true;
 }
@@ -1677,6 +1690,25 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 	return true;
 }
 
+bool DxRenderer::UpdateRrCB(float delta) {
+	RaytracedReflectionConstantBuffer rrCB;
+
+	rrCB.View = mMainPassCB->View;
+	rrCB.InvView = mMainPassCB->InvView;
+	rrCB.Proj = mMainPassCB->Proj;
+	rrCB.InvProj = mMainPassCB->InvProj;
+
+	rrCB.EyePosW = mMainPassCB->EyePosW;
+	rrCB.ReflectionRadius = ShaderArgs::RaytracedReflection::ReflectionRadius;
+
+	rrCB.TextureDim = { mRr->Width(), mRr->Height() };
+
+	auto& currRrCB = mCurrFrameResource->RrCB;
+	currRrCB.CopyData(0, rrCB);
+
+	return true;
+}
+
 bool DxRenderer::UpdateDebugMapCB(float delta) {
 	DebugMapConstantBuffer debugMapCB;
 
@@ -2033,8 +2065,7 @@ bool DxRenderer::BuildSsr() {
 			ssrCBAddress,
 			backBufferSrv,
 			mGBuffer->NormalMapSrv(),
-			mGBuffer->DepthMapSrv(),
-			mGBuffer->RMSMapSrv()
+			mGBuffer->DepthMapSrv()
 		);
 
 		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);

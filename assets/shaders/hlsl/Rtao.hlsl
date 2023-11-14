@@ -52,18 +52,6 @@ uint InitRand(uint val0, uint val1, uint backoff = 16) {
 	return v0;
 }
 
-void CalculateHitPosition(float depth, uint2 launchIndex, out float3 hitPosition) {
-	float2 tex = (launchIndex + 0.5) / gTextureDim;
-	float4 posH = float4(tex.x * 2 - 1, (1 - tex.y) * 2 - 1, 0, 1);
-	float4 posV = mul(posH, cbRtao.InvProj);
-	posV /= posV.w;
-
-	float dv = NdcDepthToViewDepth(depth, cbRtao.Proj);
-	posV = (dv / posV.z) * posV;
-
-	hitPosition = mul(float4(posV.xyz, 1), cbRtao.InvView).xyz;
-}
-
 bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surfaceNormal) {
 	RayDesc ray;
 	// Nudge the origin along the surface normal a bit to avoid starting from
@@ -115,7 +103,7 @@ void RtaoRayGen() {
 
 	if (depth != Rtao::RayHitDistanceOnMiss) {
 		float3 hitPosition;
-		CalculateHitPosition(depth, launchIndex, hitPosition);
+		CalculateHitPosition(cbRtao.Proj, cbRtao.InvProj, cbRtao.InvView, gTextureDim, depth, launchIndex, hitPosition);
 
 		uint seed = InitRand(launchIndex.x + launchIndex.y * gTextureDim.x, cbRtao.FrameCount);
 

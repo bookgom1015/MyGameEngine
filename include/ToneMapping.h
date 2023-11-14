@@ -48,8 +48,7 @@ namespace ToneMapping {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE InterMediateMapRtv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, 
-			UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -85,8 +84,6 @@ namespace ToneMapping {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
-
-		DXGI_FORMAT mBackBufferFormat;
 
 		UINT mWidth;
 		UINT mHeight;

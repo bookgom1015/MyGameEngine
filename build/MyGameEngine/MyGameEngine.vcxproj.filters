@@ -118,6 +118,30 @@
     <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising\Temporal">
       <UniqueIdentifier>{d10a3c5b-843e-457f-b4c1-57eb2b26201f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader Files\HLSL\Filter">
+      <UniqueIdentifier>{5c0b326f-1166-46d4-882b-ee758f727f9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Filter\Blur">
+      <UniqueIdentifier>{72bf0b54-d900-4f52-8744-ce99623333d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Filter\Blur\Gaussian">
+      <UniqueIdentifier>{4fe314f5-1aa3-4f61-978e-d1847a1e5259}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Filter\Blur\DOF">
+      <UniqueIdentifier>{f448a15f-5732-42fa-8b45-229c35fd58db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Filter\Blur\Motion">
+      <UniqueIdentifier>{bf3da614-b12c-43bd-b6fb-92245be0a9c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\BRDF">
+      <UniqueIdentifier>{1b9b4a2a-d969-4ae3-b63c-f67b7336467c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Filter\Bloom">
+      <UniqueIdentifier>{477ca8e1-068b-4660-a14b-8b5f6747e652}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Irradiance">
+      <UniqueIdentifier>{de5827d5-a273-4696-9fc5-aa70ece0d076}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\GameWorld.h">
@@ -345,6 +369,9 @@
     <ClInclude Include="..\..\include\HashUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\RaytracedReflection.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -557,6 +584,9 @@
     <ClCompile Include="..\..\src\HashUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\RaytracedReflection.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -608,9 +638,6 @@
     <None Include="..\..\include\GBuffer.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
@@ -632,28 +659,7 @@
     <None Include="..\..\include\DepthOfField.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\Mapping.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\CocBlur.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\glsl\Debug.vert">
@@ -665,16 +671,7 @@
     <None Include="..\..\assets\shaders\hlsl\ApplyingSsr.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ExtractHighlights.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\include\Ssao.inl">
@@ -694,9 +691,6 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
       <Filter>Shader Files\HLSL\DXR</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
@@ -737,37 +731,7 @@
     <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ReflectanceComposition.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
@@ -776,32 +740,98 @@
     <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\include\Renderer.inl">
       <Filter>Header Files\Render</Filter>
     </None>
     <None Include="..\..\include\Rtao.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\GaussianFilter3x3CS.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli">
       <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\include\Ssr.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CocBlur.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\Gaussian</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\Gaussian</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilter3x3CS.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\Gaussian</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\Gaussian</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\Motion</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsl">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
+      <Filter>Shader Files\HLSL\Filter</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
+      <Filter>Shader Files\HLSL\Filter</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
+      <Filter>Shader Files\HLSL\Filter</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
+      <Filter>Shader Files\HLSL\Filter</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Bloom</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ExtractHighlights.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Bloom</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
+      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+      <Filter>Shader Files\HLSL\DXR</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "D3D12Util.h"
+#include "HlslCompaction.h"
 
 using namespace MotionBlur;
 
@@ -9,14 +10,12 @@ MotionBlurClass::MotionBlurClass() {
 	mMotionVectorMap = std::make_unique<GpuResource>();
 }
 
-bool MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT format) {
+bool MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
-
-	mBackBufferFormat = format;
 
 	CheckReturn(BuildResources());
 
@@ -72,7 +71,7 @@ bool MotionBlurClass::BuildPso() {
 		motionBlurPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		motionBlurPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	motionBlurPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	motionBlurPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&motionBlurPsoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return true;
@@ -130,7 +129,7 @@ void MotionBlurClass::Run(
 void MotionBlurClass::BuildDescriptors() {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = mBackBufferFormat;
+	rtvDesc.Format = SDR_FORMAT;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
@@ -140,7 +139,7 @@ void MotionBlurClass::BuildDescriptors() {
 bool MotionBlurClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	rscDesc.Format = mBackBufferFormat;
+	rscDesc.Format = SDR_FORMAT;
 	rscDesc.Alignment = 0;
 	rscDesc.Width = mWidth;
 	rscDesc.Height = mHeight;
@@ -151,7 +150,7 @@ bool MotionBlurClass::BuildResources() {
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, ClearValues);
+	CD3DX12_CLEAR_VALUE optClear(SDR_FORMAT, ClearValues);
 
 	CheckReturn(mMotionVectorMap->Initialize(
 		md3dDevice,

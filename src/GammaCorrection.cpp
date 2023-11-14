@@ -3,6 +3,7 @@
 #include "ShaderManager.h"
 #include "GpuResource.h"
 #include "D3D12Util.h"
+#include "HlslCompaction.h"
 
 using namespace GammaCorrection;
 
@@ -15,16 +16,12 @@ GammaCorrectionClass::GammaCorrectionClass() {
 	mDuplicatedBackBuffer = std::make_unique<GpuResource>();
 }
 
-bool GammaCorrectionClass::Initialize(
-		ID3D12Device* device, ShaderManager* const manager, 
-		UINT width, UINT height, DXGI_FORMAT backBufferFormat) {
+bool GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
-
-	mBackBufferFormat = backBufferFormat;
 
 	CheckReturn(BuildResources());
 
@@ -70,7 +67,7 @@ bool GammaCorrectionClass::BuildPso() {
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	psoDesc.RTVFormats[0] = mBackBufferFormat;
+	psoDesc.RTVFormats[0] = SDR_FORMAT;
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
@@ -145,7 +142,7 @@ void GammaCorrectionClass::BuildDescriptors() {
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Format = mBackBufferFormat;
+	srvDesc.Format = SDR_FORMAT;
 
 	md3dDevice->CreateShaderResourceView(mDuplicatedBackBuffer->Resource(), &srvDesc, mhDuplicatedBackBufferCpuSrv);
 }
@@ -156,7 +153,7 @@ bool GammaCorrectionClass::BuildResources() {
 	rscDesc.Alignment = 0;
 	rscDesc.Width = mWidth;
 	rscDesc.Height = mHeight;
-	rscDesc.Format = mBackBufferFormat;
+	rscDesc.Format = SDR_FORMAT;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;

@@ -50,7 +50,7 @@ namespace DebugMap {
 		constexpr __forceinline DebugMapSampleDesc SampleDesc(UINT index) const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -78,8 +78,6 @@ namespace DebugMap {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
-
-		DXGI_FORMAT mBackBufferFormat;
 
 		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, MapSize> mhDebugGpuSrvs;
 		std::array<SampleMask::Type, MapSize> mDebugMasks;

@@ -3,6 +3,7 @@
 #include "ShaderManager.h"
 #include "D3D12Util.h"
 #include "GpuResource.h"
+#include "HlslCompaction.h"
 
 using namespace TemporalAA;
 
@@ -11,7 +12,7 @@ TemporalAAClass::TemporalAAClass() {
 	mHistoryMap = std::make_unique<GpuResource>();
 }
 
-bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT format) {
+bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -20,8 +21,6 @@ bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
 	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
-
-	mBackBufferFormat = format;
 
 	bInitiatingTaa = true;
 
@@ -73,7 +72,7 @@ bool TemporalAAClass::BuildPso() {
 		taaPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		taaPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	taaPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	taaPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&taaPsoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return true;
@@ -174,14 +173,14 @@ void TemporalAAClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = mBackBufferFormat;
+	srvDesc.Format = SDR_FORMAT;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = mBackBufferFormat;
+	rtvDesc.Format = SDR_FORMAT;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
@@ -194,7 +193,7 @@ void TemporalAAClass::BuildDescriptors() {
 bool TemporalAAClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	rscDesc.Format = mBackBufferFormat;
+	rscDesc.Format = SDR_FORMAT;
 	rscDesc.Alignment = 0;
 	rscDesc.Width = mWidth;
 	rscDesc.Height = mHeight;
@@ -204,7 +203,7 @@ bool TemporalAAClass::BuildResources() {
 	rscDesc.SampleDesc.Quality = 0;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 
-	CD3DX12_CLEAR_VALUE optClear(mBackBufferFormat, ClearValues);
+	CD3DX12_CLEAR_VALUE optClear(SDR_FORMAT, ClearValues);
 
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	CheckReturn(mResolveMap->Initialize(

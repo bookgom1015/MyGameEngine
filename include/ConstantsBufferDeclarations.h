@@ -183,6 +183,19 @@ struct AtrousWaveletTransformFilterConstantBuffer {
 	float ConstantPads[3];
 };
 
+struct RaytracedReflectionConstantBuffer {
+	DirectX::XMFLOAT4X4	View;
+	DirectX::XMFLOAT4X4	InvView;
+	DirectX::XMFLOAT4X4	Proj;
+	DirectX::XMFLOAT4X4	InvProj;
+
+	DirectX::XMFLOAT3 EyePosW;
+	float ReflectionRadius;
+
+	DirectX::XMUINT2 TextureDim;
+	float ConstantPads[2];
+};
+
 struct DebugMapSampleDesc {
 	DirectX::XMFLOAT4 MinColor;
 	DirectX::XMFLOAT4 MaxColor;

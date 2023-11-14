@@ -63,7 +63,7 @@ namespace GBuffer {
 
 	public:
 		bool Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager, 
-			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv, DXGI_FORMAT depthFormat);
+			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -108,7 +108,6 @@ namespace GBuffer {
 
 		GpuResource* mDepthMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthMapCpuDsv;
-		DXGI_FORMAT mDepthFormat;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhAlbedoMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhAlbedoMapGpuSrv;

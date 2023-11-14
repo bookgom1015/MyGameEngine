@@ -7,6 +7,7 @@
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
 #include "GpuResource.h"
+#include "HlslCompaction.h"
 
 using namespace DirectX;
 using namespace EnvironmentMap;
@@ -78,7 +79,7 @@ bool EnvironmentMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FOR
 		skyPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	skyPsoDesc.NumRenderTargets = 1;
-	skyPsoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+	skyPsoDesc.RTVFormats[0] = HDR_FORMAT;
 	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -182,7 +183,7 @@ void EnvironmentMapClass::BuildDescriptors(
 void EnvironmentMapClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = D3D12Util::HDRMapFormat;
+	srvDesc.Format = HDR_FORMAT;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = 1;
@@ -200,7 +201,7 @@ bool EnvironmentMapClass::BuildResources(ID3D12GraphicsCommandList*const cmdList
 	texDesc.Height = DefaultCubeMapSize;
 	texDesc.DepthOrArraySize = 6;
 	texDesc.MipLevels = 1;
-	texDesc.Format = D3D12Util::HDRMapFormat;
+	texDesc.Format = HDR_FORMAT;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;

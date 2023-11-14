@@ -3,6 +3,7 @@
 #include "ShaderManager.h"
 #include "D3D12Util.h"
 #include "GpuResource.h"
+#include "HlslCompaction.h"
 
 #include <DirectXColors.h>
 
@@ -183,7 +184,7 @@ bool BRDFClass::BuildPso() {
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
 			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
 				&psoDesc, 
@@ -200,7 +201,7 @@ bool BRDFClass::BuildPso() {
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
 			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
 				&psoDesc, 
@@ -219,7 +220,7 @@ bool BRDFClass::BuildPso() {
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
 			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
 				&psoDesc, 
@@ -236,7 +237,7 @@ bool BRDFClass::BuildPso() {
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
-			psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
 			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
 				&psoDesc, 
@@ -254,7 +255,7 @@ bool BRDFClass::BuildPso() {
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+		psoDesc.RTVFormats[0] = HDR_FORMAT;
 
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
 			&psoDesc,
@@ -386,7 +387,7 @@ void BRDFClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = D3D12Util::HDRMapFormat;
+	srvDesc.Format = HDR_FORMAT;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
@@ -404,7 +405,7 @@ bool BRDFClass::BuildResources() {
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
-	rscDesc.Format = D3D12Util::HDRMapFormat;
+	rscDesc.Format = HDR_FORMAT;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 

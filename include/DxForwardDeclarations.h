@@ -23,3 +23,4 @@ namespace MipmapGenerator { class MipmapGeneratorClass; }
 namespace Pixelation { class PixelationClass; }
 namespace Sharpen { class SharpenClass; }
 namespace GaussianFilter { class GaussianFilterClass; }
+namespace RaytracedReflection { class RaytracedReflectionClass; }

@@ -1,5 +1,6 @@
 #include "DepthStencilBuffer.h"
 #include "Logger.h"
+#include "HlslCompaction.h"
 
 using namespace DepthStencilBuffer;
 
@@ -48,14 +49,14 @@ bool DepthStencilBufferClass::BuildResources() {
 	depthStencilDesc.Height = mHeight;
 	depthStencilDesc.DepthOrArraySize = 1;
 	depthStencilDesc.MipLevels = 1;
-	depthStencilDesc.Format = Format;
+	depthStencilDesc.Format = BufferFormat;
 	depthStencilDesc.SampleDesc.Count = 1;
 	depthStencilDesc.SampleDesc.Quality = 0;
 	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 	
 	D3D12_CLEAR_VALUE optClear;
-	optClear.Format = Format;
+	optClear.Format = BufferFormat;
 	optClear.DepthStencil.Depth = 1.0f;
 	optClear.DepthStencil.Stencil = 0;
 	

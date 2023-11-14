@@ -8,7 +8,7 @@
 #include "ResourceUploadBatch.h"
 #include "GpuResource.h"
 #include "Vertex.h"
-#include "DepthStencilBuffer.h"
+#include "HlslCompaction.h"
 
 #include <ddraw.h>
 #include <DDS.h>
@@ -311,7 +311,7 @@ bool IrradianceMapClass::BuildPso() {
 		}
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
-		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+		psoDesc.RTVFormats[0] = HDR_FORMAT;
 		psoDesc.DepthStencilState.DepthEnable = FALSE;
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ConvEquirectToCube])));
 	}
@@ -325,14 +325,14 @@ bool IrradianceMapClass::BuildPso() {
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+		psoDesc.RTVFormats[0] = HDR_FORMAT;
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ConvCubeToEquirect])));
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_DrawCube].Get();
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = D3D12Util::SDRMapFormat;
+		psoDesc.RTVFormats[0] = HDR_FORMAT;
 		psoDesc.DepthStencilState.DepthEnable = FALSE;
 
 		{
@@ -362,7 +362,7 @@ bool IrradianceMapClass::BuildPso() {
 		}
 		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+		psoDesc.RTVFormats[0] = HDR_FORMAT;
 		psoDesc.DepthStencilState.DepthEnable = FALSE;
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ConvoluteDiffuseIrradiance])));
 
@@ -389,7 +389,7 @@ bool IrradianceMapClass::BuildPso() {
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_IntegrateBrdf])));
 	}
 	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DepthStencilBuffer::Format);
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DepthStencilBuffer::BufferFormat);
 		skyPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DrawSkySphere].Get();
 		{
 			auto vs = mShaderManager->GetDxcShader(SkySphereVS);
@@ -398,7 +398,7 @@ bool IrradianceMapClass::BuildPso() {
 			skyPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		skyPsoDesc.NumRenderTargets = 1;
-		skyPsoDesc.RTVFormats[0] = D3D12Util::HDRMapFormat;
+		skyPsoDesc.RTVFormats[0] = HDR_FORMAT;
 		skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 		skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		skyPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -581,7 +581,7 @@ bool IrradianceMapClass::Update(
 			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 			srvDesc.Texture2D.MipLevels = MaxMipLevel;
 			srvDesc.Texture2D.PlaneSlice = 0;
-			srvDesc.Format = D3D12Util::HDRMapFormat;
+			srvDesc.Format = HDR_FORMAT;
 			md3dDevice->CreateShaderResourceView(mEquirectangularMap->Resource(), &srvDesc, mhEquirectangularMapCpuSrv);
 		}
 
@@ -830,7 +830,7 @@ void IrradianceMapClass::BuildDescriptors() {
 	
 	{
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		srvDesc.Format = D3D12Util::HDRMapFormat;
+		srvDesc.Format = HDR_FORMAT;
 		srvDesc.TextureCube.MostDetailedMip = 0;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 		
@@ -848,7 +848,7 @@ void IrradianceMapClass::BuildDescriptors() {
 	}
 	{
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Format = D3D12Util::HDRMapFormat;
+		srvDesc.Format = HDR_FORMAT;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		srvDesc.Texture2D.PlaneSlice = 0;
@@ -866,7 +866,7 @@ void IrradianceMapClass::BuildDescriptors() {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	{
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-		rtvDesc.Format = D3D12Util::HDRMapFormat;
+		rtvDesc.Format = HDR_FORMAT;
 		rtvDesc.Texture2DArray.PlaneSlice = 0;
 		rtvDesc.Texture2DArray.ArraySize = 1;
 
@@ -905,7 +905,7 @@ void IrradianceMapClass::BuildDescriptors() {
 	}
 	{
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rtvDesc.Format = D3D12Util::HDRMapFormat;
+		rtvDesc.Format = HDR_FORMAT;
 		rtvDesc.Texture2D.PlaneSlice = 0;
 
 		for (UINT i = 0; i < MaxMipLevel; ++i) {
@@ -938,12 +938,12 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 	{
-		texDesc.Format = D3D12Util::HDRMapFormat;
 		texDesc.Width = CubeMapSize;
 		texDesc.Height = CubeMapSize;
 		texDesc.DepthOrArraySize = 6;
 
 		texDesc.MipLevels = 1;
+		texDesc.Format = DiffuseIrradCubeMapFormat;
 		CheckReturn(mDiffuseIrradianceCubeMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -955,6 +955,7 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 		));
 
 		texDesc.MipLevels = MaxMipLevel;
+		texDesc.Format = EnvCubeMapFormat;
 		CheckReturn(mEnvironmentCubeMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -964,6 +965,9 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			nullptr,
 			L"EnvironmentCubeMap"
 		));
+
+		texDesc.MipLevels = MaxMipLevel;
+		texDesc.Format = PrefilteredEnvCubeMapFormat;
 		CheckReturn(mPrefilteredEnvironmentCubeMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -975,12 +979,12 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 		));
 	}
 	{
-		texDesc.Format = D3D12Util::HDRMapFormat;
 		texDesc.Width = EquirectangularMapWidth;
 		texDesc.Height = EquirectangularMapHeight;
 		texDesc.DepthOrArraySize = 1;
 
 		texDesc.MipLevels = 1;
+		texDesc.Format = DiffuseIrradEquirectMapFormat;
 		CheckReturn(mDiffuseIrradianceEquirectMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -992,6 +996,7 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 		));
 
 		texDesc.MipLevels = MaxMipLevel;
+		texDesc.Format = EquirectMapFormat;
 		CheckReturn(mEquirectangularMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -1003,7 +1008,7 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 		));
 	}
 	{
-		texDesc.Format = D3D12Util::HDRMapFormat;
+		texDesc.Format = PrefilteredEnvEquirectMapFormat;
 		texDesc.DepthOrArraySize = 1;
 		texDesc.MipLevels = 1;
 

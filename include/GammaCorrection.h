@@ -30,7 +30,7 @@ namespace GammaCorrection {
 		virtual ~GammaCorrectionClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -55,8 +55,6 @@ namespace GammaCorrection {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
-
-		DXGI_FORMAT mBackBufferFormat;
 
 		UINT mWidth;
 		UINT mHeight;

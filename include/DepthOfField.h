@@ -124,8 +124,8 @@ namespace DepthOfField {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocalDistanceBufferUav() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, ID3D12GraphicsCommandList* cmdList, 
-			UINT width, UINT height, DXGI_FORMAT backBufferFormat);
+		bool Initialize(
+			ID3D12Device* device, ShaderManager*const manager, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -177,8 +177,6 @@ namespace DepthOfField {
 
 		UINT mWidth;
 		UINT mHeight;
-		
-		DXGI_FORMAT mBackBufferFormat;
 
 		D3D12_VIEWPORT mViewport;
 		D3D12_RECT mScissorRect;

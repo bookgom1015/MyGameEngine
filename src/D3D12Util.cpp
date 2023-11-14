@@ -8,9 +8,6 @@
 
 using namespace Microsoft::WRL;
 
-const DXGI_FORMAT D3D12Util::HDRMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-const DXGI_FORMAT D3D12Util::SDRMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-
 const size_t D3D12Util::SizeOfUint = sizeof(UINT);
 
 bool D3D12Util::LoadBinary(const std::wstring& inFilename, ComPtr<ID3DBlob>& outBlob) {

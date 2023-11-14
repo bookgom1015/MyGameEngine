@@ -39,6 +39,7 @@ public:
 	UploadBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> TsppBlendCB;
 	UploadBuffer<AtrousWaveletTransformFilterConstantBuffer> AtrousFilterCB;
 	UploadBuffer<DebugMapConstantBuffer> DebugMapCB;
+	UploadBuffer<RaytracedReflectionConstantBuffer> RrCB;
 
 	UINT64 Fence;
 

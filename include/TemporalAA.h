@@ -43,7 +43,7 @@ namespace TemporalAA {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE HistoryMapSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height, DXGI_FORMAT format);
+		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature(const StaticSamplers& samplers);
 		bool BuildPso();
@@ -78,8 +78,6 @@ namespace TemporalAA {
 
 		D3D12_VIEWPORT mViewport;
 		D3D12_RECT mScissorRect;
-
-		DXGI_FORMAT mBackBufferFormat;
 
 		std::unique_ptr<GpuResource> mResolveMap;
 		std::unique_ptr<GpuResource> mHistoryMap;

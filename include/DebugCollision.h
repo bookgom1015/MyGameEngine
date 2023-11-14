@@ -21,7 +21,7 @@ namespace DebugCollision {
 		virtual ~DebugCollisionClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, DXGI_FORMAT backBufferFormat);
+		bool Initialize(ID3D12Device* device, ShaderManager* const manager);
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignature();
 		bool BuildPso();
@@ -46,7 +46,5 @@ namespace DebugCollision {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
-
-		DXGI_FORMAT mBackBufferFormat;
 	};
 }

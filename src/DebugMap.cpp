@@ -11,11 +11,9 @@ namespace {
 	const std::string DebugMapPS = "DebugMapPS";
 }
 
-bool DebugMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, DXGI_FORMAT backBufferFormat) {
+bool DebugMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
-
-	mBackBufferFormat = backBufferFormat;
 
 	mNumEnabledMaps = 0;
 
@@ -80,7 +78,7 @@ bool DebugMapClass::BuildPso() {
 		debugPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		debugPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	debugPsoDesc.RTVFormats[0] = mBackBufferFormat;
+	debugPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&debugPsoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return true;

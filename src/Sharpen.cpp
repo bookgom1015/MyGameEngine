@@ -3,6 +3,7 @@
 #include "GpuResource.h"
 #include "D3D12Util.h"
 #include "ShaderManager.h"
+#include "HlslCompaction.h"
 
 using namespace Sharpen;
 
@@ -67,7 +68,7 @@ bool SharpenClass::BuildPso() {
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = D3D12Util::SDRMapFormat;
+	psoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return true;
@@ -141,7 +142,7 @@ void SharpenClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = D3D12Util::SDRMapFormat;
+	srvDesc.Format = SDR_FORMAT;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.PlaneSlice = 0;
@@ -159,7 +160,7 @@ bool SharpenClass::BuildResources() {
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
-	rscDesc.Format = D3D12Util::SDRMapFormat;
+	rscDesc.Format = SDR_FORMAT;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
