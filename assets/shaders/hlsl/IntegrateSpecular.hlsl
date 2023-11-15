@@ -21,7 +21,7 @@ Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t4);
 Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t5);
 TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered	: register(t6);
 Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT		: register(t7);
-Texture2D<Ssr::SsrMapFormat>							gi_Ssr			: register(t8);
+Texture2D<Ssr::SsrMapFormat>							gi_Reflection	: register(t8);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -74,8 +74,8 @@ float4 PS(VertexOut pin) : SV_Target{
 
 	const float NdotV = max(dot(normalW, viewW), 0);
 
-	const float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
-	const float k = ssr.a;
+	const float4 reflection = gi_Reflection.Sample(gsamLinearClamp, pin.TexC);
+	const float k = reflection.a;
 
 	const float shiness = 1 - roughness;
 	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
@@ -89,10 +89,10 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float2 envBRDF = gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);
 	const float3 specRadiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
 
-	const float3 ssrRadiance = shiness * (kS * envBRDF.x + envBRDF.y) * ssr.rgb;
+	const float3 reflectionRadiance = shiness * (kS * envBRDF.x + envBRDF.y) * reflection.rgb;
 
 	const float t = k * shiness;
-	const float3 integratedSpecRadiance = (1 - t) * specRadiance + t * ssrRadiance;
+	const float3 integratedSpecRadiance = (1 - t) * specRadiance + t * reflectionRadiance;
 	const float aoCoeff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 
 	return float4(radiance + aoCoeff * integratedSpecRadiance, 1);

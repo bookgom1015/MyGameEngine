@@ -824,14 +824,14 @@
     <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
       <Filter>Shader Files\HLSL\Irradiance</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
-      <Filter>Shader Files\HLSL\Irradiance</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
       <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
       <Filter>Shader Files\HLSL\DXR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
     </None>
   </ItemGroup>
 </Project>

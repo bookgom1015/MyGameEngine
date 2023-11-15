@@ -13,7 +13,7 @@ namespace RaytracedReflection {
 	namespace RootSignature {
 		enum {
 			ECB_Rr = 0,
-			ESI_AS,
+			EAS_BVH,
 			ESI_BackBuffer,
 			ESI_NormalDepth,
 			EUO_Reflection,
@@ -30,6 +30,8 @@ namespace RaytracedReflection {
 		__forceinline constexpr UINT Width() const;
 		__forceinline constexpr UINT Height() const;
 
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE ReflectionMapSrv() const;
+
 	public:
 		bool Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
 		bool CompileShaders(const std::wstring& filePath);
@@ -37,7 +39,14 @@ namespace RaytracedReflection {
 		bool BuildPSO();
 		bool BuildShaderTables();
 		void BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
-		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
+		bool OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
+
+		void Run(
+			ID3D12GraphicsCommandList4* const  cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
+			D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth);
 
 	private:
 		void BuildDescriptors();
@@ -73,4 +82,8 @@ constexpr UINT RaytracedReflection::RaytracedReflectionClass::Width() const {
 
 constexpr UINT RaytracedReflection::RaytracedReflectionClass::Height() const {
 	return mHeight;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE RaytracedReflection::RaytracedReflectionClass::ReflectionMapSrv() const {
+	return mhReflectionMapGpuSrv;
 }

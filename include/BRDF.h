@@ -45,7 +45,7 @@ namespace BRDF {
 				ESI_AOCoeiff,
 				ESI_Prefiltered,
 				ESI_BrdfLUT,
-				ESI_SSR,
+				ESI_Reflection,
 				Count
 			};
 		}

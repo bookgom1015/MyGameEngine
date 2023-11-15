@@ -1,15 +1,25 @@
 #pragma once
 
-#ifndef HLSL
-#define COMPACT_NORMAL_DEPTH_DXGI_FORMAT DXGI_FORMAT_R32_UINT
-#endif
-
-#ifndef HDR_FORMAT
-#define HDR_FORMAT DXGI_FORMAT_R16G16B16A16_FLOAT
-#endif
-
-#ifndef SDR_FORMAT
-#define SDR_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+#ifdef HLSL
+	#ifndef HDR_FORMAT
+	#define HDR_FORMAT float4
+	#endif
+	
+	#ifndef SDR_FORMAT
+	#define SDR_FORMAT float4
+	#endif
+#else
+	#ifndef HDR_FORMAT
+	#define HDR_FORMAT DXGI_FORMAT_R16G16B16A16_FLOAT
+	#endif
+	
+	#ifndef SDR_FORMAT
+	#define SDR_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
+	#endif
+	
+	#ifndef COMPACT_NORMAL_DEPTH_DXGI_FORMAT
+	#define COMPACT_NORMAL_DEPTH_DXGI_FORMAT DXGI_FORMAT_R32_UINT
+	#endif
 #endif
 
 namespace GBuffer {
@@ -94,7 +104,7 @@ namespace RaytracedReflection{
 #ifdef HLSL
 	typedef float4 ReflectionMapFormat;
 #else
-	static const DXGI_FORMAT ReflectionMapFormat = SDR_FORMAT;
+	static const DXGI_FORMAT ReflectionMapFormat = HDR_FORMAT;
 #endif
 }
 

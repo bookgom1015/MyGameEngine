@@ -7,6 +7,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
+#include "DxrShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
@@ -14,7 +15,7 @@ typedef BuiltInTriangleIntersectionAttributes Attributes;
 ConstantBuffer<RaytracedReflectionConstantBuffer> cbRr : register(b0);
 
 RaytracingAccelerationStructure				gBVH			: register(t0);
-Texture2D<float3>							gi_BackBuffer	: register(t1);
+Texture2D<HDR_FORMAT>						gi_BackBuffer	: register(t1);
 Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t2);
 
 RWTexture2D<float4>	go_Reflection	: register(u0);

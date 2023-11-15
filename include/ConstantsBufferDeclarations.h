@@ -188,6 +188,7 @@ struct RaytracedReflectionConstantBuffer {
 	DirectX::XMFLOAT4X4	InvView;
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4X4	InvProj;
+	DirectX::XMFLOAT4X4	ViewProj;
 
 	DirectX::XMFLOAT3 EyePosW;
 	float ReflectionRadius;

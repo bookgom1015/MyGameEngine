@@ -5,6 +5,7 @@
 #include "HlslCompaction.h"
 #include "GpuResource.h"
 #include "ShaderTable.h"
+#include "D3D12Util.h"
 
 #include <DirectXMath.h>
 
@@ -51,7 +52,7 @@ bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 	slotRootParameter[RootSignature::ECB_Rr].InitAsConstantBufferView(0);
-	slotRootParameter[RootSignature::ESI_AS].InitAsShaderResourceView(0);
+	slotRootParameter[RootSignature::EAS_BVH].InitAsShaderResourceView(0);
 	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 	slotRootParameter[RootSignature::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
 	slotRootParameter[RootSignature::EUO_Reflection].InitAsDescriptorTable(1, &texTables[2]);
@@ -137,7 +138,7 @@ void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& 
 	hGpu.Offset(1, descSize);
 }
 
-bool RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
+bool RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -147,6 +148,46 @@ bool RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT
 	}
 
 	return true;
+}
+
+void RaytracedReflectionClass::Run(
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
+		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth) {
+	cmdList->SetPipelineState1(mDxrPso.Get());
+	cmdList->SetComputeRootSignature(mRootSignature.Get());
+
+	cmdList->SetComputeRootConstantBufferView(RootSignature::ECB_Rr, cb_rr);
+	cmdList->SetComputeRootShaderResourceView(RootSignature::EAS_BVH, as_bvh);
+
+	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_BackBuffer, si_backBuffer);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_NormalDepth, si_normalDepth);
+
+	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
+	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_Reflection, mhReflectionMapGpuUav);
+
+	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
+	const auto& rayGen = mShaderTables["reflectionRayGen"];
+	const auto& miss = mShaderTables["reflectionMiss"];
+	const auto& hitGroup = mShaderTables["reflectionHitGroup"];
+	dispatchDesc.RayGenerationShaderRecord.StartAddress = rayGen->GetGPUVirtualAddress();
+	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGen->GetDesc().Width;
+	dispatchDesc.MissShaderTable.StartAddress = miss->GetGPUVirtualAddress();
+	dispatchDesc.MissShaderTable.SizeInBytes = miss->GetDesc().Width;
+	dispatchDesc.MissShaderTable.StrideInBytes = dispatchDesc.MissShaderTable.SizeInBytes;
+	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
+	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
+	dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
+	dispatchDesc.Width = mWidth;
+	dispatchDesc.Height = mHeight;
+	dispatchDesc.Depth = 1;
+	cmdList->DispatchRays(&dispatchDesc);
+
+	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
 }
 
 void RaytracedReflectionClass::BuildDescriptors() {
@@ -205,7 +246,7 @@ bool RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList
 			nullptr
 		));
 	
-		const UINT size = mWidth * mHeight * 4;
+		const UINT size = mWidth * mHeight * 8;
 		std::vector<BYTE> data(size);
 	
 		for (UINT i = 0; i < size; i += 4) {

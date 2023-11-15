@@ -80,13 +80,11 @@ bool DxLowRenderer::LowInitialize(HWND hwnd, UINT width, UINT height) {
 }
 
 void DxLowRenderer::LowCleanUp() {
-	if (mInfoQueue != nullptr) {
-		if (FAILED(mInfoQueue->UnregisterMessageCallback(mCallbakCookie))) {
-			WLogln(L"Failed to unregister message call-back");
-		}
+	if (mInfoQueue != nullptr && FAILED(mInfoQueue->UnregisterMessageCallback(mCallbakCookie))) {
+		WLogln(L"Failed to unregister message call-back");
 	}
 
-	if (md3dDevice != nullptr && mCommandQueue != nullptr) {
+	if (mCommandQueue != nullptr) {
 		if (!FlushCommandQueue())
 			WLogln(L"Failed to flush command queue during cleaning up");
 	}

@@ -157,7 +157,7 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[6]);
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_SSR].InitAsDescriptorTable(1, &texTables[8]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Reflection].InitAsDescriptorTable(1, &texTables[8]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -347,7 +347,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_prefiltered,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_ssr) {
+		D3D12_GPU_DESCRIPTOR_HANDLE si_reflection) {
 	cmdList->SetPipelineState(mIntegrateSpecularPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_IntegrateSpecular].Get());
 
@@ -372,7 +372,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_AOCoeiff, si_aocoeiff);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_Prefiltered, si_prefiltered);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_BrdfLUT, si_brdf);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_SSR, si_ssr);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_Reflection, si_reflection);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

@@ -22,6 +22,8 @@ private:
 
 	UINT mElementByteSize = 0;
 	bool mIsConstantBuffer = false;
+
+	bool bIsDirty = true;
 };
 
 #include "UploadBuffer.inl"

@@ -49,6 +49,8 @@ namespace DebugMapLayout {
 		E_LocalMeanVariance,
 		E_DiocclusionBlurStrength,
 
+		E_RaytracedReflection,
+
 		Count
 	};
 }
@@ -84,9 +86,6 @@ public:
 	bool AddMaterial(const std::string& file, const Material& material);
 	void* AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type);
 
-	bool AddBLAS(ID3D12GraphicsCommandList4*const cmdList, MeshGeometry*const geo);
-	bool BuildTLASs(ID3D12GraphicsCommandList4*const cmdList);
-
 	UINT AddTexture(const std::string& file, const Material& material);
 
 private:
@@ -113,6 +112,9 @@ private:
 	bool UpdateRtaoCB(float delta);
 	bool UpdateRrCB(float delta);
 	bool UpdateDebugMapCB(float delta);
+
+	bool AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
+	bool BuildTLASs(ID3D12GraphicsCommandList4* const cmdList);
 	
 	bool DrawShadowMap();
 	bool DrawGBuffer();
@@ -136,6 +138,7 @@ private:
 	bool DrawDxrShadowMap();
 	bool DrawDxrBackBuffer();
 	bool DrawRtao();
+	bool BuildRaytracedReflection();
 
 private:
 	bool bIsCleanedUp;
@@ -155,7 +158,7 @@ private:
 	std::vector<std::unique_ptr<RenderItem>> mRitems;
 	std::vector<RenderItem*> mRitemRefs[RenderType::Count];
 
-	UINT mCurrDescriptorIndex;
+	UINT mCurrDescriptorIndex = 0;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDescForTexMaps;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuDescForTexMaps;
 
@@ -192,18 +195,18 @@ private:
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
-	bool bShadowMapCleanedUp;
-	bool bSsaoMapCleanedUp;
-	bool bSsrMapCleanedUp;
+	bool bShadowMapCleanedUp = false;
+	bool bSsaoMapCleanedUp = false;
+	bool bSsrMapCleanedUp = false;
 
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
 
 	std::unordered_map<DebugMapLayout::Type, bool> mDebugMapStates;
 
-	RenderItem* mPickedRitem;
-	RenderItem* mIrradianceCubeMap;
-	RenderItem* mSkySphere;
+	RenderItem* mPickedRitem = nullptr;
+	RenderItem* mIrradianceCubeMap = nullptr;
+	RenderItem* mSkySphere = nullptr;
 
 	//
 	// DirectXTK12
