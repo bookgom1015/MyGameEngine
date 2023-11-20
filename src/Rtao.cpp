@@ -422,7 +422,7 @@ bool RtaoClass::BuildPSO() {
 		rtaoHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 	
 		auto shaderConfig = rtaoDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-		UINT payloadSize = sizeof(float) /* tHit */;
+		UINT payloadSize = 4; // tHit(float)
 		UINT attribSize = sizeof(XMFLOAT2);
 		shaderConfig->Config(payloadSize, attribSize);
 	
@@ -440,27 +440,32 @@ bool RtaoClass::BuildPSO() {
 	return true;
 }
 
-bool RtaoClass::BuildShaderTables() {
+bool RtaoClass::BuildShaderTables(UINT numInst) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	void* rtaoRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoRayGen");
 	void* rtaoMissShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoMiss");
 	void* rtaoHitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoHitGroup");
 
-	ShaderTable rtaoRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(rtaoRayGenShaderTable.Initialze());
-	rtaoRayGenShaderTable.push_back(ShaderRecord(rtaoRayGenShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["rtaoRayGen"] = rtaoRayGenShaderTable.GetResource();
-
-	ShaderTable rtaoMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(rtaoMissShaderTable.Initialze());
-	rtaoMissShaderTable.push_back(ShaderRecord(rtaoMissShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["rtaoMiss"] = rtaoMissShaderTable.GetResource();
-
-	ShaderTable rtaoHitGroupTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(rtaoHitGroupTable.Initialze());
-	rtaoHitGroupTable.push_back(ShaderRecord(rtaoHitGroupShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["rtaoHitGroup"] = rtaoHitGroupTable.GetResource();
+	{
+		ShaderTable rtaoRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(rtaoRayGenShaderTable.Initialze());
+		rtaoRayGenShaderTable.push_back(ShaderRecord(rtaoRayGenShaderIdentifier, shaderIdentifierSize));
+		mShaderTables["rtaoRayGen"] = rtaoRayGenShaderTable.GetResource();
+	}
+	{
+		ShaderTable rtaoMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(rtaoMissShaderTable.Initialze());
+		rtaoMissShaderTable.push_back(ShaderRecord(rtaoMissShaderIdentifier, shaderIdentifierSize));
+		mShaderTables["rtaoMiss"] = rtaoMissShaderTable.GetResource();
+	}
+	{
+		ShaderTable rtaoHitGroupTable(md3dDevice, numInst, shaderIdentifierSize);
+		CheckReturn(rtaoHitGroupTable.Initialze());		
+		for (UINT i = 0; i < numInst; ++i)
+			rtaoHitGroupTable.push_back(ShaderRecord(rtaoHitGroupShaderIdentifier, shaderIdentifierSize));
+		mShaderTables["rtaoHitGroup"] = rtaoHitGroupTable.GetResource();
+	}
 
 	return true;
 }

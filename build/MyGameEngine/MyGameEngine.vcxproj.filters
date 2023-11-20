@@ -833,5 +833,8 @@
     <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
       <Filter>Shader Files\HLSL\BRDF</Filter>
     </None>
+    <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
   </ItemGroup>
 </Project>

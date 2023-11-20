@@ -6,6 +6,8 @@
 #include "GpuResource.h"
 #include "ShaderTable.h"
 #include "D3D12Util.h"
+#include "RenderItem.h"
+#include "DxMesh.h"
 
 #include <DirectXMath.h>
 
@@ -14,6 +16,19 @@ using namespace DirectX;
 
 namespace {
 	const std::string ReflectionRayCS = "ReflectionRayCS";
+
+	const wchar_t* ReflectionRayGen		= L"ReflectionRayGen";
+	const wchar_t* ReflectionClosestHit	= L"ReflectionClosestHit";
+	const wchar_t* ReflectionMiss		= L"ReflectionMiss";
+	const wchar_t* ReflectionHitGroup	= L"ReflectionHitGroup";
+
+	const wchar_t* ShadowClosestHit	= L"ShadowClosestHit";
+	const wchar_t* ShadowMiss		= L"ShadowMiss";
+	const wchar_t* ShadowHitGroup	= L"ShadowHitGroup";
+
+	const char* RayGenShaderTable	= "RayGenShaderTable";
+	const char* MissShaderTable		= "MissShaderTable";
+	const char* HitGroupShaderTable	= "HitGroupShaderTable";
 }
 
 RaytracedReflectionClass::RaytracedReflectionClass() {
@@ -45,25 +60,46 @@ bool RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 }
 
 bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
-	CD3DX12_DESCRIPTOR_RANGE texTables[3];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
-	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+	{
+		CD3DX12_DESCRIPTOR_RANGE texTables[3];
+		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
-	slotRootParameter[RootSignature::ECB_Rr].InitAsConstantBufferView(0);
-	slotRootParameter[RootSignature::EAS_BVH].InitAsShaderResourceView(0);
-	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[RootSignature::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
-	slotRootParameter[RootSignature::EUO_Reflection].InitAsDescriptorTable(1, &texTables[2]);
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
+		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::Global::EAS_BVH].InitAsShaderResourceView(0);
+		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::Global::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[2]);
 
-	CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
-		_countof(slotRootParameter), slotRootParameter,
-		static_cast<UINT>(samplers.size()), samplers.data(),
-		D3D12_ROOT_SIGNATURE_FLAG_NONE
-	);
-	CheckReturn(D3D12Util::CreateRootSignature(
-		md3dDevice, globalRootSignatureDesc, &mRootSignature));
+		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
+			_countof(slotRootParameter), slotRootParameter,
+			static_cast<UINT>(samplers.size()), samplers.data(),
+			D3D12_ROOT_SIGNATURE_FLAG_NONE
+		);
+		CheckReturn(D3D12Util::CreateRootSignature(
+			md3dDevice, globalRootSignatureDesc, &mRootSignatures[RootSignature::E_Global]));
+	}
+	{
+		//CD3DX12_DESCRIPTOR_RANGE texTables[3];
+		//texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
+		//texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1);
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Local::Count];
+		slotRootParameter[RootSignature::Local::ECB_Obj].InitAsConstantBufferView(0, 1);
+		slotRootParameter[RootSignature::Local::ECB_Mat].InitAsConstantBufferView(1, 1);
+		slotRootParameter[RootSignature::Local::ESB_Vertices].InitAsShaderResourceView(0, 1);
+		slotRootParameter[RootSignature::Local::ESB_Indices].InitAsShaderResourceView(1, 1);
+
+		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
+			_countof(slotRootParameter), slotRootParameter,
+			0, nullptr,
+			D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE
+		);
+		CheckReturn(D3D12Util::CreateRootSignature(
+			md3dDevice, globalRootSignatureDesc, &mRootSignatures[RootSignature::E_Local]));
+	}
 
 	return true;
 }
@@ -75,21 +111,33 @@ bool RaytracedReflectionClass::BuildPSO() {
 	auto reflectionShader = mShaderManager->GetDxcShader(ReflectionRayCS);
 	D3D12_SHADER_BYTECODE reflectionLibDxil = CD3DX12_SHADER_BYTECODE(reflectionShader->GetBufferPointer(), reflectionShader->GetBufferSize());
 	reflectionLib->SetDXILLibrary(&reflectionLibDxil);
-	LPCWSTR reflectionExports[] = { L"ReflectionRayGen", L"ReflectionClosestHit", L"ReflectionMiss" };
-	reflectionLib->DefineExports(reflectionExports);
+	LPCWSTR exports[] = { ReflectionRayGen, ReflectionClosestHit, ReflectionMiss, ShadowClosestHit, ShadowMiss };
+	reflectionLib->DefineExports(exports);
 
 	auto reflectionHitGroup = reflectionDxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-	reflectionHitGroup->SetClosestHitShaderImport(L"ReflectionClosestHit");
-	reflectionHitGroup->SetHitGroupExport(L"ReflectionHitGroup");
+	reflectionHitGroup->SetClosestHitShaderImport(ReflectionClosestHit);
+	reflectionHitGroup->SetHitGroupExport(ReflectionHitGroup);
 	reflectionHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
+	auto shadowHitGroup = reflectionDxrPso.CreateSubobject< CD3DX12_HIT_GROUP_SUBOBJECT>();
+	shadowHitGroup->SetClosestHitShaderImport(ShadowClosestHit);
+	shadowHitGroup->SetHitGroupExport(ShadowHitGroup);
+	shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
 	auto shaderConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = sizeof(XMFLOAT4) /* tHit */;
+	UINT payloadSize = sizeof(XMFLOAT4) + 4; // Color(float4) + IsHit(bool)
 	UINT attribSize = sizeof(XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
 	auto glbalRootSig = reflectionDxrPso.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-	glbalRootSig->SetRootSignature(mRootSignature.Get());
+	glbalRootSig->SetRootSignature(mRootSignatures[RootSignature::E_Global].Get());
+
+	auto localRootSig = reflectionDxrPso.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+	localRootSig->SetRootSignature(mRootSignatures[RootSignature::E_Local].Get());
+
+	auto rootSigAssociation = reflectionDxrPso.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+	rootSigAssociation->SetSubobjectToAssociate(*localRootSig);
+	rootSigAssociation->AddExports(&ReflectionHitGroup, 1);
 
 	auto pipelineConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
 	UINT maxRecursionDepth = 1;
@@ -101,27 +149,63 @@ bool RaytracedReflectionClass::BuildPSO() {
 	return true;
 }
 
-bool RaytracedReflectionClass::BuildShaderTables() {
+bool RaytracedReflectionClass::BuildShaderTables(
+		const std::vector<RenderItem*>& ritems, D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+	UINT numRitems = static_cast<UINT>(ritems.size());
 
-	void* reflectionRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"ReflectionRayGen");
-	void* reflectionMissShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"ReflectionMiss");
-	void* reflectionHitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"ReflectionHitGroup");
+	void* reflectionRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(ReflectionRayGen);
+	void* reflectionMissShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(ReflectionMiss);
+	void* reflectionHitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(ReflectionHitGroup);
 
-	ShaderTable reflectionRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(reflectionRayGenShaderTable.Initialze());
-	reflectionRayGenShaderTable.push_back(ShaderRecord(reflectionRayGenShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["reflectionRayGen"] = reflectionRayGenShaderTable.GetResource();
+	void* shadowMissShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(ShadowMiss);
+	void* shadowHitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(ShadowHitGroup);
 
-	ShaderTable reflectionMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(reflectionMissShaderTable.Initialze());
-	reflectionMissShaderTable.push_back(ShaderRecord(reflectionMissShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["reflectionMiss"] = reflectionMissShaderTable.GetResource();
+	{
+		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(rayGenShaderTable.Initialze());
+		rayGenShaderTable.push_back(ShaderRecord(reflectionRayGenShaderIdentifier, shaderIdentifierSize));
+		mShaderTables[RayGenShaderTable] = rayGenShaderTable.GetResource();
+	}
+	{
+		ShaderTable missShaderTable(md3dDevice, 2, shaderIdentifierSize);
+		CheckReturn(missShaderTable.Initialze());
+		missShaderTable.push_back(ShaderRecord(reflectionMissShaderIdentifier, shaderIdentifierSize));
+		missShaderTable.push_back(ShaderRecord(shadowMissShaderIdentifier, shaderIdentifierSize));
+		mShaderTables[MissShaderTable] = missShaderTable.GetResource();
+	}
+	{
+		UINT shaderRecordSize = shaderIdentifierSize + sizeof(RootSignature::Local::RootArguments);
 
-	ShaderTable reflectionHitGroupTable(md3dDevice, 1, shaderIdentifierSize);
-	CheckReturn(reflectionHitGroupTable.Initialze());
-	reflectionHitGroupTable.push_back(ShaderRecord(reflectionHitGroupShaderIdentifier, shaderIdentifierSize));
-	mShaderTables["reflectionHitGroup"] = reflectionHitGroupTable.GetResource();
+		ShaderTable hitGroupTable(md3dDevice, numRitems, shaderRecordSize);
+		CheckReturn(hitGroupTable.Initialze());
+
+		UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
+		
+		for (UINT i = 0; i < numRitems; ++i) {
+			auto ri = ritems[i];
+			
+			RootSignature::Local::RootArguments rootArgs;
+			rootArgs.CB_Material = cb_mat + ri->Material->MatCBIndex * matCBByteSize;
+			rootArgs.SB_Vertices = ri->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
+			rootArgs.AB_Indices = ri->Geometry->IndexBufferGPU->GetGPUVirtualAddress();
+				
+			ShaderRecord reflectionHitGroupShaderRecord = ShaderRecord(
+				reflectionHitGroupShaderIdentifier, shaderIdentifierSize, &rootArgs, sizeof(rootArgs));
+
+			hitGroupTable.push_back(reflectionHitGroupShaderRecord);
+		}
+		for (UINT i = 0; i < numRitems; ++i) {
+			auto ri = ritems[i];
+
+			ShaderRecord shadowHitGroupShaderRecord = ShaderRecord(reflectionHitGroupShaderIdentifier, shaderIdentifierSize);
+
+			hitGroupTable.push_back(shadowHitGroupShaderRecord);
+		}
+
+		mHitGroupShaderTableStrideInBytes = hitGroupTable.GetShaderRecordSize();
+		mShaderTables[HitGroupShaderTable] = hitGroupTable.GetResource();
+	}
 
 	return true;
 }
@@ -157,22 +241,22 @@ void RaytracedReflectionClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth) {
 	cmdList->SetPipelineState1(mDxrPso.Get());
-	cmdList->SetComputeRootSignature(mRootSignature.Get());
+	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
-	cmdList->SetComputeRootConstantBufferView(RootSignature::ECB_Rr, cb_rr);
-	cmdList->SetComputeRootShaderResourceView(RootSignature::EAS_BVH, as_bvh);
+	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Rr, cb_rr);
+	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::EAS_BVH, as_bvh);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_BackBuffer, si_backBuffer);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_NormalDepth, si_normalDepth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BackBuffer, si_backBuffer);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_NormalDepth, si_normalDepth);
 
 	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
-	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_Reflection, mhReflectionMapGpuUav);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpuUav);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-	const auto& rayGen = mShaderTables["reflectionRayGen"];
-	const auto& miss = mShaderTables["reflectionMiss"];
-	const auto& hitGroup = mShaderTables["reflectionHitGroup"];
+	const auto& rayGen = mShaderTables[RayGenShaderTable];
+	const auto& miss = mShaderTables[MissShaderTable];
+	const auto& hitGroup = mShaderTables[HitGroupShaderTable];
 	dispatchDesc.RayGenerationShaderRecord.StartAddress = rayGen->GetGPUVirtualAddress();
 	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGen->GetDesc().Width;
 	dispatchDesc.MissShaderTable.StartAddress = miss->GetGPUVirtualAddress();
@@ -180,7 +264,7 @@ void RaytracedReflectionClass::Run(
 	dispatchDesc.MissShaderTable.StrideInBytes = dispatchDesc.MissShaderTable.SizeInBytes;
 	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
-	dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
+	dispatchDesc.HitGroupTable.StrideInBytes = mHitGroupShaderTableStrideInBytes;
 	dispatchDesc.Width = mWidth;
 	dispatchDesc.Height = mHeight;
 	dispatchDesc.Depth = 1;

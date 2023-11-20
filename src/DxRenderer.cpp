@@ -319,7 +319,6 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 
 	CheckReturn(BuildRootSignatures());
 	CheckReturn(BuildPSOs());
-	CheckReturn(BuildShaderTables());
 
 	BuildRenderItems();
 
@@ -375,6 +374,11 @@ bool DxRenderer::Update(float delta) {
 	CheckReturn(UpdateDebugMapCB(delta));
 	
 	CheckReturn(UpdateShadingObjects(delta));
+
+	if (bNeedToRebuildShaderTables) {
+		bNeedToRebuildShaderTables = false;
+		BuildShaderTables();
+	}
 
 	return true;
 }
@@ -887,14 +891,6 @@ bool DxRenderer::BuildPSOs() {
 	return true;
 }
 
-bool DxRenderer::BuildShaderTables() {
-	CheckReturn(mDxrShadowMap->BuildShaderTables());
-	CheckReturn(mRtao->BuildShaderTables());
-	CheckReturn(mRr->BuildShaderTables());
-
-	return true;
-}
-
 void DxRenderer::BuildRenderItems() {
 	{
 		auto skyRitem = std::make_unique<RenderItem>();
@@ -1118,15 +1114,15 @@ bool DxRenderer::UpdateShadingObjects(float delta) {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	mIrradianceMap->Update(
+	CheckReturn(mIrradianceMap->Update(
 		mCommandQueue.Get(),
 		mCbvSrvUavHeap.Get(),
-		cmdList, 
+		cmdList,
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(), 
+		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(),
 		mMipmapGenerator.get(),
 		mIrradianceCubeMap
-	);
+	));
 
 	CheckReturn(BuildTLASs(cmdList));
 
@@ -1642,6 +1638,8 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	D3D12Util::UavBarrier(cmdList, blas->Result.Get());
 	mBLASs[geo->Name] = std::move(blas);
 
+	bNeedToRebuildShaderTables = true;
+
 	return true;
 }
 
@@ -1651,9 +1649,13 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 
 	for (const auto ri : opaques) {
+		auto iter = std::find(opaques.begin(), opaques.end(), ri);
+		UINT higGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
+		//Logln(ri->Geometry->Name, " ", std::to_string(higGroupIndex));
+
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 		instanceDesc.InstanceID = instanceDescs.size();
-		instanceDesc.InstanceContributionToHitGroupIndex = 0;
+		instanceDesc.InstanceContributionToHitGroupIndex = higGroupIndex;
 		instanceDesc.InstanceMask = 0xFF;
 		for (int r = 0; r < 3; ++r) {
 			for (int c = 0; c < 4; ++c) {
@@ -1716,6 +1718,16 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 
 	// Wait for the TLAS build to complete
 	D3D12Util::UavBarrier(cmdList, mTLAS->Result.Get());
+
+	return true;
+}
+
+bool DxRenderer::BuildShaderTables() {
+	UINT numGeo = static_cast<UINT>(mBLASs.size());
+	UINT numInst = static_cast<UINT>(mRitems.size());
+	CheckReturn(mDxrShadowMap->BuildShaderTables(numInst));
+	CheckReturn(mRtao->BuildShaderTables(numInst));
+	CheckReturn(mRr->BuildShaderTables(mRitemRefs[RenderType::E_Opaque], mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress()));
 
 	return true;
 }

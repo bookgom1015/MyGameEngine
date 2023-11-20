@@ -96,7 +96,6 @@ private:
 	void BuildDescriptors();
 	bool BuildRootSignatures();
 	bool BuildPSOs();
-	bool BuildShaderTables();
 	void BuildRenderItems();
 
 	bool UpdateShadingObjects(float delta);
@@ -115,6 +114,8 @@ private:
 
 	bool AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
 	bool BuildTLASs(ID3D12GraphicsCommandList4* const cmdList);
+
+	bool BuildShaderTables();
 	
 	bool DrawShadowMap();
 	bool DrawGBuffer();
@@ -218,6 +219,7 @@ private:
 	//
 	std::unordered_map<std::string, std::unique_ptr<AccelerationStructureBuffer>> mBLASs;
 	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
+	bool bNeedToRebuildShaderTables = true;
 
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
 	std::unique_ptr<DxrGeometryBuffer::DxrGeometryBufferClass> mDxrGeometryBuffer;

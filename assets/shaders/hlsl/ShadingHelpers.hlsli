@@ -225,6 +225,23 @@ float2 rand_2_0004(in float2 uv) {
 	return float2(noiseX, noiseY) * 0.004;
 }
 
+float3 RgbToYuv(float3 rgb) {
+	float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+	return float3(y, 0.493 * (rgb.b - y), 0.877 * (rgb.r - y));
+}
+
+float3 YuvToRgb(float3 yuv) {
+	float y = yuv.x;
+	float u = yuv.y;
+	float v = yuv.z;
+
+	return float3(
+		y + 1.0 / 0.877 * v,
+		y - 0.39393 * u - 0.58081 * v,
+		y + 1.0 / 0.493 * u
+	);
+}
+
 uint GetIndexOfValueClosestToReference(float ref, float2 values) {
 	float2 delta = abs(ref - values);
 	uint index = delta[1] < delta[0] ? 1 : 0;

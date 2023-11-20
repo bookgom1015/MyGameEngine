@@ -8,17 +8,42 @@
 
 class ShaderManager;
 class GpuResource;
+struct RenderItem;
 
 namespace RaytracedReflection {
 	namespace RootSignature {
-		enum {
-			ECB_Rr = 0,
-			EAS_BVH,
-			ESI_BackBuffer,
-			ESI_NormalDepth,
-			EUO_Reflection,
-			Count
+		enum Type {
+			E_Global,
+			E_Local
 		};
+
+		namespace Global {
+			enum {
+				ECB_Rr = 0,
+				EAS_BVH,
+				ESI_BackBuffer,
+				ESI_NormalDepth,
+				EUO_Reflection,
+				Count
+			};
+		}
+
+		namespace Local {
+			enum {
+				ECB_Obj = 0,
+				ECB_Mat,
+				ESB_Vertices,
+				ESB_Indices,
+				Count
+			};
+
+			struct RootArguments {
+				D3D12_GPU_VIRTUAL_ADDRESS	CB_Object;
+				D3D12_GPU_VIRTUAL_ADDRESS	CB_Material;
+				D3D12_GPU_VIRTUAL_ADDRESS	SB_Vertices;
+				D3D12_GPU_VIRTUAL_ADDRESS	AB_Indices;
+			};
+		}
 	}
 
 	class RaytracedReflectionClass {
@@ -37,7 +62,7 @@ namespace RaytracedReflection {
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignatures(const StaticSamplers& samplers);
 		bool BuildPSO();
-		bool BuildShaderTables();
+		bool BuildShaderTables(const std::vector<RenderItem*>& ritems, D3D12_GPU_VIRTUAL_ADDRESS cb_mat);
 		void BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 		bool OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
 
@@ -56,12 +81,13 @@ namespace RaytracedReflection {
 		ID3D12Device5* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPso;
 		Microsoft::WRL::ComPtr<ID3D12StateObject> mDxrPso;
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mDxrPsoProp;
 
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
+		UINT mHitGroupShaderTableStrideInBytes;
 
 		UINT mWidth;
 		UINT mHeight;

@@ -14,34 +14,34 @@ struct ShadowHitInfo {
 	bool IsHit;
 };
 
-ConstantBuffer<PassConstants> cbPass		: register(b0);
+ConstantBuffer<PassConstants> cb_Pass		: register(b0);
 
-RaytracingAccelerationStructure	gBVH		: register(t0);
-Texture2D<float>				gDepthMap	: register(t1);
-RWTexture2D<float>				gShadowMap	: register(u0);
+RaytracingAccelerationStructure	gi_BVH		: register(t0);
+Texture2D<float>				gi_Depth	: register(t1);
+RWTexture2D<float>				gi_Shadow	: register(u0);
 
 [shader("raygeneration")]
 void ShadowRayGen() {
 	float width, height;
-	gDepthMap.GetDimensions(width, height);
+	gi_Depth.GetDimensions(width, height);
 
 	uint2 launchIndex = DispatchRaysIndex().xy;
-	float d = gDepthMap[launchIndex];
+	float d = gi_Depth[launchIndex];
 
 	if (d < 1.0f) {
 		float2 tex = float2((launchIndex.x + 0.5f) / width, (launchIndex.y + 0.5f) / height);
 		float4 posH = float4(tex.x * 2.0f - 1.0f, (1.0f - tex.y) * 2.0f - 1.0f, 0.0f, 1.0f);
-		float4 posV = mul(posH, cbPass.InvProj);
+		float4 posV = mul(posH, cb_Pass.InvProj);
 		posV /= posV.w;
 
-		float dv = NdcDepthToViewDepth(d, cbPass.Proj);
+		float dv = NdcDepthToViewDepth(d, cb_Pass.Proj);
 		posV = (dv / posV.z) * posV;
 
-		float4 posW = mul(float4(posV.xyz, 1.0f), cbPass.InvView);
+		float4 posW = mul(float4(posV.xyz, 1.0f), cb_Pass.InvView);
 
 		RayDesc ray;
 		ray.Origin = posW.xyz;
-		ray.Direction = -cbPass.Lights[0].Direction;
+		ray.Direction = -cb_Pass.Lights[0].Direction;
 		ray.TMin = 0.001f;
 		ray.TMax = 1000.0f;
 
@@ -49,7 +49,7 @@ void ShadowRayGen() {
 		payload.IsHit = false;
 
 		TraceRay(
-			gBVH,
+			gi_BVH,
 			RAY_FLAG_CULL_FRONT_FACING_TRIANGLES,
 			0xFF,
 			0,
@@ -62,12 +62,12 @@ void ShadowRayGen() {
 		float shadowFactor = payload.IsHit ? 0.0f : 1.0f;
 		float4 color = float4((float3)shadowFactor, 1.0f);
 
-		gShadowMap[launchIndex] = shadowFactor;
+		gi_Shadow[launchIndex] = shadowFactor;
 
 		return;
 	}
 
-	gShadowMap[launchIndex] = 1.0f;
+	gi_Shadow[launchIndex] = 1.0f;
 }
 
 [shader("closesthit")]

@@ -67,7 +67,7 @@ namespace DxrShadowMap {
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount);
 		bool BuildPso();
-		bool BuildShaderTables();
+		bool BuildShaderTables(UINT numInst);
 		void Run(
 			ID3D12GraphicsCommandList4*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
@@ -93,6 +93,7 @@ namespace DxrShadowMap {
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mPSOProp;
 
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
+		UINT mHitGroupShaderTableStrideInBytes;
 
 		UINT mWidth;
 		UINT mHeight;

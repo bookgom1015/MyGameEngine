@@ -7,6 +7,19 @@
 
 using namespace DxrShadowMap;
 
+namespace {
+	const std::string ShadowRayCS	= "ShadowRayCS";
+
+	const wchar_t* ShadowRayGen		= L"ShadowRayGen"; 
+	const wchar_t* ShadowClosestHit	= L"ShadowClosestHit";
+	const wchar_t* ShadowMiss		= L"ShadowMiss";
+	const wchar_t* ShadowHitGroup	= L"ShadowHitGroup";
+
+	const char* ShadowRayGenShaderTable		= "ShadowRayGenShaderTalbe";
+	const char* ShadowMissShaderTable		= "ShadowMissShaderTalbe";
+	const char* ShadowHitGroupShaderTable	= "ShadowHitGroupShaderTalbe";
+}
+
 DxrShadowMapClass::DxrShadowMapClass() {
 	mResources[Resources::EShadow0] = std::make_unique<GpuResource>();
 	mResources[Resources::EShadow1] = std::make_unique<GpuResource>();
@@ -34,7 +47,7 @@ bool DxrShadowMapClass::Initialize(
 bool DxrShadowMapClass::CompileShaders(const std::wstring& filePath) {
 	const auto fullPath = filePath + L"ShadowRay.hlsl";
 	auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"", L"lib_6_3");
-	CheckReturn(mShaderManager->CompileShader(shaderInfo, "shadowRay"));
+	CheckReturn(mShaderManager->CompileShader(shaderInfo, ShadowRayCS));
 
 	return true;
 }
@@ -71,20 +84,20 @@ bool DxrShadowMapClass::BuildPso() {
 	CD3DX12_STATE_OBJECT_DESC dxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	auto shadowRayLib = dxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-	auto shadowRayShader = mShaderManager->GetDxcShader("shadowRay");
+	auto shadowRayShader = mShaderManager->GetDxcShader(ShadowRayCS);
 	D3D12_SHADER_BYTECODE shadowRayLibDxil = CD3DX12_SHADER_BYTECODE(shadowRayShader->GetBufferPointer(), shadowRayShader->GetBufferSize());
 	shadowRayLib->SetDXILLibrary(&shadowRayLibDxil);
-	LPCWSTR shadowRayExports[] = { L"ShadowRayGen", L"ShadowClosestHit", L"ShadowMiss" };
+	LPCWSTR shadowRayExports[] = { ShadowRayGen, ShadowClosestHit, ShadowMiss };
 	shadowRayLib->DefineExports(shadowRayExports);
 
 	auto shadowHitGroup = dxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-	shadowHitGroup->SetClosestHitShaderImport(L"ShadowClosestHit");
-	shadowHitGroup->SetHitGroupExport(L"ShadowHitGroup");
+	shadowHitGroup->SetClosestHitShaderImport(ShadowClosestHit);
+	shadowHitGroup->SetHitGroupExport(ShadowHitGroup);
 	shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
 	auto shaderConfig = dxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = sizeof(DirectX::XMFLOAT4);	// for pixel color
-	UINT attribSize = sizeof(DirectX::XMFLOAT2);	// for barycentrics
+	UINT payloadSize = 4;							// IsHit(bool)
+	UINT attribSize = sizeof(DirectX::XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
 	auto glbalRootSig = dxrPso.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
@@ -100,30 +113,32 @@ bool DxrShadowMapClass::BuildPso() {
 	return true;
 }
 
-bool DxrShadowMapClass::BuildShaderTables() {
+bool DxrShadowMapClass::BuildShaderTables(UINT numInst) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
-	void* shadowRayGenShaderIdentifier = mPSOProp->GetShaderIdentifier(L"ShadowRayGen");
-	void* shadowMissShaderIdentifier = mPSOProp->GetShaderIdentifier(L"ShadowMiss");
-	void* shadowHitGroupShaderIdentifier = mPSOProp->GetShaderIdentifier(L"ShadowHitGroup");
+	void* shadowRayGenShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowRayGen);
+	void* shadowMissShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowMiss);
+	void* shadowHitGroupShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowHitGroup);
 
 	{
 		ShaderTable shadowRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(shadowRayGenShaderTable.Initialze());
 		shadowRayGenShaderTable.push_back(ShaderRecord(shadowRayGenShaderIdentifier, shaderIdentifierSize));
-		mShaderTables["shadowRayGen"] = shadowRayGenShaderTable.GetResource();
+		mShaderTables[ShadowRayGenShaderTable] = shadowRayGenShaderTable.GetResource();
 	}
 	{
 		ShaderTable shadowMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(shadowMissShaderTable.Initialze());
 		shadowMissShaderTable.push_back(ShaderRecord(shadowMissShaderIdentifier, shaderIdentifierSize));
-		mShaderTables["shadowMiss"] = shadowMissShaderTable.GetResource();
+		mShaderTables[ShadowMissShaderTable] = shadowMissShaderTable.GetResource();
 	}
 	{
-		ShaderTable shadowHitGroupTable(md3dDevice, 1, shaderIdentifierSize);
+		ShaderTable shadowHitGroupTable(md3dDevice, numInst, shaderIdentifierSize);
 		CheckReturn(shadowHitGroupTable.Initialze());
-		shadowHitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
-		mShaderTables["shadowHitGroup"] = shadowHitGroupTable.GetResource();
+		for (UINT i = 0; i < numInst; ++i)
+			shadowHitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
+		mHitGroupShaderTableStrideInBytes = shadowHitGroupTable.GetShaderRecordSize();
+		mShaderTables[ShadowHitGroupShaderTable] = shadowHitGroupTable.GetResource();
 	}
 
 	return true;
@@ -153,9 +168,9 @@ void DxrShadowMapClass::Run(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Shadow, mhGpuDescs[Descriptors::EU_Shadow0]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-	const auto& rayGen = mShaderTables["shadowRayGen"];
-	const auto& miss = mShaderTables["shadowMiss"];
-	const auto& hitGroup = mShaderTables["shadowHitGroup"];
+	const auto& rayGen = mShaderTables[ShadowRayGenShaderTable];
+	const auto& miss = mShaderTables[ShadowMissShaderTable];
+	const auto& hitGroup = mShaderTables[ShadowHitGroupShaderTable];
 	dispatchDesc.RayGenerationShaderRecord.StartAddress = rayGen->GetGPUVirtualAddress();
 	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGen->GetDesc().Width;
 	dispatchDesc.MissShaderTable.StartAddress = miss->GetGPUVirtualAddress();
@@ -163,7 +178,7 @@ void DxrShadowMapClass::Run(
 	dispatchDesc.MissShaderTable.StrideInBytes = dispatchDesc.MissShaderTable.SizeInBytes;
 	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
-	dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
+	dispatchDesc.HitGroupTable.StrideInBytes = mHitGroupShaderTableStrideInBytes;
 	dispatchDesc.Width = mWidth;
 	dispatchDesc.Height = mHeight;
 	dispatchDesc.Depth = 1;
