@@ -96,7 +96,7 @@ bool DxrShadowMapClass::BuildPso() {
 	shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
 	auto shaderConfig = dxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = 4;							// IsHit(bool)
+	UINT payloadSize = 4; // IsHit(bool)
 	UINT attribSize = sizeof(DirectX::XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
@@ -121,24 +121,24 @@ bool DxrShadowMapClass::BuildShaderTables(UINT numInst) {
 	void* shadowHitGroupShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowHitGroup);
 
 	{
-		ShaderTable shadowRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
-		CheckReturn(shadowRayGenShaderTable.Initialze());
-		shadowRayGenShaderTable.push_back(ShaderRecord(shadowRayGenShaderIdentifier, shaderIdentifierSize));
-		mShaderTables[ShadowRayGenShaderTable] = shadowRayGenShaderTable.GetResource();
+		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(rayGenShaderTable.Initialze());
+		rayGenShaderTable.push_back(ShaderRecord(shadowRayGenShaderIdentifier, shaderIdentifierSize));
+		mShaderTables[ShadowRayGenShaderTable] = rayGenShaderTable.GetResource();
 	}
 	{
-		ShaderTable shadowMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
-		CheckReturn(shadowMissShaderTable.Initialze());
-		shadowMissShaderTable.push_back(ShaderRecord(shadowMissShaderIdentifier, shaderIdentifierSize));
-		mShaderTables[ShadowMissShaderTable] = shadowMissShaderTable.GetResource();
+		ShaderTable missShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(missShaderTable.Initialze());
+		missShaderTable.push_back(ShaderRecord(shadowMissShaderIdentifier, shaderIdentifierSize));
+		mShaderTables[ShadowMissShaderTable] = missShaderTable.GetResource();
 	}
 	{
-		ShaderTable shadowHitGroupTable(md3dDevice, numInst, shaderIdentifierSize);
-		CheckReturn(shadowHitGroupTable.Initialze());
+		ShaderTable hitGroupTable(md3dDevice, numInst, shaderIdentifierSize);
+		CheckReturn(hitGroupTable.Initialze());
 		for (UINT i = 0; i < numInst; ++i)
-			shadowHitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
-		mHitGroupShaderTableStrideInBytes = shadowHitGroupTable.GetShaderRecordSize();
-		mShaderTables[ShadowHitGroupShaderTable] = shadowHitGroupTable.GetResource();
+			hitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
+		mHitGroupShaderTableStrideInBytes = hitGroupTable.GetShaderRecordSize();
+		mShaderTables[ShadowHitGroupShaderTable] = hitGroupTable.GetResource();
 	}
 
 	return true;

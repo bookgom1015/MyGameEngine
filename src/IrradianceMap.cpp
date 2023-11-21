@@ -725,6 +725,8 @@ bool IrradianceMapClass::Update(
 		}
 	}
 
+	WLogln(L"");
+
 	bNeedToUpdate = false;
 
 	return true;

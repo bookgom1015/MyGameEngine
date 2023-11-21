@@ -23,7 +23,8 @@
 #endif
 
 namespace GBuffer {
-	static const float RayHitDistanceOnMiss = 1.0f;
+	static const float InvalidDepthValue = 1.0f;
+	static const float InvalidNormDepthValue = 0.0f;
 
 #ifdef HLSL
 	typedef float4	AlbedoMapFormat;
@@ -194,6 +195,33 @@ namespace Rtao {
 				Size	= Width * Height
 			};
 		}
+	}
+}
+
+namespace RaytracedReflection {
+	namespace Ray {
+		enum Type {
+			E_Radiance = 0,
+			E_Shadow,
+			Count
+		};
+	}
+
+	static const UINT InstanceMask = 0xFF;
+
+	namespace HitGroup {
+		static const UINT Offset[Ray::Count] = {
+			0, // Radiance ray
+			1  // Shadow ray
+		};
+		static const UINT GeometryStride = Ray::Count;
+	}
+
+	namespace Miss {
+		static const UINT Offset[Ray::Count] = {
+			0, // Radiance ray
+			1  // Shadow ray
+		};
 	}
 }
 

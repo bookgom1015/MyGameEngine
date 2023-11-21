@@ -1651,7 +1651,6 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 	for (const auto ri : opaques) {
 		auto iter = std::find(opaques.begin(), opaques.end(), ri);
 		UINT higGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
-		//Logln(ri->Geometry->Name, " ", std::to_string(higGroupIndex));
 
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 		instanceDesc.InstanceID = instanceDescs.size();

@@ -31,7 +31,7 @@ struct RayPayload {
 };
 
 [shader("raygeneration")]
-void ReflectionRayGen() {
+void RadianceRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 	float2 texc = (launchIndex + 0.5) / cbRr.TextureDim;
 
@@ -39,7 +39,7 @@ void ReflectionRayGen() {
 	float depth;
 	DecodeNormalDepth(gi_NormalDepth[launchIndex], normal, depth);
 	
-	if (depth == GBuffer::RayHitDistanceOnMiss) {
+	if (depth == GBuffer::InvalidNormDepthValue) {
 		go_Reflection[launchIndex] = 0;
 		return;
 	}
@@ -61,10 +61,10 @@ void ReflectionRayGen() {
 	TraceRay(
 		gi_BVH,
 		RAY_FLAG_CULL_FRONT_FACING_TRIANGLES,
-		0xFF,
-		0,
-		0,
-		0,
+		RaytracedReflection::InstanceMask,
+		RaytracedReflection::HitGroup::Offset[RaytracedReflection::Ray::E_Radiance],
+		RaytracedReflection::HitGroup::GeometryStride,
+		RaytracedReflection::Miss::Offset[RaytracedReflection::Ray::E_Radiance],
 		ray,
 		payload
 	);
@@ -73,7 +73,7 @@ void ReflectionRayGen() {
 }
 
 [shader("closesthit")]
-void ReflectionClosestHit(inout RayPayload payload, Attributes attr) {
+void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	uint startIndex = PrimitiveIndex() * 3;
 	const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
 	
@@ -89,12 +89,13 @@ void ReflectionClosestHit(inout RayPayload payload, Attributes attr) {
 }
 
 [shader("miss")]
-void ReflectionMiss(inout RayPayload payload) {
+void RadianceMiss(inout RayPayload payload) {
 	payload.Irrad = 0;
 }	
 
 [shader("closesthit")]
 void ShadowClosestHit(inout RayPayload payload, Attributes attr) {
+	payload.Irrad = 1;
 	payload.IsHit = true;
 }
 

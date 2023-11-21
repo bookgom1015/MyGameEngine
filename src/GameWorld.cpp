@@ -40,7 +40,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 		}
 		game.CleanUp();
 
-		Logln("\nThe game has been successfully finished");
+		Logln("The game has been successfully finished");
 		return 0;
 	}
 	catch (const std::exception& e) {

@@ -87,6 +87,7 @@ namespace RaytracedReflection {
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mDxrPsoProp;
 
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
+		UINT mMissShaderTableStrideInBytes;
 		UINT mHitGroupShaderTableStrideInBytes;
 
 		UINT mWidth;
