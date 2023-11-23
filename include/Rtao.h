@@ -330,7 +330,7 @@ namespace Rtao {
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignatures(const StaticSamplers& samplers);
 		bool BuildPSO();
-		bool BuildShaderTables(UINT numInst);
+		bool BuildShaderTables(UINT numBlas);
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 

@@ -65,7 +65,7 @@ bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surf
 
 	TraceRay(
 		gBVH,
-		RAY_FLAG_CULL_FRONT_FACING_TRIANGLES,
+		0,
 		0xFF,
 		0,
 		0,

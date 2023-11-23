@@ -50,10 +50,10 @@ void ShadowRayGen() {
 
 		TraceRay(
 			gi_BVH,
-			RAY_FLAG_CULL_FRONT_FACING_TRIANGLES,
+			0,
 			0xFF,
 			0,
-			0,
+			1,
 			0,
 			ray,
 			payload

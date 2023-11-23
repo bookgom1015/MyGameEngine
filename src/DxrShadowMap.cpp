@@ -113,7 +113,7 @@ bool DxrShadowMapClass::BuildPso() {
 	return true;
 }
 
-bool DxrShadowMapClass::BuildShaderTables(UINT numInst) {
+bool DxrShadowMapClass::BuildShaderTables(UINT numBlas) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	void* shadowRayGenShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowRayGen);
@@ -133,9 +133,9 @@ bool DxrShadowMapClass::BuildShaderTables(UINT numInst) {
 		mShaderTables[ShadowMissShaderTable] = missShaderTable.GetResource();
 	}
 	{
-		ShaderTable hitGroupTable(md3dDevice, numInst, shaderIdentifierSize);
+		ShaderTable hitGroupTable(md3dDevice, numBlas, shaderIdentifierSize);
 		CheckReturn(hitGroupTable.Initialze());
-		for (UINT i = 0; i < numInst; ++i)
+		for (UINT i = 0; i < numBlas; ++i)
 			hitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
 		mHitGroupShaderTableStrideInBytes = hitGroupTable.GetShaderRecordSize();
 		mShaderTables[ShadowHitGroupShaderTable] = hitGroupTable.GetResource();

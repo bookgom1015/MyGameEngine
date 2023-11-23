@@ -7,13 +7,13 @@ const int gNumFrameResources = 3;
 #include "HlslCompaction.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
-#include "AccelerationStructure.h"
 
 struct FrameResource;
 struct PassConstants;
+struct AccelerationStructureBuffer;
 
 class ShaderManager;
-class ImGuiManager;
+class ImGuiManager; 
 
 #include "DxForwardDeclarations.h"
 
@@ -217,7 +217,8 @@ private:
 	//
 	// DXR
 	//
-	std::unordered_map<std::string, std::unique_ptr<AccelerationStructureBuffer>> mBLASs;
+	std::vector<std::unique_ptr<AccelerationStructureBuffer>> mBlases;
+	std::unordered_map<std::string, AccelerationStructureBuffer*> mBlasRefs;
 	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
 	bool bNeedToRebuildShaderTables = true;
 

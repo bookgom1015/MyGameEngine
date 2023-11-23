@@ -6,8 +6,8 @@
 #include "GpuResource.h"
 #include "ShaderTable.h"
 #include "D3D12Util.h"
-#include "RenderItem.h"
 #include "DxMesh.h"
+#include "AccelerationStructure.h"
 
 #include <DirectXMath.h>
 
@@ -30,9 +30,9 @@ namespace {
 	const wchar_t* ClosestHitNames[RaytracedReflection::Ray::Count] = { RadianceClosestHitName, ShadowClosestHitName };
 	const wchar_t* HitGroupNames[RaytracedReflection::Ray::Count] = { RadianceHitGroupName, ShadowHitGroupName };
 
-	const char* RayGenShaderTable	= "RayGenShaderTable";
-	const char* MissShaderTable		= "MissShaderTable";
-	const char* HitGroupShaderTable	= "HitGroupShaderTable";
+	const char* RayGenShaderTableName	= "RayGenShaderTable";
+	const char* MissShaderTableName		= "MissShaderTable";
+	const char* HitGroupShaderTableName = "HitGroupShaderTable";
 }
 
 RaytracedReflectionClass::RaytracedReflectionClass() {
@@ -151,9 +151,9 @@ bool RaytracedReflectionClass::BuildPSO() {
 }
 
 bool RaytracedReflectionClass::BuildShaderTables(
-		const std::vector<RenderItem*>& ritems, D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
+		const std::vector<std::unique_ptr<AccelerationStructureBuffer>>& blases,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
-	UINT numRitems = static_cast<UINT>(ritems.size());
 
 #ifdef _DEBUG
 	// A shader name look-up table for shader table debug print out.
@@ -165,7 +165,7 @@ bool RaytracedReflectionClass::BuildShaderTables(
 		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(rayGenShaderTable.Initialze());
 		rayGenShaderTable.push_back(ShaderRecord(radianceRayGenShaderIdentifier, shaderIdentifierSize));
-		mShaderTables[RayGenShaderTable] = rayGenShaderTable.GetResource();
+		mShaderTables[RayGenShaderTableName] = rayGenShaderTable.GetResource();
 	}
 	{
 		void* missShaderIds[Ray::Count];
@@ -187,7 +187,7 @@ bool RaytracedReflectionClass::BuildShaderTables(
 		WLogln(L"");
 #endif
 		mMissShaderTableStrideInBytes = missShaderTable.GetShaderRecordSize();
-		mShaderTables[MissShaderTable] = missShaderTable.GetResource();
+		mShaderTables[MissShaderTableName] = missShaderTable.GetResource();
 	}
 	{
 		void* hitGroupShaderIds[Ray::Count];
@@ -196,18 +196,15 @@ bool RaytracedReflectionClass::BuildShaderTables(
 
 		UINT shaderRecordSize = shaderIdentifierSize + sizeof(RootSignature::Local::RootArguments);
 
-		ShaderTable hitGroupTable(md3dDevice, numRitems * Ray::Count, shaderRecordSize);
+		ShaderTable hitGroupTable(md3dDevice, static_cast<UINT>(blases.size()) * Ray::Count, shaderRecordSize);
 		CheckReturn(hitGroupTable.Initialze());
 
 		UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 		
-		for (UINT i = 0; i < numRitems; ++i) {
-			auto ri = ritems[i];
-			
+		for (const auto& blas : blases) {
 			RootSignature::Local::RootArguments rootArgs;
-			rootArgs.CB_Material = cb_mat + ri->Material->MatCBIndex * matCBByteSize;
-			rootArgs.SB_Vertices = ri->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
-			rootArgs.AB_Indices = ri->Geometry->IndexBufferGPU->GetGPUVirtualAddress();
+			rootArgs.SB_Vertices = blas->VertexBufferGPUVirtualAddress;
+			rootArgs.AB_Indices = blas->IndexBufferGPUVirtualAddress;
 			
 			for (auto shaderId : hitGroupShaderIds) {
 				ShaderRecord hitGroupShaderRecord = ShaderRecord(shaderId, shaderIdentifierSize, &rootArgs, sizeof(rootArgs));
@@ -225,7 +222,7 @@ bool RaytracedReflectionClass::BuildShaderTables(
 		WLogln(L"");
 #endif
 		mHitGroupShaderTableStrideInBytes = hitGroupTable.GetShaderRecordSize();
-		mShaderTables[HitGroupShaderTable] = hitGroupTable.GetResource();
+		mShaderTables[HitGroupShaderTableName] = hitGroupTable.GetResource();
 	}
 
 	return true;
@@ -275,9 +272,9 @@ void RaytracedReflectionClass::Run(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpuUav);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-	const auto& rayGen = mShaderTables[RayGenShaderTable];
-	const auto& miss = mShaderTables[MissShaderTable];
-	const auto& hitGroup = mShaderTables[HitGroupShaderTable];
+	const auto& rayGen = mShaderTables[RayGenShaderTableName];
+	const auto& miss = mShaderTables[MissShaderTableName];
+	const auto& hitGroup = mShaderTables[HitGroupShaderTableName];
 	dispatchDesc.RayGenerationShaderRecord.StartAddress = rayGen->GetGPUVirtualAddress();
 	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGen->GetDesc().Width;
 	dispatchDesc.MissShaderTable.StartAddress = miss->GetGPUVirtualAddress();

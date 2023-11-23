@@ -67,7 +67,7 @@ namespace DxrShadowMap {
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount);
 		bool BuildPso();
-		bool BuildShaderTables(UINT numInst);
+		bool BuildShaderTables(UINT numBlas);
 		void Run(
 			ID3D12GraphicsCommandList4*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,

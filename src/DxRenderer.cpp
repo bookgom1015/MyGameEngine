@@ -32,6 +32,7 @@
 #include "Sharpen.h"
 #include "GaussianFilter.h"
 #include "RaytracedReflection.h"
+#include "AccelerationStructure.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -1608,7 +1609,7 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	inputs.pGeometryDescs = &geometryDesc;
 	inputs.NumDescs = 1;
 	inputs.Flags = buildFlags;
-
+	
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
 	md3dDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
 
@@ -1616,6 +1617,9 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	prebuildInfo.ResultDataMaxSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ResultDataMaxSizeInBytes);
 
 	std::unique_ptr<AccelerationStructureBuffer> blas = std::make_unique<AccelerationStructureBuffer>();
+
+	blas->VertexBufferGPUVirtualAddress = geo->VertexBufferGPU->GetGPUVirtualAddress();
+	blas->IndexBufferGPUVirtualAddress = geo->IndexBufferGPU->GetGPUVirtualAddress();
 
 	// Create the BLAS scratch buffer
 	D3D12BufferCreateInfo bufferInfo(prebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
@@ -1636,8 +1640,10 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	cmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 
 	D3D12Util::UavBarrier(cmdList, blas->Result.Get());
-	mBLASs[geo->Name] = std::move(blas);
 
+	mBlasRefs[geo->Name] = blas.get();
+	mBlases.emplace_back(std::move(blas));
+	
 	bNeedToRebuildShaderTables = true;
 
 	return true;
@@ -1649,20 +1655,26 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 
 	for (const auto ri : opaques) {
-		auto iter = std::find(opaques.begin(), opaques.end(), ri);
-		UINT higGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
+		auto geoName = ri->Geometry->Name;
+		auto blas = mBlasRefs[geoName];
+		auto iter = std::find_if(mBlases.begin(), mBlases.end(), [&](std::unique_ptr<AccelerationStructureBuffer>& p) {
+			return p.get() == blas;
+		});
+
+		UINT higGroupIndex = static_cast<UINT>(std::distance(mBlases.begin(), iter));
+		//Logln(geoName, std::to_string(higGroupIndex));
 
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 		instanceDesc.InstanceID = instanceDescs.size();
-		instanceDesc.InstanceContributionToHitGroupIndex = higGroupIndex;
+		instanceDesc.InstanceContributionToHitGroupIndex = 0;// higGroupIndex;
 		instanceDesc.InstanceMask = 0xFF;
 		for (int r = 0; r < 3; ++r) {
 			for (int c = 0; c < 4; ++c) {
 				instanceDesc.Transform[r][c] = ri->World.m[c][r];
 			}
 		}
-		instanceDesc.AccelerationStructure = mBLASs[ri->Geometry->Name]->Result->GetGPUVirtualAddress();
-		instanceDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE;
+		instanceDesc.AccelerationStructure = mBlasRefs[geoName]->Result->GetGPUVirtualAddress();
+		instanceDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 		instanceDescs.push_back(instanceDesc);
 	}
 
@@ -1722,11 +1734,13 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 }
 
 bool DxRenderer::BuildShaderTables() {
-	UINT numGeo = static_cast<UINT>(mBLASs.size());
-	UINT numInst = static_cast<UINT>(mRitems.size());
-	CheckReturn(mDxrShadowMap->BuildShaderTables(numInst));
-	CheckReturn(mRtao->BuildShaderTables(numInst));
-	CheckReturn(mRr->BuildShaderTables(mRitemRefs[RenderType::E_Opaque], mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress()));
+	UINT numBlas = static_cast<UINT>(mBlases.size());
+	CheckReturn(mDxrShadowMap->BuildShaderTables(numBlas));
+	CheckReturn(mRtao->BuildShaderTables(numBlas));
+	CheckReturn(mRr->BuildShaderTables(
+		mBlases,
+		mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress())
+	);
 
 	return true;
 }

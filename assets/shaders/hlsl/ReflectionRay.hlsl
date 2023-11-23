@@ -58,13 +58,23 @@ void RadianceRayGen() {
 
 	RayPayload payload = { (float4)0, false };
 
+	//TraceRay(
+	//	gi_BVH,
+	//	0,
+	//	RaytracedReflection::InstanceMask,
+	//	RaytracedReflection::HitGroup::Offset[RaytracedReflection::Ray::E_Radiance],
+	//	RaytracedReflection::HitGroup::GeometryStride,
+	//	RaytracedReflection::Miss::Offset[RaytracedReflection::Ray::E_Radiance],
+	//	ray,
+	//	payload
+	//);
 	TraceRay(
 		gi_BVH,
-		RAY_FLAG_CULL_FRONT_FACING_TRIANGLES,
+		0,
 		RaytracedReflection::InstanceMask,
-		RaytracedReflection::HitGroup::Offset[RaytracedReflection::Ray::E_Radiance],
-		RaytracedReflection::HitGroup::GeometryStride,
-		RaytracedReflection::Miss::Offset[RaytracedReflection::Ray::E_Radiance],
+		0,
+		0,
+		0,
 		ray,
 		payload
 	);
@@ -74,23 +84,24 @@ void RadianceRayGen() {
 
 [shader("closesthit")]
 void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
-	uint startIndex = PrimitiveIndex() * 3;
-	const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
-	
-	Vertex vertices[3] = {
-		lsb_Vertices[indices[0]],
-		lsb_Vertices[indices[1]],
-		lsb_Vertices[indices[2]] };
-	
-	float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
-	float3 normal = HitAttribute(normals, attr);
-
-	payload.Irrad = float4(normal, 1);
+	//uint startIndex = PrimitiveIndex() * 3;
+	//const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
+	//
+	//Vertex vertices[3] = {
+	//	lsb_Vertices[indices[0]],
+	//	lsb_Vertices[indices[1]],
+	//	lsb_Vertices[indices[2]] };
+	//
+	//float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
+	//float3 normal = HitAttribute(normals, attr);
+	//
+	//payload.Irrad = float4(normal, 1);
+	payload.Irrad = float4(0, 1, 0, 1);
 }
 
 [shader("miss")]
 void RadianceMiss(inout RayPayload payload) {
-	payload.Irrad = 0;
+	payload.Irrad = float4(1, 0, 0, 1);
 }	
 
 [shader("closesthit")]
@@ -101,6 +112,7 @@ void ShadowClosestHit(inout RayPayload payload, Attributes attr) {
 
 [shader("miss")]
 void ShadowMiss(inout RayPayload payload) {
+	payload.Irrad = float4(0, 0, 0, 1);
 	payload.IsHit = false;
 }
 
