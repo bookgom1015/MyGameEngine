@@ -9,8 +9,7 @@
 class ShaderManager;
 class GpuResource;
 
-struct MeshGeometry;
-struct AccelerationStructureBuffer;
+struct RenderItem;
 
 namespace RaytracedReflection {
 	namespace RootSignature {
@@ -65,7 +64,7 @@ namespace RaytracedReflection {
 		bool BuildRootSignatures(const StaticSamplers& samplers);
 		bool BuildPSO();
 		bool BuildShaderTables(
-			const std::vector<std::unique_ptr<AccelerationStructureBuffer>>& blases,
+			const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_mat);
 		void BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 		bool OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);

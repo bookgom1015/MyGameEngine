@@ -13,7 +13,7 @@
 
 ConstantBuffer<PassConstants> cbPass	: register(b0);
 
-Texture2D<float3>										gi_BackBuffer	: register(t0);
+Texture2D<ToneMapping::IntermediateMapFormat>			gi_BackBuffer	: register(t0);
 Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t1);
 Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t2);
 Texture2D<DepthStencilBuffer::BufferFormat>				gi_Depth		: register(t3);
@@ -49,7 +49,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 float4 PS(VertexOut pin) : SV_Target{
 	float pz = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
-	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
+	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
 	if (pz == DepthStencilBuffer::InvalidDepthValue) return float4(radiance, 1);
 
 	pz = NdcDepthToViewDepth(pz, cbPass.Proj);

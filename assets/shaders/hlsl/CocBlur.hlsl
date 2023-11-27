@@ -1,6 +1,11 @@
 #ifndef __COCBLUR_HLSL__
 #define __COCBLUR_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
 cbuffer cbBlur : register(b0) {
@@ -16,7 +21,7 @@ cbuffer cbRootConstants : register(b1) {
 	bool	gHorizontalBlur;
 };
 
-Texture2D gInputMap	: register(t0);
+Texture2D<DepthOfField::CocMapFormat> gi_Coc	: register(t0);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -46,7 +51,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	};
 
 	uint width, height;
-	gInputMap.GetDimensions(width, height);
+	gi_Coc.GetDimensions(width, height);
 
 	float dx = 1.0f / width;
 	float dy = 1.0f / height;
@@ -55,7 +60,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	if (gHorizontalBlur) texOffset = float2(dx, 0.0f);
 	else texOffset = float2(0.0f, dy);
 
-	float coc = blurWeights[gBlurRadius] * gInputMap.Sample(gsamLinearWrap, pin.TexC).r;
+	float coc = blurWeights[gBlurRadius] * gi_Coc.Sample(gsamLinearWrap, pin.TexC);
 	float totalWeight = blurWeights[gBlurRadius];
 
 	for (float i = -gBlurRadius; i <= gBlurRadius; ++i) {
@@ -65,7 +70,7 @@ float4 PS(VertexOut pin) : SV_Target {
 
 		float weight = blurWeights[i + gBlurRadius];
 
-		coc += weight * gInputMap.Sample(gsamPointWrap, tex, 0.0f);
+		coc += weight * gi_Coc.Sample(gsamPointWrap, tex, 0.0f);
 
 		totalWeight += weight;
 	}

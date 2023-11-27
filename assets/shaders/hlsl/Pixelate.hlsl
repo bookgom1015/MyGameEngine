@@ -14,7 +14,7 @@ cbuffer cbRootConstants : register(b0) {
 	float gPixelSize;
 }
 
-Texture2D<float3> gi_BackBuffer : register(t0);
+Texture2D<SDR_FORMAT> gi_BackBuffer : register(t0);
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -48,7 +48,7 @@ float4 PS(VertexOut pin) : SV_Target{
 
 	float2 texc = float2(x, y) / gTexSize;
 	
-	return float4(gi_BackBuffer.SampleLevel(gsamLinearClamp, texc, 0), 1);
+	return gi_BackBuffer.SampleLevel(gsamLinearClamp, texc, 0);
 }
 
 #endif // __PIXELATION_HLSL__

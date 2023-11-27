@@ -16,9 +16,9 @@ struct ShadowHitInfo {
 
 ConstantBuffer<PassConstants> cb_Pass		: register(b0);
 
-RaytracingAccelerationStructure	gi_BVH		: register(t0);
-Texture2D<float>				gi_Depth	: register(t1);
-RWTexture2D<float>				gi_Shadow	: register(u0);
+RaytracingAccelerationStructure				gi_BVH		: register(t0);
+Texture2D<GBuffer::DepthMapFormat>			gi_Depth	: register(t1);
+RWTexture2D<DxrShadowMap::ShadowMapFormat>	gi_Shadow	: register(u0);
 
 [shader("raygeneration")]
 void ShadowRayGen() {

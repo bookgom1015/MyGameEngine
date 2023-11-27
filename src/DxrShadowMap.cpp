@@ -4,6 +4,7 @@
 #include "D3D12Util.h"
 #include "ShaderTable.h"
 #include "MathHelper.h"
+#include "HlslCompaction.h"
 
 using namespace DxrShadowMap;
 
@@ -113,7 +114,7 @@ bool DxrShadowMapClass::BuildPso() {
 	return true;
 }
 
-bool DxrShadowMapClass::BuildShaderTables(UINT numBlas) {
+bool DxrShadowMapClass::BuildShaderTables(UINT numRitems) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	void* shadowRayGenShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowRayGen);
@@ -133,9 +134,9 @@ bool DxrShadowMapClass::BuildShaderTables(UINT numBlas) {
 		mShaderTables[ShadowMissShaderTable] = missShaderTable.GetResource();
 	}
 	{
-		ShaderTable hitGroupTable(md3dDevice, numBlas, shaderIdentifierSize);
+		ShaderTable hitGroupTable(md3dDevice, numRitems, shaderIdentifierSize);
 		CheckReturn(hitGroupTable.Initialze());
-		for (UINT i = 0; i < numBlas; ++i)
+		for (UINT i = 0; i < numRitems; ++i)
 			hitGroupTable.push_back(ShaderRecord(shadowHitGroupShaderIdentifier, shaderIdentifierSize));
 		mHitGroupShaderTableStrideInBytes = hitGroupTable.GetShaderRecordSize();
 		mShaderTables[ShadowHitGroupShaderTable] = hitGroupTable.GetResource();
@@ -234,8 +235,8 @@ void DxrShadowMapClass::BuildDescriptors() {
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
-	srvDesc.Format = ShadowFormat;
-	uavDesc.Format = ShadowFormat;
+	srvDesc.Format = ShadowMapFormat;
+	uavDesc.Format = ShadowMapFormat;
 
 	auto pRawResource = mResources[DxrShadowMap::Resources::EShadow0]->Resource();
 	md3dDevice->CreateShaderResourceView(pRawResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow0]);
@@ -250,7 +251,7 @@ bool DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList) 
 	D3D12_RESOURCE_DESC texDesc = {};
 	texDesc.DepthOrArraySize = 1;
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texDesc.Format = ShadowFormat;
+	texDesc.Format = ShadowMapFormat;
 	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	texDesc.Width = mWidth;
 	texDesc.Height = mHeight;

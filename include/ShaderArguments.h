@@ -53,6 +53,14 @@ namespace ShadowMap {
 #endif 
 }
 
+namespace DxrShadowMap {
+#ifdef HLSL
+	typedef float ShadowMapFormat;
+#else 
+	static const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R16_UNORM;
+#endif 
+}
+
 namespace DepthStencilBuffer {
 #ifdef HLSL
 	typedef float BufferFormat;
@@ -61,6 +69,14 @@ namespace DepthStencilBuffer {
 #endif
 
 	static const float InvalidDepthValue = 1.0f;
+}
+
+namespace ToneMapping {
+#ifdef HLSL
+	typedef float4 IntermediateMapFormat;
+#else
+	const DXGI_FORMAT IntermediateMapFormat = HDR_FORMAT;
+#endif
 }
 
 namespace Ssao {
@@ -78,6 +94,24 @@ namespace Ssr {
 	typedef float4 SsrMapFormat;
 #else
 	static const DXGI_FORMAT SsrMapFormat = HDR_FORMAT;
+#endif
+}
+
+namespace Bloom {
+#ifdef HLSL
+	typedef float4 BloomMapFormat;
+#else
+	static const DXGI_FORMAT BloomMapFormat = HDR_FORMAT;
+#endif
+}
+
+namespace DepthOfField {
+#ifdef HLSL
+	typedef float4	DofMapFormat;
+	typedef float	CocMapFormat;
+#else
+	static const DXGI_FORMAT DofMapFormat = HDR_FORMAT;
+	static const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R16_SNORM;
 #endif
 }
 

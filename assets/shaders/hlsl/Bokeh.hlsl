@@ -1,13 +1,18 @@
 #ifndef __BOKEH_HLSL__
 #define __BOKEH_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
 #ifndef NUM_SAMPLES
 #define NUM_SAMPLES 4
 #endif
 
-Texture2D gInputMap : register(t0);
+Texture2D<ToneMapping::IntermediateMapFormat> gi_BackBuffer : register(t0);
 
 cbuffer cbRootConstants : register(b0) {
 	float gBokehRadius;
@@ -34,7 +39,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target{
 	uint width, height;
-	gInputMap.GetDimensions(width, height);
+	gi_BackBuffer.GetDimensions(width, height);
 	
 	float dx = gBokehRadius / (float)width;
 	float dy = gBokehRadius / (float)height;
@@ -49,7 +54,7 @@ float4 PS(VertexOut pin) : SV_Target{
 
 
 			float2 texC = pin.TexC + float2(i * dx, j * dy);
-			float3 color = gInputMap.Sample(gsamLinearClamp, texC).rgb;			
+			float3 color = gi_BackBuffer.Sample(gsamLinearClamp, texC).rgb;
 			float3 powered = pow(color, 4.0f);
 
 			accum += color * powered;

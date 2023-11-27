@@ -68,12 +68,13 @@ void RadianceRayGen() {
 	//	ray,
 	//	payload
 	//);
+
 	TraceRay(
 		gi_BVH,
 		0,
 		RaytracedReflection::InstanceMask,
 		0,
-		0,
+		2,
 		0,
 		ray,
 		payload

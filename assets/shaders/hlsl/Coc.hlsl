@@ -1,6 +1,11 @@
 #ifndef __COC_HLSL__
 #define __COC_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
 cbuffer cbDof : register(b0) {
@@ -12,9 +17,9 @@ cbuffer cbDof : register(b0) {
 	float		gConstantPad0;
 };
 
-Texture2D gDepthMap	: register(t0);
+Texture2D<GBuffer::DepthMapFormat> gi_Depth : register(t0);
 
-RWBuffer<float> uFocalDistance : register(u0);
+RWBuffer<float> ui_FocalDistance : register(u0);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -45,18 +50,18 @@ float NdcDepthToViewDepth(float z_ndc) {
 	return viewZ;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
-	float depth = gDepthMap.Sample(gsamDepthMap, pin.TexC).r;
+DepthOfField::CocMapFormat PS(VertexOut pin) : SV_Target {
+	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
 	depth = NdcDepthToViewDepth(depth);
 
-	float focusDist = uFocalDistance[0];
+	float focusDist = ui_FocalDistance[0];
 
 	float diff = depth - focusDist;
 	float coc = diff / gFocusRange;
 	coc = clamp(coc, -1.0f, 1.0f);
 
-	return (float4)coc;
+	return coc;
 }
 
 #endif // __COC_HLSL__

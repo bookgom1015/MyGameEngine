@@ -7,7 +7,7 @@
 #include "ShaderTable.h"
 #include "D3D12Util.h"
 #include "DxMesh.h"
-#include "AccelerationStructure.h"
+#include "RenderItem.h"
 
 #include <DirectXMath.h>
 
@@ -151,7 +151,7 @@ bool RaytracedReflectionClass::BuildPSO() {
 }
 
 bool RaytracedReflectionClass::BuildShaderTables(
-		const std::vector<std::unique_ptr<AccelerationStructureBuffer>>& blases,
+		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
@@ -196,15 +196,15 @@ bool RaytracedReflectionClass::BuildShaderTables(
 
 		UINT shaderRecordSize = shaderIdentifierSize + sizeof(RootSignature::Local::RootArguments);
 
-		ShaderTable hitGroupTable(md3dDevice, static_cast<UINT>(blases.size()) * Ray::Count, shaderRecordSize);
+		ShaderTable hitGroupTable(md3dDevice, static_cast<UINT>(ritems.size()) * Ray::Count, shaderRecordSize);
 		CheckReturn(hitGroupTable.Initialze());
 
 		UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 		
-		for (const auto& blas : blases) {
+		for (const auto ritem : ritems) {
 			RootSignature::Local::RootArguments rootArgs;
-			rootArgs.SB_Vertices = blas->VertexBufferGPUVirtualAddress;
-			rootArgs.AB_Indices = blas->IndexBufferGPUVirtualAddress;
+			rootArgs.SB_Vertices = ritem->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
+			rootArgs.AB_Indices = ritem->Geometry->IndexBufferGPU->GetGPUVirtualAddress();
 			
 			for (auto shaderId : hitGroupShaderIds) {
 				ShaderRecord hitGroupShaderRecord = ShaderRecord(shaderId, shaderIdentifierSize, &rootArgs, sizeof(rootArgs));

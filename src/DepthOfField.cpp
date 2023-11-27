@@ -193,7 +193,7 @@ bool DepthOfFieldClass::BuildPso() {
 		dofPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		dofPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	dofPsoDesc.RTVFormats[0] = SDR_FORMAT;
+	dofPsoDesc.RTVFormats[0] = DofMapFormat;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&dofPsoDesc, IID_PPV_ARGS(&mPSOs["dof"])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC dofBlurPsoDesc = dofPsoDesc;
@@ -349,11 +349,11 @@ void DepthOfFieldClass::BuildDescriptors(
 	mhFocalDistanceCpuUav = hCpu.Offset(1, descSize);
 	mhFocalDistanceGpuUav = hGpu.Offset(1, descSize);
 
+	BuildDescriptors();
+
 	hCpu.Offset(1, descSize);
 	hGpu.Offset(1, descSize);
 	hCpuRtv.Offset(1, rtvDescSize);
-
-	BuildDescriptors();
 }
 
 bool DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
@@ -397,8 +397,8 @@ void DepthOfFieldClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCocMap->Resource(), &srvDesc, mhCocMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mCocMap->Resource(), &rtvDesc, mhCocMapCpuRtv);
 
-	srvDesc.Format = SDR_FORMAT;
-	rtvDesc.Format = SDR_FORMAT;
+	srvDesc.Format = DofMapFormat;
+	rtvDesc.Format = DofMapFormat;
 	for (int i = 0; i < 2; ++i) {
 		md3dDevice->CreateShaderResourceView(mDofMaps[i]->Resource(), &srvDesc, mhDofMapCpuSrvs[i]);
 		md3dDevice->CreateRenderTargetView(mDofMaps[i]->Resource(), &rtvDesc, mhDofMapCpuRtvs[i]);
@@ -435,11 +435,11 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 		));		
 	}
 	{
-		CD3DX12_CLEAR_VALUE optClear(SDR_FORMAT, DofMapClearValues);
+		CD3DX12_CLEAR_VALUE optClear(DofMapFormat, DofMapClearValues);
 
 		rscDesc.Width = mWidth;
 		rscDesc.Height = mHeight;
-		rscDesc.Format = SDR_FORMAT;
+		rscDesc.Format = DofMapFormat;
 		for (int i = 0; i < 2; ++i) {
 			std::wstringstream wsstream;
 			wsstream << L"DepthOfFieldMap_" << i;

@@ -25,13 +25,13 @@
 
 ConstantBuffer<PassConstants> cbPass	: register(b0);
 
-Texture2D<GBuffer::AlbedoMapFormat>			gi_Albedo	: register(t0);
-Texture2D<GBuffer::NormalMapFormat>			gi_Normal	: register(t1);
-Texture2D<GBuffer::DepthMapFormat>			gi_Depth	: register(t2);
-Texture2D<GBuffer::RMSMapFormat>			gi_RMS		: register(t3);
-Texture2D<ShadowMap::ShadowMapFormat>		gi_Shadow	: register(t4);
-Texture2D<Ssao::AOCoefficientMapFormat>		gi_AOCoeiff	: register(t5);
-TextureCube<float3>							gi_Diffuse	: register(t6);
+Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t0);
+Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t1);
+Texture2D<GBuffer::DepthMapFormat>						gi_Depth		: register(t2);
+Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t3);
+Texture2D<ShadowMap::ShadowMapFormat>					gi_Shadow		: register(t4);
+Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t5);
+TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad	: register(t6);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -92,8 +92,8 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
 
-	const float3 diffSamp = gi_Diffuse.SampleLevel(gsamLinearClamp, normalW, 0);
-	const float3 diffuseIrradiance = diffSamp * albedo.rgb;
+	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).rgb;
+	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;
 
 	const float aoCoeiff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 

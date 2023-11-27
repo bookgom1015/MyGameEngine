@@ -14,7 +14,7 @@ cbuffer cbRootConstants : register(b0) {
 	float	gAmount;
 }
 
-Texture2D<float3> gi_BackBuffer : register(t0);
+Texture2D<SDR_FORMAT> gi_BackBuffer : register(t0);
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -39,11 +39,11 @@ float4 PS(VertexOut pin) : SV_Target{
 	float dx = gInvTexSize.x;
 	float dy = gInvTexSize.y;
 
-	float3 curr		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC, 0) * center;
-	float3 up		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0,  dy), 0) * neighbor;
-	float3 down		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0, -dy), 0) * neighbor;
-	float3 left		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(-dx, 0), 0) * neighbor;
-	float3 right	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2( dx, 0), 0) * neighbor;
+	float3 curr		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC, 0).rgb * center;
+	float3 up		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0,  dy), 0).rgb * neighbor;
+	float3 down		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0, -dy), 0).rgb * neighbor;
+	float3 left		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(-dx, 0), 0).rgb * neighbor;
+	float3 right	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2( dx, 0), 0).rgb * neighbor;
 
 	float3 finalColor = curr + up + down + left + right;
 

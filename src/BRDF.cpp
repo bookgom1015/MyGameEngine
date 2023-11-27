@@ -124,7 +124,7 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Diffuse].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad].InitAsDescriptorTable(1, &texTables[6]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -304,7 +304,7 @@ void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_diffuse,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_diffuseIrrad,
 		Render::Type renderType) {
 	cmdList->SetPipelineState(mPSOs[renderType][ModelType].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_CalcReflectanceEquation].Get());
@@ -323,7 +323,7 @@ void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_RMS, si_rms);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Shadow, si_shadow);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_AOCoeiff, si_aocoeiff);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Diffuse, si_diffuse);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad, si_diffuseIrrad);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

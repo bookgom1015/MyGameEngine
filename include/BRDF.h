@@ -29,7 +29,7 @@ namespace BRDF {
 				ESI_RMS,
 				ESI_Shadow,
 				ESI_AOCoeiff,
-				ESI_Diffuse,
+				ESI_DiffuseIrrad,
 				Count
 			};
 		}
@@ -99,7 +99,7 @@ namespace BRDF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rms, 
 			D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_diffuse,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_diffuseIrrad,
 			Render::Type renderType = Render::E_Raster);
 
 		void IntegrateSpecularIrrad(

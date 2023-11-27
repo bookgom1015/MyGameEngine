@@ -13,7 +13,7 @@ cbuffer gRootConstants : register(b0) {
 	float gExposure;
 }
 
-Texture2D<float4> gi_HDR : register(t0);
+Texture2D<ToneMapping::IntermediateMapFormat> gi_Intermediate : register(t0);
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -37,7 +37,7 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 float4 PS(VertexOut pin) : SV_Target {
 	float2 tex = pin.TexC;
 
-	float3 hdr = gi_HDR.SampleLevel(gsamPointClamp, tex, 0).rgb;
+	float3 hdr = gi_Intermediate.SampleLevel(gsamPointClamp, tex, 0).rgb;
 
 #if NON_HDR
 	float3 mapped = hdr;

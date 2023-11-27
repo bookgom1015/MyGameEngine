@@ -411,11 +411,11 @@ bool DxRenderer::Draw() {
 
 		CheckReturn(IntegrateSpecIrrad());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
+		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		
 		CheckReturn(ResolveToneMapping());
 		if (bGammaCorrectionEnabled) CheckReturn(ApplyGammaCorrection());
 	
-		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 		if (bTaaEnabled) CheckReturn(ApplyTAA());
 		if (bSharpenEnabled) CheckReturn(ApplySharpen());
@@ -1655,25 +1655,20 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 
 	for (const auto ri : opaques) {
-		auto geoName = ri->Geometry->Name;
-		auto blas = mBlasRefs[geoName];
-		auto iter = std::find_if(mBlases.begin(), mBlases.end(), [&](std::unique_ptr<AccelerationStructureBuffer>& p) {
-			return p.get() == blas;
-		});
+		auto iter = std::find(opaques.begin(), opaques.end(), ri);
 
-		UINT higGroupIndex = static_cast<UINT>(std::distance(mBlases.begin(), iter));
-		//Logln(geoName, std::to_string(higGroupIndex));
+		UINT hitGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
 
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-		instanceDesc.InstanceID = instanceDescs.size();
-		instanceDesc.InstanceContributionToHitGroupIndex = 0;// higGroupIndex;
+		instanceDesc.InstanceID = 0;
+		instanceDesc.InstanceContributionToHitGroupIndex = hitGroupIndex;
 		instanceDesc.InstanceMask = 0xFF;
 		for (int r = 0; r < 3; ++r) {
 			for (int c = 0; c < 4; ++c) {
 				instanceDesc.Transform[r][c] = ri->World.m[c][r];
 			}
 		}
-		instanceDesc.AccelerationStructure = mBlasRefs[geoName]->Result->GetGPUVirtualAddress();
+		instanceDesc.AccelerationStructure = mBlasRefs[ri->Geometry->Name]->Result->GetGPUVirtualAddress();
 		instanceDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 		instanceDescs.push_back(instanceDesc);
 	}
@@ -1734,11 +1729,13 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 }
 
 bool DxRenderer::BuildShaderTables() {
-	UINT numBlas = static_cast<UINT>(mBlases.size());
-	CheckReturn(mDxrShadowMap->BuildShaderTables(numBlas));
-	CheckReturn(mRtao->BuildShaderTables(numBlas));
+	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
+
+	UINT numRitems = static_cast<UINT>(opaques.size());
+	CheckReturn(mDxrShadowMap->BuildShaderTables(numRitems));
+	CheckReturn(mRtao->BuildShaderTables(numRitems));
 	CheckReturn(mRr->BuildShaderTables(
-		mBlases,
+		opaques,
 		mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress())
 	);
 
@@ -2201,8 +2198,8 @@ bool DxRenderer::ApplyDepthOfField() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	const auto backBuffer = mSwapChainBuffer->CurrentBackBuffer();
-	auto backBufferSrv = mSwapChainBuffer->CurrentBackBufferSrv();
+	const auto backBuffer = mToneMapping->InterMediateMapResource();
+	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
 
 	const auto dofCBAddress = mCurrFrameResource->DofCB.Resource()->GetGPUVirtualAddress();
 	mDof->CalcFocalDist(

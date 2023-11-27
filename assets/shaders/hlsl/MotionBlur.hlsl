@@ -1,11 +1,16 @@
 #ifndef __MOTIONBLUR_HLSL__
 #define __MOTIONBLUR_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-Texture2D<float3>	gi_Input	: register(t0);
-Texture2D<float>	gi_Depth	: register(t1);
-Texture2D<float2>	gi_Velocity	: register(t2);
+Texture2D<SDR_FORMAT>					gi_BackBuffer	: register(t0);
+Texture2D<GBuffer::DepthMapFormat>		gi_Depth		: register(t1);
+Texture2D<GBuffer::VelocityMapFormat>	gi_Velocity		: register(t2);
 
 cbuffer cbRootConstants : register(b0) {
 	float gIntensity;
@@ -37,7 +42,7 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 
 float4 PS(VertexOut pin) : SV_TARGET {
 	float2 velocity = gi_Velocity.Sample(gsamPointWrap, pin.TexC);
-	float3 finalColor = gi_Input.Sample(gsamPointWrap, pin.TexC);
+	float3 finalColor = gi_BackBuffer.Sample(gsamPointWrap, pin.TexC).rgb;
 
 	if (velocity.x > 100) return float4(finalColor, 1);
 
@@ -54,11 +59,11 @@ float4 PS(VertexOut pin) : SV_TARGET {
 		inverse -= velocity;
 
 		if (refDepth < gi_Depth.Sample(gsamDepthMap, forward) + gDepthBias) {
-			finalColor += gi_Input.Sample(gsamLinearClamp, forward);
+			finalColor += gi_BackBuffer.Sample(gsamLinearClamp, forward).rgb;
 			++cnt;
 		}
 		if (refDepth < gi_Depth.Sample(gsamDepthMap, inverse) + gDepthBias) {
-			finalColor += gi_Input.Sample(gsamLinearClamp, inverse);
+			finalColor += gi_BackBuffer.Sample(gsamLinearClamp, inverse).rgb;
 			++cnt;
 		}
 	}

@@ -8,8 +8,8 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-Texture2D gi_BackBuffer	: register(t0);
-Texture2D gi_Bloom		: register(t1);
+Texture2D<ToneMapping::IntermediateMapFormat>	gi_BackBuffer	: register(t0);
+Texture2D<Bloom::BloomMapFormat>				gi_Bloom		: register(t1);
 
 #include "CoordinatesFittedToScreen.hlsli"
 

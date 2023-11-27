@@ -31,7 +31,7 @@ cbuffer cbRootConstants : register(b1) {
 // Nonnumeric values cannot be added to a cbuffer.
 RaytracingAccelerationStructure				gBVH			: register(t0);
 Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t1);
-Texture2D<float>							gi_DepthMap		: register(t2);
+Texture2D<GBuffer::DepthMapFormat>			gi_DepthMap		: register(t2);
 
 RWTexture2D<float> go_AOCoefficient		: register(u0);
 RWTexture2D<float> go_RayHitDistance	: register(u1);

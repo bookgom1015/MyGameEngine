@@ -48,8 +48,6 @@ namespace DxrShadowMap {
 	using ResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
 	using ResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
 
-	const DXGI_FORMAT ShadowFormat = DXGI_FORMAT_R16_UNORM;
-
 	class DxrShadowMapClass {
 	public:
 		DxrShadowMapClass();
@@ -67,7 +65,7 @@ namespace DxrShadowMap {
 		bool CompileShaders(const std::wstring& filePath);
 		bool BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount);
 		bool BuildPso();
-		bool BuildShaderTables(UINT numBlas);
+		bool BuildShaderTables(UINT numRitems);
 		void Run(
 			ID3D12GraphicsCommandList4*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,

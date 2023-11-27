@@ -93,8 +93,6 @@ namespace DepthOfField {
 
 	const UINT NumRenderTargets = 3;
 
-	const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R8G8B8A8_SNORM;
-
 	const float CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	const float BokehMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	const float DofMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -182,21 +180,20 @@ namespace DepthOfField {
 		D3D12_RECT mScissorRect;
 
 		std::unique_ptr<GpuResource> mCocMap;
-		std::array<std::unique_ptr<GpuResource>, 2> mDofMaps;
-		std::unique_ptr<GpuResource> mFocalDistanceBuffer;
-
-		BYTE* mMappedBuffer;
-
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCocMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuRtv;
 
+		std::array<std::unique_ptr<GpuResource>, 2> mDofMaps;
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhDofMapCpuSrvs;
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhDofMapGpuSrvs;
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhDofMapCpuRtvs;
 
+		std::unique_ptr<GpuResource> mFocalDistanceBuffer;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFocalDistanceCpuUav;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhFocalDistanceGpuUav;
+
+		BYTE* mMappedBuffer;
 	};
 }
 

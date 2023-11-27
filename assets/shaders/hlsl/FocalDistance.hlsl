@@ -1,6 +1,11 @@
 #ifndef __FOCALDISTANCE_HLSL__
 #define __FOCALDISTANCE_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
 cbuffer cbDof : register(b0) {
@@ -12,9 +17,9 @@ cbuffer cbDof : register(b0) {
 	float		gConstantPad0;
 };
 
-Texture2D gDepthMap : register(t0);
+Texture2D<GBuffer::DepthMapFormat> gi_Depth : register(t0);
 
-RWBuffer<float> uFocalDistance : register(u0);
+RWBuffer<float> uio_FocalDistance : register(u0);
 
 struct VertexOut {
 	float4 PosH	: SV_POSITION;
@@ -43,14 +48,14 @@ float NdcDepthToViewDepth(float z_ndc) {
 }
 
 void PS(VertexOut pin) {
-	float depth = gDepthMap.Sample(gsamDepthMap, pin.TexC).r;
+	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
 	depth = NdcDepthToViewDepth(depth);
 
-	float prev = uFocalDistance[0];
+	float prev = uio_FocalDistance[0];
 	float diff = depth - prev;
 
-	uFocalDistance[0] = prev + diff * gFocusingSpeed * gDeltaTime;
+	uio_FocalDistance[0] = prev + diff * gFocusingSpeed * gDeltaTime;
 }
 
 #endif // __FOCALDISTANCE_HLSL

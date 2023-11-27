@@ -13,7 +13,7 @@ cbuffer gRootConstants : register(b0) {
 	float gGamma;
 }
 
-Texture2D<float4> gi_BackBuffer : register(t0);
+Texture2D<SDR_FORMAT> gi_BackBuffer : register(t0);
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;

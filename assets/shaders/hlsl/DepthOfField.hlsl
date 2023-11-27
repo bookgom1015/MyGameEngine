@@ -1,14 +1,19 @@
 #ifndef __DEPTHOFFIELD_HLSL__
 #define __DEPTHOFFIELD_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
 #ifndef NUM_SAMPLES
 #define NUM_SAMPLES 4
 #endif
 
-Texture2D gBackBuffer	: register(t0);
-Texture2D gCocMap		: register(t1);
+Texture2D<ToneMapping::IntermediateMapFormat>	gi_BackBuffer	: register(t0);
+Texture2D<DepthOfField::CocMapFormat>			gi_Coc			: register(t1);
 
 cbuffer cbRootConstants : register(b0) {
 	float gBokehRadius;
@@ -38,12 +43,12 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target {
 	uint width, height;
-	gBackBuffer.GetDimensions(width, height);
+	gi_BackBuffer.GetDimensions(width, height);
 
 	float dx = gBokehRadius / width;
 	float dy = gBokehRadius / height;
 
-	float currCoc = gCocMap.Sample(gsamPointClamp, pin.TexC).r;
+	float currCoc = gi_Coc.Sample(gsamPointClamp, pin.TexC);
 	int blurRadius = gNumSamples * abs(currCoc);
 
 	float3 finalColor = (float3)0.0f;
@@ -57,10 +62,10 @@ float4 PS(VertexOut pin) : SV_Target {
 			if (radius > gNumSamples) continue;
 
 			float2 tex = pin.TexC + float2(i * dx, j * dy);
-			float coc = gCocMap.Sample(gsamPointClamp, tex).r;
+			float coc = gi_Coc.Sample(gsamPointClamp, tex);
 			if (coc > -gCocThreshold && (radius > blurRadius || abs(currCoc - coc) > gCocDiffThreshold)) continue;
 
-			float3 color = gBackBuffer.Sample(gsamPointClamp, tex).rgb;
+			float3 color = gi_BackBuffer.Sample(gsamPointClamp, tex).rgb;
 			float3 powered = pow(color, gHighlightPower);
 
 			finalColor += color * powered;
