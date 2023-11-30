@@ -10,10 +10,10 @@ const int gNumFrameResources = 3;
 
 struct FrameResource;
 struct PassConstants;
-struct AccelerationStructureBuffer;
 
 class ShaderManager;
 class ImGuiManager; 
+class AccelerationStructureBuffer;
 
 #include "DxForwardDeclarations.h"
 
@@ -113,7 +113,8 @@ private:
 	bool UpdateDebugMapCB(float delta);
 
 	bool AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
-	bool BuildTLASs(ID3D12GraphicsCommandList4* const cmdList);
+	bool BuildTLAS(ID3D12GraphicsCommandList4* const cmdList);
+	bool UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList);
 
 	bool BuildShaderTables();
 	
@@ -217,9 +218,10 @@ private:
 	//
 	// DXR
 	//
-	std::vector<std::unique_ptr<AccelerationStructureBuffer>> mBlases;
-	std::unordered_map<std::string, AccelerationStructureBuffer*> mBlasRefs;
+	std::vector<std::unique_ptr<AccelerationStructureBuffer>> mBLASes;
+	std::unordered_map<std::string, AccelerationStructureBuffer*> mBLASRefs;
 	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
+	bool bNeedToRebuildTLAS = true;
 	bool bNeedToRebuildShaderTables = true;
 
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;

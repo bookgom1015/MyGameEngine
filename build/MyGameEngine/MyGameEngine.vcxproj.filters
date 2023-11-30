@@ -587,6 +587,9 @@
     <ClCompile Include="..\..\src\RaytracedReflection.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\AccelerationStructure.cpp">
+      <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">

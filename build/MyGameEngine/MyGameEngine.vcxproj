@@ -242,6 +242,7 @@
     <ClCompile Include="..\..\externals\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\externals\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\externals\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\src\AccelerationStructure.cpp" />
     <ClCompile Include="..\..\src\Actor.cpp" />
     <ClCompile Include="..\..\src\ActorManager.cpp" />
     <ClCompile Include="..\..\src\BRDF.cpp" />

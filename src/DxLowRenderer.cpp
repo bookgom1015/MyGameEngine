@@ -28,7 +28,6 @@ namespace {
 			sevStr = "Info";
 			break;
 		case D3D12_MESSAGE_SEVERITY_MESSAGE:
-			return;
 			sevStr = "Message";
 			break;
 		}

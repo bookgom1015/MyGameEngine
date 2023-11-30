@@ -311,6 +311,7 @@ bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 	CheckReturn(FlushCommandQueue());
+
 	CheckReturn(CompileShaders());
 	CheckReturn(BuildGeometries());
 
@@ -376,17 +377,12 @@ bool DxRenderer::Update(float delta) {
 	
 	CheckReturn(UpdateShadingObjects(delta));
 
-	if (bNeedToRebuildShaderTables) {
-		bNeedToRebuildShaderTables = false;
-		BuildShaderTables();
-	}
-
 	return true;
 }
 
 bool DxRenderer::Draw() {
 	CheckHRESULT(mCurrFrameResource->CmdListAlloc->Reset());
-
+	
 	// Pre-pass and main-pass
 	{
 		if (bRaytracing) {
@@ -405,10 +401,10 @@ bool DxRenderer::Draw() {
 	// Post-pass
 	{
 		CheckReturn(DrawSkySphere());
-
+	
 		if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
 		else { CheckReturn(BuildSsr()); }
-
+	
 		CheckReturn(IntegrateSpecIrrad());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
@@ -425,10 +421,10 @@ bool DxRenderer::Draw() {
 	if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) CheckReturn(DrawEquirectangulaToCube());
 	CheckReturn(DrawDebuggingInfo());
 	if (bShowImGui) CheckReturn(DrawImGui());
-
+	
 	CheckHRESULT(mSwapChain->Present(0, AllowTearing() ? DXGI_PRESENT_ALLOW_TEARING : 0));
 	mSwapChainBuffer->NextBackBuffer();
-
+	
 	mCurrFrameResource->Fence = static_cast<UINT>(IncreaseFence());
 	mCommandQueue->Signal(mFence.Get(), GetCurrentFence());
 
@@ -1113,8 +1109,8 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 
 bool DxRenderer::UpdateShadingObjects(float delta) {
 	const auto cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+	
 	CheckReturn(mIrradianceMap->Update(
 		mCommandQueue.Get(),
 		mCbvSrvUavHeap.Get(),
@@ -1124,9 +1120,20 @@ bool DxRenderer::UpdateShadingObjects(float delta) {
 		mMipmapGenerator.get(),
 		mIrradianceCubeMap
 	));
-
-	CheckReturn(BuildTLASs(cmdList));
-
+	
+	if (bNeedToRebuildTLAS) {
+		bNeedToRebuildTLAS = false;
+		CheckReturn(BuildTLAS(cmdList));
+	}
+	else {
+		CheckReturn(UpdateTLAS(cmdList));
+	}
+	
+	if (bNeedToRebuildShaderTables) {
+		bNeedToRebuildShaderTables = false;
+		BuildShaderTables();
+	}
+	
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
@@ -1618,9 +1625,6 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 
 	std::unique_ptr<AccelerationStructureBuffer> blas = std::make_unique<AccelerationStructureBuffer>();
 
-	blas->VertexBufferGPUVirtualAddress = geo->VertexBufferGPU->GetGPUVirtualAddress();
-	blas->IndexBufferGPUVirtualAddress = geo->IndexBufferGPU->GetGPUVirtualAddress();
-
 	// Create the BLAS scratch buffer
 	D3D12BufferCreateInfo bufferInfo(prebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
 	bufferInfo.Alignment = std::max(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
@@ -1641,15 +1645,16 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 
 	D3D12Util::UavBarrier(cmdList, blas->Result.Get());
 
-	mBlasRefs[geo->Name] = blas.get();
-	mBlases.emplace_back(std::move(blas));
+	mBLASRefs[geo->Name] = blas.get();
+	mBLASes.emplace_back(std::move(blas));
 	
+	bNeedToRebuildTLAS = true;
 	bNeedToRebuildShaderTables = true;
 
 	return true;
 }
 
-bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
+bool DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
 
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
@@ -1668,7 +1673,7 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 				instanceDesc.Transform[r][c] = ri->World.m[c][r];
 			}
 		}
-		instanceDesc.AccelerationStructure = mBlasRefs[ri->Geometry->Name]->Result->GetGPUVirtualAddress();
+		instanceDesc.AccelerationStructure = mBLASRefs[ri->Geometry->Name]->Result->GetGPUVirtualAddress();
 		instanceDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 		instanceDescs.push_back(instanceDesc);
 	}
@@ -1681,49 +1686,36 @@ bool DxRenderer::BuildTLASs(ID3D12GraphicsCommandList4* const cmdList) {
 	instanceBufferInfo.State = D3D12_RESOURCE_STATE_GENERIC_READ;
 	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), instanceBufferInfo, mTLAS->InstanceDesc.GetAddressOf()));
 
-	// Copy the instance data to the buffer
-	void* pData;
-	CheckHRESULT(mTLAS->InstanceDesc->Map(0, nullptr, &pData));
-	std::memcpy(pData, instanceDescs.data(), instanceDescs.size() * sizeof(D3D12_RAYTRACING_INSTANCE_DESC));
-	mTLAS->InstanceDesc->Unmap(0, nullptr);
+	CheckReturn(mTLAS->BuildTLAS(md3dDevice.Get(), cmdList, instanceDescs));
 
-	// Get the size requirements for the TLAS buffers
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
-	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-	inputs.InstanceDescs = mTLAS->InstanceDesc->GetGPUVirtualAddress();
-	inputs.NumDescs = static_cast<UINT>(instanceDescs.size());
-	inputs.Flags = buildFlags;
+	return true;
+}
 
-	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
-	md3dDevice->GetRaytracingAccelerationStructurePrebuildInfo(&inputs, &prebuildInfo);
+bool DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
+	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
 
-	prebuildInfo.ResultDataMaxSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ResultDataMaxSizeInBytes);
-	prebuildInfo.ScratchDataSizeInBytes = Align(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, prebuildInfo.ScratchDataSizeInBytes);
+	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 
-	// Set TLAS size
-	mTLAS->ResultDataMaxSizeInBytes = prebuildInfo.ResultDataMaxSizeInBytes;
+	for (const auto ri : opaques) {
+		auto iter = std::find(opaques.begin(), opaques.end(), ri);
 
-	// Create TLAS sratch buffer
-	D3D12BufferCreateInfo bufferInfo(prebuildInfo.ScratchDataSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON);
-	bufferInfo.Alignment = std::max(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
-	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), bufferInfo, mTLAS->Scratch.GetAddressOf()));
+		UINT hitGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
 
-	// Create the TLAS buffer
-	bufferInfo.Size = prebuildInfo.ResultDataMaxSizeInBytes;
-	bufferInfo.State = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-	CheckReturn(D3D12Util::CreateBuffer(md3dDevice.Get(), bufferInfo, mTLAS->Result.GetAddressOf()));
+		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
+		instanceDesc.InstanceID = 0;
+		instanceDesc.InstanceContributionToHitGroupIndex = hitGroupIndex;
+		instanceDesc.InstanceMask = 0xFF;
+		for (int r = 0; r < 3; ++r) {
+			for (int c = 0; c < 4; ++c) {
+				instanceDesc.Transform[r][c] = ri->World.m[c][r];
+			}
+		}
+		instanceDesc.AccelerationStructure = mBLASRefs[ri->Geometry->Name]->Result->GetGPUVirtualAddress();
+		instanceDesc.Flags = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
+		instanceDescs.push_back(instanceDesc);
+	}
 
-	// Describe and build the TLAS
-	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
-	buildDesc.Inputs = inputs;
-	buildDesc.ScratchAccelerationStructureData = mTLAS->Scratch->GetGPUVirtualAddress();
-	buildDesc.DestAccelerationStructureData = mTLAS->Result->GetGPUVirtualAddress();
-	cmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
-
-	// Wait for the TLAS build to complete
-	D3D12Util::UavBarrier(cmdList, mTLAS->Result.Get());
+	mTLAS->UpdateTLAS(cmdList, instanceDescs);
 
 	return true;
 }
