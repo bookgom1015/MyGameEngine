@@ -4,12 +4,18 @@
 #include <wrl.h>
 #include <vector>
 
+struct MeshGeometry;
+
 class AccelerationStructureBuffer {
 public:
 	AccelerationStructureBuffer() = default;
 	virtual ~AccelerationStructureBuffer();
 
 public:
+	bool BuildBLAS(
+		ID3D12Device5* const device,
+		ID3D12GraphicsCommandList4* const cmdList,
+		MeshGeometry* const geo);
 	bool BuildTLAS(
 		ID3D12Device5* const device,
 		ID3D12GraphicsCommandList4* const cmdList,

@@ -65,17 +65,20 @@ bool RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 
 bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[3];
+		CD3DX12_DESCRIPTOR_RANGE texTables[4];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 3);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
-		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
+		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(1);
 		slotRootParameter[RootSignature::Global::EAS_BVH].InitAsShaderResourceView(0);
 		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::Global::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[3]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -86,10 +89,6 @@ bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 			md3dDevice, globalRootSignatureDesc, &mRootSignatures[RootSignature::E_Global]));
 	}
 	{
-		//CD3DX12_DESCRIPTOR_RANGE texTables[3];
-		//texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
-		//texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1);
-
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Local::Count];
 		slotRootParameter[RootSignature::Local::ECB_Obj].InitAsConstantBufferView(0, 1);
 		slotRootParameter[RootSignature::Local::ECB_Mat].InitAsConstantBufferView(1, 1);
@@ -196,17 +195,22 @@ bool RaytracedReflectionClass::BuildShaderTables(
 
 		UINT shaderRecordSize = shaderIdentifierSize + sizeof(RootSignature::Local::RootArguments);
 
-		ShaderTable hitGroupTable(md3dDevice, static_cast<UINT>(ritems.size()) * Ray::Count, shaderRecordSize);
+		auto ritemsSize =  static_cast<UINT>(ritems.size());
+
+		ShaderTable hitGroupTable(md3dDevice, ritemsSize * Ray::Count, shaderRecordSize);
 		CheckReturn(hitGroupTable.Initialze());
 
 		UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 		
-		for (const auto ritem : ritems) {
-			RootSignature::Local::RootArguments rootArgs;
-			rootArgs.SB_Vertices = ritem->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
-			rootArgs.AB_Indices = ritem->Geometry->IndexBufferGPU->GetGPUVirtualAddress();
-			
-			for (auto shaderId : hitGroupShaderIds) {
+		mShadowRayOffset = ritemsSize;
+
+		for (auto shaderId : hitGroupShaderIds) {
+			for (const auto ritem : ritems) {
+				RootSignature::Local::RootArguments rootArgs;
+				rootArgs.CB_Material = cb_mat + ritem->Material->MatCBIndex * matCBByteSize;
+				rootArgs.SB_Vertices = ritem->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
+				rootArgs.AB_Indices = ritem->Geometry->IndexBufferGPU->GetGPUVirtualAddress();
+
 				ShaderRecord hitGroupShaderRecord = ShaderRecord(shaderId, shaderIdentifierSize, &rootArgs, sizeof(rootArgs));
 
 				hitGroupTable.push_back(hitGroupShaderRecord);
@@ -257,15 +261,18 @@ void RaytracedReflectionClass::Run(
 		D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth) {
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps) {
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
+	cmdList->SetComputeRoot32BitConstant(RootSignature::Global::EC_Rr, mShadowRayOffset, 0);
 	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Rr, cb_rr);
 	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::EAS_BVH, as_bvh);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BackBuffer, si_backBuffer);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_NormalDepth, si_normalDepth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_TexMaps, si_texMaps);
 
 	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());

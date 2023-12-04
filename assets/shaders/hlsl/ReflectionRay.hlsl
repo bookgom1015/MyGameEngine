@@ -12,11 +12,17 @@
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
-ConstantBuffer<RaytracedReflectionConstantBuffer> cbRr : register(b0);
+cbuffer cbRootConstants : register(b0) {
+	uint gShadowRayOffset;
+}
 
-RaytracingAccelerationStructure				gi_BVH			: register(t0);
-Texture2D<HDR_FORMAT>						gi_BackBuffer	: register(t1);
-Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t2);
+ConstantBuffer<RaytracedReflectionConstantBuffer> cbRr : register(b1);
+
+RaytracingAccelerationStructure				gi_BVH							: register(t0);
+Texture2D<HDR_FORMAT>						gi_BackBuffer					: register(t1);
+Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth					: register(t2);
+Texture2D									gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t3);
+
 RWTexture2D<float4>							go_Reflection	: register(u0);
 
 ConstantBuffer<ObjectConstants>		lcb_Obj	: register(b0, space1);
@@ -58,24 +64,13 @@ void RadianceRayGen() {
 
 	RayPayload payload = { (float4)0, false };
 
-	//TraceRay(
-	//	gi_BVH,
-	//	0,
-	//	RaytracedReflection::InstanceMask,
-	//	RaytracedReflection::HitGroup::Offset[RaytracedReflection::Ray::E_Radiance],
-	//	RaytracedReflection::HitGroup::GeometryStride,
-	//	RaytracedReflection::Miss::Offset[RaytracedReflection::Ray::E_Radiance],
-	//	ray,
-	//	payload
-	//);
-
 	TraceRay(
 		gi_BVH,
 		0,
 		RaytracedReflection::InstanceMask,
 		0,
-		2,
 		0,
+		RaytracedReflection::Miss::Offset[RaytracedReflection::Ray::E_Radiance],
 		ray,
 		payload
 	);
@@ -85,24 +80,35 @@ void RadianceRayGen() {
 
 [shader("closesthit")]
 void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
-	//uint startIndex = PrimitiveIndex() * 3;
-	//const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
-	//
-	//Vertex vertices[3] = {
-	//	lsb_Vertices[indices[0]],
-	//	lsb_Vertices[indices[1]],
-	//	lsb_Vertices[indices[2]] };
-	//
-	//float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
-	//float3 normal = HitAttribute(normals, attr);
-	//
-	//payload.Irrad = float4(normal, 1);
-	payload.Irrad = float4(0, 1, 0, 1);
+	uint startIndex = PrimitiveIndex() * 3;
+	const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
+	
+	Vertex vertices[3] = {
+		lsb_Vertices[indices[0]],
+		lsb_Vertices[indices[1]],
+		lsb_Vertices[indices[2]] };
+	
+	float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
+	float3 normal = HitAttribute(normals, attr);
+
+	float2 texCoords[3] = { vertices[0].TexCoord, vertices[1].TexCoord, vertices[2].TexCoord };
+	float2 texc = HitAttribute(texCoords, attr);
+
+	Texture2D tex2D = gi_TexMaps[lcb_Mat.DiffuseSrvIndex];
+
+	uint2 texSize;
+	tex2D.GetDimensions(texSize.x, texSize.y);
+
+	uint2 texIdx = texSize * texc + 0.5;
+
+	float4 samp = tex2D.Load(uint3(texIdx, 0));
+	
+	payload.Irrad = samp;
 }
 
 [shader("miss")]
 void RadianceMiss(inout RayPayload payload) {
-	payload.Irrad = float4(1, 0, 0, 1);
+	payload.Irrad = 0;
 }	
 
 [shader("closesthit")]

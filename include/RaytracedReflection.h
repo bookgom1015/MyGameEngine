@@ -20,13 +20,22 @@ namespace RaytracedReflection {
 
 		namespace Global {
 			enum {
-				ECB_Rr = 0,
+				EC_Rr = 0,
+				ECB_Rr,
 				EAS_BVH,
 				ESI_BackBuffer,
 				ESI_NormalDepth,
+				ESI_TexMaps,
 				EUO_Reflection,
 				Count
 			};
+			
+			namespace RootConstantsLayout {
+				enum {
+					E_ShadowRayOffset = 0,
+					Count
+				};
+			}
 		}
 
 		namespace Local {
@@ -74,7 +83,8 @@ namespace RaytracedReflection {
 			D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
 			D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth);
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps);
 
 	private:
 		void BuildDescriptors();
@@ -92,6 +102,7 @@ namespace RaytracedReflection {
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
 		UINT mMissShaderTableStrideInBytes;
 		UINT mHitGroupShaderTableStrideInBytes;
+		UINT mShadowRayOffset;
 
 		UINT mWidth;
 		UINT mHeight;
