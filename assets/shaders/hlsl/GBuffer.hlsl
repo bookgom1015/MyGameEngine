@@ -61,9 +61,6 @@ VertexOut VS(VertexIn vin) {
 }
 
 PixelOut PS(VertexOut pin) {
-	pin.NormalW = normalize(pin.NormalW);
-	pin.PrevNormalW = normalize(pin.PrevNormalW);
-
 	float4 albedo = cbMat.Albedo;
 	if (cbMat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 	

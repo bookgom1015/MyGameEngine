@@ -8,7 +8,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
+#include <DirectXPackedVector.h>
+
 using namespace DirectX;
+using namespace DirectX::PackedVector;
 
 namespace {
 	std::string BaseDir = "./../../assets/meshes/";
@@ -44,7 +47,7 @@ bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			vertex.Normal = { 
+			vertex.Normal = {
 				attrib.normals[3 * index.normal_index + 0],
 				attrib.normals[3 * index.normal_index + 1],
 				attrib.normals[3 * index.normal_index + 2]

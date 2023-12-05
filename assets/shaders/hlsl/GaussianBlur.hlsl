@@ -24,7 +24,7 @@ cbuffer cbRootConstants : register(b1) {
 };
 
 Texture2D<GBuffer::NormalMapFormat>	gi_Normal	: register(t0);
-Texture2D<float>					gi_Depth	: register(t1);
+Texture2D<GBuffer::DepthMapFormat>	gi_Depth	: register(t1);
 Texture2D<float4>					gi_Input	: register(t2);
 
 #include "CoordinatesFittedToScreen.hlsli"
@@ -76,7 +76,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	float3 centerNormal;
 	float centerDepth;
 	if (gBilateral) {		
-		centerNormal = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
+		centerNormal = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
 		centerDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, pin.TexC));
 	}
 
@@ -87,7 +87,7 @@ float4 PS(VertexOut pin) : SV_Target {
 		float2 tex = pin.TexC + i * texOffset;
 
 		if (gBilateral) {
-			const float3 neighborNormal = normalize(gi_Normal.Sample(gsamLinearClamp, tex).xyz);
+			const float3 neighborNormal = gi_Normal.Sample(gsamLinearClamp, tex).xyz;
 			const float neighborDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, tex));
 
 			//

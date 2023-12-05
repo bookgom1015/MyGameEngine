@@ -63,7 +63,7 @@ bool DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT
 
 		slotRootParameter[RootSignature::Global::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::Global::ESI_AccelerationStructure].InitAsShaderResourceView(0);
-		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::Global::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::Global::EUO_Shadow].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
@@ -147,18 +147,16 @@ bool DxrShadowMapClass::BuildShaderTables(UINT numRitems) {
 
 void DxrShadowMapClass::Run(
 		ID3D12GraphicsCommandList4* const cmdList,
-		D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE i_vertices,
-		D3D12_GPU_DESCRIPTOR_HANDLE i_indices,
-		D3D12_GPU_DESCRIPTOR_HANDLE i_depth) {
+		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth) {
 	cmdList->SetPipelineState1(mPSO.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
-	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::ESI_AccelerationStructure, accelStruct);
-	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Pass, cbAddress);
+	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::ESI_AccelerationStructure, as_bvh);
+	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Pass, cb_pass);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Depth, i_depth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_NormalDepth, si_normalDepth);
 
 	const auto shadow0 = mResources[Resources::EShadow0].get();
 	const auto shadow1 = mResources[Resources::EShadow1].get();

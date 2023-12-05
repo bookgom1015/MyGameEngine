@@ -5,20 +5,21 @@
 #define HLSL
 #endif
 
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 
 ConstantBuffer<PassConstants> cbPass : register(b0);
 
-Texture2D<float3>	gi_BackBuffer	: register(t0);
-Texture2D<float4>	gi_Albedo		: register(t1);
-Texture2D<float3>	gi_Normal		: register(t2);
-Texture2D<float>	gi_Depth		: register(t3);
-Texture2D<float3>	gi_RMS			: register(t4);
-Texture2D<float4>	gi_Ssr			: register(t5);
-Texture2D<float4>	gi_BrdfLUT		: register(t6);
-TextureCube<float3>	gi_Environment	: register(t7);
+Texture2D<SDR_Format>								gi_BackBuffer	: register(t0);
+Texture2D<GBuffer::AlbedoMapFormat>					gi_Albedo		: register(t1);
+Texture2D<GBuffer::NormalMapFormat>					gi_Normal		: register(t2);
+Texture2D<GBuffer::DepthMapFormat>					gi_Depth		: register(t3);
+Texture2D<GBuffer::RMSMapFormat>					gi_RMS			: register(t4);
+Texture2D<Ssr::SsrMapFormat>						gi_Ssr			: register(t5);
+Texture2D<IrradianceMap::IntegratedBrdfMapFormat>	gi_BrdfLUT		: register(t6);
+TextureCube<IrradianceMap::EnvCubeMapFormat>		gi_Environment	: register(t7);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -48,8 +49,8 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 posV = (pz / pin.PosV.z) * pin.PosV;
 	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
 
-	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
-	const float3 normalW = normalize(gi_Normal.Sample(gsamAnisotropicWrap, pin.TexC));
+	const float4 albedo = gi_Albedo.Sample(gsamLinearClamp, pin.TexC);
+	const float3 normalW = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
 
 	const float4 ssr = gi_Ssr.Sample(gsamLinearClamp, pin.TexC);
 	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC);
@@ -66,7 +67,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
 	const float3 lightW = reflect(-viewW, normalW);
 	const float3 lookup = BoxCubeMapLookup(posW.xyz, lightW, (float3)0, (float3)100);
-	float3 const env = gi_Environment.Sample(gsamLinearWrap, lookup);
+	float3 const env = gi_Environment.Sample(gsamLinearWrap, lookup).rgb;
 
 	const float3 halfW = normalize(viewW + lightW);
 

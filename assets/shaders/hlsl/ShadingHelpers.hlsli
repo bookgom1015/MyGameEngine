@@ -332,18 +332,6 @@ bool IsInRange(float val, float min, float max) {
 	return (val >= min && val <= max);
 }
 
-void CalculateHitPosition(float4x4 proj, float4x4 invProj, float4x4 invView, float2 texDim, float depth, uint2 launchIndex, out float3 hitPosition) {
-	float2 tex = (launchIndex + 0.5) / texDim;
-	float4 posH = float4(tex.x * 2 - 1, (1 - tex.y) * 2 - 1, 0, 1);
-	float4 posV = mul(posH, invProj);
-	posV /= posV.w;
-
-	float dv = NdcDepthToViewDepth(depth, proj);
-	posV = (dv / posV.z) * posV;
-
-	hitPosition = mul(float4(posV.xyz, 1), invView).xyz;
-}
-
 // Returns an approximate surface dimensions covered in a pixel. 
 // This is a simplified model assuming pixel to pixel view angles are the same.
 // z - linear depth of the surface at the pixel

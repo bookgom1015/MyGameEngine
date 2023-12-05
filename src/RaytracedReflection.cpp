@@ -73,7 +73,8 @@ bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
-		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(1);
+		slotRootParameter[RootSignature::Global::ECB_Pass].InitAsConstantBufferView(1);
+		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(2);
 		slotRootParameter[RootSignature::Global::EAS_BVH].InitAsShaderResourceView(0);
 		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::Global::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
@@ -140,7 +141,7 @@ bool RaytracedReflectionClass::BuildPSO() {
 	rootSigAssociation->AddExports(HitGroupNames);
 
 	auto pipelineConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-	UINT maxRecursionDepth = 1;
+	UINT maxRecursionDepth = 2;
 	pipelineConfig->Config(maxRecursionDepth);
 
 	CheckHRESULT(md3dDevice->CreateStateObject(reflectionDxrPso, IID_PPV_ARGS(&mDxrPso)));
@@ -258,6 +259,7 @@ bool RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList,
 
 void RaytracedReflectionClass::Run(
 		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
@@ -267,6 +269,7 @@ void RaytracedReflectionClass::Run(
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
 	cmdList->SetComputeRoot32BitConstant(RootSignature::Global::EC_Rr, mShadowRayOffset, 0);
+	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Pass, cb_pass);
 	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Rr, cb_rr);
 	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::EAS_BVH, as_bvh);
 

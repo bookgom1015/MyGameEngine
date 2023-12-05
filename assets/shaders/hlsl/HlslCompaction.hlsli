@@ -10,6 +10,10 @@ namespace DirectX {
 	typedef uint2 XMUINT2;
 	typedef uint3 XMUINT3;
 	typedef int2 XMINT2;
+
+	namespace PackedVector {
+		typedef float3 XMFLOAT3PK;
+	}
 }
 
 typedef uint UINT;

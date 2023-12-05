@@ -7,6 +7,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
+#include "DxrShadingHelpers.hlsli"
 #include "RandGenerator.hlsli"
 #include "Samplers.hlsli"
 #include "Rtao.hlsli"

@@ -55,7 +55,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 }
 
 float4 PS(VertexOut pin) : SV_Target {
-	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
+	const float3 normalW = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
 
 	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 	depth = NdcDepthToViewDepth(depth, cbPass.Proj);

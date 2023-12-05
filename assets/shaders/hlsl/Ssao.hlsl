@@ -13,7 +13,7 @@ ConstantBuffer<SsaoConstants> cbSsao : register(b0);
 
 // Nonnumeric values cannot be added to a cbuffer.
 Texture2D<GBuffer::NormalMapFormat>			gi_Normal			: register(t0);
-Texture2D<float>							gi_Depth			: register(t1);
+Texture2D<GBuffer::DepthMapFormat>			gi_Depth			: register(t1);
 Texture2D<Ssao::RandomVectorMapFormat>		gi_RandomVector		: register(t2);
 
 #include "CoordinatesFittedToScreen.hlsli"
@@ -83,7 +83,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	float pz = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0.0f);
 	pz = NdcDepthToViewDepth(pz);
 
-	float3 n = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
+	float3 n = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
 	n = mul(n, (float3x3)cbSsao.View);
 
 	//

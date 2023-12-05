@@ -36,7 +36,7 @@ namespace GBuffer {
 	typedef uint	ReprojNormalDepthMapFormat;
 #else 
 	static const DXGI_FORMAT AlbedoMapFormat			= DXGI_FORMAT_R8G8B8A8_UNORM;
-	static const DXGI_FORMAT NormalMapFormat			= DXGI_FORMAT_R8G8B8A8_SNORM;
+	static const DXGI_FORMAT NormalMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
 	static const DXGI_FORMAT NormalDepthMapFormat		= COMPACT_NORMAL_DEPTH_DXGI_FORMAT;
 	static const DXGI_FORMAT DepthMapFormat				= DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	static const DXGI_FORMAT RMSMapFormat				= DXGI_FORMAT_R8G8B8A8_UNORM;

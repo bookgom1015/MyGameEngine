@@ -11,7 +11,7 @@
 
 ConstantBuffer<SsrConstants> cbSsr	: register(b0);
 
-Texture2D<float4>							gi_BackBuffer	: register(t0);
+Texture2D<SDR_FORMAT>						gi_BackBuffer	: register(t0);
 Texture2D<GBuffer::NormalMapFormat>			gi_Normal		: register(t1);
 Texture2D<DepthStencilBuffer::BufferFormat>	gi_Depth		: register(t2);
 
@@ -53,7 +53,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float3 pv = (pz / pin.PosV.z) * pin.PosV;
 	if (pv.z > cbSsr.MaxDistance) return (float4)0;
 
-	const float3 nw = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
+	const float3 nw = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
 
 	const float3 nv = normalize(mul(nw, (float3x3)cbSsr.View));
 

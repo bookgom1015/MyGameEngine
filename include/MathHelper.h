@@ -58,6 +58,8 @@ namespace MathHelper {
 	__forceinline bool IsEqual(const DirectX::XMFLOAT4& lhs, const DirectX::XMFLOAT4& rhs);
 	__forceinline bool IsNotEqual(const DirectX::XMFLOAT4& lhs, const DirectX::XMFLOAT4& rhs);
 
+	__forceinline DirectX::PackedVector::XMFLOAT3PK PackXMFLOAT3(const DirectX::XMFLOAT3& v);
+
 	// Returns the polar angle of the point (x,y) in [0, 2*PI).
 	float AngleFromXY(float x, float y);
 

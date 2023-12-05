@@ -42,6 +42,7 @@
 #undef min
 
 using namespace DirectX;
+using namespace DirectX::PackedVector;
 
 namespace {
 	const std::wstring ShaderFilePath = L".\\..\\..\\assets\\shaders\\hlsl\\";
@@ -2772,9 +2773,7 @@ bool DxRenderer::DrawDxrShadowMap() {
 		cmdList,
 		mTLAS->Result->GetGPUVirtualAddress(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		mDxrGeometryBuffer->VerticesSrv(),
-		mDxrGeometryBuffer->IndicesSrv(),
-		mGBuffer->DepthMapSrv()
+		mGBuffer->NormalDepthMapSrv()
 	);
 	
 	mBlurFilterCS->Run(
@@ -3119,9 +3118,13 @@ bool DxRenderer::BuildRaytracedReflection() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
+	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
+	const auto rrCBAddress = mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress();
+
 	mRr->Run(
 		cmdList,
-		mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress(),
+		passCBAddress,
+		rrCBAddress,
 		mTLAS->Result->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapSrv(),
 		mGBuffer->NormalDepthMapSrv(),

@@ -19,7 +19,7 @@ namespace DxrShadowMap {
 			enum {
 				ECB_Pass = 0,
 				ESI_AccelerationStructure,
-				ESI_Depth,
+				ESI_NormalDepth,
 				EUO_Shadow,
 				Count
 			};
@@ -68,11 +68,9 @@ namespace DxrShadowMap {
 		bool BuildShaderTables(UINT numRitems);
 		void Run(
 			ID3D12GraphicsCommandList4*const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE i_vertices,
-			D3D12_GPU_DESCRIPTOR_HANDLE i_indices,
-			D3D12_GPU_DESCRIPTOR_HANDLE i_depth);
+			D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 

@@ -16,7 +16,8 @@ cbuffer cbRootConstants : register(b0) {
 	uint gShadowRayOffset;
 }
 
-ConstantBuffer<RaytracedReflectionConstantBuffer> cbRr : register(b1);
+ConstantBuffer<PassConstants>						cb_Pass	: register(b1);
+ConstantBuffer<RaytracedReflectionConstantBuffer>	cb_Rr	: register(b2);
 
 RaytracingAccelerationStructure				gi_BVH							: register(t0);
 Texture2D<HDR_FORMAT>						gi_BackBuffer					: register(t1);
@@ -39,7 +40,7 @@ struct RayPayload {
 [shader("raygeneration")]
 void RadianceRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
-	float2 texc = (launchIndex + 0.5) / cbRr.TextureDim;
+	float2 texc = (launchIndex + 0.5) / cb_Rr.TextureDim;
 
 	float3 normal;
 	float depth;
@@ -51,16 +52,16 @@ void RadianceRayGen() {
 	}
 
 	float3 hitPosition;
-	CalculateHitPosition(cbRr.Proj, cbRr.InvProj, cbRr.InvView, cbRr.TextureDim, depth, launchIndex, hitPosition);
+	CalculateHitPosition(cb_Rr.Proj, cb_Rr.InvProj, cb_Rr.InvView, cb_Rr.TextureDim, depth, launchIndex, hitPosition);
 
-	float3 fromEye = normalize(hitPosition - cbRr.EyePosW);
+	float3 fromEye = normalize(hitPosition - cb_Rr.EyePosW);
 	float3 toLight = reflect(fromEye, normal);
 
 	RayDesc ray;
-	ray.Origin = hitPosition + 0.01 * normal;
+	ray.Origin = hitPosition + 0.001 * normal;
 	ray.Direction = toLight;
 	ray.TMin = 0;
-	ray.TMax = cbRr.ReflectionRadius;
+	ray.TMax = cb_Rr.ReflectionRadius;
 
 	RayPayload payload = { (float4)0, false };
 
@@ -80,6 +81,9 @@ void RadianceRayGen() {
 
 [shader("closesthit")]
 void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
+	//
+	// Integrate irradiances
+	//
 	uint startIndex = PrimitiveIndex() * 3;
 	const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
 	
@@ -103,23 +107,45 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 
 	float4 samp = tex2D.Load(uint3(texIdx, 0));
 	
-	payload.Irrad = samp;
+	//payload.Irrad = samp;
+	payload.Irrad = float4(normal, 1);
+
+	//
+	// Trace shadow rays
+	//
+	float3 hitPosition = HitWorldPosition();
+
+	RayDesc ray;
+	ray.Origin = hitPosition + 0.001 * normal;
+	ray.Direction = -cb_Pass.Lights[0].Direction;
+	ray.TMin = 0;
+	ray.TMax = 1000;
+
+	TraceRay(
+		gi_BVH,
+		0,
+		RaytracedReflection::InstanceMask,
+		gShadowRayOffset,
+		0,
+		RaytracedReflection::Miss::Offset[RaytracedReflection::Ray::E_Shadow],
+		ray,
+		payload
+	);
 }
 
 [shader("miss")]
 void RadianceMiss(inout RayPayload payload) {
-	payload.Irrad = 0;
+	payload.Irrad = float4(1, 0, 1, 1);
 }	
 
 [shader("closesthit")]
 void ShadowClosestHit(inout RayPayload payload, Attributes attr) {
-	payload.Irrad = 1;
 	payload.IsHit = true;
+	payload.Irrad = 0;
 }
 
 [shader("miss")]
 void ShadowMiss(inout RayPayload payload) {
-	payload.Irrad = float4(0, 0, 0, 1);
 	payload.IsHit = false;
 }
 

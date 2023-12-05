@@ -109,4 +109,8 @@ bool MathHelper::IsNotEqual(const DirectX::XMFLOAT4& lhs, const DirectX::XMFLOAT
 	return IsNotEqual(lhs, rhs);
 }
 
+DirectX::PackedVector::XMFLOAT3PK MathHelper::PackXMFLOAT3(const DirectX::XMFLOAT3& v) {
+	return DirectX::PackedVector::XMFLOAT3PK(v.x, v.y, v.z);
+}
+
 #endif // __MATHHELPER_INL__
