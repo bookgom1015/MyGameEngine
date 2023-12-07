@@ -43,12 +43,12 @@ namespace MipmapGenerator {
 		virtual ~MipmapGeneratorClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 
-		bool GenerateMipmap(
+		BOOL GenerateMipmap(
 			ID3D12GraphicsCommandList* const cmdList,
 			GpuResource* output,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,

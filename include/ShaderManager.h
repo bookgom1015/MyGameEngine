@@ -39,23 +39,23 @@ public:
 	virtual ~ShaderManager();
 
 public:
-	bool Initialize();
+	BOOL Initialize();
 	void CleanUp();
 
-	bool CompileShader(
+	BOOL CompileShader(
 		const std::wstring& inFilePath,
 		const D3D_SHADER_MACRO* inDefines,
 		const std::string& inEntryPoint,
 		const std::string& inTarget,
 		const std::string& inName);
 
-	bool CompileShader(const D3D12ShaderInfo& inShaderInfo, const std::string& inName);
+	BOOL CompileShader(const D3D12ShaderInfo& inShaderInfo, const std::string& inName);
 
 	ID3DBlob* GetShader(const std::string& inName);
 	IDxcBlob* GetDxcShader(const std::string& inName);
 
 private:
-	bool bIsCleanedUp = false;
+	BOOL bIsCleanedUp = false;
 
 	dxc::DxcDllSupport mDxcDllHelper;
 	Microsoft::WRL::ComPtr<IDxcUtils> mUtils;

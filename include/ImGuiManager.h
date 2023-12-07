@@ -8,10 +8,10 @@ public:
 	virtual ~ImGuiManager() = default;
 
 public:
-	bool Initialize(HWND hwnd, ID3D12Device*const device, ID3D12DescriptorHeap*const heap, int bufferCount, DXGI_FORMAT format);
+	BOOL Initialize(HWND hwnd, ID3D12Device*const device, ID3D12DescriptorHeap*const heap, INT bufferCount, DXGI_FORMAT format);
 	void CleanUp();
 
-	bool BuildDescriptors(
+	BOOL BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		UINT descSize);
@@ -20,7 +20,7 @@ private:
 	ID3D12Device* md3dDevice;
 	ID3D12DescriptorHeap* mHeap;
 
-	int mSwapChainBufferCount;
+	INT mSwapChainBufferCount;
 	DXGI_FORMAT mBackBufferFormat;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;

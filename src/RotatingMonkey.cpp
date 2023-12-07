@@ -4,7 +4,7 @@
 
 using namespace DirectX;
 
-RotatingMonkey::RotatingMonkey(const std::string& name, float speed, XMFLOAT3 pos, XMFLOAT4 rot, XMFLOAT3 scale) : Actor(name, pos, rot, scale) {
+RotatingMonkey::RotatingMonkey(const std::string& name, FLOAT speed, XMFLOAT3 pos, XMFLOAT4 rot, XMFLOAT3 scale) : Actor(name, pos, rot, scale) {
 	mMeshComp = new MeshComponent(this);
 
 	mSpeed = speed;
@@ -16,18 +16,18 @@ RotatingMonkey::RotatingMonkey(const std::string& name, const Transform& trans) 
 
 RotatingMonkey::~RotatingMonkey() {};
 
-bool RotatingMonkey::OnInitialzing() {
+BOOL RotatingMonkey::OnInitialzing() {
 	CheckReturn(mMeshComp->LoadMesh("monkey.obj"));
 
 	return true;
 }
 
-bool RotatingMonkey::ProcessActorInput(const InputState& input) {
+BOOL RotatingMonkey::ProcessActorInput(const InputState& input) {
 
 	return true;
 }
 
-bool RotatingMonkey::UpdateActor(float delta) {
+BOOL RotatingMonkey::UpdateActor(FLOAT delta) {
 	AddRotationYaw(delta * mSpeed);
 
 	return true;

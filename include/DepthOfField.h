@@ -93,9 +93,9 @@ namespace DepthOfField {
 
 	const UINT NumRenderTargets = 3;
 
-	const float CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float BokehMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	const float DofMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const FLOAT CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT BokehMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const FLOAT DofMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	class DepthOfFieldClass {
 	public:
@@ -122,11 +122,11 @@ namespace DepthOfField {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocalDistanceBufferUav() const;
 
 	public:
-		bool Initialize(
+		BOOL Initialize(
 			ID3D12Device* device, ShaderManager*const manager, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 
 		void CalcFocalDist(
 			ID3D12GraphicsCommandList*const cmdList,
@@ -143,11 +143,11 @@ namespace DepthOfField {
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			float bokehRadius,
-			float cocThreshold,
-			float cocDiffThreshold,
-			float highlightPower,
-			int numSamples);
+			FLOAT bokehRadius,
+			FLOAT cocThreshold,
+			FLOAT cocDiffThreshold,
+			FLOAT highlightPower,
+			INT numSamples);
 		void BlurDof(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -158,13 +158,13 @@ namespace DepthOfField {
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
+		BOOL OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 	public:
 		void BuildDescriptors();
-		bool BuildResources(ID3D12GraphicsCommandList* cmdList);
+		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList);
 
-		void Blur(ID3D12GraphicsCommandList*const cmdList, bool horzBlur);
+		void Blur(ID3D12GraphicsCommandList*const cmdList, BOOL horzBlur);
 
 	private:
 		ID3D12Device* md3dDevice;

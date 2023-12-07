@@ -56,9 +56,9 @@ public:
 		return (byteSize + 255) & ~255;
 	}
 
-	static bool LoadBinary(const std::wstring& inFilename, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob);
+	static BOOL LoadBinary(const std::wstring& inFilename, Microsoft::WRL::ComPtr<ID3DBlob>& outBlob);
 
-	static bool CreateDefaultBuffer(
+	static BOOL CreateDefaultBuffer(
 		ID3D12Device* inDevice,
 		ID3D12GraphicsCommandList* inCmdList,
 		const void* inInitData,
@@ -66,10 +66,10 @@ public:
 		Microsoft::WRL::ComPtr<ID3D12Resource>& outUploadBuffer,
 		Microsoft::WRL::ComPtr<ID3D12Resource>& outDefaultBuffer);
 
-	static bool CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGNATURE_DESC& inRootSignatureDesc, ID3D12RootSignature** ppRootSignature);
+	static BOOL CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGNATURE_DESC& inRootSignatureDesc, ID3D12RootSignature** ppRootSignature);
 
-	static bool CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInfo, ID3D12Resource** ppResource, ID3D12InfoQueue* pInfoQueue = nullptr);
-	static bool CreateConstantBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 inSize);
+	static BOOL CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInfo, ID3D12Resource** ppResource, ID3D12InfoQueue* pInfoQueue = nullptr);
+	static BOOL CreateConstantBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 inSize);
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(ID3D12DescriptorHeap* descHeap, INT index, UINT descriptorSize);
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(ID3D12DescriptorHeap* descHeap, INT index, UINT descriptorSize);
@@ -89,9 +89,9 @@ public:
 
 	static __forceinline UINT CeilDivide(UINT value, UINT divisor);
 	static __forceinline UINT CeilLogWithBase(UINT value, UINT base);
-	static __forceinline float Clamp(float a, float _min, float _max);
-	static __forceinline float Lerp(float a, float b, float t);
-	static __forceinline float RelativeCoef(float a, float _min, float _max);
+	static __forceinline FLOAT Clamp(FLOAT a, FLOAT _min, FLOAT _max);
+	static __forceinline FLOAT Lerp(FLOAT a, FLOAT b, FLOAT t);
+	static __forceinline FLOAT RelativeCoef(FLOAT a, FLOAT _min, FLOAT _max);
 	static __forceinline UINT NumMantissaBitsInFloatFormat(UINT FloatFormatBitLength);
 
 private:
@@ -136,16 +136,16 @@ UINT D3D12Util::CeilLogWithBase(UINT value, UINT base) {
 	return static_cast<UINT>(ceil(log(value) / log(base)));
 }
 
-float D3D12Util::Clamp(float a, float _min, float _max) {
+FLOAT D3D12Util::Clamp(FLOAT a, FLOAT _min, FLOAT _max) {
 	return std::max(_min, std::min(_max, a));
 }
 
-float D3D12Util::Lerp(float a, float b, float t) {
+FLOAT D3D12Util::Lerp(FLOAT a, FLOAT b, FLOAT t) {
 	return a + t * (b - a);
 }
 
-float D3D12Util::RelativeCoef(float a, float _min, float _max) {
-	float _a = Clamp(a, _min, _max);
+FLOAT D3D12Util::RelativeCoef(FLOAT a, FLOAT _min, FLOAT _max) {
+	FLOAT _a = Clamp(a, _min, _max);
 	return (_a - _min) / (_max - _min);
 }
 

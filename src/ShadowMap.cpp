@@ -14,22 +14,22 @@ ShadowMapClass::ShadowMapClass() {
 	mShadowMap = std::make_unique<GpuResource>();
 }
 
-bool ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 	CheckReturn(BuildResources());
 
 	return true;
 }
 
-bool ShadowMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL ShadowMapClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Shadow.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath .c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath .c_str(), L"PS", L"ps_6_3");
@@ -39,7 +39,7 @@ bool ShadowMapClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -61,7 +61,7 @@ bool ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool ShadowMapClass::BuildPso() {
+BOOL ShadowMapClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::BufferFormat);
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -142,7 +142,7 @@ void ShadowMapClass::BuildDescriptors() {
 	md3dDevice->CreateDepthStencilView(mShadowMap->Resource(), &dsvDesc, mhCpuDsv);
 }
 
-bool ShadowMapClass::BuildResources() {
+BOOL ShadowMapClass::BuildResources() {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;

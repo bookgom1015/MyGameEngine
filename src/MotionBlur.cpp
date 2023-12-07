@@ -10,7 +10,7 @@ MotionBlurClass::MotionBlurClass() {
 	mMotionVectorMap = std::make_unique<GpuResource>();
 }
 
-bool MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -22,7 +22,7 @@ bool MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 	return true;
 }
 
-bool MotionBlurClass::CompileShaders(const std::wstring& filePath) {
+BOOL MotionBlurClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"MotionBlur.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -32,7 +32,7 @@ bool MotionBlurClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTable0;
@@ -60,7 +60,7 @@ bool MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool MotionBlurClass::BuildPso() {
+BOOL MotionBlurClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC motionBlurPsoDesc = quadPsoDesc;
@@ -86,7 +86,7 @@ void MotionBlurClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv, U
 	BuildDescriptors();
 }
 
-bool MotionBlurClass::OnResize(UINT width, UINT height) {
+BOOL MotionBlurClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -103,10 +103,10 @@ void MotionBlurClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
-		float intensity,
-		float limit,
-		float depthBias,
-		int sampleCount) {
+		FLOAT intensity,
+		FLOAT limit,
+		FLOAT depthBias,
+		INT sampleCount) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
@@ -117,7 +117,7 @@ void MotionBlurClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Velocity, si_velocity);
 
-	float values[RootConstantsLayout::Count] = { intensity, limit, depthBias, static_cast<float>(sampleCount) };
+	FLOAT values[RootConstantsLayout::Count] = { intensity, limit, depthBias, static_cast<FLOAT>(sampleCount) };
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -136,7 +136,7 @@ void MotionBlurClass::BuildDescriptors() {
 	md3dDevice->CreateRenderTargetView(mMotionVectorMap->Resource(), &rtvDesc, mhMotionVectorMapCpuRtv);
 }
 
-bool MotionBlurClass::BuildResources() {
+BOOL MotionBlurClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = SDR_FORMAT;

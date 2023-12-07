@@ -8,7 +8,7 @@
 
 using namespace DirectX;
 
-GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
+GeometryGenerator::MeshData GeometryGenerator::CreateBox(FLOAT width, FLOAT height, FLOAT depth, uint32 numSubdivisions)
 {
     MeshData meshData;
 
@@ -18,9 +18,9 @@ GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float heig
 
 	Vertex v[24];
 
-	float w2 = 0.5f*width;
-	float h2 = 0.5f*height;
-	float d2 = 0.5f*depth;
+	FLOAT w2 = 0.5f*width;
+	FLOAT h2 = 0.5f*height;
+	FLOAT d2 = 0.5f*depth;
     
 	// Fill in the front face vertex data.
 	v[0] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -101,7 +101,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float heig
     return meshData;
 }
 
-GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius, uint32 sliceCount, uint32 stackCount)
+GeometryGenerator::MeshData GeometryGenerator::CreateSphere(FLOAT radius, uint32 sliceCount, uint32 stackCount)
 {
     MeshData meshData;
 
@@ -117,18 +117,18 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius, uint32
 
 	meshData.Vertices.push_back( topVertex );
 
-	float phiStep   = XM_PI/stackCount;
-	float thetaStep = 2.0f*XM_PI/sliceCount;
+	FLOAT phiStep   = XM_PI/stackCount;
+	FLOAT thetaStep = 2.0f*XM_PI/sliceCount;
 
 	// Compute vertices for each stack ring (do not count the poles as rings).
 	for(uint32 i = 1; i <= stackCount-1; ++i)
 	{
-		float phi = i*phiStep;
+		FLOAT phi = i*phiStep;
 
 		// Vertices of ring.
         for(uint32 j = 0; j <= sliceCount; ++j)
 		{
-			float theta = j*thetaStep;
+			FLOAT theta = j*thetaStep;
 
 			Vertex v;
 
@@ -305,7 +305,7 @@ GeometryGenerator::Vertex GeometryGenerator::MidPoint(const Vertex& v0, const Ve
     return v;
 }
 
-GeometryGenerator::MeshData GeometryGenerator::CreateGeosphere(float radius, uint32 numSubdivisions)
+GeometryGenerator::MeshData GeometryGenerator::CreateGeosphere(FLOAT radius, uint32 numSubdivisions)
 {
     MeshData meshData;
 
@@ -314,8 +314,8 @@ GeometryGenerator::MeshData GeometryGenerator::CreateGeosphere(float radius, uin
 
 	// Approximate a sphere by tessellating an icosahedron.
 
-	const float X = 0.525731f; 
-	const float Z = 0.850651f;
+	const FLOAT X = 0.525731f; 
+	const FLOAT Z = 0.850651f;
 
 	XMFLOAT3 pos[12] = 
 	{
@@ -357,13 +357,13 @@ GeometryGenerator::MeshData GeometryGenerator::CreateGeosphere(float radius, uin
 		XMStoreFloat3(&meshData.Vertices[i].Normal, n);
 
 		// Derive texture coordinates from spherical coordinates.
-        float theta = atan2f(meshData.Vertices[i].Position.z, meshData.Vertices[i].Position.x);
+        FLOAT theta = atan2f(meshData.Vertices[i].Position.z, meshData.Vertices[i].Position.x);
 
         // Put in [0, 2pi].
         if(theta < 0.0f)
             theta += XM_2PI;
 
-		float phi = acosf(meshData.Vertices[i].Position.y / radius);
+		FLOAT phi = acosf(meshData.Vertices[i].Position.y / radius);
 
 		meshData.Vertices[i].TexC.x = theta/XM_2PI;
 		meshData.Vertices[i].TexC.y = phi/XM_PI;
@@ -380,7 +380,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateGeosphere(float radius, uin
     return meshData;
 }
 
-GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount)
+GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(FLOAT bottomRadius, FLOAT topRadius, FLOAT height, uint32 sliceCount, uint32 stackCount)
 {
     MeshData meshData;
 
@@ -388,32 +388,32 @@ GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(float bottomRadius
 	// Build Stacks.
 	// 
 
-	float stackHeight = height / stackCount;
+	FLOAT stackHeight = height / stackCount;
 
 	// Amount to increment radius as we move up each stack level from bottom to top.
-	float radiusStep = (topRadius - bottomRadius) / stackCount;
+	FLOAT radiusStep = (topRadius - bottomRadius) / stackCount;
 
 	uint32 ringCount = stackCount+1;
 
 	// Compute vertices for each stack ring starting at the bottom and moving up.
 	for(uint32 i = 0; i < ringCount; ++i)
 	{
-		float y = -0.5f*height + i*stackHeight;
-		float r = bottomRadius + i*radiusStep;
+		FLOAT y = -0.5f*height + i*stackHeight;
+		FLOAT r = bottomRadius + i*radiusStep;
 
 		// vertices of ring
-		float dTheta = 2.0f*XM_PI/sliceCount;
+		FLOAT dTheta = 2.0f*XM_PI/sliceCount;
 		for(uint32 j = 0; j <= sliceCount; ++j)
 		{
 			Vertex vertex;
 
-			float c = cosf(j*dTheta);
-			float s = sinf(j*dTheta);
+			FLOAT c = cosf(j*dTheta);
+			FLOAT s = sinf(j*dTheta);
 
 			vertex.Position = XMFLOAT3(r*c, y, r*s);
 
-			vertex.TexC.x = (float)j/sliceCount;
-			vertex.TexC.y = 1.0f - (float)i/stackCount;
+			vertex.TexC.x = (FLOAT)j/sliceCount;
+			vertex.TexC.y = 1.0f - (FLOAT)i/stackCount;
 
 			// Cylinder can be parameterized as follows, where we introduce v
 			// parameter that goes in the same direction as the v tex-coord
@@ -437,7 +437,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(float bottomRadius
 			// This is unit length.
 			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
 
-			float dr = bottomRadius-topRadius;
+			FLOAT dr = bottomRadius-topRadius;
 			XMFLOAT3 bitangent(dr*c, -height, dr*s);
 
 			XMVECTOR T = XMLoadFloat3(&vertex.TangentU);
@@ -474,24 +474,24 @@ GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(float bottomRadius
     return meshData;
 }
 
-void GeometryGenerator::BuildCylinderTopCap(float bottomRadius, float topRadius, float height,
+void GeometryGenerator::BuildCylinderTopCap(FLOAT bottomRadius, FLOAT topRadius, FLOAT height,
 											uint32 sliceCount, uint32 stackCount, MeshData& meshData)
 {
 	uint32 baseIndex = (uint32)meshData.Vertices.size();
 
-	float y = 0.5f*height;
-	float dTheta = 2.0f*XM_PI/sliceCount;
+	FLOAT y = 0.5f*height;
+	FLOAT dTheta = 2.0f*XM_PI/sliceCount;
 
 	// Duplicate cap ring vertices because the texture coordinates and normals differ.
 	for(uint32 i = 0; i <= sliceCount; ++i)
 	{
-		float x = topRadius*cosf(i*dTheta);
-		float z = topRadius*sinf(i*dTheta);
+		FLOAT x = topRadius*cosf(i*dTheta);
+		FLOAT z = topRadius*sinf(i*dTheta);
 
 		// Scale down by the height to try and make top cap texture coord area
 		// proportional to base.
-		float u = x/height + 0.5f;
-		float v = z/height + 0.5f;
+		FLOAT u = x/height + 0.5f;
+		FLOAT v = z/height + 0.5f;
 
 		meshData.Vertices.push_back( Vertex(x, y, z, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, u, v) );
 	}
@@ -510,7 +510,7 @@ void GeometryGenerator::BuildCylinderTopCap(float bottomRadius, float topRadius,
 	}
 }
 
-void GeometryGenerator::BuildCylinderBottomCap(float bottomRadius, float topRadius, float height,
+void GeometryGenerator::BuildCylinderBottomCap(FLOAT bottomRadius, FLOAT topRadius, FLOAT height,
 											   uint32 sliceCount, uint32 stackCount, MeshData& meshData)
 {
 	// 
@@ -518,19 +518,19 @@ void GeometryGenerator::BuildCylinderBottomCap(float bottomRadius, float topRadi
 	//
 
 	uint32 baseIndex = (uint32)meshData.Vertices.size();
-	float y = -0.5f*height;
+	FLOAT y = -0.5f*height;
 
 	// vertices of ring
-	float dTheta = 2.0f*XM_PI/sliceCount;
+	FLOAT dTheta = 2.0f*XM_PI/sliceCount;
 	for(uint32 i = 0; i <= sliceCount; ++i)
 	{
-		float x = bottomRadius*cosf(i*dTheta);
-		float z = bottomRadius*sinf(i*dTheta);
+		FLOAT x = bottomRadius*cosf(i*dTheta);
+		FLOAT z = bottomRadius*sinf(i*dTheta);
 
 		// Scale down by the height to try and make top cap texture coord area
 		// proportional to base.
-		float u = x/height + 0.5f;
-		float v = z/height + 0.5f;
+		FLOAT u = x/height + 0.5f;
+		FLOAT v = z/height + 0.5f;
 
 		meshData.Vertices.push_back( Vertex(x, y, z, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, u, v) );
 	}
@@ -549,7 +549,7 @@ void GeometryGenerator::BuildCylinderBottomCap(float bottomRadius, float topRadi
 	}
 }
 
-GeometryGenerator::MeshData GeometryGenerator::CreateGrid(float width, float depth, uint32 m, uint32 n)
+GeometryGenerator::MeshData GeometryGenerator::CreateGrid(FLOAT width, FLOAT depth, uint32 m, uint32 n)
 {
     MeshData meshData;
 
@@ -560,22 +560,22 @@ GeometryGenerator::MeshData GeometryGenerator::CreateGrid(float width, float dep
 	// Create the vertices.
 	//
 
-	float halfWidth = 0.5f*width;
-	float halfDepth = 0.5f*depth;
+	FLOAT halfWidth = 0.5f*width;
+	FLOAT halfDepth = 0.5f*depth;
 
-	float dx = width / (n-1);
-	float dz = depth / (m-1);
+	FLOAT dx = width / (n-1);
+	FLOAT dz = depth / (m-1);
 
-	float du = 1.0f / (n-1);
-	float dv = 1.0f / (m-1);
+	FLOAT du = 1.0f / (n-1);
+	FLOAT dv = 1.0f / (m-1);
 
 	meshData.Vertices.resize(vertexCount);
 	for(uint32 i = 0; i < m; ++i)
 	{
-		float z = halfDepth - i*dz;
+		FLOAT z = halfDepth - i*dz;
 		for(uint32 j = 0; j < n; ++j)
 		{
-			float x = -halfWidth + j*dx;
+			FLOAT x = -halfWidth + j*dx;
 
 			meshData.Vertices[i*n+j].Position = XMFLOAT3(x, 0.0f, z);
 			meshData.Vertices[i*n+j].Normal   = XMFLOAT3(0.0f, 1.0f, 0.0f);
@@ -614,7 +614,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateGrid(float width, float dep
     return meshData;
 }
 
-GeometryGenerator::MeshData GeometryGenerator::CreateQuad(float x, float y, float w, float h, float depth)
+GeometryGenerator::MeshData GeometryGenerator::CreateQuad(FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT depth)
 {
     MeshData meshData;
 

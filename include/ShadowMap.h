@@ -40,10 +40,10 @@ namespace ShadowMap {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
@@ -60,7 +60,7 @@ namespace ShadowMap {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);

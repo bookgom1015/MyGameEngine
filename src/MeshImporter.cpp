@@ -17,7 +17,7 @@ namespace {
 	std::string BaseDir = "./../../assets/meshes/";
 }
 
-bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
+BOOL MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
@@ -37,9 +37,9 @@ bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 		for (const auto& index : shape.mesh.indices) {
 			Vertex vertex = {};
 
-			int first = 3 * index.vertex_index + 0;
-			int second = 3 * index.vertex_index + 1;
-			int third = 3 * index.vertex_index + 2;
+			INT first = 3 * index.vertex_index + 0;
+			INT second = 3 * index.vertex_index + 1;
+			INT third = 3 * index.vertex_index + 2;
 
 			vertex.Position = {
 				attrib.vertices[3 * index.vertex_index + 0],
@@ -53,7 +53,7 @@ bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 				attrib.normals[3 * index.normal_index + 2]
 			};
 
-			float texY = attrib.texcoords[2 * index.texcoord_index + 1];
+			FLOAT texY = attrib.texcoords[2 * index.texcoord_index + 1];
 			vertex.TexCoord = {
 				attrib.texcoords[2 * index.texcoord_index + 0],
 				texY,
@@ -61,11 +61,11 @@ bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 			
 
 			if (mesh.UniqueVertices.count(vertex) == 0) {
-				mesh.UniqueVertices[vertex] = static_cast<std::uint32_t>(mesh.Vertices.size());
+				mesh.UniqueVertices[vertex] = static_cast<UINT>(mesh.Vertices.size());
 				mesh.Vertices.push_back(vertex);
 			}
 
-			mesh.Indices.push_back(static_cast<std::uint32_t>(mesh.UniqueVertices[vertex]));
+			mesh.Indices.push_back(static_cast<UINT>(mesh.UniqueVertices[vertex]));
 		}
 	}
 	
@@ -80,7 +80,7 @@ bool MeshImporter::LoadObj(const std::string& file, Mesh& mesh, Material& mat) {
 	return true;
 }
 
-bool MeshImporter::LoadFbx(const std::string& file) {
+BOOL MeshImporter::LoadFbx(const std::string& file) {
 
 
 	return true;

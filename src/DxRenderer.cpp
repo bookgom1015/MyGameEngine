@@ -50,100 +50,100 @@ namespace {
 
 namespace ShaderArgs {
 	namespace Bloom {
-		float HighlightThreshold = 0.99f;
-		int BlurCount = 3;
+		FLOAT HighlightThreshold = 0.99f;
+		INT BlurCount = 3;
 	}
 
 	namespace DepthOfField {
-		float FocusRange = 8.0f;
-		float FocusingSpeed = 8.0f;
-		float BokehRadius = 2.0f;
-		float CocThreshold = 0.3f;
-		float CocDiffThreshold = 0.8f;
-		float HighlightPower = 4.0f;
-		int SampleCount = 4;
-		int BlurCount = 1;
+		FLOAT FocusRange = 8.0f;
+		FLOAT FocusingSpeed = 8.0f;
+		FLOAT BokehRadius = 2.0f;
+		FLOAT CocThreshold = 0.3f;
+		FLOAT CocDiffThreshold = 0.8f;
+		FLOAT HighlightPower = 4.0f;
+		INT SampleCount = 4;
+		INT BlurCount = 1;
 	}
 
 	namespace Ssr {
-		float MaxDistance = 20.0f;
-		float RayLength = 0.5f;
-		float NoiseIntensity = 0.01f;
-		int StepCount = 16;
-		int BackStepCount = 8;
-		int BlurCount = 3;
-		float DepthThreshold = 1.0f;
+		FLOAT MaxDistance = 20.0f;
+		FLOAT RayLength = 0.5f;
+		FLOAT NoiseIntensity = 0.01f;
+		INT StepCount = 16;
+		INT BackStepCount = 8;
+		INT BlurCount = 3;
+		FLOAT DepthThreshold = 1.0f;
 	}
 
 	namespace MotionBlur {
-		float Intensity = 0.01f;
-		float Limit = 0.005f;
-		float DepthBias = 0.05f;
-		int SampleCount = 10;
+		FLOAT Intensity = 0.01f;
+		FLOAT Limit = 0.005f;
+		FLOAT DepthBias = 0.05f;
+		INT SampleCount = 10;
 	}
 
 	namespace TemporalAA {
-		float ModulationFactor = 0.8f;
+		FLOAT ModulationFactor = 0.8f;
 	}
 
 	namespace Ssao {
-		int SampleCount = 14;
-		int BlurCount = 3;
+		INT SampleCount = 14;
+		INT BlurCount = 3;
 	}
 
 	namespace ToneMapping {
-		float Exposure = 1.4f;
+		FLOAT Exposure = 1.4f;
 	}
 
 	namespace GammaCorrection {
-		float Gamma = 2.2f;
+		FLOAT Gamma = 2.2f;
 	}
 
 	namespace DxrShadowMap {
-		int BlurCount = 3;
+		INT BlurCount = 3;
 	}
 
 	namespace Debug {
-		bool ShowCollisionBox = false;
+		BOOL ShowCollisionBox = false;
 	}
 
 	namespace Light {
-		float AmbientLight[3] = { 0.164f, 0.2f, 0.235f };
+		FLOAT AmbientLight[3] = { 0.164f, 0.2f, 0.235f };
 
 		namespace DirectionalLight {
-			float Strength[3] = { 0.9568f, 0.9411f, 0.8941f };
-			float Multiplier = 2.885f;
+			FLOAT Strength[3] = { 0.9568f, 0.9411f, 0.8941f };
+			FLOAT Multiplier = 2.885f;
 		}
 	}
 
 	namespace IrradianceMap {
-		bool ShowIrradianceCubeMap = false;
-		float MipLevel = 0.0f;
+		BOOL ShowIrradianceCubeMap = false;
+		FLOAT MipLevel = 0.0f;
 	}
 
 	namespace Pixelization {
-		float PixelSize = 5.0f;
+		FLOAT PixelSize = 5.0f;
 	}
 
 	namespace Sharpen {
-		float Amount = 0.8f;
+		FLOAT Amount = 0.8f;
 	}
 
 	namespace Rtao {
-		bool CheckerboardSamplingEnabled = false;
-		bool CheckerboardGenerateRaysForEvenPixels = false;
+		BOOL CheckerboardSamplingEnabled = false;
+		BOOL CheckerboardGenerateRaysForEvenPixels = false;
 
-		float OcclusionRadius = 10.0f;
-		float OcclusionFadeStart = 1.0f;
-		float OcclusionFadeEnd = 100.0f;
-		float OcclusionEpsilon = 0.05f;
+		FLOAT OcclusionRadius = 10.0f;
+		FLOAT OcclusionFadeStart = 1.0f;
+		FLOAT OcclusionFadeEnd = 100.0f;
+		FLOAT OcclusionEpsilon = 0.05f;
 		UINT SampleCount = 2;
-		bool QuarterResolutionAO = false;
-		float MaxRayHitTime = 22.0f;
+		BOOL QuarterResolutionAO = false;
+		FLOAT MaxRayHitTime = 22.0f;
 
 		namespace Denoiser {
-			bool UseSmoothingVariance = true;
-			bool DisocclusionBlur = true;
+			BOOL UseSmoothingVariance = true;
+			BOOL DisocclusionBlur = true;
 			UINT LowTsppBlurPasses = 3;
 
 			namespace TemporalSupersampling {
@@ -151,39 +151,39 @@ namespace ShaderArgs {
 
 				namespace ClampCachedValues {
 					BOOL UseClamping = true;
-					float StdDevGamma = 0.6f;
-					float MinStdDevTolerance = 0.05f;
-					float DepthSigma = 1.0f;
+					FLOAT StdDevGamma = 0.6f;
+					FLOAT MinStdDevTolerance = 0.05f;
+					FLOAT DepthSigma = 1.0f;
 				}
 
-				float ClampDifferenceToTsppScale = 4.0f;
+				FLOAT ClampDifferenceToTsppScale = 4.0f;
 				UINT MinTsppToUseTemporalVariance = 4;
 				UINT LowTsppMaxTspp = 12;
-				float LowTsppDecayConstant = 1.0f;
+				FLOAT LowTsppDecayConstant = 1.0f;
 			}
 
 			namespace AtrousWaveletTransformFilter {
-				float ValueSigma = 1.0f;
-				float DepthSigma = 1.0f;
-				float DepthWeightCutoff = 0.2f;
-				float NormalSigma = 64.0f;
-				float MinVarianceToDenoise = 0.0f;
-				bool UseSmoothedVariance = false;
-				bool PerspectiveCorrectDepthInterpolation = true;
-				bool UseAdaptiveKernelSize = true;
-				bool KernelRadiusRotateKernelEnabled = true;
-				int KernelRadiusRotateKernelNumCycles = 3;
-				int FilterMinKernelWidth = 3;
-				float FilterMaxKernelWidthPercentage = 1.5f;
-				float AdaptiveKernelSizeRayHitDistanceScaleFactor = 0.02f;
-				float AdaptiveKernelSizeRayHitDistanceScaleExponent = 2.0f;
+				FLOAT ValueSigma = 1.0f;
+				FLOAT DepthSigma = 1.0f;
+				FLOAT DepthWeightCutoff = 0.2f;
+				FLOAT NormalSigma = 64.0f;
+				FLOAT MinVarianceToDenoise = 0.0f;
+				BOOL UseSmoothedVariance = false;
+				BOOL PerspectiveCorrectDepthInterpolation = true;
+				BOOL UseAdaptiveKernelSize = true;
+				BOOL KernelRadiusRotateKernelEnabled = true;
+				INT KernelRadiusRotateKernelNumCycles = 3;
+				INT FilterMinKernelWidth = 3;
+				FLOAT FilterMaxKernelWidthPercentage = 1.5f;
+				FLOAT AdaptiveKernelSizeRayHitDistanceScaleFactor = 0.02f;
+				FLOAT AdaptiveKernelSizeRayHitDistanceScaleExponent = 2.0f;
 
 			}
 		}
 	}
 
 	namespace RaytracedReflection {
-		float ReflectionRadius = 10.0f;
+		FLOAT ReflectionRadius = 10.0f;
 	}
 }
 
@@ -196,7 +196,7 @@ DxRenderer::DxRenderer() {
 	mShaderManager = std::make_unique<ShaderManager>();
 
 	mSceneBounds.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	float widthSquared = 32.0f * 32.0f;
+	FLOAT widthSquared = 32.0f * 32.0f;
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
 	mLightDir = { 0.57735f, -0.57735f, 0.57735f };
 
@@ -260,7 +260,7 @@ DxRenderer::~DxRenderer() {
 	if (!bIsCleanedUp) CleanUp();
 }
 
-bool DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
+BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
 	mClientWidth = width;
 	mClientHeight = height;
 
@@ -350,7 +350,7 @@ void DxRenderer::CleanUp() {
 	bIsCleanedUp = true;
 }
 
-bool DxRenderer::Update(float delta) {
+BOOL DxRenderer::Update(FLOAT delta) {
 	mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % gNumFrameResources;
 	mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
 
@@ -381,7 +381,7 @@ bool DxRenderer::Update(float delta) {
 	return true;
 }
 
-bool DxRenderer::Draw() {
+BOOL DxRenderer::Draw() {
 	CheckHRESULT(mCurrFrameResource->CmdListAlloc->Reset());
 	
 	// Pre-pass and main-pass
@@ -432,7 +432,7 @@ bool DxRenderer::Draw() {
 	return true;
 }
 
-bool DxRenderer::OnResize(UINT width, UINT height) {
+BOOL DxRenderer::OnResize(UINT width, UINT height) {
 	mClientWidth = width;
 	mClientHeight = height;
 	
@@ -442,7 +442,7 @@ bool DxRenderer::OnResize(UINT width, UINT height) {
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	std::array<ID3D12Resource*, SwapChainBufferCount> backBuffers;
-	for (int i = 0; i < SwapChainBufferCount; ++i) {
+	for (INT i = 0; i < SwapChainBufferCount; ++i) {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
@@ -509,11 +509,11 @@ void DxRenderer::UpdateModel(void* model, const Transform& trans) {
 	ptr->NumFramesDirty = gNumFrameResources << 1;
 }
 
-void DxRenderer::SetModelVisibility(void* model, bool visible) {
+void DxRenderer::SetModelVisibility(void* model, BOOL visible) {
 
 }
 
-void DxRenderer::SetModelPickable(void* model, bool pickable) {
+void DxRenderer::SetModelPickable(void* model, BOOL pickable) {
 	auto begin = mRitems.begin();
 	auto end = mRitems.end();
 	const auto& iter = std::find_if(begin, end, [&](std::unique_ptr<RenderItem>& p) {
@@ -522,23 +522,23 @@ void DxRenderer::SetModelPickable(void* model, bool pickable) {
 	if (iter != end) iter->get()->Pickable = pickable;
 }
 
-bool DxRenderer::SetCubeMap(const std::string& file) {
+BOOL DxRenderer::SetCubeMap(const std::string& file) {
 
 	return true;
 }
 
-bool DxRenderer::SetEquirectangularMap(const std::string& file) {	
+BOOL DxRenderer::SetEquirectangularMap(const std::string& file) {	
 	mIrradianceMap->SetEquirectangularMap(mCommandQueue.Get(), file);
 
 	return true;
 }
 
-void DxRenderer::Pick(float x, float y) {
+void DxRenderer::Pick(FLOAT x, FLOAT y) {
 	const auto& P = mCamera->GetProj();
 
 	// Compute picking ray in vew space.
-	float vx = (2.0f * x / mClientWidth - 1.0f) / P(0, 0);
-	float vy = (-2.0f * y / mClientHeight + 1.0f) / P(1, 1);
+	FLOAT vx = (2.0f * x / mClientWidth - 1.0f) / P(0, 0);
+	FLOAT vy = (-2.0f * y / mClientHeight + 1.0f) / P(1, 1);
 
 	// Ray definition in view space.
 	auto origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
@@ -547,7 +547,7 @@ void DxRenderer::Pick(float x, float y) {
 	const auto V = XMLoadFloat4x4(&mCamera->GetView());
 	const auto InvView = XMMatrixInverse(&XMMatrixDeterminant(V), V);
 
-	float closestT = std::numeric_limits<float>().max();
+	FLOAT closestT = std::numeric_limits<FLOAT>().max();
 	for (auto ri : mRitemRefs[RenderType::E_Opaque]) {
 		if (!ri->Pickable) continue;
 
@@ -564,7 +564,7 @@ void DxRenderer::Pick(float x, float y) {
 
 		// Make the ray direction unit length for the intersection tests.
 		dirL = XMVector3Normalize(dirL);
-		float tmin = 0.0f;
+		FLOAT tmin = 0.0f;
 		if (ri->AABB.Intersects(originL, dirL, tmin) && tmin < closestT) {
 			closestT = tmin;
 			mPickedRitem = ri;
@@ -572,7 +572,7 @@ void DxRenderer::Pick(float x, float y) {
 	}
 }
 
-bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
+BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	rtvHeapDesc.NumDescriptors =
 		SwapChainBufferCount
@@ -606,7 +606,7 @@ bool DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	return true;
 }
 
-bool DxRenderer::CompileShaders() {
+BOOL DxRenderer::CompileShaders() {
 #ifdef _DEBUG
 	WLogln(L"Compiling shaders...");
 #endif 
@@ -643,7 +643,7 @@ bool DxRenderer::CompileShaders() {
 	return true;
 }
 
-bool DxRenderer::BuildGeometries() {
+BOOL DxRenderer::BuildGeometries() {
 	GeometryGenerator geoGen;
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(1.0f, 32, 32);
 	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 1);
@@ -764,8 +764,8 @@ bool DxRenderer::BuildGeometries() {
 	return true;
 }
 
-bool DxRenderer::BuildFrameResources() {
-	for (int i = 0; i < gNumFrameResources; i++) {
+BOOL DxRenderer::BuildFrameResources() {
+	for (INT i = 0; i < gNumFrameResources; i++) {
 		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(), 2, 32, 32));
 		CheckReturn(mFrameResources.back()->Initialize());
 	}
@@ -784,7 +784,7 @@ void DxRenderer::BuildDescriptors() {
 	auto dsvDescSize = GetDsvDescriptorSize();
 
 	std::array<ID3D12Resource*, SwapChainBufferCount> backBuffers;
-	for (int i = 0; i < SwapChainBufferCount; ++i) {
+	for (INT i = 0; i < SwapChainBufferCount; ++i) {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
@@ -814,7 +814,7 @@ void DxRenderer::BuildDescriptors() {
 	mhGpuDescForTexMaps = hGpu;
 }
 
-bool DxRenderer::BuildRootSignatures() {
+BOOL DxRenderer::BuildRootSignatures() {
 #if _DEBUG
 	WLogln(L"Building root-signatures...");
 #endif
@@ -852,7 +852,7 @@ bool DxRenderer::BuildRootSignatures() {
 	return true;
 }
 
-bool DxRenderer::BuildPSOs() {
+BOOL DxRenderer::BuildPSOs() {
 #ifdef _DEBUG
 	WLogln(L"Building pipeline state objects...");
 #endif
@@ -892,7 +892,7 @@ bool DxRenderer::BuildPSOs() {
 void DxRenderer::BuildRenderItems() {
 	{
 		auto skyRitem = std::make_unique<RenderItem>();
-		skyRitem->ObjCBIndex = static_cast<int>(mRitems.size());
+		skyRitem->ObjCBIndex = static_cast<INT>(mRitems.size());
 		skyRitem->Geometry = mGeometries["basic"].get();
 		skyRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		skyRitem->IndexCount = skyRitem->Geometry->DrawArgs["sphere"].IndexCount;
@@ -904,7 +904,7 @@ void DxRenderer::BuildRenderItems() {
 	}
 	{
 		auto boxRitem = std::make_unique<RenderItem>();
-		boxRitem->ObjCBIndex = static_cast<int>(mRitems.size());
+		boxRitem->ObjCBIndex = static_cast<INT>(mRitems.size());
 		boxRitem->Geometry = mGeometries["basic"].get();
 		boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		boxRitem->IndexCount = boxRitem->Geometry->DrawArgs["box"].IndexCount;
@@ -916,7 +916,7 @@ void DxRenderer::BuildRenderItems() {
 	}
 }
 
-bool DxRenderer::AddGeometry(const std::string& file) {
+BOOL DxRenderer::AddGeometry(const std::string& file) {
 	Mesh mesh;
 	Material mat;
 	CheckReturn(MeshImporter::LoadObj(file, mesh, mat));
@@ -930,7 +930,7 @@ bool DxRenderer::AddGeometry(const std::string& file) {
 	const size_t vertexSize = sizeof(Vertex);
 
 	const UINT vbByteSize = static_cast<UINT>(vertices.size() * vertexSize);
-	const UINT ibByteSize = static_cast<UINT>(indices.size() * sizeof(std::uint32_t));
+	const UINT ibByteSize = static_cast<UINT>(indices.size() * sizeof(UINT));
 
 	XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
 	XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
@@ -1003,12 +1003,12 @@ bool DxRenderer::AddGeometry(const std::string& file) {
 	return true;
 }
 
-bool DxRenderer::AddMaterial(const std::string& file, const Material& material) {
+BOOL DxRenderer::AddMaterial(const std::string& file, const Material& material) {
 	UINT index = AddTexture(file, material);
 	if (index == -1) ReturnFalse("Failed to create texture");
 
 	auto matData = std::make_unique<MaterialData>();
-	matData->MatCBIndex = static_cast<int>(mMaterials.size());
+	matData->MatCBIndex = static_cast<INT>(mMaterials.size());
 	matData->MatTransform = MathHelper::Identity4x4();
 	matData->DiffuseSrvHeapIndex = index;
 	matData->Albedo = material.Albedo;
@@ -1024,7 +1024,7 @@ void* DxRenderer::AddRenderItem(const std::string& file, const Transform& trans,
 	if (mGeometries.count(file) == 0) CheckReturn(AddGeometry(file));
 
 	auto ritem = std::make_unique<RenderItem>();
-	ritem->ObjCBIndex = static_cast<int>(mRitems.size());
+	ritem->ObjCBIndex = static_cast<INT>(mRitems.size());
 	ritem->Material = mMaterials[file].get();
 	ritem->Geometry = mGeometries[file].get();
 	ritem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -1108,7 +1108,7 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	return mCurrDescriptorIndex++;
 }
 
-bool DxRenderer::UpdateShadingObjects(float delta) {
+BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -1143,7 +1143,7 @@ bool DxRenderer::UpdateShadingObjects(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateShadowPassCB(float delta) {
+BOOL DxRenderer::UpdateShadowPassCB(FLOAT delta) {
 	XMVECTOR lightDir = XMLoadFloat3(&mLightDir);
 	XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
 	XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
@@ -1155,12 +1155,12 @@ bool DxRenderer::UpdateShadowPassCB(float delta) {
 	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
 
 	// Ortho frustum in light space encloses scene.
-	float l = sphereCenterLS.x - mSceneBounds.Radius;
-	float b = sphereCenterLS.y - mSceneBounds.Radius;
-	float n = sphereCenterLS.z - mSceneBounds.Radius;
-	float r = sphereCenterLS.x + mSceneBounds.Radius;
-	float t = sphereCenterLS.y + mSceneBounds.Radius;
-	float f = sphereCenterLS.z + mSceneBounds.Radius;
+	FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
+	FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
+	FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
+	FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
+	FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
+	FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
 
 	XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
 
@@ -1194,7 +1194,7 @@ bool DxRenderer::UpdateShadowPassCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateMainPassCB(float delta) {
+BOOL DxRenderer::UpdateMainPassCB(FLOAT delta) {
 	XMMATRIX view = XMLoadFloat4x4(&mCamera->GetView());
 	XMMATRIX proj = XMLoadFloat4x4(&mCamera->GetProj());
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
@@ -1239,7 +1239,7 @@ bool DxRenderer::UpdateMainPassCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateSsaoPassCB(float delta) {
+BOOL DxRenderer::UpdateSsaoPassCB(FLOAT delta) {
 	SsaoConstants ssaoCB;
 	ssaoCB.View = mMainPassCB->View;
 	ssaoCB.Proj = mMainPassCB->Proj;
@@ -1271,7 +1271,7 @@ bool DxRenderer::UpdateSsaoPassCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateBlurPassCB(float delta) {
+BOOL DxRenderer::UpdateBlurPassCB(FLOAT delta) {
 	BlurConstants blurCB;
 	blurCB.Proj = mMainPassCB->Proj;
 	blurCB.BlurWeights[0] = mBlurWeights[0];
@@ -1285,7 +1285,7 @@ bool DxRenderer::UpdateBlurPassCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateDofCB(float delta) {
+BOOL DxRenderer::UpdateDofCB(FLOAT delta) {
 	DofConstants dofCB;
 	dofCB.Proj = mMainPassCB->Proj;
 	dofCB.InvProj = mMainPassCB->InvProj;
@@ -1299,7 +1299,7 @@ bool DxRenderer::UpdateDofCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateSsrCB(float delta) {
+BOOL DxRenderer::UpdateSsrCB(FLOAT delta) {
 	SsrConstants ssrCB;
 	ssrCB.View = mMainPassCB->View;
 	ssrCB.InvView = mMainPassCB->InvView;
@@ -1319,7 +1319,7 @@ bool DxRenderer::UpdateSsrCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateObjectCBs(float delta) {
+BOOL DxRenderer::UpdateObjectCBs(FLOAT delta) {
 	auto& currObjectCB = mCurrFrameResource->ObjectCB;
 	for (auto& e : mRitems) {
 		// Only update the cbuffer data if the constants have changed.  
@@ -1348,7 +1348,7 @@ bool DxRenderer::UpdateObjectCBs(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateMaterialCBs(float delta) {
+BOOL DxRenderer::UpdateMaterialCBs(FLOAT delta) {
 	auto& currMaterialCB = mCurrFrameResource->MaterialCB;
 	for (auto& e : mMaterials) {
 		// Only update the cbuffer data if the constants have changed.  If the cbuffer
@@ -1376,7 +1376,7 @@ bool DxRenderer::UpdateMaterialCBs(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateConvEquirectToCubeCB(float delta) {
+BOOL DxRenderer::UpdateConvEquirectToCubeCB(FLOAT delta) {
 	ConvertEquirectangularToCubeConstantBuffer cubeCB;
 		
 	XMStoreFloat4x4(&cubeCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
@@ -1442,7 +1442,7 @@ bool DxRenderer::UpdateConvEquirectToCubeCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateRtaoCB(float delta) {
+BOOL DxRenderer::UpdateRtaoCB(FLOAT delta) {
 	// Ambient occlusion
 	{
 		static UINT count = 0;
@@ -1519,11 +1519,11 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 		AtrousWaveletTransformFilterConstantBuffer atrousFilterCB;
 
 		// Adaptive kernel radius rotation.
-		float kernelRadiusLerfCoef = 0;
+		FLOAT kernelRadiusLerfCoef = 0;
 		if (ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::KernelRadiusRotateKernelEnabled) {
 			static UINT frameID = 0;
 			UINT i = frameID++ % ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles;
-			kernelRadiusLerfCoef = i / static_cast<float>(ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles);
+			kernelRadiusLerfCoef = i / static_cast<FLOAT>(ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles);
 		}
 
 		atrousFilterCB.TextureDim = XMUINT2(mRtao->Width(), mRtao->Height());
@@ -1559,7 +1559,7 @@ bool DxRenderer::UpdateRtaoCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateRrCB(float delta) {
+BOOL DxRenderer::UpdateRrCB(FLOAT delta) {
 	RaytracedReflectionConstantBuffer rrCB;
 
 	rrCB.View = mMainPassCB->View;
@@ -1579,7 +1579,7 @@ bool DxRenderer::UpdateRrCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::UpdateDebugMapCB(float delta) {
+BOOL DxRenderer::UpdateDebugMapCB(FLOAT delta) {
 	DebugMapConstantBuffer debugMapCB;
 
 	for (UINT i = 0; i < DebugMap::MapSize; ++i) {
@@ -1593,7 +1593,7 @@ bool DxRenderer::UpdateDebugMapCB(float delta) {
 	return true;
 }
 
-bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo) {
+BOOL DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo) {
 	std::unique_ptr<AccelerationStructureBuffer> blas = std::make_unique<AccelerationStructureBuffer>();
 
 	CheckReturn(blas->BuildBLAS(md3dDevice.Get(), cmdList, geo));
@@ -1607,7 +1607,7 @@ bool DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	return true;
 }
 
-bool DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
+BOOL DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
 
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
@@ -1621,8 +1621,8 @@ bool DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 		instanceDesc.InstanceID = 0;
 		instanceDesc.InstanceContributionToHitGroupIndex = hitGroupIndex;
 		instanceDesc.InstanceMask = 0xFF;
-		for (int r = 0; r < 3; ++r) {
-			for (int c = 0; c < 4; ++c) {
+		for (INT r = 0; r < 3; ++r) {
+			for (INT c = 0; c < 4; ++c) {
 				instanceDesc.Transform[r][c] = ri->World.m[c][r];
 			}
 		}
@@ -1636,7 +1636,7 @@ bool DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	return true;
 }
 
-bool DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
+BOOL DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescs;
 
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
@@ -1650,8 +1650,8 @@ bool DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 		instanceDesc.InstanceID = 0;
 		instanceDesc.InstanceContributionToHitGroupIndex = hitGroupIndex;
 		instanceDesc.InstanceMask = 0xFF;
-		for (int r = 0; r < 3; ++r) {
-			for (int c = 0; c < 4; ++c) {
+		for (INT r = 0; r < 3; ++r) {
+			for (INT c = 0; c < 4; ++c) {
 				instanceDesc.Transform[r][c] = ri->World.m[c][r];
 			}
 		}
@@ -1665,7 +1665,7 @@ bool DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	return true;
 }
 
-bool DxRenderer::BuildShaderTables() {
+BOOL DxRenderer::BuildShaderTables() {
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 
 	UINT numRitems = static_cast<UINT>(opaques.size());
@@ -1679,7 +1679,7 @@ bool DxRenderer::BuildShaderTables() {
 	return true;
 }
 
-bool DxRenderer::DrawShadowMap() {
+BOOL DxRenderer::DrawShadowMap() {
 	const auto cmdList = mCommandList.Get();
 
 	if (!bShadowEnabled) {
@@ -1736,7 +1736,7 @@ bool DxRenderer::DrawShadowMap() {
 	return true;
 }
 
-bool DxRenderer::DrawGBuffer() {
+BOOL DxRenderer::DrawGBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -1769,7 +1769,7 @@ bool DxRenderer::DrawGBuffer() {
 	return true;
 }
 
-bool DxRenderer::DrawSsao() {
+BOOL DxRenderer::DrawSsao() {
 	const auto cmdList = mCommandList.Get();
 
 	if (!bSsaoEnabled) {
@@ -1833,7 +1833,7 @@ bool DxRenderer::DrawSsao() {
 	return true;
 }
 
-bool DxRenderer::DrawBackBuffer() {
+BOOL DxRenderer::DrawBackBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -1865,7 +1865,7 @@ bool DxRenderer::DrawBackBuffer() {
 	return true;
 }
 
-bool DxRenderer::IntegrateSpecIrrad() {
+BOOL DxRenderer::IntegrateSpecIrrad() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -1900,7 +1900,7 @@ bool DxRenderer::IntegrateSpecIrrad() {
 	return true;
 }
 
-bool DxRenderer::DrawSkySphere() {
+BOOL DxRenderer::DrawSkySphere() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -1934,7 +1934,7 @@ bool DxRenderer::DrawSkySphere() {
 	return true;
 }
 
-bool DxRenderer::DrawEquirectangulaToCube() {
+BOOL DxRenderer::DrawEquirectangulaToCube() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -1968,7 +1968,7 @@ bool DxRenderer::DrawEquirectangulaToCube() {
 	return true;
 }
 
-bool DxRenderer::ApplyTAA() {
+BOOL DxRenderer::ApplyTAA() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -1993,7 +1993,7 @@ bool DxRenderer::ApplyTAA() {
 	return true;
 }
 
-bool DxRenderer::BuildSsr() {
+BOOL DxRenderer::BuildSsr() {
 	const auto cmdList = mCommandList.Get();
 
 	auto pDescHeap = mCbvSrvUavHeap.Get();
@@ -2066,7 +2066,7 @@ bool DxRenderer::BuildSsr() {
 	return true;
 }
 
-bool DxRenderer::ApplyBloom() {
+BOOL DxRenderer::ApplyBloom() {
 	const auto cmdList= mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2125,7 +2125,7 @@ bool DxRenderer::ApplyBloom() {
 	return true;
 }
 
-bool DxRenderer::ApplyDepthOfField() {
+BOOL DxRenderer::ApplyDepthOfField() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -2189,7 +2189,7 @@ bool DxRenderer::ApplyDepthOfField() {
 	return true;
 }
 
-bool DxRenderer::ApplyMotionBlur() {
+BOOL DxRenderer::ApplyMotionBlur() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2235,7 +2235,7 @@ bool DxRenderer::ApplyMotionBlur() {
 	return true;
 }
 
-bool DxRenderer::ResolveToneMapping() {
+BOOL DxRenderer::ResolveToneMapping() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2272,7 +2272,7 @@ bool DxRenderer::ResolveToneMapping() {
 	return true;
 }
 
-bool DxRenderer::ApplyGammaCorrection() {
+BOOL DxRenderer::ApplyGammaCorrection() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2298,7 +2298,7 @@ bool DxRenderer::ApplyGammaCorrection() {
 	return true;
 }
 
-bool DxRenderer::ApplySharpen() {
+BOOL DxRenderer::ApplySharpen() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2324,7 +2324,7 @@ bool DxRenderer::ApplySharpen() {
 	return true;
 }
 
-bool DxRenderer::ApplyPixelation() {
+BOOL DxRenderer::ApplyPixelation() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2350,7 +2350,7 @@ bool DxRenderer::ApplyPixelation() {
 	return true;
 }
 
-bool DxRenderer::DrawDebuggingInfo() {
+BOOL DxRenderer::DrawDebuggingInfo() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2389,7 +2389,7 @@ bool DxRenderer::DrawDebuggingInfo() {
 	return true;
 }
 
-bool DxRenderer::DrawImGui() {
+BOOL DxRenderer::DrawImGui() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2409,12 +2409,12 @@ bool DxRenderer::DrawImGui() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	static const auto BuildDebugMap = [&](bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type) {
+	static const auto BuildDebugMap = [&](BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type) {
 		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = false; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
 	static const auto BuildDebugMapWithSampleDesc = [&](
-			bool& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type, DebugMapSampleDesc desc) {
+			BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type, DebugMapSampleDesc desc) {
 		if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = false; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
@@ -2427,31 +2427,31 @@ bool DxRenderer::DrawImGui() {
 		if (ImGui::CollapsingHeader("Debug")) {
 			if (ImGui::TreeNode("Texture Maps")) {
 				if (ImGui::TreeNode("G-Buffer")) {
-					if (ImGui::Checkbox("Albedo", &mDebugMapStates[DebugMapLayout::E_Albedo])) {
+					if (ImGui::Checkbox("Albedo", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Albedo]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Albedo],
 							mGBuffer->AlbedoMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Normal", &mDebugMapStates[DebugMapLayout::E_Normal])) {
+					if (ImGui::Checkbox("Normal", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Normal]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Normal],
 							mGBuffer->NormalMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Depth", &mDebugMapStates[DebugMapLayout::E_Depth])) {
+					if (ImGui::Checkbox("Depth", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Depth]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Depth],
 							mGBuffer->DepthMapSrv(),
 							DebugMap::SampleMask::RRR);
 					}
-					if (ImGui::Checkbox("RoughnessMetalicSpecular", &mDebugMapStates[DebugMapLayout::E_RMS])) {
+					if (ImGui::Checkbox("RoughnessMetalicSpecular", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RMS]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_RMS],
 							mGBuffer->RMSMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Velocity", &mDebugMapStates[DebugMapLayout::E_Velocity])) {
+					if (ImGui::Checkbox("Velocity", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Velocity]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Velocity],
 							mGBuffer->VelocityMapSrv(),
@@ -2459,44 +2459,47 @@ bool DxRenderer::DrawImGui() {
 					}
 					ImGui::TreePop();
 				} // ImGui::TreeNode("G-Buffer")
-				if (ImGui::Checkbox("Shadow", &mDebugMapStates[DebugMapLayout::E_Shadow])) {
+				if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Shadow]))) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Shadow],
 						mShadowMap->Srv(),
 						DebugMap::SampleMask::RRR);
 				}
-				if (ImGui::Checkbox("SSAO", &mDebugMapStates[DebugMapLayout::E_SSAO])) {
+				if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_SSAO],
 						mSsao->AOCoefficientMapSrv(0),
 						DebugMap::SampleMask::RRR);
 				}
-				if (ImGui::Checkbox("Bloom", &mDebugMapStates[DebugMapLayout::E_Bloom])) {
+				if (ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Bloom]))) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_Bloom],
 						mBloom->BloomMapSrv(0),
 						DebugMap::SampleMask::RGB);
 				}
-				if (ImGui::Checkbox("SSR", &mDebugMapStates[DebugMapLayout::E_SSR])) {
+				if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_SSR],
 						mSsr->SsrMapSrv(0),
 						DebugMap::SampleMask::RGB);
 				}
 				if (ImGui::TreeNode("Irradiance")) {
-					if (ImGui::Checkbox("Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_Equirectangular])) {
+					if (ImGui::Checkbox("Equirectangular Map", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Equirectangular]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Equirectangular],
 							mIrradianceMap->EquirectangularMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Temporary Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular])) {
+					if (ImGui::Checkbox("Temporary Equirectangular Map", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
 							mIrradianceMap->TemporaryEquirectangularMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", &mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect])) {
+					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
 							mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
@@ -2504,7 +2507,7 @@ bool DxRenderer::DrawImGui() {
 					}
 					ImGui::TreePop();
 				} // ImGui::TreeNode("Irradiance")
-				if (ImGui::Checkbox("DXR Shadow", &mDebugMapStates[DebugMapLayout::E_DxrShadow])) {
+				if (ImGui::Checkbox("DXR Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
 					BuildDebugMap(
 						mDebugMapStates[DebugMapLayout::E_DxrShadow],
 						mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
@@ -2513,19 +2516,20 @@ bool DxRenderer::DrawImGui() {
 				if (ImGui::TreeNode("RTAO")) {
 					auto index = mRtao->TemporalCurrentFrameResourceIndex();
 
-					if (ImGui::Checkbox("AO Coefficients", &mDebugMapStates[DebugMapLayout::E_AOCoeff])) {
+					if (ImGui::Checkbox("AO Coefficients", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_AOCoeff]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_AOCoeff],
 							mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_AmbientCoefficient],
 							DebugMap::SampleMask::RRR);
 					}
-					if (ImGui::Checkbox("Temporal AO Coefficients", &mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff])) {
+					if (ImGui::Checkbox("Temporal AO Coefficients", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
 							mRtao->TemporalAOCoefficientsGpuDescriptors()[index][Rtao::Descriptor::TemporalAOCoefficient::Srv],
 							DebugMap::SampleMask::RRR);
 					}
-					if (ImGui::Checkbox("Tspp", &mDebugMapStates[DebugMapLayout::E_Tspp])) {
+					if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
 						DebugMapSampleDesc desc;
 						desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
 						desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
@@ -2537,7 +2541,7 @@ bool DxRenderer::DrawImGui() {
 							DebugMap::SampleMask::UINT,
 							desc);
 					}
-					if (ImGui::Checkbox("Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_RayHitDist])) {
+					if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RayHitDist]))) {
 						DebugMapSampleDesc desc;
 						desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
 						desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
@@ -2549,7 +2553,8 @@ bool DxRenderer::DrawImGui() {
 							DebugMap::SampleMask::FLOAT,
 							desc);
 					}
-					if (ImGui::Checkbox("Temporal Ray Hit Distance", &mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist])) {
+					if (ImGui::Checkbox("Temporal Ray Hit Distance", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist]))) {
 						DebugMapSampleDesc desc;
 						desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
 						desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
@@ -2561,13 +2566,15 @@ bool DxRenderer::DrawImGui() {
 							DebugMap::SampleMask::FLOAT,
 							desc);
 					}
-					if (ImGui::Checkbox("Local Mean Variance", &mDebugMapStates[DebugMapLayout::E_LocalMeanVariance])) {
+					if (ImGui::Checkbox("Local Mean Variance", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_LocalMeanVariance]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
 							mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
 							DebugMap::SampleMask::RG);
 					}
-					if (ImGui::Checkbox("Disocclusion Blur Strength", &mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength])) {
+					if (ImGui::Checkbox("Disocclusion Blur Strength", 
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
 							mRtao->DisocclusionBlurStrengthSrv(),
@@ -2577,26 +2584,26 @@ bool DxRenderer::DrawImGui() {
 				} // ImGui::TreeNode("RTAO")
 				ImGui::TreePop();
 			} // ImGui::TreeNode("Texture Maps")
-			if (ImGui::Checkbox("Raytraced Reflection", &mDebugMapStates[DebugMapLayout::E_RaytracedReflection])) {
+			if (ImGui::Checkbox("Raytraced Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RaytracedReflection]))) {
 				BuildDebugMap(
 					mDebugMapStates[DebugMapLayout::E_RaytracedReflection],
 					mRr->ReflectionMapSrv(),
 					DebugMap::SampleMask::RGB);
 			}
-			ImGui::Checkbox("Show Collision Box", &ShaderArgs::Debug::ShowCollisionBox);
+			ImGui::Checkbox("Show Collision Box", reinterpret_cast<bool*>(&ShaderArgs::Debug::ShowCollisionBox));
 		}
 		if (ImGui::CollapsingHeader("Effects")) {
-			ImGui::Checkbox("Shadow", &bShadowEnabled);
-			ImGui::Checkbox("SSAO", &bSsaoEnabled);
-			ImGui::Checkbox("TAA", &bTaaEnabled);
-			ImGui::Checkbox("Motion Blur", &bMotionBlurEnabled);
-			ImGui::Checkbox("Depth of Field", &bDepthOfFieldEnabled);
-			ImGui::Checkbox("Bloom", &bBloomEnabled);
-			ImGui::Checkbox("SSR", &bSsrEnabled);
-			ImGui::Checkbox("Gamma Correction", &bGammaCorrectionEnabled);
-			ImGui::Checkbox("Tone Mapping", &bToneMappingEnabled);
-			ImGui::Checkbox("Pixelation", &bPixelationEnabled);
-			ImGui::Checkbox("Sharpen", &bSharpenEnabled);
+			ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&bShadowEnabled));
+			ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&bSsaoEnabled));
+			ImGui::Checkbox("TAA", reinterpret_cast<bool*>(&bTaaEnabled));
+			ImGui::Checkbox("Motion Blur", reinterpret_cast<bool*>(&bMotionBlurEnabled));
+			ImGui::Checkbox("Depth of Field", reinterpret_cast<bool*>(&bDepthOfFieldEnabled));
+			ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&bBloomEnabled));
+			ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&bSsrEnabled));
+			ImGui::Checkbox("Gamma Correction", reinterpret_cast<bool*>(&bGammaCorrectionEnabled));
+			ImGui::Checkbox("Tone Mapping", reinterpret_cast<bool*>(&bToneMappingEnabled));
+			ImGui::Checkbox("Pixelation", reinterpret_cast<bool*>(&bPixelationEnabled));
+			ImGui::Checkbox("Sharpen", reinterpret_cast<bool*>(&bSharpenEnabled));
 		}
 		if (ImGui::CollapsingHeader("Lights")) {
 			ImGui::ColorPicker3("Amblient Light", ShaderArgs::Light::AmbientLight);
@@ -2609,28 +2616,28 @@ bool DxRenderer::DrawImGui() {
 			}
 		}
 		if (ImGui::CollapsingHeader("BRDF")) {
-			ImGui::RadioButton("Blinn-Phong", reinterpret_cast<int*>(&mBRDF->ModelType), BRDF::Model::E_BlinnPhong); ImGui::SameLine();
-			ImGui::RadioButton("Cook-Torrance", reinterpret_cast<int*>(&mBRDF->ModelType), BRDF::Model::E_CookTorrance);
+			ImGui::RadioButton("Blinn-Phong", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_BlinnPhong); ImGui::SameLine();
+			ImGui::RadioButton("Cook-Torrance", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_CookTorrance);
 			
 		}
 		if (ImGui::CollapsingHeader("Environment")) {
-			ImGui::Checkbox("Show Irradiance CubeMap", &ShaderArgs::IrradianceMap::ShowIrradianceCubeMap);
+			ImGui::Checkbox("Show Irradiance CubeMap", reinterpret_cast<bool*>(&ShaderArgs::IrradianceMap::ShowIrradianceCubeMap));
 			if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
 				ImGui::RadioButton(
 					"Environment CubeMap", 
-					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType), 
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
 					IrradianceMap::DrawCube::E_EnvironmentCube);
 				ImGui::RadioButton(
 					"Equirectangular Map", 
-					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
 					IrradianceMap::DrawCube::E_Equirectangular);
 				ImGui::RadioButton(
 					"Diffuse Irradiance CubeMap",
-					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
 					IrradianceMap::DrawCube::E_DiffuseIrradianceCube);
 				ImGui::RadioButton(
 					"Prefiltered Irradiance CubeMap",
-					reinterpret_cast<int*>(&mIrradianceMap->DrawCubeType),
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
 					IrradianceMap::DrawCube::E_PrefilteredIrradianceCube);
 				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel - 1);
 			}
@@ -2650,8 +2657,8 @@ bool DxRenderer::DrawImGui() {
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("RTAO")) {
-				ImGui::Checkbox("Use Smoothing Variance", &ShaderArgs::Rtao::Denoiser::UseSmoothingVariance);
-				ImGui::Checkbox("Disocclusion Blur", &ShaderArgs::Rtao::Denoiser::DisocclusionBlur);
+				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::Rtao::Denoiser::UseSmoothingVariance));
+				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::Rtao::Denoiser::DisocclusionBlur));
 				ImGui::Checkbox("Clamp Cached Values",
 					reinterpret_cast<bool*>(&ShaderArgs::Rtao::Denoiser::TemporalSupersampling::ClampCachedValues::UseClamping));
 
@@ -2734,7 +2741,7 @@ bool DxRenderer::DrawImGui() {
 			auto mat = mPickedRitem->Material;
 			ImGui::Text(mPickedRitem->Geometry->Name.c_str());
 
-			float albedo[4] = { mat->Albedo.x, mat->Albedo.y, mat->Albedo.z, mat->Albedo.w };
+			FLOAT albedo[4] = { mat->Albedo.x, mat->Albedo.y, mat->Albedo.z, mat->Albedo.w };
 			if (ImGui::ColorPicker4("Albedo", albedo)) {
 				mat->Albedo.x = albedo[0];
 				mat->Albedo.y = albedo[1];
@@ -2761,7 +2768,7 @@ bool DxRenderer::DrawImGui() {
 	return true;
 }
 
-bool DxRenderer::DrawDxrShadowMap() {
+BOOL DxRenderer::DrawDxrShadowMap() {
 	const auto cmdList = mCommandList.Get();	
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -2799,7 +2806,7 @@ bool DxRenderer::DrawDxrShadowMap() {
 	return true;
 }
 
-bool DxRenderer::DrawDxrBackBuffer() {
+BOOL DxRenderer::DrawDxrBackBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2831,7 +2838,7 @@ bool DxRenderer::DrawDxrBackBuffer() {
 	return true;
 }
 
-bool DxRenderer::DrawRtao() {
+BOOL DxRenderer::DrawRtao() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -3110,7 +3117,7 @@ bool DxRenderer::DrawRtao() {
 	return true;
 }
 
-bool DxRenderer::BuildRaytracedReflection() {
+BOOL DxRenderer::BuildRaytracedReflection() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -3127,7 +3134,8 @@ bool DxRenderer::BuildRaytracedReflection() {
 		rrCBAddress,
 		mTLAS->Result->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapSrv(),
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->NormalMapSrv(),
+		mGBuffer->DepthMapSrv(),
 		mhGpuDescForTexMaps
 	);
 

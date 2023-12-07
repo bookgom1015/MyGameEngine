@@ -24,7 +24,7 @@ GBufferClass::GBufferClass() {
 	mReprojNormalDepthMap = std::make_unique<GpuResource>();
 }
 
-bool GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, 
+BOOL GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, 
 		ShaderManager*const manager, GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -40,7 +40,7 @@ bool GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height
 	return true;
 }
 
-bool GBufferClass::CompileShaders(const std::wstring& filePath) {
+BOOL GBufferClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"GBuffer.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
@@ -50,7 +50,7 @@ bool GBufferClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -73,7 +73,7 @@ bool GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool GBufferClass::BuildPso() {
+BOOL GBufferClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = Vertex::InputLayoutDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
@@ -191,7 +191,7 @@ void GBufferClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool GBufferClass::OnResize(UINT width, UINT height) {
+BOOL GBufferClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -258,7 +258,7 @@ void GBufferClass::BuildDescriptors() {
 	}
 }
 
-bool GBufferClass::BuildResources() {
+BOOL GBufferClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;

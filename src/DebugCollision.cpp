@@ -13,14 +13,14 @@ namespace {
 	const std::string DebugCollisionPS = "DebugCollisionPS";
 }
 
-bool DebugCollisionClass::Initialize(ID3D12Device* device, ShaderManager* const manager) {
+BOOL DebugCollisionClass::Initialize(ID3D12Device* device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	return true;
 }
 
-bool DebugCollisionClass::CompileShaders(const std::wstring& filePath) {
+BOOL DebugCollisionClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"DebugCollision.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	auto gsInfo = D3D12ShaderInfo(fullPath.c_str(), L"GS", L"gs_6_3");
@@ -32,7 +32,7 @@ bool DebugCollisionClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool DebugCollisionClass::BuildRootSignature() {
+BOOL DebugCollisionClass::BuildRootSignature() {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
@@ -49,7 +49,7 @@ bool DebugCollisionClass::BuildRootSignature() {
 	return true;
 }
 
-bool DebugCollisionClass::BuildPso() {
+BOOL DebugCollisionClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC debugPsoDesc = D3D12Util::DefaultPsoDesc({ nullptr, 0 }, DXGI_FORMAT_UNKNOWN);
 	debugPsoDesc.pRootSignature = mRootSignature.Get();
 	{

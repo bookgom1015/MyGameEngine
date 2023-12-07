@@ -27,20 +27,20 @@ RtaoClass::RtaoClass() {
 	mTemporalCurrentFrameResourceIndex = 0;
 	mTemporalCurrentFrameTemporalAOCeofficientResourceIndex = 0;
 
-	for (int i = 0; i < Resource::AO::Count; ++i) {
+	for (INT i = 0; i < Resource::AO::Count; ++i) {
 		mAOResources[i] = std::make_unique<GpuResource>();
 	}
 
-	for (int i = 0; i < Resource::LocalMeanVariance::Count; ++i) {
+	for (INT i = 0; i < Resource::LocalMeanVariance::Count; ++i) {
 		mLocalMeanVarianceResources[i] = std::make_unique<GpuResource>();
 	}
 
-	for (int i = 0; i < Resource::AOVariance::Count; ++i) {
+	for (INT i = 0; i < Resource::AOVariance::Count; ++i) {
 		mAOVarianceResources[i] = std::make_unique<GpuResource>();
 	}
 
-	for (int i = 0; i < 2; ++i) {
-		for (int j = 0; j < Resource::TemporalCache::Count; ++j) {
+	for (INT i = 0; i < 2; ++i) {
+		for (INT j = 0; j < Resource::TemporalCache::Count; ++j) {
 			mTemporalCaches[i][j] = std::make_unique<GpuResource>();
 		}
 
@@ -53,7 +53,7 @@ RtaoClass::RtaoClass() {
 	mDepthPartialDerivative = std::make_unique<GpuResource>();
 };
 
-bool RtaoClass::Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height) {
+BOOL RtaoClass::Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -65,7 +65,7 @@ bool RtaoClass::Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandLis
 	return true;
 }
 
-bool RtaoClass::CompileShaders(const std::wstring& filePath) {
+BOOL RtaoClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const auto path = filePath + L"Rtao.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3");
@@ -110,7 +110,7 @@ bool RtaoClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool RtaoClass::BuildRootSignatures(const StaticSamplers& samplers) {
+BOOL RtaoClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Ray-traced ambient occlusion
 	{
 		CD3DX12_DESCRIPTOR_RANGE texTables[4];
@@ -321,7 +321,7 @@ bool RtaoClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool RtaoClass::BuildPSO() {
+BOOL RtaoClass::BuildPSO() {
 	//
 	// Pipeline States
 	//
@@ -422,7 +422,7 @@ bool RtaoClass::BuildPSO() {
 		rtaoHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 	
 		auto shaderConfig = rtaoDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-		UINT payloadSize = 4; // tHit(float)
+		UINT payloadSize = 4; // tHit(FLOAT)
 		UINT attribSize = sizeof(XMFLOAT2);
 		shaderConfig->Config(payloadSize, attribSize);
 	
@@ -440,7 +440,7 @@ bool RtaoClass::BuildPSO() {
 	return true;
 }
 
-bool RtaoClass::BuildShaderTables(UINT numRitems) {
+BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	void* rtaoRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoRayGen");
@@ -546,7 +546,7 @@ void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 	hGpu.Offset(1, descSize);
 }
 
-bool RtaoClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
+BOOL RtaoClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -606,7 +606,7 @@ void RtaoClass::RunCalculatingDepthPartialDerivative(
 	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcDepthPartialDerivative].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcDepthPartialDerivative].Get());
 
-	const float values[RootSignature::CalcDepthPartialDerivative::RootConstant::Count] = { 1.0f / width, 1.0f / height };
+	const FLOAT values[RootSignature::CalcDepthPartialDerivative::RootConstant::Count] = { 1.0f / width, 1.0f / height };
 	cmdList->SetComputeRoot32BitConstants(
 		RootSignature::CalcDepthPartialDerivative::EC_Consts, 
 		RootSignature::CalcDepthPartialDerivative::RootConstant::Count,
@@ -626,7 +626,7 @@ void RtaoClass::RunCalculatingLocalMeanVariance(
 	D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
 	D3D12_GPU_DESCRIPTOR_HANDLE uo_localMeanVariance,
 	UINT width, UINT height,
-	bool checkerboardSamplingEnabled) {
+	BOOL checkerboardSamplingEnabled) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcLocalMeanVariance].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcLocalMeanVariance].Get());
 
@@ -634,7 +634,7 @@ void RtaoClass::RunCalculatingLocalMeanVariance(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcLocalMeanVariance::ESI_AOCoefficient, si_aoCoefficient);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcLocalMeanVariance::EUO_LocalMeanVar, uo_localMeanVariance);
 
-	int pixelStepY = checkerboardSamplingEnabled ? 2 : 1;
+	INT pixelStepY = checkerboardSamplingEnabled ? 2 : 1;
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
 		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height * pixelStepY), 1);
@@ -694,7 +694,7 @@ void RtaoClass::ReverseReprojectPreviousFrame(
 		);
 	}
 	{
-		float values[] = { 1.0f / mWidth, 1.0f / mHeight };
+		FLOAT values[] = { 1.0f / mWidth, 1.0f / mHeight };
 		cmdList->SetComputeRoot32BitConstants(
 			RootSignature::TemporalSupersamplingReverseReproject::EC_Consts,
 			_countof(values), values,
@@ -933,7 +933,7 @@ void RtaoClass::BuildDescriptors() {
 	}
 }
 
-bool RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
+BOOL RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -974,7 +974,7 @@ bool RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	}
 	{
 		texDesc.Format = TsppMapFormat;
-		for (int i = 0; i < 2; ++i) {
+		for (INT i = 0; i < 2; ++i) {
 			std::wstring name = L"TsppMap_";
 			name.append(std::to_wstring(i));
 			CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_Tspp]->Initialize(
@@ -990,7 +990,7 @@ bool RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	}
 	{
 		texDesc.Format = RayHitDistanceFormat;
-		for (int i = 0; i < 2; ++i) {
+		for (INT i = 0; i < 2; ++i) {
 			std::wstring name = L"TemporalRayHitDistanceMap_";
 			name.append(std::to_wstring(i));
 			CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_RayHitDistance]->Initialize(
@@ -1006,7 +1006,7 @@ bool RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	}
 	{
 		texDesc.Format = CoefficientSquaredMeanMapFormat;
-		for (int i = 0; i < 2; ++i) {
+		for (INT i = 0; i < 2; ++i) {
 			std::wstring name = L"AOCoefficientSquaredMeanMap_";
 			name.append(std::to_wstring(i));
 			CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_CoefficientSquaredMean]->Initialize(
@@ -1105,7 +1105,7 @@ bool RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	}
 	{
 		texDesc.Format = AOCoefficientMapFormat;
-		for (int i = 0; i < 2; ++i) {
+		for (INT i = 0; i < 2; ++i) {
 			std::wstringstream wsstream;
 			wsstream << L"TemporalAOCoefficientMap_" << i;
 			CheckReturn(mTemporalAOCoefficients[i]->Initialize(

@@ -32,15 +32,15 @@ namespace Pixelation {
 		virtual ~PixelationClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 			UINT descSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
@@ -48,11 +48,11 @@ namespace Pixelation {
 			D3D12_RECT scissorRect,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-			float pixelSize);
+			FLOAT pixelSize);
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;

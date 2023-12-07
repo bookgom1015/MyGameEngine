@@ -12,15 +12,15 @@ TemporalAAClass::TemporalAAClass() {
 	mHistoryMap = std::make_unique<GpuResource>();
 }
 
-bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	mWidth = width;
 	mHeight = height;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 	bInitiatingTaa = true;
 
@@ -29,7 +29,7 @@ bool TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 	return true;
 }
 
-bool TemporalAAClass::CompileShaders(const std::wstring& filePath) {
+BOOL TemporalAAClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"TemporalAA.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -39,7 +39,7 @@ bool TemporalAAClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool TemporalAAClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL TemporalAAClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[3];
@@ -63,7 +63,7 @@ bool TemporalAAClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool TemporalAAClass::BuildPso() {
+BOOL TemporalAAClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC taaPsoDesc = D3D12Util::QuadPsoDesc();
 	taaPsoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -83,7 +83,7 @@ void TemporalAAClass::Run(
 		GpuResource* backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity, 
-		float factor) {
+		FLOAT factor) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 	
@@ -154,13 +154,13 @@ void TemporalAAClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool TemporalAAClass::OnResize(UINT width, UINT height) {
+BOOL TemporalAAClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 		CheckReturn(BuildResources());
 		BuildDescriptors();
@@ -190,7 +190,7 @@ void TemporalAAClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mHistoryMap->Resource(), &srvDesc, mhHistoryMapCpuSrv);
 }
 
-bool TemporalAAClass::BuildResources() {
+BOOL TemporalAAClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = SDR_FORMAT;

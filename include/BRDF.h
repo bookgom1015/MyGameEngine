@@ -76,15 +76,15 @@ namespace BRDF {
 		virtual ~BRDFClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			UINT descSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 		void CalcReflectanceWithoutSpecIrrad(
 			ID3D12GraphicsCommandList*const cmdList,
@@ -120,7 +120,7 @@ namespace BRDF {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	public:
 		Model::Type ModelType;

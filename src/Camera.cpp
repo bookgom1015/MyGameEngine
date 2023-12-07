@@ -5,7 +5,7 @@
 
 using namespace DirectX;
 
-Camera::Camera(float nearZ, float farZ, float fovY) : bViewDirty(true) {
+Camera::Camera(FLOAT nearZ, FLOAT farZ, FLOAT fovY) : bViewDirty(true) {
 	mNearZ = nearZ;
 	mFarZ = farZ;
 	mFovY = fovY;
@@ -39,7 +39,7 @@ void Camera::UpdateViewMatrix() {
 	);
 }
 
-void Camera::Pitch(float rad) {
+void Camera::Pitch(FLOAT rad) {
 	auto quat = XMQuaternionRotationAxis(mRight, rad);
 	
 	mUp = XMVector3Rotate(mUp, quat);
@@ -48,7 +48,7 @@ void Camera::Pitch(float rad) {
 	bViewDirty = true;
 }
 
-void Camera::Yaw(float rad) {
+void Camera::Yaw(FLOAT rad) {
 	auto quat = XMQuaternionRotationAxis(UnitVectors::UpVector, rad);
 	
 	mRight = XMVector3Rotate(mRight, quat);
@@ -58,7 +58,7 @@ void Camera::Yaw(float rad) {
 	bViewDirty = true;
 }
 
-void Camera::Roll(float rad) {
+void Camera::Roll(FLOAT rad) {
 	auto quat = XMQuaternionRotationAxis(mForward, rad);
 
 	mRight = XMVector3Rotate(mRight, quat);

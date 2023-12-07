@@ -50,10 +50,10 @@ namespace DebugMap {
 		constexpr __forceinline DebugMapSampleDesc SampleDesc(UINT index) const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_VIEWPORT viewport,
@@ -63,10 +63,10 @@ namespace DebugMap {
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv);
 
-		bool AddDebugMap(
+		BOOL AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
 			SampleMask::Type mask = SampleMask::RGB);
-		bool AddDebugMap(
+		BOOL AddDebugMap(
 			D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
 			SampleMask::Type mask,
 			DebugMapSampleDesc desc);
@@ -82,7 +82,7 @@ namespace DebugMap {
 		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, MapSize> mhDebugGpuSrvs;
 		std::array<SampleMask::Type, MapSize> mDebugMasks;
 		std::array<DebugMapSampleDesc, MapSize> mSampleDescs;
-		int mNumEnabledMaps;
+		INT mNumEnabledMaps;
 	};
 };
 

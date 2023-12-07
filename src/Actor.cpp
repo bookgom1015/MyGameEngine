@@ -32,7 +32,7 @@ Actor::Actor(const std::string& name, const Transform& trans) {
 
 Actor::~Actor() {}
 
-bool Actor::Initialize() {
+BOOL Actor::Initialize() {
 	CheckReturn(OnInitialzing());
 
 	for (const auto& comp : mComponents)
@@ -42,7 +42,7 @@ bool Actor::Initialize() {
 	return true;
 }
 
-bool Actor::ProcessInput(const InputState& input) {
+BOOL Actor::ProcessInput(const InputState& input) {
 	for (size_t i = 0, end = mComponents.size(); i < end; ++i)
 		mComponents[i]->ProcessInput(input);
 
@@ -51,7 +51,7 @@ bool Actor::ProcessInput(const InputState& input) {
 	return true;
 }
 
-bool Actor::Update(float delta) {
+BOOL Actor::Update(FLOAT delta) {
 	CheckReturn(OnUpdateWorldTransform());
 
 	CheckReturn(UpdateComponents(delta));
@@ -124,17 +124,17 @@ void Actor::AddRotation(const DirectX::XMVECTOR& rot) {
 	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, rot);
 }
 
-void Actor::AddRotationPitch(float rad) {
+void Actor::AddRotationPitch(FLOAT rad) {
 	bNeedToUpdate = true;
 	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVectors::RightVector, rad));
 }
 
-void Actor::AddRotationYaw(float rad) {
+void Actor::AddRotationYaw(FLOAT rad) {
 	bNeedToUpdate = true;
 	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVectors::UpVector, rad));
 }
 
-void Actor::AddRotationRoll(float rad) {
+void Actor::AddRotationRoll(FLOAT rad) {
 	bNeedToUpdate = true;
 	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVectors::ForwardVector, rad));
 }
@@ -161,20 +161,20 @@ void Actor::Die() {
 	bDead = true;
 }
 
-bool Actor::OnInitialzing() { return true; }
+BOOL Actor::OnInitialzing() { return true; }
 
-bool Actor::ProcessActorInput(const InputState& input) { return true; }
+BOOL Actor::ProcessActorInput(const InputState& input) { return true; }
 
-bool Actor::UpdateActor(float delta) { return true; }
+BOOL Actor::UpdateActor(FLOAT delta) { return true; }
 
-bool Actor::UpdateComponents(float delta) {
+BOOL Actor::UpdateComponents(FLOAT delta) {
 	for (size_t i = 0, end = mComponents.size(); i < end; ++i)
 		CheckReturn(mComponents[i]->Update(delta));
 
 	return true;
 }
 
-bool Actor::OnUpdateWorldTransform() {
+BOOL Actor::OnUpdateWorldTransform() {
 	if (!bNeedToUpdate) return true;
 
 	for (size_t i = 0, end = mComponents.size(); i < end; ++i)

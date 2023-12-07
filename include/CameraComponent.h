@@ -13,15 +13,15 @@ public:
 	virtual ~CameraComponent();
 
 public:
-	virtual bool OnInitialzing() override;
+	virtual BOOL OnInitialzing() override;
 
-	virtual bool ProcessInput(const InputState& input) override;
-	virtual bool Update(float delta) override;
-	virtual bool OnUpdateWorldTransform() override;
+	virtual BOOL ProcessInput(const InputState& input) override;
+	virtual BOOL Update(FLOAT delta) override;
+	virtual BOOL OnUpdateWorldTransform() override;
 
-	void Pitch(float rad);
-	void Yaw(float rad);
-	void Roll(float rad);
+	void Pitch(FLOAT rad);
+	void Yaw(FLOAT rad);
+	void Roll(FLOAT rad);
 
 	void AddPosition(const DirectX::XMVECTOR& pos);
 	const DirectX::XMVECTOR& GetPosition() const;
@@ -38,15 +38,15 @@ public:
 private:
 	std::unique_ptr<Camera> mCamera;
 
-	float mPitch;
-	float mYaw;
-	float mRoll;
+	FLOAT mPitch;
+	FLOAT mYaw;
+	FLOAT mRoll;
 
-	bool bLimitPitch;
-	bool bLimitYaw;
-	bool bLimitRoll;
+	BOOL bLimitPitch;
+	BOOL bLimitYaw;
+	BOOL bLimitRoll;
 
-	float mPitchLimit;
-	float mYawLimit;
-	float mRollLimit;
+	FLOAT mPitchLimit;
+	FLOAT mYawLimit;
+	FLOAT mRollLimit;
 };

@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <wrl.h>
+#include <Windows.h>
 
 #include "Transform.h"
 #include "InputManager.h"
@@ -20,9 +21,9 @@ public:
 	virtual ~Actor();
 
 public:
-	bool Initialize();
-	bool ProcessInput(const InputState& input);
-	bool Update(float delta);
+	BOOL Initialize();
+	BOOL ProcessInput(const InputState& input);
+	BOOL Update(FLOAT delta);
 
 	void AddComponent(Component* comp);
 	void RemoveComponent(Component* comp);
@@ -37,9 +38,9 @@ public:
 	void AddRotation(const DirectX::XMFLOAT4& rot);
 	void AddRotation(const DirectX::XMVECTOR& rot);
 
-	void AddRotationPitch(float rad);
-	void AddRotationYaw(float rad);
-	void AddRotationRoll(float rad);
+	void AddRotationPitch(FLOAT rad);
+	void AddRotationYaw(FLOAT rad);
+	void AddRotationRoll(FLOAT rad);
 
 	void SetScale(const DirectX::XMFLOAT3& scale);
 	void SetScale(const DirectX::XMVECTOR& scale);
@@ -47,25 +48,25 @@ public:
 	const std::string& GetName() const;
 	const Transform& GetTransform() const;
 
-	__forceinline constexpr bool IsInitialized() const;
+	__forceinline constexpr BOOL IsInitialized() const;
 
-	__forceinline constexpr bool IsDead() const;
+	__forceinline constexpr BOOL IsDead() const;
 	void Die();
 
 protected:
-	virtual bool OnInitialzing();
+	virtual BOOL OnInitialzing();
 
-	virtual bool ProcessActorInput(const InputState& input);
-	virtual bool UpdateActor(float delta);
-
-private:
-	bool UpdateComponents(float delta);
-	bool OnUpdateWorldTransform();
+	virtual BOOL ProcessActorInput(const InputState& input);
+	virtual BOOL UpdateActor(FLOAT delta);
 
 private:
-	bool bInitialized;
-	bool bDead;
-	bool bNeedToUpdate;
+	BOOL UpdateComponents(FLOAT delta);
+	BOOL OnUpdateWorldTransform();
+
+private:
+	BOOL bInitialized;
+	BOOL bDead;
+	BOOL bNeedToUpdate;
 
 	std::string mName;
 	Transform mTransform;

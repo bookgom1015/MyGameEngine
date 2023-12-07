@@ -4,13 +4,13 @@
 using namespace DirectX;
 
 namespace {
-	bool GetKeyButtonValue(int key) {
+	BOOL GetKeyButtonValue(INT key) {
 		SHORT status = GetAsyncKeyState(key);
 		if (status & 0x8000 || status & 0x8001) return true;
 		else return false;
 	}
 
-	EButtonStates GetKeyButtonState(int key) {
+	EButtonStates GetKeyButtonState(INT key) {
 		SHORT status = GetAsyncKeyState(key);
 		if (status & 0x0000) return EButtonStates::ENone;
 		else if (status & 0x8000) return EButtonStates::EPressed;
@@ -19,11 +19,11 @@ namespace {
 	}
 }
 
-bool KeyboardState::GetKeyValue(int key) const {
+BOOL KeyboardState::GetKeyValue(INT key) const {
 	return GetKeyButtonValue(key);
 }
 
-EButtonStates KeyboardState::GetKeyState(int key) const {
+EButtonStates KeyboardState::GetKeyState(INT key) const {
 	return GetKeyButtonState(key);
 }
 
@@ -43,15 +43,15 @@ XMFLOAT2 MouseState::GetMouseDelta() const {
 	return mMouseDelta;
 }
 
-float MouseState::GetScrollWheel() const {
+FLOAT MouseState::GetScrollWheel() const {
 	return mScrollWheel;
 }
 
-bool MouseState::GetButtonValue(int button) const {
+BOOL MouseState::GetButtonValue(INT button) const {
 	return GetKeyButtonValue(button);
 }
 
-EButtonStates MouseState::GetButtonState(int button) const {
+EButtonStates MouseState::GetButtonState(INT button) const {
 	return GetKeyButtonState(button);
 }
 
@@ -63,7 +63,7 @@ InputManager::~InputManager() {
 	if (!bIsCleanedUp) CleanUp();
 }
 
-bool InputManager::Initialize(HWND hwnd) {
+BOOL InputManager::Initialize(HWND hwnd) {
 	mhMainWnd = hwnd;
 
 	mInputState.Mouse.mMousePos.x = mInputState.Mouse.mMousePos.y = 0.0f;
@@ -80,8 +80,8 @@ void InputManager::CleanUp() {
 }
 
 void InputManager::Update() {
-	float prevPosX = mInputState.Mouse.mMousePos.x;
-	float prevPosY = mInputState.Mouse.mMousePos.y;
+	FLOAT prevPosX = mInputState.Mouse.mMousePos.x;
+	FLOAT prevPosY = mInputState.Mouse.mMousePos.y;
 
 	RECT wndRect;
 	GetWindowRect(mhMainWnd, &wndRect);
@@ -89,18 +89,18 @@ void InputManager::Update() {
 	POINT cursorPos;
 	GetCursorPos(&cursorPos);
 
-	mInputState.Mouse.mMousePos.x = static_cast<float>(cursorPos.x) - wndRect.left;
-	mInputState.Mouse.mMousePos.y = static_cast<float>(cursorPos.y) - wndRect.top;
+	mInputState.Mouse.mMousePos.x = static_cast<FLOAT>(cursorPos.x) - wndRect.left;
+	mInputState.Mouse.mMousePos.y = static_cast<FLOAT>(cursorPos.y) - wndRect.top;
 
 	if (mInputState.Mouse.mIsRelative) {
 
-		int centerX = static_cast<int>((wndRect.left + wndRect.right) * 0.5f);
-		int centerY = static_cast<int>((wndRect.top + wndRect.bottom) * 0.5f);
+		INT centerX = static_cast<INT>((wndRect.left + wndRect.right) * 0.5f);
+		INT centerY = static_cast<INT>((wndRect.top + wndRect.bottom) * 0.5f);
 
 		SetCursorPos(centerX, centerY);
 
-		prevPosX = static_cast<float>(centerX) - wndRect.left;
-		prevPosY = static_cast<float>(centerY) - wndRect.top;
+		prevPosX = static_cast<FLOAT>(centerX) - wndRect.left;
+		prevPosY = static_cast<FLOAT>(centerY) - wndRect.top;
 	}
 
 	mInputState.Mouse.mMouseDelta.x = mInputState.Mouse.mMousePos.x - prevPosX;
@@ -121,7 +121,7 @@ void InputManager::IgnoreMouseInput() {
 	mInputState.Mouse.mIsIgnored = true;
 }
 
-void InputManager::SetMouseRelative(bool state) {
+void InputManager::SetMouseRelative(BOOL state) {
 	mInputState.Mouse.mIsRelative = state;
 }
 

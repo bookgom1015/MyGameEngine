@@ -21,10 +21,10 @@ namespace DebugCollision {
 		virtual ~DebugCollisionClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager* const manager);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature();
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature();
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,

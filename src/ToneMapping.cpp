@@ -18,7 +18,7 @@ ToneMappingClass::ToneMappingClass() {
 	mIntermediateMap = std::make_unique<GpuResource>();
 }
 
-bool ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
+BOOL ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -30,7 +30,7 @@ bool ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const man
 	return true;
 }
 
-bool ToneMappingClass::CompileShaders(const std::wstring& filePath) {
+BOOL ToneMappingClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"ToneMapping.hlsl";
 
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
@@ -50,7 +50,7 @@ bool ToneMappingClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool ToneMappingClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL ToneMappingClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -70,7 +70,7 @@ bool ToneMappingClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool ToneMappingClass::BuildPso() {
+BOOL ToneMappingClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -126,7 +126,7 @@ void ToneMappingClass::Resolve(
 		D3D12_RECT scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-		float exposure) {
+		FLOAT exposure) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_ToneMapping].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
@@ -137,7 +137,7 @@ void ToneMappingClass::Resolve(
 	
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 	
-	float values[RootConstantsLayout::Count] = { exposure };
+	FLOAT values[RootConstantsLayout::Count] = { exposure };
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Cosnts, _countof(values), values, 0);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Intermediate, mhIntermediateMapGpuSrv);
 	
@@ -165,7 +165,7 @@ void ToneMappingClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool ToneMappingClass::OnResize(UINT width, UINT height) {
+BOOL ToneMappingClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -196,7 +196,7 @@ void ToneMappingClass::BuildDescriptors() {
 	md3dDevice->CreateRenderTargetView(mIntermediateMap->Resource(), &rtvDesc, mhIntermediateMapCpuRtv);
 }
 
-bool ToneMappingClass::BuildResources() {
+BOOL ToneMappingClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;

@@ -4,7 +4,7 @@
 
 using namespace DxrGeometryBuffer;
 
-bool DxrGeometryBufferClass::Initialize(ID3D12Device5* const device) {
+BOOL DxrGeometryBufferClass::Initialize(ID3D12Device5* const device) {
 	md3dDevice = device;
 
 	mNumGeometries = 0;

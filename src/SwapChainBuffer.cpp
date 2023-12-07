@@ -4,7 +4,7 @@
 
 using namespace SwapChainBuffer;
 
-bool SwapChainBufferClass::Initialize(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, UINT count, UINT descSize) {
+BOOL SwapChainBufferClass::Initialize(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, UINT count, UINT descSize) {
 	md3dDevice = device;
 
 	mSwapChainBuffer.resize(count);
@@ -23,7 +23,7 @@ bool SwapChainBufferClass::Initialize(ID3D12Device* device, ID3D12DescriptorHeap
 	return true;
 }
 
-bool SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height, BOOL tearing) {
+BOOL SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height, BOOL tearing) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	// Resize the previous resources we will be creating.
@@ -53,7 +53,7 @@ bool SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT widt
 	return true;
 }
 
-bool SwapChainBufferClass::OnResize() {
+BOOL SwapChainBufferClass::OnResize() {
 	BuildDescriptors();
 
 	return true;

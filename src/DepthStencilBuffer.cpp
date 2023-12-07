@@ -8,7 +8,7 @@ DepthStencilBufferClass::DepthStencilBufferClass() {
 	mDepthStencilBuffer = std::make_unique<GpuResource>();
 }
 
-bool DepthStencilBufferClass::Initialize(ID3D12Device* device) {
+BOOL DepthStencilBufferClass::Initialize(ID3D12Device* device) {
 	md3dDevice = device;
 
 	mWidth = 0;
@@ -23,7 +23,7 @@ void DepthStencilBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hC
 	hCpuDsv.Offset(1, dsvDescSize);
 }
 
-bool DepthStencilBufferClass::LowOnResize(UINT width, UINT height) {
+BOOL DepthStencilBufferClass::LowOnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -40,7 +40,7 @@ void DepthStencilBufferClass::BuildDescriptors() {
 	md3dDevice->CreateDepthStencilView(mDepthStencilBuffer->Resource(), nullptr, mhCpuDsv);
 }
 
-bool DepthStencilBufferClass::BuildResources() {
+BOOL DepthStencilBufferClass::BuildResources() {
 	// Create the depth/stencil buffer and view.
 	D3D12_RESOURCE_DESC depthStencilDesc;
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;

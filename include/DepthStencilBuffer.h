@@ -17,14 +17,14 @@ namespace DepthStencilBuffer {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device);
-		bool LowOnResize(UINT width, UINT height);
+		BOOL Initialize(ID3D12Device* device);
+		BOOL LowOnResize(UINT width, UINT height);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv, UINT dsvDescSize);
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;

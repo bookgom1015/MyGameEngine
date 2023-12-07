@@ -15,7 +15,7 @@ ComPtr<ID3D12Resource> GpuUploadBuffer::GetResource() {
 	return mResource;
 }
 
-bool GpuUploadBuffer::Allocate(ID3D12Device* pDevice, UINT bufferSize, LPCWSTR resourceName) {
+BOOL GpuUploadBuffer::Allocate(ID3D12Device* pDevice, UINT bufferSize, LPCWSTR resourceName) {
 	CheckHRESULT(pDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
@@ -28,7 +28,7 @@ bool GpuUploadBuffer::Allocate(ID3D12Device* pDevice, UINT bufferSize, LPCWSTR r
 	return true;
 }
 
-bool GpuUploadBuffer::MapCpuWriteOnly(std::uint8_t*& pData) {
+BOOL GpuUploadBuffer::MapCpuWriteOnly(std::uint8_t*& pData) {
 	// We don't unmap this until the app closes. Keeping buffer mapped for the lifetime of the resource is okay.
 	// We do not intend to read from this resource on the CPU.
 	CheckHRESULT(mResource->Map(0, &CD3DX12_RANGE(0, 0), reinterpret_cast<void**>(&pData)));
@@ -62,14 +62,14 @@ ShaderTable::ShaderTable(ID3D12Device* device, UINT numShaderRecords, UINT shade
 	mBufferSize = numShaderRecords * mShaderRecordSize;
 }
 
-bool ShaderTable::Initialze() {
+BOOL ShaderTable::Initialze() {
 	CheckReturn(Allocate(mDevice, mBufferSize, mName.length() > 0 ? mName.c_str() : nullptr));
 	CheckReturn(MapCpuWriteOnly(mMappedShaderRecords));
 
 	return true;
 }
 
-bool ShaderTable::push_back(const ShaderRecord& shaderRecord) {
+BOOL ShaderTable::push_back(const ShaderRecord& shaderRecord) {
 	CheckReturn(mShaderRecords.size() < mShaderRecords.capacity());
 
 	mShaderRecords.push_back(shaderRecord);

@@ -20,8 +20,8 @@ public:
 	virtual ~KeyboardState() = default;
 
 public:
-	bool GetKeyValue(int key) const;
-	EButtonStates GetKeyState(int key) const;
+	BOOL GetKeyValue(INT key) const;
+	EButtonStates GetKeyState(INT key) const;
 };
 
 class MouseState {
@@ -37,20 +37,20 @@ public:
 
 	DirectX::XMFLOAT2 GetMousePosition() const;
 	DirectX::XMFLOAT2 GetMouseDelta() const;
-	float GetScrollWheel() const;
+	FLOAT GetScrollWheel() const;
 
-	bool GetButtonValue(int button) const;
-	EButtonStates GetButtonState(int button) const;
+	BOOL GetButtonValue(INT button) const;
+	EButtonStates GetButtonState(INT button) const;
 
 private:
 	DirectX::XMFLOAT2 mMousePos;
 	DirectX::XMFLOAT2 mMouseDelta;
 
-	float mScrollWheel;
-	float mScrollWheelAccum;
+	FLOAT mScrollWheel;
+	FLOAT mScrollWheelAccum;
 
-	bool mIsRelative;
-	bool mIsIgnored;
+	BOOL mIsRelative;
+	BOOL mIsIgnored;
 };
 
 class ControllerState {
@@ -80,19 +80,19 @@ private:
 	InputManager& operator=(InputManager&& rval) = delete;
 
 public:
-	bool Initialize(HWND hwnd);
+	BOOL Initialize(HWND hwnd);
 	void CleanUp();
 
 	void Update();
 
 	void SetCursorVisibility(BOOL visible);
 	void IgnoreMouseInput();
-	void SetMouseRelative(bool state);
+	void SetMouseRelative(BOOL state);
 
 	const InputState& GetInputState() const;
 
 private:
-	bool bIsCleanedUp;
+	BOOL bIsCleanedUp;
 
 	HWND mhMainWnd;
 

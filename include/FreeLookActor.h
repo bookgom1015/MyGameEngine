@@ -14,8 +14,8 @@ public:
 	virtual ~FreeLookActor();
 
 public:
-	virtual bool ProcessActorInput(const InputState& input) override;
-	virtual bool UpdateActor(float delta) override;
+	virtual BOOL ProcessActorInput(const InputState& input) override;
+	virtual BOOL UpdateActor(FLOAT delta) override;
 
 	const DirectX::XMVECTOR& GetCameraForwardVector() const;
 	const DirectX::XMVECTOR& GetCameraRightVector() const;
@@ -26,14 +26,14 @@ public:
 public:
 	CameraComponent* mCameraComp;
 
-	float mForwardSpeed;
-	float mStrapeSpeed;
+	FLOAT mForwardSpeed;
+	FLOAT mStrapeSpeed;
 
-	float mWalkSpeed;
+	FLOAT mWalkSpeed;
 
-	float mLookUpSpeed;
-	float mTurnSpeed;
+	FLOAT mLookUpSpeed;
+	FLOAT mTurnSpeed;
 
-	float mLookSensitivity;
-	float mTurnSensitivity;
+	FLOAT mLookSensitivity;
+	FLOAT mTurnSensitivity;
 };

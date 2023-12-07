@@ -8,7 +8,7 @@ UploadBuffer<T>::~UploadBuffer() {
 }
 
 template <typename T>
-bool UploadBuffer<T>::Initialize(ID3D12Device* device, UINT elementCount, bool isConstantBuffer) {
+BOOL UploadBuffer<T>::Initialize(ID3D12Device* device, UINT elementCount, BOOL isConstantBuffer) {
 	mIsConstantBuffer = isConstantBuffer;
 
 	mElementByteSize = sizeof(T);
@@ -45,7 +45,7 @@ ID3D12Resource* UploadBuffer<T>::Resource() const {
 }
 
 template <typename T>
-void UploadBuffer<T>::CopyData(int elementIndex, const T& data) {
+void UploadBuffer<T>::CopyData(INT elementIndex, const T& data) {
 	std::memcpy(&mMappedData[elementIndex * mElementByteSize], &data, sizeof(T));
 }
 

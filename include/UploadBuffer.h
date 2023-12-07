@@ -10,20 +10,20 @@ public:
 	virtual ~UploadBuffer();
 
 public:
-	bool Initialize(ID3D12Device* device, UINT elementCount, bool isConstantBuffer);
+	BOOL Initialize(ID3D12Device* device, UINT elementCount, BOOL isConstantBuffer);
 
 	ID3D12Resource* Resource() const;
 
-	void CopyData(int elementIndex, const T& data);
+	void CopyData(INT elementIndex, const T& data);
 
 private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> mUploadBuffer;
 	BYTE* mMappedData = nullptr;
 
 	UINT mElementByteSize = 0;
-	bool mIsConstantBuffer = false;
+	BOOL mIsConstantBuffer = false;
 
-	bool bIsDirty = true;
+	BOOL bIsDirty = true;
 };
 
 #include "UploadBuffer.inl"

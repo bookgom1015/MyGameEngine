@@ -13,7 +13,7 @@ public:
 		VkBuffer		IndexBuffer;
 		VkDeviceMemory	IndexBufferMemory;
 
-		std::uint32_t	IndexCount;
+		UINT			IndexCount;
 	};
 
 	struct MaterialData {
@@ -22,7 +22,7 @@ public:
 		VkImageView		TextureImageView;
 		VkSampler		TextureSampler;
 
-		std::uint32_t MipLevels;
+		UINT			 MipLevels;
 	};
 
 	struct UniformBufferObject {
@@ -38,7 +38,7 @@ public:
 		DirectX::XMFLOAT4X4	InvViewProj;
 		DirectX::XMFLOAT4X4 ShadowTransform;
 		DirectX::XMFLOAT3	EyePosW;
-		float				PassConstantsPad1;
+		FLOAT				PassConstantsPad1;
 		DirectX::XMFLOAT4	AmbientLight;
 		Light				Lights[MaxLights];
 	};
@@ -56,9 +56,9 @@ public:
 		DirectX::XMVECTOR Rotation;
 		DirectX::XMVECTOR Position;
 
-		int NumFramesDirty = SwapChainImageCount;
+		INT NumFramesDirty = SwapChainImageCount;
 
-		bool Visible = true;
+		BOOL Visible = true;
 	};
 
 	enum EDescriptorSetLayout {
@@ -74,74 +74,74 @@ public:
 	virtual ~VkRenderer();
 
 public:
-	virtual bool Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) override;
+	virtual BOOL Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) override;
 	virtual void CleanUp() override;
 
-	virtual bool Update(float delta) override;
-	virtual bool Draw() override;
+	virtual BOOL Update(FLOAT delta) override;
+	virtual BOOL Draw() override;
 
-	virtual bool OnResize(UINT width, UINT height) override;
+	virtual BOOL OnResize(UINT width, UINT height) override;
 
 	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::E_Opaque) override;
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
-	virtual void SetModelVisibility(void* model, bool visible) override;
-	virtual void SetModelPickable(void* model, bool pickable) override;
+	virtual void SetModelVisibility(void* model, BOOL visible) override;
+	virtual void SetModelPickable(void* model, BOOL pickable) override;
 
-	virtual bool SetCubeMap(const std::string& file) override;
-	virtual bool SetEquirectangularMap(const std::string& file) override;
+	virtual BOOL SetCubeMap(const std::string& file) override;
+	virtual BOOL SetEquirectangularMap(const std::string& file) override;
 
-	virtual void Pick(float x, float y) override;
+	virtual void Pick(FLOAT x, FLOAT y) override;
 
 protected:
-	virtual bool RecreateSwapChain() override;
+	virtual BOOL RecreateSwapChain() override;
 	virtual void CleanUpSwapChain() override;
 
 private:
-	bool CreateRenderPass();
-	bool CreateCommandPool();
-	bool CreateColorResources();
-	bool CreateDepthResources();
-	bool CreateFramebuffers();
-	bool CreateDescriptorSetLayout();
-	bool CreateGraphicsPipelineLayouts();
-	bool CreateGraphicsPipelines();
-	bool CreateDescriptorPool();
-	bool CreatePassBuffers();
-	bool CreateCommandBuffers();
-	bool CreateSyncObjects();
+	BOOL CreateRenderPass();
+	BOOL CreateCommandPool();
+	BOOL CreateColorResources();
+	BOOL CreateDepthResources();
+	BOOL CreateFramebuffers();
+	BOOL CreateDescriptorSetLayout();
+	BOOL CreateGraphicsPipelineLayouts();
+	BOOL CreateGraphicsPipelines();
+	BOOL CreateDescriptorPool();
+	BOOL CreatePassBuffers();
+	BOOL CreateCommandBuffers();
+	BOOL CreateSyncObjects();
 
-	bool RecreateColorResources();
-	bool RecreateDepthResources();
-	bool RecreateFramebuffers();
-	bool RecreateGraphicsPipelines();
+	BOOL RecreateColorResources();
+	BOOL RecreateDepthResources();
+	BOOL RecreateFramebuffers();
+	BOOL RecreateGraphicsPipelines();
 
-	bool AddGeometry(const std::string& file);
-	bool AddMaterial(const std::string& file, const Material& material);
+	BOOL AddGeometry(const std::string& file);
+	BOOL AddMaterial(const std::string& file, const Material& material);
 	void* AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type);
 
-	bool CreateTextureImage(int width, int height, void* data, MaterialData* mat);
-	bool CreateTextureImageView(MaterialData* mat);
-	bool CreateTextureSampler(MaterialData* mat);
+	BOOL CreateTextureImage(INT width, INT height, void* data, MaterialData* mat);
+	BOOL CreateTextureImageView(MaterialData* mat);
+	BOOL CreateTextureSampler(MaterialData* mat);
 
-	bool CreateUniformBuffers(RenderItem* ritem);
-	bool CreateDescriptorSets(RenderItem* ritem);
+	BOOL CreateUniformBuffers(RenderItem* ritem);
+	BOOL CreateDescriptorSets(RenderItem* ritem);
 
-	bool UpdateUniformBuffer(float delta);
-	bool UpdateDescriptorSet(const RenderItem* ritem);
+	BOOL UpdateUniformBuffer(FLOAT delta);
+	BOOL UpdateDescriptorSet(const RenderItem* ritem);
 
-	bool DrawShadowMap();
-	bool DrawBackBuffer();
+	BOOL DrawShadowMap();
+	BOOL DrawBackBuffer();
 
 protected:
 	const VkFormat ImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
-	const std::uint32_t ShadowMapSize = 2048;
+	const UINT ShadowMapSize = 2048;
 
 private:
-	bool bIsCleanedUp;
+	BOOL bIsCleanedUp;
 
-	bool bFramebufferResized;
+	BOOL bFramebufferResized;
 
 	VkRenderPass mRenderPass;
 	VkRenderPass mShadowRenderPass;
@@ -175,7 +175,7 @@ private:
 	std::array<VkSemaphore, SwapChainImageCount> mRenderFinishedSemaphores;
 	std::array<VkFence, SwapChainImageCount> mInFlightFences;
 	std::array<VkFence, SwapChainImageCount> mImagesInFlight;
-	std::uint32_t mCurentImageIndex;
+	UINT mCurentImageIndex;
 	size_t mCurrentFrame;
 
 	std::unordered_map<std::string, std::unique_ptr<MeshData>> mMeshes;

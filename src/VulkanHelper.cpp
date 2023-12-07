@@ -8,22 +8,22 @@
 #undef min
 #undef max
 
-std::uint32_t QueueFamilyIndices::GetGraphicsFamilyIndex() { return GraphicsFamily.value(); }
+UINT QueueFamilyIndices::GetGraphicsFamilyIndex() { return GraphicsFamily.value(); }
 
-std::uint32_t QueueFamilyIndices::GetPresentFamilyIndex() { return PresentFamily.value(); }
+UINT QueueFamilyIndices::GetPresentFamilyIndex() { return PresentFamily.value(); }
 
-bool QueueFamilyIndices::IsComplete() { return GraphicsFamily.has_value() && PresentFamily.has_value(); }
+BOOL QueueFamilyIndices::IsComplete() { return GraphicsFamily.has_value() && PresentFamily.has_value(); }
 
 QueueFamilyIndices QueueFamilyIndices::FindQueueFamilies(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface) {
 	QueueFamilyIndices indices = {};
 
-	std::uint32_t queueFamilyCount = 0;
+	UINT queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(inPhysicalDevice, &queueFamilyCount, nullptr);
 
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(inPhysicalDevice, &queueFamilyCount, queueFamilies.data());
 
-	std::uint32_t i = 0;
+	UINT i = 0;
 	for (const auto& queueFamiliy : queueFamilies) {
 		if (queueFamiliy.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			indices.GraphicsFamily = i;
@@ -42,8 +42,8 @@ QueueFamilyIndices QueueFamilyIndices::FindQueueFamilies(const VkPhysicalDevice&
 }
 
 
-bool VulkanHelper::CheckValidationLayersSupport() {
-	std::uint32_t layerCount = 0;
+BOOL VulkanHelper::CheckValidationLayersSupport() {
+	UINT layerCount = 0;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
 	std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -57,10 +57,10 @@ bool VulkanHelper::CheckValidationLayersSupport() {
 #endif
 
 	std::vector<const char*> unsupportedLayers;
-	bool status = true;
+	BOOL status = true;
 
 	for (auto layerName : ValidationLayers) {
-		bool layerFound = false;
+		BOOL layerFound = false;
 
 		for (const auto& layer : availableLayers) {
 			if (std::strcmp(layerName, layer.layerName) == 0) {
@@ -89,12 +89,12 @@ bool VulkanHelper::CheckValidationLayersSupport() {
 }
 
 void VulkanHelper::GetRequiredExtensions(std::vector<const char*>& outExtensions) {
-	std::uint32_t glfwExtensionCount = 0;
+	UINT glfwExtensionCount = 0;
 	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 #ifdef _DEBUG
 	WLogln(L"Required extensions by GLFW:");
-	for (std::uint32_t i = 0; i < glfwExtensionCount; ++i) {
+	for (UINT i = 0; i < glfwExtensionCount; ++i) {
 		Logln("\t ", glfwExtensions[i]);
 	}
 #endif
@@ -147,7 +147,7 @@ void VulkanHelper::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateI
 	inCreateInfo.pUserData = nullptr;
 }
 
-bool VulkanHelper::SetUpDebugMessenger(const VkInstance& inInstance, VkDebugUtilsMessengerEXT& inDebugMessenger) {
+BOOL VulkanHelper::SetUpDebugMessenger(const VkInstance& inInstance, VkDebugUtilsMessengerEXT& inDebugMessenger) {
 #ifndef _DEBUG
 	return true;
 #endif
@@ -162,8 +162,8 @@ bool VulkanHelper::SetUpDebugMessenger(const VkInstance& inInstance, VkDebugUtil
 	return true;
 }
 
-bool VulkanHelper::CheckDeviceExtensionsSupport(const VkPhysicalDevice& inPhysicalDevice) {
-	std::uint32_t extensionCount = 0;
+BOOL VulkanHelper::CheckDeviceExtensionsSupport(const VkPhysicalDevice& inPhysicalDevice) {
+	UINT extensionCount = 0;
 	vkEnumerateDeviceExtensionProperties(inPhysicalDevice, nullptr, &extensionCount, nullptr);
 
 	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -183,14 +183,14 @@ SwapChainSupportDetails VulkanHelper::QuerySwapChainSupport(const VkPhysicalDevi
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(inPhysicalDevice, inSurface, &details.Capabilities);
 
-	std::uint32_t formatCount = 0;
+	UINT formatCount = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(inPhysicalDevice, inSurface, &formatCount, nullptr);
 	if (formatCount != 0) {
 		details.Formats.resize(formatCount);
 		vkGetPhysicalDeviceSurfaceFormatsKHR(inPhysicalDevice, inSurface, &formatCount, details.Formats.data());
 	}
 
-	std::uint32_t presentModeCount = 0;
+	UINT presentModeCount = 0;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(inPhysicalDevice, inSurface, &presentModeCount, nullptr);
 	if (presentModeCount != 0) {
 		details.PresentModes.resize(presentModeCount);
@@ -200,12 +200,12 @@ SwapChainSupportDetails VulkanHelper::QuerySwapChainSupport(const VkPhysicalDevi
 	return details;
 }
 
-bool VulkanHelper::IsDeviceSuitable(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface) {
+BOOL VulkanHelper::IsDeviceSuitable(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface) {
 	QueueFamilyIndices indices = QueueFamilyIndices::FindQueueFamilies(inPhysicalDevice, inSurface);
 
-	bool extensionSupported = CheckDeviceExtensionsSupport(inPhysicalDevice);
+	BOOL extensionSupported = CheckDeviceExtensionsSupport(inPhysicalDevice);
 
-	bool swapChainAdequate = false;
+	BOOL swapChainAdequate = false;
 	if (extensionSupported) {
 		SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(inPhysicalDevice, inSurface);
 
@@ -218,8 +218,8 @@ bool VulkanHelper::IsDeviceSuitable(const VkPhysicalDevice& inPhysicalDevice, co
 	return indices.IsComplete() && extensionSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-int VulkanHelper::RateDeviceSuitability(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface) {
-	int score = 0;
+INT VulkanHelper::RateDeviceSuitability(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface) {
+	INT score = 0;
 
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(inPhysicalDevice, &deviceProperties);
@@ -250,10 +250,10 @@ int VulkanHelper::RateDeviceSuitability(const VkPhysicalDevice& inPhysicalDevice
 		break;
 	}
 	{
-		std::uint32_t variant = VK_API_VERSION_VARIANT(deviceProperties.driverVersion);
-		std::uint32_t major = VK_API_VERSION_MAJOR(deviceProperties.driverVersion);
-		std::uint32_t minor = VK_API_VERSION_MINOR(deviceProperties.driverVersion);
-		std::uint32_t patch = VK_API_VERSION_PATCH(deviceProperties.driverVersion);
+		UINT variant = VK_API_VERSION_VARIANT(deviceProperties.driverVersion);
+		UINT major = VK_API_VERSION_MAJOR(deviceProperties.driverVersion);
+		UINT minor = VK_API_VERSION_MINOR(deviceProperties.driverVersion);
+		UINT patch = VK_API_VERSION_PATCH(deviceProperties.driverVersion);
 		WLogln(L"\t Device version: ",
 			std::to_wstring(variant), L".",
 			std::to_wstring(major), L".",
@@ -261,10 +261,10 @@ int VulkanHelper::RateDeviceSuitability(const VkPhysicalDevice& inPhysicalDevice
 			std::to_wstring(patch));
 	}
 	{
-		std::uint32_t variant = VK_API_VERSION_VARIANT(deviceProperties.apiVersion);
-		std::uint32_t major = VK_API_VERSION_MAJOR(deviceProperties.apiVersion);
-		std::uint32_t minor = VK_API_VERSION_MINOR(deviceProperties.apiVersion);
-		std::uint32_t patch = VK_API_VERSION_PATCH(deviceProperties.apiVersion);
+		UINT variant = VK_API_VERSION_VARIANT(deviceProperties.apiVersion);
+		UINT major = VK_API_VERSION_MAJOR(deviceProperties.apiVersion);
+		UINT minor = VK_API_VERSION_MINOR(deviceProperties.apiVersion);
+		UINT patch = VK_API_VERSION_PATCH(deviceProperties.apiVersion);
 		WLogln(L"\t API version: ",
 			std::to_wstring(variant), L".",
 			std::to_wstring(major), L".",
@@ -325,11 +325,11 @@ VkExtent2D VulkanHelper::ChooseSwapExtent(GLFWwindow* pWnd, const VkSurfaceCapab
 		return inCapabilities.currentExtent;
 	}
 
-	int width = 0;
-	int height = 0;
+	INT width = 0;
+	INT height = 0;
 	glfwGetFramebufferSize(pWnd, &width, &height);
 
-	VkExtent2D actualExtent = { static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height) };
+	VkExtent2D actualExtent = { static_cast<UINT>(width), static_cast<UINT>(height) };
 
 	actualExtent.width = std::max(inCapabilities.minImageExtent.width, std::min(inCapabilities.maxImageExtent.width, actualExtent.width));
 	actualExtent.height = std::max(inCapabilities.minImageExtent.height, std::min(inCapabilities.maxImageExtent.height, actualExtent.height));
@@ -370,13 +370,13 @@ void VulkanHelper::EndSingleTimeCommands(const VkDevice& inDevice, const VkQueue
 	vkFreeCommandBuffers(inDevice, inCommandPool, 1, &ioCommandBuffer);
 }
 
-std::uint32_t VulkanHelper::FindMemoryType(const VkPhysicalDevice& inPhysicalDevice, std::uint32_t inTypeFilter, const VkMemoryPropertyFlags& inProperties) {
-	std::uint32_t index = std::numeric_limits<std::uint32_t>::max();
+UINT VulkanHelper::FindMemoryType(const VkPhysicalDevice& inPhysicalDevice, UINT inTypeFilter, const VkMemoryPropertyFlags& inProperties) {
+	UINT index = std::numeric_limits<UINT>::max();
 
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(inPhysicalDevice, &memProperties);
 
-	for (std::uint32_t i = 0; i < memProperties.memoryTypeCount; ++i) {
+	for (UINT i = 0; i < memProperties.memoryTypeCount; ++i) {
 		if ((inTypeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & inProperties) == inProperties) {
 			index = i;
 			break;
@@ -386,7 +386,7 @@ std::uint32_t VulkanHelper::FindMemoryType(const VkPhysicalDevice& inPhysicalDev
 	return index;
 }
 
-bool VulkanHelper::CreateBuffer(
+BOOL VulkanHelper::CreateBuffer(
 		const VkPhysicalDevice& inPhysicalDevice,
 		const VkDevice& inDevice,
 		VkDeviceSize inSize,
@@ -446,8 +446,8 @@ void VulkanHelper::CopyBufferToImage(
 		const VkCommandPool& inCommandPool,
 		const VkBuffer& inBuffer,
 		const VkImage& inImage,
-		std::uint32_t inWidth,
-		std::uint32_t inHeight) {
+		UINT inWidth,
+		UINT inHeight) {
 	VkCommandBuffer commandBuffer = BeginSingleTimeCommands(inDevice, inCommandPool);
 
 	VkBufferImageCopy region = {};
@@ -474,16 +474,16 @@ void VulkanHelper::CopyBufferToImage(
 	EndSingleTimeCommands(inDevice, inQueue, inCommandPool, commandBuffer);
 }
 
-bool VulkanHelper::GenerateMipmaps(
+BOOL VulkanHelper::GenerateMipmaps(
 		const VkPhysicalDevice& inPhysicalDevice,
 		const VkDevice& inDevice,
 		const VkQueue& inQueue,
 		const VkCommandPool& inCommandPool,
 		const VkImage& inImage,
 		const VkFormat& inFormat,
-		std::int32_t inTexWidth,
-		std::int32_t inTexHeight,
-		std::uint32_t inMipLevles) {
+		INT inTexWidth,
+		INT inTexHeight,
+		UINT inMipLevles) {
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(inPhysicalDevice, inFormat, &formatProperties);
 
@@ -503,10 +503,10 @@ bool VulkanHelper::GenerateMipmaps(
 	barrier.subresourceRange.layerCount = 1;
 	barrier.subresourceRange.levelCount = 1;
 
-	std::int32_t mipWidth = inTexWidth;
-	std::int32_t mipHeight = inTexHeight;
+	INT mipWidth = inTexWidth;
+	INT mipHeight = inTexHeight;
 
-	for (std::uint32_t i = 1; i < inMipLevles; ++i) {
+	for (UINT i = 1; i < inMipLevles; ++i) {
 		barrier.subresourceRange.baseMipLevel = i - 1;
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -581,12 +581,12 @@ bool VulkanHelper::GenerateMipmaps(
 	return true;
 }
 
-bool VulkanHelper::CreateImage(
+BOOL VulkanHelper::CreateImage(
 		const VkPhysicalDevice& inPhysicalDevice,
 		const VkDevice& inDevice,
-		std::uint32_t inWidth,
-		std::uint32_t inHeight,
-		std::uint32_t inMipLevels,
+		UINT inWidth,
+		UINT inHeight,
+		UINT inMipLevels,
 		const VkSampleCountFlagBits& inNumSamples,
 		const VkFormat& inFormat,
 		const VkImageTiling& inTiling,
@@ -597,8 +597,8 @@ bool VulkanHelper::CreateImage(
 	VkImageCreateInfo imageInfo = {};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = static_cast<std::uint32_t>(inWidth);
-	imageInfo.extent.height = static_cast<std::uint32_t>(inHeight);
+	imageInfo.extent.width = static_cast<UINT>(inWidth);
+	imageInfo.extent.height = static_cast<UINT>(inHeight);
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = inMipLevels;
 	imageInfo.arrayLayers = 1;
@@ -631,11 +631,11 @@ bool VulkanHelper::CreateImage(
 	return true;
 }
 
-bool VulkanHelper::CreateImageView(
+BOOL VulkanHelper::CreateImageView(
 		const VkDevice& inDevice,
 		const VkImage& inImage,
 		const VkFormat& inFormat,
-		std::uint32_t inMipLevles,
+		UINT inMipLevles,
 		const VkImageAspectFlags& inAspectFlags,
 		VkImageView& outImageView) {
 	VkImageViewCreateInfo viewInfo = {};
@@ -684,11 +684,11 @@ VkFormat VulkanHelper::FindDepthFormat(const VkPhysicalDevice& inPhysicalDevice)
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-bool VulkanHelper::HasStencilComponent(const VkFormat& inFormat) {
+BOOL VulkanHelper::HasStencilComponent(const VkFormat& inFormat) {
 	return inFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || inFormat == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-bool VulkanHelper::TransitionImageLayout(
+BOOL VulkanHelper::TransitionImageLayout(
 		const VkDevice& inDevice,
 		const VkQueue& inQueue,
 		const VkCommandPool& inCommandPool,
@@ -696,7 +696,7 @@ bool VulkanHelper::TransitionImageLayout(
 		const VkFormat& inFormat,
 		const VkImageLayout& inOldLayout,
 		const VkImageLayout& inNewLayout,
-		std::uint32_t inMipLevels) {
+		UINT inMipLevels) {
 	VkCommandBuffer commandBuffer = BeginSingleTimeCommands(inDevice, inCommandPool);
 
 	VkImageMemoryBarrier barrier = {};
@@ -767,7 +767,7 @@ bool VulkanHelper::TransitionImageLayout(
 	return true;
 }
 
-bool VulkanHelper::ReadFile(const std::string& inFilePath, std::vector<char>& outData) {
+BOOL VulkanHelper::ReadFile(const std::string& inFilePath, std::vector<char>& outData) {
 	std::ifstream file(inFilePath, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {
@@ -790,11 +790,11 @@ bool VulkanHelper::ReadFile(const std::string& inFilePath, std::vector<char>& ou
 	return true;
 }
 
-bool VulkanHelper::CreateShaderModule(const VkDevice& inDevice, const std::vector<char>& inCode, VkShaderModule& outModule) {
+BOOL VulkanHelper::CreateShaderModule(const VkDevice& inDevice, const std::vector<char>& inCode, VkShaderModule& outModule) {
 	VkShaderModuleCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = inCode.size();
-	createInfo.pCode = reinterpret_cast<const std::uint32_t*>(inCode.data());
+	createInfo.pCode = reinterpret_cast<const UINT*>(inCode.data());
 
 	if (vkCreateShaderModule(inDevice, &createInfo, nullptr, &outModule) != VK_SUCCESS) {
 		ReturnFalse(L"Failed to create shader module");

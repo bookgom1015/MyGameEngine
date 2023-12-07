@@ -40,7 +40,7 @@ RaytracedReflectionClass::RaytracedReflectionClass() {
 	mReflectionUploadBuffer = std::make_unique<GpuResource>();
 }
 
-bool RaytracedReflectionClass::Initialize(
+BOOL RaytracedReflectionClass::Initialize(
 		ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -53,7 +53,7 @@ bool RaytracedReflectionClass::Initialize(
 	return true;
 }
 
-bool RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
+BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const auto path = filePath + L"ReflectionRay.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3");
@@ -63,13 +63,14 @@ bool RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
+BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[4];
+		CD3DX12_DESCRIPTOR_RANGE texTables[5];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 3);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 4);
+		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
@@ -77,9 +78,10 @@ bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(2);
 		slotRootParameter[RootSignature::Global::EAS_BVH].InitAsShaderResourceView(0);
 		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::Global::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::Global::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[4]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -108,7 +110,7 @@ bool RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 	return true;
 }
 
-bool RaytracedReflectionClass::BuildPSO() {
+BOOL RaytracedReflectionClass::BuildPSO() {
 	CD3DX12_STATE_OBJECT_DESC reflectionDxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	auto reflectionLib = reflectionDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
@@ -126,7 +128,7 @@ bool RaytracedReflectionClass::BuildPSO() {
 	}
 
 	auto shaderConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = sizeof(XMFLOAT4) + 4; // Color(float4) + IsHit(bool)
+	UINT payloadSize = sizeof(XMFLOAT4) + 4; // Color(float4) + IsHit(BOOL)
 	UINT attribSize = sizeof(XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
@@ -150,7 +152,7 @@ bool RaytracedReflectionClass::BuildPSO() {
 	return true;
 }
 
-bool RaytracedReflectionClass::BuildShaderTables(
+BOOL RaytracedReflectionClass::BuildShaderTables(
 		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
@@ -245,7 +247,7 @@ void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& 
 	hGpu.Offset(1, descSize);
 }
 
-bool RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height) {
+BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -263,7 +265,8 @@ void RaytracedReflectionClass::Run(
 		D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps) {
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
@@ -274,7 +277,8 @@ void RaytracedReflectionClass::Run(
 	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::EAS_BVH, as_bvh);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BackBuffer, si_backBuffer);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_NormalDepth, si_normalDepth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Normal, si_normal);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Depth, si_depth);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_TexMaps, si_texMaps);
 
 	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -320,7 +324,7 @@ void RaytracedReflectionClass::BuildDescriptors() {
 	md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpuUav);
 }
 
-bool RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
+BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;

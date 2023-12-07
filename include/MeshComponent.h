@@ -2,6 +2,7 @@
 
 #include "Component.h"
 #include "Mesh.h"
+
 #include <wrl.h>
 
 class MeshComponent : public Component {
@@ -10,14 +11,14 @@ public:
 	virtual ~MeshComponent();
 
 public:
-	virtual bool ProcessInput(const InputState& input) override;
-	virtual bool Update(float delta) override;
-	virtual bool OnUpdateWorldTransform() override;
+	virtual BOOL ProcessInput(const InputState& input) override;
+	virtual BOOL Update(FLOAT delta) override;
+	virtual BOOL OnUpdateWorldTransform() override;
 
-	bool LoadMesh(const std::string& file);
+	BOOL LoadMesh(const std::string& file);
 
-	void SetVisibility(bool visible);
-	void SetPickable(bool pickable);
+	void SetVisibility(BOOL visible);
+	void SetPickable(BOOL pickable);
 
 private:
 	void* mModel;

@@ -24,8 +24,8 @@ public:
 	virtual ~GameWorld();
 
 public:
-	bool Initialize();
-	bool RunLoop();
+	BOOL Initialize();
+	BOOL RunLoop();
 	void CleanUp();
 
 	static GameWorld* GetWorld();
@@ -34,36 +34,36 @@ public:
 	ActorManager* GetActorManager() const;
 
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-	LRESULT MsgProc(GLFWwindow* wnd, int key, int code, int action, int mods);
+	LRESULT MsgProc(GLFWwindow* wnd, INT key, INT code, INT action, INT mods);
 
 	void OnResize(UINT width, UINT height);
 
-	void OnFocusChanged(int focused);
+	void OnFocusChanged(INT focused);
 
 private:
-	bool InitMainWindow();
+	BOOL InitMainWindow();
 
 	void OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam);
 
-	bool ProcessInput();
-	bool Update();
-	bool Draw();
+	BOOL ProcessInput();
+	BOOL Update();
+	BOOL Draw();
 
-	bool LoadData();
+	BOOL LoadData();
 
 private:
 	static GameWorld* sGameWorld;
 
-	bool bIsCleanedUp;
+	BOOL bIsCleanedUp;
 
 	HINSTANCE mhInst;			// Application instance handle
 	HWND mhMainWnd;				// Main window handle
 	GLFWwindow* mGlfwWnd;
-	bool bAppPaused;			// Is the application paused?
-	bool bMinimized;			// Is the application minimized?
-	bool bMaximized;			// Is the application maximized?
-	bool bResizing;				// Are the resize bars being dragged?
-	bool bFullscreenState;		// Fullscreen enabled 
+	BOOL bAppPaused;			// Is the application paused?
+	BOOL bMinimized;			// Is the application minimized?
+	BOOL bMaximized;			// Is the application maximized?
+	BOOL bResizing;				// Are the resize bars being dragged?
+	BOOL bFullscreenState;		// Fullscreen enabled 
 
 	std::unique_ptr<GameTimer> mTimer;
 	std::unique_ptr<InputManager> mInputManager;
@@ -73,5 +73,5 @@ private:
 
 	EGameStates mGameState;
 
-	float mTimeSlowDown;
+	FLOAT mTimeSlowDown;
 };

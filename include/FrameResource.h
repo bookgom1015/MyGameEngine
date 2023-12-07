@@ -20,7 +20,7 @@ private:
 	FrameResource& operator=(FrameResource&& rhs) = delete;
 
 public:
-	bool Initialize();
+	BOOL Initialize();
 
 public:
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CmdListAlloc;

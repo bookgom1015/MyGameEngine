@@ -23,7 +23,7 @@ namespace TemporalAA {
 
 	const UINT NumRenderTargets = 1;
 
-	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class TemporalAAClass {
 	public:
@@ -43,28 +43,28 @@ namespace TemporalAA {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE HistoryMapSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			GpuResource* backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
-			float factor);
+			FLOAT factor);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 	public:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -89,7 +89,7 @@ namespace TemporalAA {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhHistoryMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhHistoryMapGpuSrv;
 
-		bool bInitiatingTaa;
+		BOOL bInitiatingTaa;
 	};
 }
 

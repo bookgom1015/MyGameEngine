@@ -24,7 +24,7 @@ EnvironmentMapClass::EnvironmentMapClass() {
 	mCubeMapUploadBuffer = std::make_unique<GpuResource>();
 }
 
-bool EnvironmentMapClass::Initialize(
+BOOL EnvironmentMapClass::Initialize(
 		ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList,
 		ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
@@ -38,7 +38,7 @@ bool EnvironmentMapClass::Initialize(
 	return true;
 }
 
-bool EnvironmentMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL EnvironmentMapClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"EnvironmentMap.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -48,7 +48,7 @@ bool EnvironmentMapClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool EnvironmentMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL EnvironmentMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -69,7 +69,7 @@ bool EnvironmentMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool EnvironmentMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
+BOOL EnvironmentMapClass::BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayout, dsvFormat);
 	skyPsoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -119,7 +119,7 @@ void EnvironmentMapClass::Run(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-bool EnvironmentMapClass::SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file) {
+BOOL EnvironmentMapClass::SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file) {
 	auto tex = std::make_unique<Texture>();
 
 	std::wstring filename;
@@ -192,7 +192,7 @@ void EnvironmentMapClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCubeMap->Resource(), &srvDesc, mhCpuSrv);
 }
 
-bool EnvironmentMapClass::BuildResources(ID3D12GraphicsCommandList*const cmdList) {
+BOOL EnvironmentMapClass::BuildResources(ID3D12GraphicsCommandList*const cmdList) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -282,7 +282,7 @@ bool EnvironmentMapClass::BuildResources(ID3D12GraphicsCommandList*const cmdList
 		}
 
 		D3D12_SUBRESOURCE_DATA subresourceData[6];
-		for (int i = 0; i < 6; ++i) {
+		for (INT i = 0; i < 6; ++i) {
 			subresourceData[i].pData = data.data();												// RGBA 데이터
 			subresourceData[i].RowPitch = DefaultCubeMapSize * 4;								// 가로 한 줄 크기
 			subresourceData[i].SlicePitch = DefaultCubeMapSize * subresourceData[i].RowPitch;	// 면 크기

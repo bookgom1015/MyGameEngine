@@ -9,7 +9,7 @@ AccelerationStructureBuffer::~AccelerationStructureBuffer() {
 	mMappedData = nullptr;
 }
 
-bool AccelerationStructureBuffer::BuildBLAS(
+BOOL AccelerationStructureBuffer::BuildBLAS(
 		ID3D12Device5* const device,
 		ID3D12GraphicsCommandList4* const cmdList,
 		MeshGeometry* const geo) {
@@ -20,7 +20,7 @@ bool AccelerationStructureBuffer::BuildBLAS(
 	geometryDesc.Triangles.VertexBuffer.StartAddress = geo->VertexBufferGPU->GetGPUVirtualAddress();
 	geometryDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
 	geometryDesc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
-	geometryDesc.Triangles.IndexCount = static_cast<UINT>(geo->IndexBufferCPU->GetBufferSize() / sizeof(std::uint32_t));
+	geometryDesc.Triangles.IndexCount = static_cast<UINT>(geo->IndexBufferCPU->GetBufferSize() / sizeof(UINT));
 	geometryDesc.Triangles.IndexBuffer = geo->IndexBufferGPU->GetGPUVirtualAddress();
 	geometryDesc.Triangles.Transform3x4 = 0;
 	// Mark the geometry as opaque. 
@@ -66,7 +66,7 @@ bool AccelerationStructureBuffer::BuildBLAS(
 	return true;
 }
 
-bool AccelerationStructureBuffer::BuildTLAS(
+BOOL AccelerationStructureBuffer::BuildTLAS(
 		ID3D12Device5* const device,
 		ID3D12GraphicsCommandList4* const cmdList,
 		const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& instanceDescs) {

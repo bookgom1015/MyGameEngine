@@ -5,14 +5,14 @@
 
 using namespace BlurFilter;
 
-bool BlurFilterClass::Initialize(ID3D12Device*const device, ShaderManager*const manager) {
+BOOL BlurFilterClass::Initialize(ID3D12Device*const device, ShaderManager*const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	return true;
 }
 
-bool BlurFilterClass::CompileShaders(const std::wstring& filePath) {
+BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 	const auto path = filePath + L"GaussianBlur.hlsl";
 	auto vsInfo = D3D12ShaderInfo(path.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(path.c_str(), L"PS", L"ps_6_3");
@@ -22,7 +22,7 @@ bool BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	// For blur
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
@@ -49,7 +49,7 @@ bool BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool BlurFilterClass::BuildPso() {
+BOOL BlurFilterClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc;
 	ZeroMemory(&quadPsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	quadPsoDesc.InputLayout = { nullptr, 0 };
@@ -112,7 +112,7 @@ void BlurFilterClass::Run(
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_BlurPass, cbAddress);
 	cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EBilateral);
 
-	for (int i = 0; i < blurCount; ++i) {
+	for (INT i = 0; i < blurCount; ++i) {
 		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EHorizontal);
 		Blur(cmdList, secondary, secondaryRtv, primarySrv, true);
 
@@ -143,7 +143,7 @@ void BlurFilterClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, normalSrv);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, depthSrv);
 	
-	for (int i = 0; i < blurCount; ++i) {
+	for (INT i = 0; i < blurCount; ++i) {
 		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EHorizontal);
 		Blur(cmdList, secondary, secondaryRtv, primarySrv, true);
 
@@ -157,7 +157,7 @@ void BlurFilterClass::Blur(
 		GpuResource* const output,
 		D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
 		D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
-		bool horzBlur) {
+		BOOL horzBlur) {
 	output->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	cmdList->OMSetRenderTargets(1, &outputRtv, true, nullptr);

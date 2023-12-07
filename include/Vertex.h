@@ -22,7 +22,7 @@ public:
 
 	static D3D12_INPUT_LAYOUT_DESC InputLayoutDesc();
 
-	bool operator==(const Vertex& other) const;
+	BOOL operator==(const Vertex& other) const;
 
 private:
 	static const std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;

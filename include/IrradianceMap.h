@@ -215,10 +215,10 @@ namespace IrradianceMap {
 		UINT Size() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
@@ -226,9 +226,9 @@ namespace IrradianceMap {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
 
-		bool SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file);
+		BOOL SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file);
 
-		bool Update(
+		BOOL Update(
 			ID3D12CommandQueue*const queue,
 			ID3D12DescriptorHeap* descHeap,
 			ID3D12GraphicsCommandList* const cmdList,
@@ -236,7 +236,7 @@ namespace IrradianceMap {
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			MipmapGenerator::MipmapGeneratorClass* const generator,
 			RenderItem* box);
-		bool DrawCubeMap(
+		BOOL DrawCubeMap(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
@@ -246,8 +246,8 @@ namespace IrradianceMap {
 			D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
 			UINT objCBByteSize,
 			RenderItem* cube,
-			float mipLevel = 0.0f);
-		bool DrawSkySphere(
+			FLOAT mipLevel = 0.0f);
+		BOOL DrawSkySphere(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
@@ -261,16 +261,16 @@ namespace IrradianceMap {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources(ID3D12GraphicsCommandList* const cmdList);
+		BOOL BuildResources(ID3D12GraphicsCommandList* const cmdList);
 
-		bool Check(const std::wstring& filepath);
-		bool Load(
+		BOOL Check(const std::wstring& filepath);
+		BOOL Load(
 			ID3D12CommandQueue* const queue,
 			GpuResource* const dst,
 			D3D12_CPU_DESCRIPTOR_HANDLE hDesc,
 			const std::wstring& filepath,
 			LPCWSTR setname);
-		bool Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath);
+		BOOL Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath);
 
 		void ConvertEquirectangularToCube(
 			ID3D12GraphicsCommandList* const cmdList,
@@ -365,7 +365,7 @@ namespace IrradianceMap {
 		D3D12_VIEWPORT mIrradEquirectMapViewport;
 		D3D12_RECT mIrradEquirectMapScissorRect;
 
-		bool bNeedToUpdate;
+		BOOL bNeedToUpdate;
 		Save::Type mNeedToSave;
 	};
 }

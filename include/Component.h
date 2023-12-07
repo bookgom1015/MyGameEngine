@@ -3,6 +3,8 @@
 #include "Transform.h"
 #include "InputManager.h"
 
+#include <Windows.h>
+
 class Actor;
 
 class Component {
@@ -11,11 +13,11 @@ public:
 	virtual ~Component();
 
 public:
-	virtual bool OnInitialzing();
+	virtual BOOL OnInitialzing();
 
-	virtual bool ProcessInput(const InputState& input) = 0;
-	virtual bool Update(float delta) = 0;
-	virtual bool OnUpdateWorldTransform() = 0;
+	virtual BOOL ProcessInput(const InputState& input) = 0;
+	virtual BOOL Update(FLOAT delta) = 0;
+	virtual BOOL OnUpdateWorldTransform() = 0;
 
 protected:
 	const Transform& GetActorTransform();

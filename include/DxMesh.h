@@ -10,7 +10,7 @@
 #include <wrl.h>
 #include <Windows.h>
 
-extern const int gNumFrameResources;
+extern const INT gNumFrameResources;
 
 // Defines a subrange of geometry in a MeshGeometry.  This is for when multiple
 // geometries are stored in one vertex and index buffer.  It provides the offsets
@@ -86,27 +86,27 @@ struct Texture {
 
 struct MaterialData {
 	// Index into constant buffer corresponding to this material.
-	int MatCBIndex = -1;
+	INT MatCBIndex = -1;
 
 	// Index into SRV heap for diffuse texture.
-	int DiffuseSrvHeapIndex = -1;
+	INT DiffuseSrvHeapIndex = -1;
 
 	// Index into SRV heap for normal texture.
-	int NormalSrvHeapIndex = -1;
+	INT NormalSrvHeapIndex = -1;
 
 	// Index into SRV heap for alpha texture.
-	int AlphaSrvHeapIndex = -1;
+	INT AlphaSrvHeapIndex = -1;
 
 	// Dirty flag indicating the material has changed and we need to update the constant buffer.
 	// Because we have a material constant buffer for each FrameResource, we have to apply the
 	// update to each FrameResource.  Thus, when we modify a material we should set 
 	// NumFramesDirty = gNumFrameResources so that each frame resource gets the update.
-	int NumFramesDirty = gNumFrameResources;
+	INT NumFramesDirty = gNumFrameResources;
 
 	// Material constant buffer data used for shading.
 	DirectX::XMFLOAT4 Albedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-	float Roughness = 0.5f;
-	float Metailic;
-	float Specular = 0.5f;
+	FLOAT Roughness = 0.5f;
+	FLOAT Metailic;
+	FLOAT Specular = 0.5f;
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };

@@ -1,64 +1,64 @@
 #ifndef __RENDERER_INL__
 #define __RENDERER_INL__
 
-constexpr bool Renderer::DebuggingEnabled() const {
+constexpr BOOL Renderer::DebuggingEnabled() const {
 	return bDebuggingEnabled;
 }
 
-constexpr bool Renderer::ShadowEnabled() const {
+constexpr BOOL Renderer::ShadowEnabled() const {
 	return bShadowEnabled;
 }
 
-constexpr bool Renderer::SsaoEnabled() const {
+constexpr BOOL Renderer::SsaoEnabled() const {
 	return bSsaoEnabled;
 }
 
-constexpr bool Renderer::TaaEnabled() const {
+constexpr BOOL Renderer::TaaEnabled() const {
 	return bTaaEnabled;
 }
 
-constexpr bool Renderer::MotionBlurEnabled() const {
+constexpr BOOL Renderer::MotionBlurEnabled() const {
 	return bMotionBlurEnabled;
 }
 
-constexpr bool Renderer::DepthOfFieldEnabled() const {
+constexpr BOOL Renderer::DepthOfFieldEnabled() const {
 	return bDepthOfFieldEnabled;
 }
 
-constexpr bool Renderer::BloomEnabled() const {
+constexpr BOOL Renderer::BloomEnabled() const {
 	return bBloomEnabled;
 }
 
-constexpr bool Renderer::SsrEnabled() const {
+constexpr BOOL Renderer::SsrEnabled() const {
 	return bSsrEnabled;
 }
 
-constexpr bool Renderer::GammaCorrectionEnabled() const {
+constexpr BOOL Renderer::GammaCorrectionEnabled() const {
 	return bGammaCorrectionEnabled;
 }
 
-constexpr bool Renderer::ToneMappingEnabled() const {
+constexpr BOOL Renderer::ToneMappingEnabled() const {
 	return bToneMappingEnabled;
 }
 
-constexpr bool Renderer::PixelationEnabled() const {
+constexpr BOOL Renderer::PixelationEnabled() const {
 	return bPixelationEnabled;
 }
 
-constexpr bool Renderer::SharpenEnabled() const {
+constexpr BOOL Renderer::SharpenEnabled() const {
 	return bSharpenEnabled;
 }
 
-constexpr bool Renderer::RaytracingEnabled() const {
+constexpr BOOL Renderer::RaytracingEnabled() const {
 	return bRaytracing;
 }
 
-constexpr bool Renderer::IsInitialized() const {
+constexpr BOOL Renderer::IsInitialized() const {
 	return bInitialized;
 }
 
-constexpr float Renderer::AspectRatio() const {
-	return static_cast<float>(mClientWidth) / static_cast<float>(mClientHeight);
+constexpr FLOAT Renderer::AspectRatio() const {
+	return static_cast<FLOAT>(mClientWidth) / static_cast<FLOAT>(mClientHeight);
 }
 
 #endif // __RENDERER_INL__

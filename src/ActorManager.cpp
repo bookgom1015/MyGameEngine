@@ -13,13 +13,13 @@ ActorManager::~ActorManager() {
 	mRefActors.clear();
 }
 
-bool ActorManager::ProcessInput(const InputState& input) {
+BOOL ActorManager::ProcessInput(const InputState& input) {
 	for (size_t i = 0, end = mActors.size(); i < end; ++i)
 		CheckReturn(mActors[i]->ProcessInput(input));
 	return true;
 }
 
-bool ActorManager::Update(float delta) {
+BOOL ActorManager::Update(FLOAT delta) {
 	for (auto& actor : mPendingActors)
 		mActors.push_back(std::move(actor));
 	mPendingActors.clear();

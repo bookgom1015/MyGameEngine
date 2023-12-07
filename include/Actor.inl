@@ -1,11 +1,11 @@
 #ifndef __ACTOR_INL__
 #define __ACTOR_INL__
 
-constexpr bool Actor::IsInitialized() const {
+constexpr BOOL Actor::IsInitialized() const {
 	return bInitialized;
 }
 
-constexpr bool Actor::IsDead() const {
+constexpr BOOL Actor::IsDead() const {
 	return bDead;
 }
 

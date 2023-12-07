@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cmath>
+#include <Windows.h>
 
 namespace Blur {
-	const int MaxBlurRadius = 17;
+	const INT MaxBlurRadius = 17;
 
-	float* CalcGaussWeights(float sigma);
+	FLOAT* CalcGaussWeights(FLOAT sigma);
 }

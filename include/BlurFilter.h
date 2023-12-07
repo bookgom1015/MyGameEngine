@@ -43,10 +43,10 @@ namespace BlurFilter {
 		virtual ~BlurFilterClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device*const device, ShaderManager*const manager);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device*const device, ShaderManager*const manager);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -78,7 +78,7 @@ namespace BlurFilter {
 			GpuResource*const output,
 			D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
 			D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
-			bool horzBlur);
+			BOOL horzBlur);
 
 	private:
 		ID3D12Device* md3dDevice;

@@ -13,14 +13,14 @@ namespace {
 	std::string R16_V = "vertGaussianBlurR16CS";
 }
 
-bool BlurFilterCSClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
+BOOL BlurFilterCSClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	return true;
 }
 
-bool BlurFilterCSClass::CompileShaders(const std::wstring& filePath) {
+BOOL BlurFilterCSClass::CompileShaders(const std::wstring& filePath) {
 	const auto path = filePath + L"GaussianBlurCS.hlsl";
 	{
 		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"HorzBlurCS", L"cs_6_3");
@@ -42,7 +42,7 @@ bool BlurFilterCSClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool BlurFilterCSClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL BlurFilterCSClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[4];
@@ -68,7 +68,7 @@ bool BlurFilterCSClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool BlurFilterCSClass::BuildPso() {
+BOOL BlurFilterCSClass::BuildPso() {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -108,7 +108,7 @@ void BlurFilterCSClass::Run(
 	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::ESI_Normal, si_normal);
 	cmdList->SetComputeRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
 
-	for (int i = 0; i < blurCount; ++i) {
+	for (INT i = 0; i < blurCount; ++i) {
 		cmdList->SetPipelineState(mPSOs[type][Direction::Horizontal].Get());
 
 		secondary->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

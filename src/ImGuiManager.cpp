@@ -5,7 +5,7 @@
 #include <imgui/backends/imgui_impl_win32.h>
 #include <imgui/backends/imgui_impl_dx12.h>
 
-bool ImGuiManager::Initialize(HWND hwnd, ID3D12Device*const device, ID3D12DescriptorHeap*const heap, int bufferCount, DXGI_FORMAT format) {
+BOOL ImGuiManager::Initialize(HWND hwnd, ID3D12Device*const device, ID3D12DescriptorHeap*const heap, INT bufferCount, DXGI_FORMAT format) {
 	md3dDevice = device;
 	mHeap = heap;
 
@@ -26,7 +26,7 @@ bool ImGuiManager::Initialize(HWND hwnd, ID3D12Device*const device, ID3D12Descri
 	return true;
 }
 
-bool ImGuiManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+BOOL ImGuiManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	mhCpuSrv = hCpu;
 	mhGpuSrv = hGpu;
 

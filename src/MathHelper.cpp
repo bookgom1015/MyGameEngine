@@ -4,8 +4,8 @@
 
 using namespace DirectX;
 
-float MathHelper::AngleFromXY(float x, float y) {
-	float theta = 0.0f;
+FLOAT MathHelper::AngleFromXY(FLOAT x, FLOAT y) {
+	FLOAT theta = 0.0f;
 
 	// Quadrant I or IV
 	if (x >= 0.0f) {
@@ -24,7 +24,7 @@ float MathHelper::AngleFromXY(float x, float y) {
 	return theta;
 }
 
-XMVECTOR MathHelper::SphericalToCartesian(float radius, float theta, float phi) {
+XMVECTOR MathHelper::SphericalToCartesian(FLOAT radius, FLOAT theta, FLOAT phi) {
 	return XMVectorSet(
 		radius * sinf(phi) * cosf(theta),
 		radius * cosf(phi),

@@ -3,11 +3,11 @@
 #include <Windows.h>
 
 namespace {
-	const float FrameTime30f = 1.0f / 30.0f;
-	const float FrameTime60f = 1.0f / 60.0f;
-	const float FrameTime120f = 1.0f / 120.0f;
-	const float FrameTime144f = 1.0f / 144.0f;
-	const float FrameTime244f = 1.0f / 244.0f;
+	const FLOAT FrameTime30f = 1.0f / 30.0f;
+	const FLOAT FrameTime60f = 1.0f / 60.0f;
+	const FLOAT FrameTime120f = 1.0f / 120.0f;
+	const FLOAT FrameTime144f = 1.0f / 144.0f;
+	const FLOAT FrameTime244f = 1.0f / 244.0f;
 }
 
 GameTimer::GameTimer()
@@ -26,7 +26,7 @@ GameTimer::GameTimer()
 
 // Returns the total time elapsed since Reset() was called, NOT counting any
 // time when the clock is stopped.
-float GameTimer::TotalTime() const {
+FLOAT GameTimer::TotalTime() const {
 	// If we are stopped, do not count the time that has passed since we stopped.
 	// Moreover, if we previously already had a pause, the distance 
 	// mStopTime - mBaseTime includes paused time, which we do not want to count.
@@ -36,7 +36,7 @@ float GameTimer::TotalTime() const {
 	// ----*---------------*-----------------*------------*------------*------> time
 	//  mBaseTime       mStopTime        startTime     mStopTime    mCurrTime
 	if (mStopped)
-		return static_cast<float>(((mStopTime - mPausedTime) - mBaseTime) * mSecondsPerCount);
+		return static_cast<FLOAT>(((mStopTime - mPausedTime) - mBaseTime) * mSecondsPerCount);
 	// The distance mCurrTime - mBaseTime includes paused time,
 	// which we do not want to count.  To correct this, we can subtract 
 	// the paused time from mCurrTime:  
@@ -47,11 +47,11 @@ float GameTimer::TotalTime() const {
 	// ----*---------------*-----------------*------------*------> time
 	//  mBaseTime       mStopTime        startTime     mCurrTime	
 	else
-		return static_cast<float>(((mCurrTime - mPausedTime) - mBaseTime) * mSecondsPerCount);
+		return static_cast<FLOAT>(((mCurrTime - mPausedTime) - mBaseTime) * mSecondsPerCount);
 }
 
-float GameTimer::DeltaTime() const {
-	return static_cast<float>(mDeltaTime);
+FLOAT GameTimer::DeltaTime() const {
+	return static_cast<FLOAT>(mDeltaTime);
 }
 
 void GameTimer::Reset() {
@@ -120,7 +120,7 @@ void GameTimer::Tick() {
 		mDeltaTime = 0.0;
 }
 
-float GameTimer::GetLimitFrameRate() const {
+FLOAT GameTimer::GetLimitFrameRate() const {
 	switch (mLimitFrameRate) {
 	case E_LimitFrameRateNone:
 		return 0.0f;

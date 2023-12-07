@@ -1,6 +1,8 @@
 #pragma once
 
-const int gNumFrameResources = 3;
+#include <Windows.h>
+
+const INT gNumFrameResources = 3;
 
 #include "DxLowRenderer.h"
 #include "MathHelper.h"
@@ -61,93 +63,93 @@ public:
 	virtual ~DxRenderer();
 
 public:
-	virtual bool Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) override;
+	virtual BOOL Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) override;
 	virtual void CleanUp() override;
 
-	virtual bool Update(float delta) override;
-	virtual bool Draw() override;
+	virtual BOOL Update(FLOAT delta) override;
+	virtual BOOL Draw() override;
 
-	virtual bool OnResize(UINT width, UINT height) override;
+	virtual BOOL OnResize(UINT width, UINT height) override;
 
 	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::E_Opaque) override;
 	virtual void RemoveModel(void* model) override;
 	virtual void UpdateModel(void* model, const Transform& trans) override;
-	virtual void SetModelVisibility(void* model, bool visible) override;
-	virtual void SetModelPickable(void* model, bool pickable) override;
+	virtual void SetModelVisibility(void* model, BOOL visible) override;
+	virtual void SetModelPickable(void* model, BOOL pickable) override;
 
-	virtual bool SetCubeMap(const std::string& file) override;
-	virtual bool SetEquirectangularMap(const std::string& file) override;
+	virtual BOOL SetCubeMap(const std::string& file) override;
+	virtual BOOL SetEquirectangularMap(const std::string& file) override;
 
-	virtual void Pick(float x, float y) override;
+	virtual void Pick(FLOAT x, FLOAT y) override;
 
-	virtual bool CreateRtvAndDsvDescriptorHeaps();
+	virtual BOOL CreateRtvAndDsvDescriptorHeaps();
 
-	bool AddGeometry(const std::string& file);
-	bool AddMaterial(const std::string& file, const Material& material);
+	BOOL AddGeometry(const std::string& file);
+	BOOL AddMaterial(const std::string& file, const Material& material);
 	void* AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type);
 
 	UINT AddTexture(const std::string& file, const Material& material);
 
 private:
-	bool CompileShaders();
-	bool BuildGeometries();
+	BOOL CompileShaders();
+	BOOL BuildGeometries();
 
-	bool BuildFrameResources();
+	BOOL BuildFrameResources();
 	void BuildDescriptors();
-	bool BuildRootSignatures();
-	bool BuildPSOs();
+	BOOL BuildRootSignatures();
+	BOOL BuildPSOs();
 	void BuildRenderItems();
 
-	bool UpdateShadingObjects(float delta);
-	bool UpdateShadowPassCB(float delta);
-	bool UpdateMainPassCB(float delta);
-	bool UpdateSsaoPassCB(float delta);
-	bool UpdateBlurPassCB(float delta);
-	bool UpdateDofCB(float delta);
-	bool UpdateSsrCB(float delta);
-	bool UpdateObjectCBs(float delta);
-	bool UpdateMaterialCBs(float delta);
-	bool UpdateConvEquirectToCubeCB(float delta);
-	bool UpdateRtaoCB(float delta);
-	bool UpdateRrCB(float delta);
-	bool UpdateDebugMapCB(float delta);
+	BOOL UpdateShadingObjects(FLOAT delta);
+	BOOL UpdateShadowPassCB(FLOAT delta);
+	BOOL UpdateMainPassCB(FLOAT delta);
+	BOOL UpdateSsaoPassCB(FLOAT delta);
+	BOOL UpdateBlurPassCB(FLOAT delta);
+	BOOL UpdateDofCB(FLOAT delta);
+	BOOL UpdateSsrCB(FLOAT delta);
+	BOOL UpdateObjectCBs(FLOAT delta);
+	BOOL UpdateMaterialCBs(FLOAT delta);
+	BOOL UpdateConvEquirectToCubeCB(FLOAT delta);
+	BOOL UpdateRtaoCB(FLOAT delta);
+	BOOL UpdateRrCB(FLOAT delta);
+	BOOL UpdateDebugMapCB(FLOAT delta);
 
-	bool AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
-	bool BuildTLAS(ID3D12GraphicsCommandList4* const cmdList);
-	bool UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList);
+	BOOL AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
+	BOOL BuildTLAS(ID3D12GraphicsCommandList4* const cmdList);
+	BOOL UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList);
 
-	bool BuildShaderTables();
+	BOOL BuildShaderTables();
 	
-	bool DrawShadowMap();
-	bool DrawGBuffer();
-	bool DrawSsao();
-	bool DrawBackBuffer();
-	bool IntegrateSpecIrrad();
-	bool DrawSkySphere();
-	bool DrawEquirectangulaToCube();
-	bool ApplyTAA();
-	bool BuildSsr();
-	bool ApplyBloom();
-	bool ApplyDepthOfField();
-	bool ApplyMotionBlur();
-	bool ResolveToneMapping();
-	bool ApplyGammaCorrection();
-	bool ApplySharpen();
-	bool ApplyPixelation();
-	bool DrawDebuggingInfo();
-	bool DrawImGui();
+	BOOL DrawShadowMap();
+	BOOL DrawGBuffer();
+	BOOL DrawSsao();
+	BOOL DrawBackBuffer();
+	BOOL IntegrateSpecIrrad();
+	BOOL DrawSkySphere();
+	BOOL DrawEquirectangulaToCube();
+	BOOL ApplyTAA();
+	BOOL BuildSsr();
+	BOOL ApplyBloom();
+	BOOL ApplyDepthOfField();
+	BOOL ApplyMotionBlur();
+	BOOL ResolveToneMapping();
+	BOOL ApplyGammaCorrection();
+	BOOL ApplySharpen();
+	BOOL ApplyPixelation();
+	BOOL DrawDebuggingInfo();
+	BOOL DrawImGui();
 
-	bool DrawDxrShadowMap();
-	bool DrawDxrBackBuffer();
-	bool DrawRtao();
-	bool BuildRaytracedReflection();
+	BOOL DrawDxrShadowMap();
+	BOOL DrawDxrBackBuffer();
+	BOOL DrawRtao();
+	BOOL BuildRaytracedReflection();
 
 private:
-	bool bIsCleanedUp;
+	BOOL bIsCleanedUp;
 
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 	FrameResource* mCurrFrameResource;
-	int mCurrFrameResourceIndex;
+	INT mCurrFrameResourceIndex;
 
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 
@@ -197,14 +199,14 @@ private:
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
-	bool bShadowMapCleanedUp = false;
-	bool bSsaoMapCleanedUp = false;
-	bool bSsrMapCleanedUp = false;
+	BOOL bShadowMapCleanedUp = false;
+	BOOL bSsaoMapCleanedUp = false;
+	BOOL bSsrMapCleanedUp = false;
 
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
 
-	std::unordered_map<DebugMapLayout::Type, bool> mDebugMapStates;
+	std::unordered_map<DebugMapLayout::Type, BOOL> mDebugMapStates;
 
 	RenderItem* mPickedRitem = nullptr;
 	RenderItem* mIrradianceCubeMap = nullptr;
@@ -221,8 +223,8 @@ private:
 	std::vector<std::unique_ptr<AccelerationStructureBuffer>> mBLASes;
 	std::unordered_map<std::string, AccelerationStructureBuffer*> mBLASRefs;
 	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
-	bool bNeedToRebuildTLAS = true;
-	bool bNeedToRebuildShaderTables = true;
+	BOOL bNeedToRebuildTLAS = true;
+	BOOL bNeedToRebuildShaderTables = true;
 
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
 	std::unique_ptr<DxrGeometryBuffer::DxrGeometryBufferClass> mDxrGeometryBuffer;

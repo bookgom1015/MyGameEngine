@@ -14,9 +14,11 @@
 
 #pragma once
 
-#include <DirectXMath.h>
-#include <cstdint>
 #include <vector>
+#include <cstdint>
+
+#include <DirectXMath.h>
+#include <Windows.h>
 
 class GeometryGenerator
 {
@@ -38,10 +40,10 @@ public:
             TangentU(t), 
             TexC(uv){}
 		Vertex(
-			float px, float py, float pz, 
-			float nx, float ny, float nz,
-			float tx, float ty, float tz,
-			float u, float v) : 
+			FLOAT px, FLOAT py, FLOAT pz, 
+			FLOAT nx, FLOAT ny, FLOAT nz,
+			FLOAT tx, FLOAT ty, FLOAT tz,
+			FLOAT u, FLOAT v) : 
             Position(px,py,pz), 
             Normal(nx,ny,nz),
 			TangentU(tx, ty, tz), 
@@ -78,42 +80,42 @@ public:
 	/// Creates a box centered at the origin with the given dimensions, where each
     /// face has m rows and n columns of vertices.
 	///</summary>
-    MeshData CreateBox(float width, float height, float depth, uint32 numSubdivisions);
+    MeshData CreateBox(FLOAT width, FLOAT height, FLOAT depth, uint32 numSubdivisions);
 
 	///<summary>
 	/// Creates a sphere centered at the origin with the given radius.  The
 	/// slices and stacks parameters control the degree of tessellation.
 	///</summary>
-    MeshData CreateSphere(float radius, uint32 sliceCount, uint32 stackCount);
+    MeshData CreateSphere(FLOAT radius, uint32 sliceCount, uint32 stackCount);
 
 	///<summary>
 	/// Creates a geosphere centered at the origin with the given radius.  The
 	/// depth controls the level of tessellation.
 	///</summary>
-    MeshData CreateGeosphere(float radius, uint32 numSubdivisions);
+    MeshData CreateGeosphere(FLOAT radius, uint32 numSubdivisions);
 
 	///<summary>
 	/// Creates a cylinder parallel to the y-axis, and centered about the origin.  
 	/// The bottom and top radius can vary to form various cone shapes rather than true
 	// cylinders.  The slices and stacks parameters control the degree of tessellation.
 	///</summary>
-    MeshData CreateCylinder(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount);
+    MeshData CreateCylinder(FLOAT bottomRadius, FLOAT topRadius, FLOAT height, uint32 sliceCount, uint32 stackCount);
 
 	///<summary>
 	/// Creates an mxn grid in the xz-plane with m rows and n columns, centered
 	/// at the origin with the specified width and depth.
 	///</summary>
-    MeshData CreateGrid(float width, float depth, uint32 m, uint32 n);
+    MeshData CreateGrid(FLOAT width, FLOAT depth, uint32 m, uint32 n);
 
 	///<summary>
 	/// Creates a quad aligned with the screen.  This is useful for postprocessing and screen effects.
 	///</summary>
-    MeshData CreateQuad(float x, float y, float w, float h, float depth);
+    MeshData CreateQuad(FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT depth);
 
 private:
 	void Subdivide(MeshData& meshData);
     Vertex MidPoint(const Vertex& v0, const Vertex& v1);
-    void BuildCylinderTopCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
-    void BuildCylinderBottomCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
+    void BuildCylinderTopCap(FLOAT bottomRadius, FLOAT topRadius, FLOAT height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
+    void BuildCylinderBottomCap(FLOAT bottomRadius, FLOAT topRadius, FLOAT height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
 };
 

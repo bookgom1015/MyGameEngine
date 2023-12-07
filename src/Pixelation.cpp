@@ -16,7 +16,7 @@ PixelationClass::PixelationClass() {
 	mCopiedBackBuffer = std::make_unique<GpuResource>();
 }
 
-bool PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
+BOOL PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -28,7 +28,7 @@ bool PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const mana
 	return true;
 }
 
-bool PixelationClass::CompileShaders(const std::wstring& filePath) {
+BOOL PixelationClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Pixelate.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -38,7 +38,7 @@ bool PixelationClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool PixelationClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL PixelationClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -58,7 +58,7 @@ bool PixelationClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool PixelationClass::BuildPso() {
+BOOL PixelationClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -87,7 +87,7 @@ void PixelationClass::BuildDescriptors(
 	hGpuSrv.Offset(1, descSize);
 }
 
-bool PixelationClass::OnResize(UINT width, UINT height) {
+BOOL PixelationClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -105,7 +105,7 @@ void PixelationClass::Run(
 		D3D12_RECT scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-		float pixelSize) {
+		FLOAT pixelSize) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
@@ -124,8 +124,8 @@ void PixelationClass::Run(
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
-	float values[RootConstantsLayout::Count] = { 
-		static_cast<float>(mWidth), static_cast<float>(mHeight), pixelSize };
+	FLOAT values[RootConstantsLayout::Count] = { 
+		static_cast<FLOAT>(mWidth), static_cast<FLOAT>(mHeight), pixelSize };
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -148,7 +148,7 @@ void PixelationClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 }
 
-bool PixelationClass::BuildResources() {
+BOOL PixelationClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Width = mWidth;

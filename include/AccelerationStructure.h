@@ -12,11 +12,11 @@ public:
 	virtual ~AccelerationStructureBuffer();
 
 public:
-	bool BuildBLAS(
+	BOOL BuildBLAS(
 		ID3D12Device5* const device,
 		ID3D12GraphicsCommandList4* const cmdList,
 		MeshGeometry* const geo);
-	bool BuildTLAS(
+	BOOL BuildTLAS(
 		ID3D12Device5* const device,
 		ID3D12GraphicsCommandList4* const cmdList,
 		const std::vector<D3D12_RAYTRACING_INSTANCE_DESC>& instanceDescs);

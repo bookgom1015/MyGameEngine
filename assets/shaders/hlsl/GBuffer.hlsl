@@ -68,10 +68,12 @@ PixelOut PS(VertexOut pin) {
 	pin.PrevPosH /= pin.PrevPosH.w;
 	const float2 velocity = CalcVelocity(pin.NonJitPosH, pin.PrevPosH);
 
+	float3 normal = normalize(pin.NormalW);
+
 	PixelOut pout = (PixelOut)0;
 	pout.Color = albedo;
-	pout.Normal = float4(pin.NormalW, 0);
-	pout.NormalDepth = EncodeNormalDepth(pin.NormalW, pin.NonJitPosH.z);
+	pout.Normal = float4(normal, 0);
+	pout.NormalDepth = EncodeNormalDepth(normal, pin.NonJitPosH.z);
 	pout.RoughnessMetalicSpecular = float4(cbMat.Roughness, cbMat.Metalic, cbMat.Specular, 0);
 	pout.Velocity = velocity;
 	pout.ReprojNormalDepth = EncodeNormalDepth(pin.PrevNormalW, pin.PrevPosH.z);

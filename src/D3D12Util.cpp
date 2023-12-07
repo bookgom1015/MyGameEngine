@@ -10,11 +10,11 @@ using namespace Microsoft::WRL;
 
 const size_t D3D12Util::SizeOfUint = sizeof(UINT);
 
-bool D3D12Util::LoadBinary(const std::wstring& inFilename, ComPtr<ID3DBlob>& outBlob) {
+BOOL D3D12Util::LoadBinary(const std::wstring& inFilename, ComPtr<ID3DBlob>& outBlob) {
 	std::ifstream fin(inFilename, std::ios::binary);
 
 	fin.seekg(0, std::ios_base::end);
-	std::ifstream::pos_type size = (int)fin.tellg();
+	std::ifstream::pos_type size = static_cast<INT>(fin.tellg());
 	fin.seekg(0, std::ios_base::beg);
 
 	CheckHRESULT(D3DCreateBlob(size, outBlob.GetAddressOf()));
@@ -25,7 +25,7 @@ bool D3D12Util::LoadBinary(const std::wstring& inFilename, ComPtr<ID3DBlob>& out
 	return true;
 }
 
-bool D3D12Util::CreateDefaultBuffer(
+BOOL D3D12Util::CreateDefaultBuffer(
 	ID3D12Device* inDevice,
 	ID3D12GraphicsCommandList* inCmdList,
 	const void* inInitData,
@@ -75,7 +75,7 @@ bool D3D12Util::CreateDefaultBuffer(
 	return true;
 }
 
-bool D3D12Util::CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGNATURE_DESC& inRootSignatureDesc, ID3D12RootSignature** ppRootSignature) {
+BOOL D3D12Util::CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGNATURE_DESC& inRootSignatureDesc, ID3D12RootSignature** ppRootSignature) {
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 	HRESULT hr = D3D12SerializeRootSignature(
@@ -102,7 +102,7 @@ bool D3D12Util::CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGN
 	return true;
 }
 
-bool D3D12Util::CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInfo, ID3D12Resource** ppResource, ID3D12InfoQueue* pInfoQueue) {
+BOOL D3D12Util::CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInfo, ID3D12Resource** ppResource, ID3D12InfoQueue* pInfoQueue) {
 	D3D12_HEAP_PROPERTIES heapDesc = {};
 	heapDesc.Type = inInfo.HeapType;
 	heapDesc.CreationNodeMask = 1;
@@ -132,7 +132,7 @@ bool D3D12Util::CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInf
 	return true;
 }
 
-bool D3D12Util::CreateConstantBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 inSize) {
+BOOL D3D12Util::CreateConstantBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 inSize) {
 	D3D12BufferCreateInfo bufferInfo((inSize + 255) & ~255, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
 	CheckHRESULT(CreateBuffer(pDevice, bufferInfo, ppResource));
 

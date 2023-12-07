@@ -9,12 +9,12 @@
 #include <GLFW/glfw3.h>
 
 struct QueueFamilyIndices {
-	std::optional<std::uint32_t> GraphicsFamily;
-	std::optional<std::uint32_t> PresentFamily;
+	std::optional<UINT> GraphicsFamily;
+	std::optional<UINT> PresentFamily;
 
-	std::uint32_t GetGraphicsFamilyIndex();
-	std::uint32_t GetPresentFamilyIndex();
-	bool IsComplete();
+	UINT GetGraphicsFamilyIndex();
+	UINT GetPresentFamilyIndex();
+	BOOL IsComplete();
 
 	static QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface);
 };
@@ -34,7 +34,7 @@ namespace VulkanHelper {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
-	bool CheckValidationLayersSupport();
+	BOOL CheckValidationLayersSupport();
 
 	void GetRequiredExtensions(std::vector<const char*>& outExtensions);
 
@@ -57,15 +57,15 @@ namespace VulkanHelper {
 
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& inCreateInfo);
 
-	bool SetUpDebugMessenger(const VkInstance& inInstance, VkDebugUtilsMessengerEXT& inDebugMessenger);
+	BOOL SetUpDebugMessenger(const VkInstance& inInstance, VkDebugUtilsMessengerEXT& inDebugMessenger);
 
-	bool CheckDeviceExtensionsSupport(const VkPhysicalDevice& inPhysicalDevice);
+	BOOL CheckDeviceExtensionsSupport(const VkPhysicalDevice& inPhysicalDevice);
 
 	SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface);
 
-	bool IsDeviceSuitable(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface);
+	BOOL IsDeviceSuitable(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface);
 
-	int RateDeviceSuitability(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface);
+	INT RateDeviceSuitability(const VkPhysicalDevice& inPhysicalDevice, const VkSurfaceKHR& inSurface);
 
 	VkSampleCountFlagBits GetMaxUsableSampleCount(VkPhysicalDevice inPhysicalDevice);
 
@@ -79,9 +79,9 @@ namespace VulkanHelper {
 
 	void EndSingleTimeCommands(const VkDevice& inDevice, const VkQueue& inQueue, const VkCommandPool& inCommandPool, VkCommandBuffer& ioCommandBuffer);
 
-	std::uint32_t FindMemoryType(const VkPhysicalDevice& inPhysicalDevice, std::uint32_t inTypeFilter, const VkMemoryPropertyFlags& inProperties);
+	UINT FindMemoryType(const VkPhysicalDevice& inPhysicalDevice, UINT inTypeFilter, const VkMemoryPropertyFlags& inProperties);
 
-	bool CreateBuffer(
+	BOOL CreateBuffer(
 		const VkPhysicalDevice& inPhysicalDevice,
 		const VkDevice& inDevice,
 		VkDeviceSize inSize,
@@ -104,26 +104,26 @@ namespace VulkanHelper {
 		const VkCommandPool& inCommandPool,
 		const VkBuffer& inBuffer,
 		const VkImage& inImage,
-		std::uint32_t inWidth,
-		std::uint32_t inHeight);
+		UINT inWidth,
+		UINT inHeight);
 
-	bool GenerateMipmaps(
+	BOOL GenerateMipmaps(
 		const VkPhysicalDevice& inPhysicalDevice,
 		const VkDevice& inDevice,
 		const VkQueue& inQueue,
 		const VkCommandPool& inCommandPool,
 		const VkImage& inImage,
 		const VkFormat& inFormat,
-		std::int32_t inTexWidth,
-		std::int32_t inTexHeight,
-		std::uint32_t inMipLevles);
+		INT inTexWidth,
+		INT inTexHeight,
+		UINT inMipLevles); 
 
-	bool CreateImage(
+	BOOL CreateImage(
 		const VkPhysicalDevice& inPhysicalDevice,
 		const VkDevice& inDevice,
-		std::uint32_t inWidth,
-		std::uint32_t inHeight,
-		std::uint32_t inMipLevels,
+		UINT inWidth,
+		UINT inHeight,
+		UINT inMipLevels,
 		const VkSampleCountFlagBits& inNumSamples,
 		const VkFormat& inFormat,
 		const VkImageTiling& inTiling,
@@ -132,11 +132,11 @@ namespace VulkanHelper {
 		VkImage& outImage,
 		VkDeviceMemory& outImageMemory);
 
-	bool CreateImageView(
+	BOOL CreateImageView(
 		const VkDevice& inDevice,
 		const VkImage& inImage,
 		const VkFormat& inFormat,
-		std::uint32_t inMipLevles,
+		UINT inMipLevles,
 		const VkImageAspectFlags& inAspectFlags,
 		VkImageView& outImageView);
 
@@ -148,9 +148,9 @@ namespace VulkanHelper {
 
 	VkFormat FindDepthFormat(const VkPhysicalDevice& inPhysicalDevice);
 
-	bool HasStencilComponent(const VkFormat& inFormat);
+	BOOL HasStencilComponent(const VkFormat& inFormat);
 
-	bool TransitionImageLayout(
+	BOOL TransitionImageLayout(
 		const VkDevice& inDevice,
 		const VkQueue& inQueue,
 		const VkCommandPool& inCommandPool,
@@ -158,9 +158,9 @@ namespace VulkanHelper {
 		const VkFormat& inFormat,
 		const VkImageLayout& inOldLayout,
 		const VkImageLayout& inNewLayout,
-		std::uint32_t inMipLevels);
+		UINT inMipLevels);
 
-	bool ReadFile(const std::string& inFilePath, std::vector<char>& outData);
+	BOOL ReadFile(const std::string& inFilePath, std::vector<char>& outData);
 
-	bool CreateShaderModule(const VkDevice& inDevice, const std::vector<char>& inCode, VkShaderModule& outModule);
+	BOOL CreateShaderModule(const VkDevice& inDevice, const std::vector<char>& inCode, VkShaderModule& outModule);
 }

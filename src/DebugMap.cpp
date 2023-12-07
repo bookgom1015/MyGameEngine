@@ -11,7 +11,7 @@ namespace {
 	const std::string DebugMapPS = "DebugMapPS";
 }
 
-bool DebugMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
+BOOL DebugMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -20,7 +20,7 @@ bool DebugMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager
 	return true;
 }
 
-bool DebugMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL DebugMapClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"DebugMap.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath .c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(fullPath .c_str(), L"PS", L"ps_6_3");
@@ -30,7 +30,7 @@ bool DebugMapClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[10];
@@ -69,7 +69,7 @@ bool DebugMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool DebugMapClass::BuildPso() {
+BOOL DebugMapClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC debugPsoDesc = D3D12Util::QuadPsoDesc();
 	debugPsoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -111,7 +111,7 @@ void DebugMapClass::Run(
 		RootConstantsLayout::ESampleMask0
 	);
 
-	for (int i = 0; i < mNumEnabledMaps; ++i) {
+	for (INT i = 0; i < mNumEnabledMaps; ++i) {
 		if (mDebugMasks[i] == SampleMask::UINT) 
 			cmdList->SetGraphicsRootDescriptorTable(static_cast<UINT>(RootSignatureLayout::ESI_Debug0_uint + i), mhDebugGpuSrvs[i]);
 		else
@@ -126,7 +126,7 @@ void DebugMapClass::Run(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask) {
+BOOL DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask) {
 	if (mNumEnabledMaps >= 5) return false;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
@@ -137,7 +137,7 @@ bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask:
 	return true;
 }
 
-bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask, DebugMapSampleDesc desc) {
+BOOL DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask, DebugMapSampleDesc desc) {
 	if (mNumEnabledMaps >= 5) return false;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
@@ -150,10 +150,10 @@ bool DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask:
 }
 
 void DebugMapClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
-	for (int i = 0; i < mNumEnabledMaps; ++i) {
+	for (INT i = 0; i < mNumEnabledMaps; ++i) {
 		if (mhDebugGpuSrvs[i].ptr == hGpuSrv.ptr) {
-			for (int curr = i, end = mNumEnabledMaps - 2; curr <= end; ++curr) {
-				int next = curr + 1;
+			for (INT curr = i, end = mNumEnabledMaps - 2; curr <= end; ++curr) {
+				INT next = curr + 1;
 				mhDebugGpuSrvs[curr] = mhDebugGpuSrvs[next];
 				mDebugMasks[curr] = mDebugMasks[next];
 				mSampleDescs[curr] = mSampleDescs[next];

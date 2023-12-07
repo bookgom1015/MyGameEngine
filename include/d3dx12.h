@@ -90,21 +90,21 @@ struct CD3DX12_VIEWPORT : public D3D12_VIEWPORT
         case D3D12_RESOURCE_DIMENSION_BUFFER:
             TopLeftX = topLeftX;
             TopLeftY = 0.0f;
-            Width = float(Desc.Width) - topLeftX;
+            Width = FLOAT(Desc.Width) - topLeftX;
             Height = 1.0f;
             break;
         case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
             TopLeftX = topLeftX;
             TopLeftY = 0.0f;
-            Width = (SubresourceWidth ? float(SubresourceWidth) : 1.0f) - topLeftX;
+            Width = (SubresourceWidth ? FLOAT(SubresourceWidth) : 1.0f) - topLeftX;
             Height = 1.0f;
             break;
         case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
         case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
             TopLeftX = topLeftX;
             TopLeftY = topLeftY;
-            Width = (SubresourceWidth ? float(SubresourceWidth) : 1.0f) - topLeftX;
-            Height = (SubresourceHeight ? float(SubresourceHeight) : 1.0f) - topLeftY;
+            Width = (SubresourceWidth ? FLOAT(SubresourceWidth) : 1.0f) - topLeftX;
+            Height = (SubresourceHeight ? FLOAT(SubresourceHeight) : 1.0f) - topLeftY;
             break;
         default: break;
         }

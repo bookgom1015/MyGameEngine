@@ -52,98 +52,100 @@
 #include "Camera.h"
 #include "RenderType.h"
 
+#include <Windows.h>
+
 class Renderer {
 public:
-	virtual bool Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) = 0;
+	virtual BOOL Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) = 0;
 	virtual void CleanUp() = 0;
 
-	virtual bool Update(float delta) = 0;
-	virtual bool Draw() = 0;
+	virtual BOOL Update(FLOAT delta) = 0;
+	virtual BOOL Draw() = 0;
 
-	virtual bool OnResize(UINT width, UINT height) = 0;
+	virtual BOOL OnResize(UINT width, UINT height) = 0;
 
 	virtual void* AddModel(const std::string& file, const Transform& trans, RenderType::Type type = RenderType::E_Opaque) = 0;
 	virtual void RemoveModel(void* model) = 0;
 	virtual void UpdateModel(void* model, const Transform& trans) = 0;
-	virtual void SetModelVisibility(void* model, bool visible) = 0;
-	virtual void SetModelPickable(void* model, bool pickable) = 0;
+	virtual void SetModelVisibility(void* model, BOOL visible) = 0;
+	virtual void SetModelPickable(void* model, BOOL pickable) = 0;
 
-	virtual bool SetCubeMap(const std::string& file) = 0;
-	virtual bool SetEquirectangularMap(const std::string& file) = 0;
+	virtual BOOL SetCubeMap(const std::string& file) = 0;
+	virtual BOOL SetEquirectangularMap(const std::string& file) = 0;
 
-	virtual void Pick(float x, float y);
+	virtual void Pick(FLOAT x, FLOAT y);
 
 	void SetCamera(Camera* cam);
 
-	void EnableDebugging(bool state);
-	__forceinline constexpr bool DebuggingEnabled() const;
+	void EnableDebugging(BOOL state);
+	__forceinline constexpr BOOL DebuggingEnabled() const;
 
-	void EnableShadow(bool state);
-	__forceinline constexpr bool ShadowEnabled() const;
+	void EnableShadow(BOOL state);
+	__forceinline constexpr BOOL ShadowEnabled() const;
 
-	void EnableSsao(bool state);
-	__forceinline constexpr bool SsaoEnabled() const;
+	void EnableSsao(BOOL state);
+	__forceinline constexpr BOOL SsaoEnabled() const;
 
-	void EnableTaa(bool state);
-	__forceinline constexpr bool TaaEnabled() const;
+	void EnableTaa(BOOL state);
+	__forceinline constexpr BOOL TaaEnabled() const;
 
-	void EnableMotionBlur(bool state);
-	__forceinline constexpr bool MotionBlurEnabled() const;
+	void EnableMotionBlur(BOOL state);
+	__forceinline constexpr BOOL MotionBlurEnabled() const;
 
-	void EnableDepthOfField(bool state);
-	__forceinline constexpr bool DepthOfFieldEnabled() const;
+	void EnableDepthOfField(BOOL state);
+	__forceinline constexpr BOOL DepthOfFieldEnabled() const;
 
-	void EnableBloom(bool state);
-	__forceinline constexpr bool BloomEnabled() const;
+	void EnableBloom(BOOL state);
+	__forceinline constexpr BOOL BloomEnabled() const;
 
-	void EnableSsr(bool state);
-	__forceinline constexpr bool SsrEnabled() const;
+	void EnableSsr(BOOL state);
+	__forceinline constexpr BOOL SsrEnabled() const;
 
-	void EnableGammaCorrection(bool state);
-	__forceinline constexpr bool GammaCorrectionEnabled() const;
+	void EnableGammaCorrection(BOOL state);
+	__forceinline constexpr BOOL GammaCorrectionEnabled() const;
 
-	void EnableToneMapping(bool state);
-	__forceinline constexpr bool ToneMappingEnabled() const;
+	void EnableToneMapping(BOOL state);
+	__forceinline constexpr BOOL ToneMappingEnabled() const;
 
-	void EnablePixelation(bool state);
-	__forceinline constexpr bool PixelationEnabled() const;
+	void EnablePixelation(BOOL state);
+	__forceinline constexpr BOOL PixelationEnabled() const;
 
-	void EnableSharpen(bool state);
-	__forceinline constexpr bool SharpenEnabled() const;
+	void EnableSharpen(BOOL state);
+	__forceinline constexpr BOOL SharpenEnabled() const;
 
-	void EnableRaytracing(bool state);
-	__forceinline constexpr bool RaytracingEnabled() const;
+	void EnableRaytracing(BOOL state);
+	__forceinline constexpr BOOL RaytracingEnabled() const;
 
-	void ShowImGui(bool state);
+	void ShowImGui(BOOL state);
 
-	__forceinline constexpr bool IsInitialized() const;
-	__forceinline constexpr float AspectRatio() const;
+	__forceinline constexpr BOOL IsInitialized() const;
+	__forceinline constexpr FLOAT AspectRatio() const;
 
 protected:
-	bool bInitialized = false;
+	BOOL bInitialized = false;
 
 	UINT mClientWidth;
 	UINT mClientHeight;
 
 	Camera* mCamera;
 
-	bool bShowImGui = false;
+	BOOL bShowImGui = false;
 
-	bool bDebuggingEnabled = false;
-	bool bShadowEnabled = true;
-	bool bSsaoEnabled = true;
-	bool bTaaEnabled = true;
-	bool bInitiatingTaa = true;
-	bool bMotionBlurEnabled = true;
-	bool bDepthOfFieldEnabled = true;
-	bool bBloomEnabled = true;
-	bool bSsrEnabled = true;
-	bool bGammaCorrectionEnabled = true;
-	bool bToneMappingEnabled = true;
-	bool bPixelationEnabled = false;
-	bool bSharpenEnabled = false;
+	BOOL bDebuggingEnabled = false;
+	BOOL bShadowEnabled = true;
+	BOOL bSsaoEnabled = true;
+	BOOL bTaaEnabled = true;
+	BOOL bInitiatingTaa = true;
+	BOOL bMotionBlurEnabled = true;
+	BOOL bDepthOfFieldEnabled = true;
+	BOOL bBloomEnabled = true;
+	BOOL bSsrEnabled = true;
+	BOOL bGammaCorrectionEnabled = true;
+	BOOL bToneMappingEnabled = true;
+	BOOL bPixelationEnabled = false;
+	BOOL bSharpenEnabled = false;
 
-	bool bRaytracing = false;
+	BOOL bRaytracing = false;
 };
 
 #include "Renderer.inl"

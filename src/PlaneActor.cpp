@@ -14,19 +14,19 @@ PlaneActor::PlaneActor(const std::string& name, const Transform& trans) : Actor(
 
 PlaneActor::~PlaneActor() {};
 
-bool PlaneActor::OnInitialzing() {
+BOOL PlaneActor::OnInitialzing() {
 	CheckReturn(mMeshComp->LoadMesh("plane.obj"));
 	mMeshComp->SetPickable(false);
 
 	return true;
 }
 
-bool PlaneActor::ProcessActorInput(const InputState& input) {
+BOOL PlaneActor::ProcessActorInput(const InputState& input) {
 
 	return true;
 }
 
-bool PlaneActor::UpdateActor(float delta) {
+BOOL PlaneActor::UpdateActor(FLOAT delta) {
 
 	return true;
 }

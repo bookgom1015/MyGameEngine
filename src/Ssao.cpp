@@ -18,7 +18,7 @@ SsaoClass::SsaoClass() {
 	mAOCoefficientMaps[1] = std::make_unique<GpuResource>();
 }
 
-bool SsaoClass::Initialize(
+BOOL SsaoClass::Initialize(
 		ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
 		UINT width, UINT height, UINT divider) {
 	md3dDevice = device;
@@ -29,8 +29,8 @@ bool SsaoClass::Initialize(
 
 	mDivider = divider;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mWidth), static_cast<FLOAT>(mHeight), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(mWidth), static_cast<INT>(mHeight) };
 
 	CheckReturn(BuildResources());
 	BuildOffsetVectors();
@@ -39,7 +39,7 @@ bool SsaoClass::Initialize(
 	return true;
 }
 
-bool SsaoClass::CompileShaders(const std::wstring& filePath) {
+BOOL SsaoClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Ssao.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -49,7 +49,7 @@ bool SsaoClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[3];
@@ -74,7 +74,7 @@ bool SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool SsaoClass::BuildPso() {
+BOOL SsaoClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -151,15 +151,15 @@ void SsaoClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool SsaoClass::OnResize(UINT width, UINT height) {
+BOOL SsaoClass::OnResize(UINT width, UINT height) {
 	width /= mDivider;
 	height /= mDivider;
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 		CheckReturn(BuildResources());
 		BuildDescriptors();
@@ -178,7 +178,7 @@ void SsaoClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mRandomVectorMap->Resource(), &srvDesc, mhRandomVectorMapCpuSrv);
 
 	srvDesc.Format = AOCoefficientMapFormat;
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		md3dDevice->CreateShaderResourceView(mAOCoefficientMaps[i]->Resource(), &srvDesc, mhAOCoefficientMapCpuSrvs[i]);
 	}
 
@@ -187,12 +187,12 @@ void SsaoClass::BuildDescriptors() {
 	rtvDesc.Format = AOCoefficientMapFormat;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		md3dDevice->CreateRenderTargetView(mAOCoefficientMaps[i]->Resource(), &rtvDesc, mhAOCoefficientMapCpuRtvs[i]);
 	}
 }
 
-bool SsaoClass::BuildResources() {
+BOOL SsaoClass::BuildResources() {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -210,7 +210,7 @@ bool SsaoClass::BuildResources() {
 
 	CD3DX12_CLEAR_VALUE optClear(AOCoefficientMapFormat, AOCoefficientMapClearValues);
 
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		std::wstringstream wsstream;
 		wsstream << L"AOCoefficientMap_" << i;
 		CheckHRESULT(mAOCoefficientMaps[i]->Initialize(
@@ -256,9 +256,9 @@ void SsaoClass::BuildOffsetVectors() {
 	mOffsets[12] = XMFLOAT4(0.0f, 0.0f, -1.0f, 0.0f);
 	mOffsets[13] = XMFLOAT4(0.0f, 0.0f, +1.0f, 0.0f);
 
-	for (int i = 0; i < 14; ++i) {
+	for (INT i = 0; i < 14; ++i) {
 		// Create random lengths in [0.25, 1.0].
-		float s = MathHelper::RandF(0.25f, 1.0f);
+		FLOAT s = MathHelper::RandF(0.25f, 1.0f);
 
 		XMVECTOR v = s * XMVector4Normalize(XMLoadFloat4(&mOffsets[i]));
 
@@ -266,7 +266,7 @@ void SsaoClass::BuildOffsetVectors() {
 	}
 }
 
-bool SsaoClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
+BOOL SsaoClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -309,8 +309,8 @@ bool SsaoClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 	));
 
 	XMCOLOR initData[256 * 256];
-	for (int i = 0; i < 256; ++i) {
-		for (int j = 0; j < 256; ++j) {
+	for (INT i = 0; i < 256; ++i) {
+		for (INT j = 0; j < 256; ++j) {
 			// Random vector in [0,1].  We will decompress in shader to [-1,1].
 			XMFLOAT3 v(MathHelper::RandF(), MathHelper::RandF(), MathHelper::RandF());
 

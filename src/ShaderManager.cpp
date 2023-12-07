@@ -14,7 +14,7 @@ ShaderManager::~ShaderManager() {
 	}
 }
 
-bool ShaderManager::Initialize() {
+BOOL ShaderManager::Initialize() {
 	CheckHRESULT(mDxcDllHelper.Initialize());
 	DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&mUtils));
 	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&mCompiler));
@@ -26,7 +26,7 @@ void ShaderManager::CleanUp() {
 	bIsCleanedUp = true;
 }
 
-bool ShaderManager::CompileShader(
+BOOL ShaderManager::CompileShader(
 	const std::wstring& inFilePath,
 	const D3D_SHADER_MACRO* inDefines,
 	const std::string& inEntryPoint,
@@ -56,7 +56,7 @@ bool ShaderManager::CompileShader(
 	return true;
 }
 
-bool ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name) {
+BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name) {
 	std::ifstream fin(shaderInfo.FileName, std::ios::ate | std::ios::binary);
 	if (!fin.is_open()) {
 		std::wstring msg(L"Failed to open shader file: ");

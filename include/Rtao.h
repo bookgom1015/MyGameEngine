@@ -279,7 +279,7 @@ namespace Rtao {
 	using TemporalAOCoefficientsCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::TemporalAOCoefficient::Count>, 2>;
 	using TemporalAOCoefficientsGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::TemporalAOCoefficient::Count>, 2>;
 
-	const float AmbientMapClearValues[1] = { 1.0f };
+	const FLOAT AmbientMapClearValues[1] = { 1.0f };
 
 	class RtaoClass {
 	public:
@@ -326,13 +326,13 @@ namespace Rtao {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolvedAOCoefficientSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignatures(const StaticSamplers& samplers);
-		bool BuildPSO();
-		bool BuildShaderTables(UINT numRitems);
+		BOOL Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignatures(const StaticSamplers& samplers);
+		BOOL BuildPSO();
+		BOOL BuildShaderTables(UINT numRitems);
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
-		bool OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
+		BOOL OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 		void RunCalculatingAmbientOcclusion(
 			ID3D12GraphicsCommandList4* const cmdList,
@@ -353,7 +353,7 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_localMeanVariance,
 			UINT width, UINT height,
-			bool checkerboardSamplingEnabled);
+			BOOL checkerboardSamplingEnabled);
 		void FillInCheckerboard(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -409,7 +409,7 @@ namespace Rtao {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources(ID3D12GraphicsCommandList* cmdList);
+		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList);
 
 	private:
 		ID3D12Device5* md3dDevice;

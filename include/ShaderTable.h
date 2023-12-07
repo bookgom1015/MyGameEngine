@@ -14,8 +14,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D12Resource> GetResource();
 
 protected:
-	bool Allocate(ID3D12Device* pDevice, UINT bufferSize, LPCWSTR resourceName = nullptr);
-	bool MapCpuWriteOnly(std::uint8_t*& pData);
+	BOOL Allocate(ID3D12Device* pDevice, UINT bufferSize, LPCWSTR resourceName = nullptr);
+	BOOL MapCpuWriteOnly(std::uint8_t*& pData);
 
 protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
@@ -49,8 +49,8 @@ public:
 	ShaderTable(ID3D12Device* device, UINT numShaderRecords, UINT shaderRecordSize, LPCWSTR resourceName = nullptr);
 
 public:
-	bool Initialze();
-	bool push_back(const ShaderRecord& shaderRecord);
+	BOOL Initialze();
+	BOOL push_back(const ShaderRecord& shaderRecord);
 
 	std::uint8_t* GetMappedShaderRecords();
 	UINT GetShaderRecordSize();

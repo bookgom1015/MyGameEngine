@@ -30,11 +30,11 @@ namespace EnvironmentMap {
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE CubeMapSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList, 
+		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList*const cmdList,
 			ShaderManager*const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso(D3D12_INPUT_LAYOUT_DESC inputLayout, DXGI_FORMAT dsvFormat);
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
@@ -52,11 +52,11 @@ namespace EnvironmentMap {
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			UINT descSize);
 
-		bool SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file);
+		BOOL SetCubeMap(ID3D12CommandQueue*const queue, const std::string& file);
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources(ID3D12GraphicsCommandList*const cmdList);
+		BOOL BuildResources(ID3D12GraphicsCommandList*const cmdList);
 
 		void DrawRenderItems(
 			ID3D12GraphicsCommandList*const cmdList, 

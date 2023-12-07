@@ -6,18 +6,18 @@
 
 class Camera {
 public:
-	Camera(float nearZ = 0.1f, float farZ = 1000.0f, float fovY = 90.0f);
+	Camera(FLOAT nearZ = 0.1f, FLOAT farZ = 1000.0f, FLOAT fovY = 90.0f);
 	virtual ~Camera() = default;
 
 public:
-	__forceinline float FovY() const;
+	__forceinline FLOAT FovY() const;
 
 public:
 	void UpdateViewMatrix();
 
-	void Pitch(float rad);
-	void Yaw(float rad);
-	void Roll(float rad);
+	void Pitch(FLOAT rad);
+	void Yaw(FLOAT rad);
+	void Roll(FLOAT rad);
 
 	void AddPosition(const DirectX::XMVECTOR& pos);
 	const DirectX::XMVECTOR& GetPosition() const;
@@ -38,16 +38,16 @@ private:
 	DirectX::XMVECTOR mUp;
 	DirectX::XMVECTOR mForward;
 
-	float mNearZ;
-	float mFarZ;
-	float mFovY;
+	FLOAT mNearZ;
+	FLOAT mFarZ;
+	FLOAT mFovY;
 
-	bool bViewDirty;
+	BOOL bViewDirty;
 
 	DirectX::XMFLOAT4X4 mView;
 	DirectX::XMFLOAT4X4 mProj;
 };
 
-float Camera::FovY() const {
+FLOAT Camera::FovY() const {
 	return mFovY;
 }

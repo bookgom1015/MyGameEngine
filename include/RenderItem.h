@@ -8,11 +8,11 @@
 struct MeshGeometry;
 struct MaterialData;
 
-extern const int gNumFrameResources;
+extern const INT gNumFrameResources;
 
 struct RenderItem {
 	// Index into GPU constant buffer corresponding to the ObjectCB for this render item.
-	int ObjCBIndex = -1;
+	INT ObjCBIndex = -1;
 
 	// World matrix of the shape that describes the object's local space
 	// relative to the world space, which defines the position, orientation,
@@ -25,7 +25,7 @@ struct RenderItem {
 	// Because we have an object cbuffer for each FrameResource, we have to apply the
 	// update to each FrameResource. Thus, when we modify object data we should set
 	// NumFrameDirty = gNumFrameResources so that each frame resource gets the update.
-	int NumFramesDirty = gNumFrameResources << 1;
+	INT NumFramesDirty = gNumFrameResources << 1;
 
 	MaterialData* Material = nullptr;
 	MeshGeometry* Geometry = nullptr;
@@ -40,5 +40,5 @@ struct RenderItem {
 	UINT StartIndexLocation = 0;
 	UINT BaseVertexLocation = 0;
 
-	bool Pickable = true;
+	BOOL Pickable = true;
 };

@@ -6,6 +6,7 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
+#include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 #include "DxrShadingHelpers.hlsli"
 #include "Samplers.hlsli"
@@ -19,10 +20,11 @@ cbuffer cbRootConstants : register(b0) {
 ConstantBuffer<PassConstants>						cb_Pass	: register(b1);
 ConstantBuffer<RaytracedReflectionConstantBuffer>	cb_Rr	: register(b2);
 
-RaytracingAccelerationStructure				gi_BVH							: register(t0);
-Texture2D<HDR_FORMAT>						gi_BackBuffer					: register(t1);
-Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth					: register(t2);
-Texture2D									gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t3);
+RaytracingAccelerationStructure		gi_BVH							: register(t0);
+Texture2D<HDR_FORMAT>				gi_BackBuffer					: register(t1);
+Texture2D<GBuffer::NormalMapFormat>	gi_Normal						: register(t2);
+Texture2D<GBuffer::DepthMapFormat>	gi_Depth						: register(t3);
+Texture2D							gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t4);
 
 RWTexture2D<float4>							go_Reflection	: register(u0);
 
@@ -42,9 +44,8 @@ void RadianceRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 	float2 texc = (launchIndex + 0.5) / cb_Rr.TextureDim;
 
-	float3 normal;
-	float depth;
-	DecodeNormalDepth(gi_NormalDepth[launchIndex], normal, depth);
+	float3 normal = gi_Normal[launchIndex].xyz;
+	float depth = gi_Depth[launchIndex];
 	
 	if (depth == GBuffer::InvalidNormDepthValue) {
 		go_Reflection[launchIndex] = 0;
@@ -81,40 +82,25 @@ void RadianceRayGen() {
 
 [shader("closesthit")]
 void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
-	//
-	// Integrate irradiances
-	//
 	uint startIndex = PrimitiveIndex() * 3;
 	const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
-	
+
 	Vertex vertices[3] = {
 		lsb_Vertices[indices[0]],
 		lsb_Vertices[indices[1]],
 		lsb_Vertices[indices[2]] };
-	
+
 	float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
 	float3 normal = HitAttribute(normals, attr);
 
 	float2 texCoords[3] = { vertices[0].TexCoord, vertices[1].TexCoord, vertices[2].TexCoord };
 	float2 texc = HitAttribute(texCoords, attr);
 
-	Texture2D tex2D = gi_TexMaps[lcb_Mat.DiffuseSrvIndex];
-
-	uint2 texSize;
-	tex2D.GetDimensions(texSize.x, texSize.y);
-
-	uint2 texIdx = texSize * texc + 0.5;
-
-	float4 samp = tex2D.Load(uint3(texIdx, 0));
-	
-	//payload.Irrad = samp;
-	payload.Irrad = float4(normal, 1);
+	float3 hitPosition = HitWorldPosition();
 
 	//
 	// Trace shadow rays
 	//
-	float3 hitPosition = HitWorldPosition();
-
 	RayDesc ray;
 	ray.Origin = hitPosition + 0.001 * normal;
 	ray.Direction = -cb_Pass.Lights[0].Direction;
@@ -131,17 +117,40 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 		ray,
 		payload
 	);
+
+	float3 shadowFactor = payload.IsHit ? 0 : 1;
+
+	//
+	// Integrate irradiances
+	//
+	Texture2D tex2D = gi_TexMaps[lcb_Mat.DiffuseSrvIndex];
+
+	uint2 texSize;
+	tex2D.GetDimensions(texSize.x, texSize.y);
+
+	uint2 texIdx = texSize * texc + 0.5;
+	float4 samp = tex2D.Load(uint3(texIdx, 0));	
+
+	float shiness = 1 - lcb_Mat.Roughness;
+
+	Material mat = { lcb_Mat.Albedo, (float3)0.1, shiness, lcb_Mat.Metalic };
+
+	float3 origin = WorldRayOrigin();
+	float3 toEye = normalize(origin - hitPosition);
+
+	float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normal, toEye, shadowFactor), shadowFactor);
+
+	payload.Irrad = float4(radiance, 1);
 }
 
 [shader("miss")]
 void RadianceMiss(inout RayPayload payload) {
-	payload.Irrad = float4(1, 0, 1, 1);
+	payload.Irrad = 0;
 }	
 
 [shader("closesthit")]
 void ShadowClosestHit(inout RayPayload payload, Attributes attr) {
 	payload.IsHit = true;
-	payload.Irrad = 0;
 }
 
 [shader("miss")]

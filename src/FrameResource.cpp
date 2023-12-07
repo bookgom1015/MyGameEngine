@@ -9,7 +9,7 @@ FrameResource::FrameResource(ID3D12Device* pDevice, UINT passCount, UINT objectC
 	Fence = 0;
 }
 
-bool FrameResource::Initialize() {
+BOOL FrameResource::Initialize() {
 	CheckHRESULT(Device->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
 		IID_PPV_ARGS(CmdListAlloc.GetAddressOf())

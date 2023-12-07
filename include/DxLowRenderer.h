@@ -26,29 +26,29 @@ protected:
 	HRESULT GetDeviceRemovedReason() const;
 
 protected:
-	bool LowInitialize(HWND hwnd, UINT width, UINT height);
+	BOOL LowInitialize(HWND hwnd, UINT width, UINT height);
 	void LowCleanUp();
 	
-	bool LowOnResize(UINT width, UINT height);
+	BOOL LowOnResize(UINT width, UINT height);
 
-	virtual bool CreateRtvAndDsvDescriptorHeaps();
+	virtual BOOL CreateRtvAndDsvDescriptorHeaps();
 	UINT64 IncreaseFence();
 
-	bool FlushCommandQueue();
+	BOOL FlushCommandQueue();
 
 private:
-	bool InitDirect3D(UINT width, UINT height);
+	BOOL InitDirect3D(UINT width, UINT height);
 
 	void SortAdapters(Adapters& adapters);
 
-	bool CreateDebugObjects();
-	bool CreateCommandObjects();
-	bool CreateSwapChain(UINT width, UINT height);
+	BOOL CreateDebugObjects();
+	BOOL CreateCommandObjects();
+	BOOL CreateSwapChain(UINT width, UINT height);
 
 	void BuildDescriptors();
 
 protected:
-	static const int SwapChainBufferCount = 2;
+	static const INT SwapChainBufferCount = 2;
 
 	static const D3D_DRIVER_TYPE D3DDriverType = D3D_DRIVER_TYPE_HARDWARE;
 
@@ -82,7 +82,7 @@ protected:
 	std::unique_ptr<DepthStencilBuffer::DepthStencilBufferClass> mDepthStencilBuffer;
 
 private:
-	bool bIsCleanedUp;
+	BOOL bIsCleanedUp;
 
 	BOOL bAllowTearing;
 

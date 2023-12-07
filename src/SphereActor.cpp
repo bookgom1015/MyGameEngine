@@ -14,18 +14,18 @@ SphereActor::SphereActor(const std::string& name, const Transform& trans) : Acto
 
 SphereActor::~SphereActor() {};
 
-bool SphereActor::OnInitialzing() {
+BOOL SphereActor::OnInitialzing() {
 	CheckReturn(mMeshComp->LoadMesh("sphere.obj"));
 
 	return true;
 }
 
-bool SphereActor::ProcessActorInput(const InputState& input) {
+BOOL SphereActor::ProcessActorInput(const InputState& input) {
 
 	return true;
 }
 
-bool SphereActor::UpdateActor(float delta) {
+BOOL SphereActor::UpdateActor(FLOAT delta) {
 
 	return true;
 }

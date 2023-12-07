@@ -9,7 +9,7 @@ const std::vector<D3D12_INPUT_ELEMENT_DESC> Vertex::mInputLayout = {
 
 const D3D12_INPUT_LAYOUT_DESC Vertex::mInputLayoutDesc = { mInputLayout.data(), static_cast<UINT>(mInputLayout.size()) };
 
-bool Vertex::operator==(const Vertex& other) const {
+BOOL Vertex::operator==(const Vertex& other) const {
 	return MathHelper::IsEqual(Position, other.Position) && 
 		MathHelper::IsEqual(Normal, other.Normal) &&
 		MathHelper::IsEqual(TexCoord, other.TexCoord);

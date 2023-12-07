@@ -22,7 +22,7 @@ namespace Ssao {
 
 	const UINT NumRenderTargets = 2;
 
-	const float AOCoefficientMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	const FLOAT AOCoefficientMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	class SsaoClass {
 	public:
@@ -44,11 +44,11 @@ namespace Ssao {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RandomVectorMapSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
+		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
 			UINT width, UINT height, UINT divider);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
@@ -62,14 +62,14 @@ namespace Ssao {
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 		void BuildOffsetVectors();
-		bool BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
+		BOOL BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
 		
 	private:
 		ID3D12Device* md3dDevice;

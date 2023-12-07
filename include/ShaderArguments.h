@@ -23,8 +23,8 @@
 #endif
 
 namespace GBuffer {
-	static const float InvalidDepthValue = 1.0f;
-	static const float InvalidNormDepthValue = 0.0f;
+	static const FLOAT InvalidDepthValue = 1.0f;
+	static const FLOAT InvalidNormDepthValue = 0.0f;
 
 #ifdef HLSL
 	typedef float4	AlbedoMapFormat;
@@ -68,7 +68,7 @@ namespace DepthStencilBuffer {
 	const DXGI_FORMAT BufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 #endif
 
-	static const float InvalidDepthValue = 1.0f;
+	static const FLOAT InvalidDepthValue = 1.0f;
 }
 
 namespace ToneMapping {
@@ -144,7 +144,7 @@ namespace RaytracedReflection{
 }
 
 namespace DebugMap {
-	static const int MapSize = 5;
+	static const INT MapSize = 5;
 
 	namespace SampleMask {
 		enum Type {
@@ -165,7 +165,7 @@ namespace DxrGeometryBuffer {
 }
 
 namespace BlurFilterCS {
-	static const int MaxBlurRadius = 5;
+	static const INT MaxBlurRadius = 5;
 
 	namespace ThreadGroup {
 		enum {

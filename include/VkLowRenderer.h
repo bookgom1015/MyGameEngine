@@ -8,25 +8,25 @@ public:
 	virtual ~VkLowRenderer();
 
 public:
-	bool LowInitialize(GLFWwindow* glfwWnd, UINT width, UINT height);
+	BOOL LowInitialize(GLFWwindow* glfwWnd, UINT width, UINT height);
 	void LowCleanUp();
 
 protected:
-	virtual bool RecreateSwapChain();
+	virtual BOOL RecreateSwapChain();
 	virtual void CleanUpSwapChain();
 
 	__forceinline constexpr VkSampleCountFlagBits GetMSAASamples() const;
 
 private:
-	bool CreateInstance();
-	bool CreateSurface();
-	bool SelectPhysicalDevice();
-	bool CreateLogicalDevice();
-	bool CreateSwapChain();
-	bool CreateImageViews();
+	BOOL CreateInstance();
+	BOOL CreateSurface();
+	BOOL SelectPhysicalDevice();
+	BOOL CreateLogicalDevice();
+	BOOL CreateSwapChain();
+	BOOL CreateImageViews();
 
 protected:
-	static const std::uint32_t SwapChainImageCount = 2;
+	static const UINT SwapChainImageCount = 2;
 
 	VkInstance mInstance;
 
@@ -46,7 +46,7 @@ protected:
 	std::array<VkImageView, SwapChainImageCount> mSwapChainImageViews;
 
 private:
-	bool bIsCleanedUp;
+	BOOL bIsCleanedUp;
 
 	GLFWwindow* mGlfwWnd;
 

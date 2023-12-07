@@ -12,11 +12,13 @@ struct ObjectConstants {
 
 struct Light {
 	DirectX::XMFLOAT3 Strength;
-	float FalloffStart;				// point/spot light only
+	FLOAT FalloffStart;				// point/spot light only
+
 	DirectX::XMFLOAT3 Direction;	// directional/spot light only
-	float FalloffEnd;				// point/spot light only
+	FLOAT FalloffEnd;				// point/spot light only
+
 	DirectX::XMFLOAT3 Position;		// point/spot light only
-	float SpotPower;				// spot light only
+	FLOAT SpotPower;				// spot light only
 };
 
 struct PassConstants {
@@ -29,26 +31,33 @@ struct PassConstants {
 	DirectX::XMFLOAT4X4 PrevViewProj;
 	DirectX::XMFLOAT4X4 ViewProjTex;
 	DirectX::XMFLOAT4X4 ShadowTransform;
+
 	DirectX::XMFLOAT3	EyePosW;
-	float				PassConstantsPad0;
+	FLOAT				PassConstantsPad0;
+
 	DirectX::XMFLOAT2	JitteredOffset;
-	float				PassConstantsPad1;
-	float				PassConstantsPad2;
+	FLOAT				PassConstantsPad1;
+	FLOAT				PassConstantsPad2;
+
 	DirectX::XMFLOAT4	AmbientLight;
+
 	Light				Lights[MaxLights];
 };
 
 struct MaterialConstants {
 	DirectX::XMFLOAT4	Albedo;
-	float				Roughness;
-	float				Metalic;
-	float				Specular;
-	float				ConstantPad0;
+
+	FLOAT				Roughness;
+	FLOAT				Metalic;
+	FLOAT				Specular;
+	FLOAT				ConstantPad0;
+
 	DirectX::XMFLOAT4X4	MatTransform;
-	int					DiffuseSrvIndex;
-	int					NormalSrvIndex;
-	int					AlphaSrvIndex;
-	float				MatConstPad0;
+
+	INT					DiffuseSrvIndex;
+	INT					NormalSrvIndex;
+	INT					AlphaSrvIndex;
+	FLOAT				MatConstPad0;
 };
 
 struct SsaoConstants {
@@ -58,32 +67,33 @@ struct SsaoConstants {
 	DirectX::XMFLOAT4X4	ProjTex;
 	DirectX::XMFLOAT4	OffsetVectors[14];
 
-	float				OcclusionRadius;
-	float				OcclusionFadeStart;
-	float				OcclusionFadeEnd;
-	float				SurfaceEpsilon;
+	FLOAT				OcclusionRadius;
+	FLOAT				OcclusionFadeStart;
+	FLOAT				OcclusionFadeEnd;
+	FLOAT				SurfaceEpsilon;
 
 	UINT				SampleCount;
-	float				ConstantPads[3];
+	FLOAT				ConstantPads[3];
 };
 
 struct BlurConstants {
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4	BlurWeights[3];
-	float				BlurRadius;
-	float				ConstantPad0;
-	float				ConstantPad1;
-	float				ConstantPad2;
+
+	FLOAT				BlurRadius;
+	FLOAT				ConstantPad0;
+	FLOAT				ConstantPad1;
+	FLOAT				ConstantPad2;
 
 };
 
 struct DofConstants {
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4X4	InvProj;
-	float				FocusRange;
-	float				FocusingSpeed;
-	float				DeltaTime;
-	float				ConstantPad0;
+	FLOAT				FocusRange;
+	FLOAT				FocusingSpeed;
+	FLOAT				DeltaTime;
+	FLOAT				ConstantPad0;
 };
 
 struct SsrConstants {
@@ -91,16 +101,19 @@ struct SsrConstants {
 	DirectX::XMFLOAT4X4	InvView;
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4X4	InvProj;
+
 	DirectX::XMFLOAT3	EyePosW;
-	float				MaxDistance;
-	float				RayLength;
-	float				NoiseIntensity;
-	int					NumSteps;
-	int					NumBackSteps;
-	float				DepthThreshold;
-	float				ConstantPad0;
-	float				ConstantPad1;
-	float				ConstantPad2;
+	FLOAT				MaxDistance;
+
+	FLOAT				RayLength;
+	FLOAT				NoiseIntensity;
+	INT					NumSteps;
+	INT					NumBackSteps;
+
+	FLOAT				DepthThreshold;
+	FLOAT				ConstantPad0;
+	FLOAT				ConstantPad1;
+	FLOAT				ConstantPad2;
 };
 
 struct ConvertEquirectangularToCubeConstantBuffer {
@@ -114,21 +127,21 @@ struct RtaoConstants {
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4X4	InvProj;
 
-	float OcclusionRadius;
-	float OcclusionFadeStart;
-	float OcclusionFadeEnd;
-	float SurfaceEpsilon;
+	FLOAT OcclusionRadius;
+	FLOAT OcclusionFadeStart;
+	FLOAT OcclusionFadeEnd;
+	FLOAT SurfaceEpsilon;
 
 	UINT FrameCount;
 	UINT SampleCount;
-	float ConstantPad[2];
+	FLOAT ConstantPad[2];
 };
 
 struct CrossBilateralFilterConstants {
-	float	DepthSigma;
+	FLOAT	DepthSigma;
 	UINT	DepthNumMantissaBits;
-	float	ConstantPad0;
-	float	ConstantPad1;
+	FLOAT	ConstantPad0;
+	FLOAT	ConstantPad1;
 };
 
 struct CalcLocalMeanVarianceConstants {
@@ -139,48 +152,48 @@ struct CalcLocalMeanVarianceConstants {
 	BOOL	CheckerboardSamplingEnabled;
 	BOOL	EvenPixelActivated;
 	UINT	PixelStepY;
-	float	ConstantPad0;
+	FLOAT	ConstantPad0;
 };
 
 struct TemporalSupersamplingBlendWithCurrentFrameConstants {
-	float StdDevGamma;
+	FLOAT StdDevGamma;
 	BOOL ClampCachedValues;
-	float ClampingMinStdDevTolerance;
-	float ConstnatPad0;
+	FLOAT ClampingMinStdDevTolerance;
+	FLOAT ConstnatPad0;
 
-	float ClampDifferenceToTsppScale;
+	FLOAT ClampDifferenceToTsppScale;
 	BOOL ForceUseMinSmoothingFactor;
-	float MinSmoothingFactor;
+	FLOAT MinSmoothingFactor;
 	UINT MinTsppToUseTemporalVariance;
 
 	UINT BlurStrengthMaxTspp;
-	float BlurDecayStrength;
+	FLOAT BlurDecayStrength;
 	BOOL CheckerboardEnabled;
 	BOOL CheckerboardEvenPixelActivated;
 };
 
 struct AtrousWaveletTransformFilterConstantBuffer {
 	DirectX::XMUINT2 TextureDim;
-	float DepthWeightCutoff;
-	bool UsingBilateralDownsamplingBuffers;
+	FLOAT DepthWeightCutoff;
+	BOOL UsingBilateralDownsamplingBuffers;
 
 	BOOL UseAdaptiveKernelSize;
-	float KernelRadiusLerfCoef;
+	FLOAT KernelRadiusLerfCoef;
 	UINT MinKernelWidth;
 	UINT MaxKernelWidth;
 
-	float RayHitDistanceToKernelWidthScale;
-	float RayHitDistanceToKernelSizeScaleExponent;
+	FLOAT RayHitDistanceToKernelWidthScale;
+	FLOAT RayHitDistanceToKernelSizeScaleExponent;
 	BOOL PerspectiveCorrectDepthInterpolation;
-	float MinVarianceToDenoise;
+	FLOAT MinVarianceToDenoise;
 
-	float ValueSigma;
-	float DepthSigma;
-	float NormalSigma;
-	float FovY;
+	FLOAT ValueSigma;
+	FLOAT DepthSigma;
+	FLOAT NormalSigma;
+	FLOAT FovY;
 
 	UINT DepthNumMantissaBits;
-	float ConstantPads[3];
+	FLOAT ConstantPads[3];
 };
 
 struct RaytracedReflectionConstantBuffer {
@@ -191,20 +204,20 @@ struct RaytracedReflectionConstantBuffer {
 	DirectX::XMFLOAT4X4	ViewProj;
 
 	DirectX::XMFLOAT3 EyePosW;
-	float ReflectionRadius;
+	FLOAT ReflectionRadius;
 
 	DirectX::XMUINT2 TextureDim;
-	float ConstantPads[2];
+	FLOAT ConstantPads[2];
 };
 
 struct DebugMapSampleDesc {
 	DirectX::XMFLOAT4 MinColor;
 	DirectX::XMFLOAT4 MaxColor;
 
-	float Denominator;
-	float ConstantPad0;
-	float ConstantPad1;
-	float ConstantPad2;
+	FLOAT Denominator;
+	FLOAT ConstantPad0;
+	FLOAT ConstantPad1;
+	FLOAT ConstantPad2;
 };
 
 struct DebugMapConstantBuffer {

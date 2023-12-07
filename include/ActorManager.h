@@ -15,15 +15,15 @@ public:
 	virtual ~ActorManager();
 
 public:
-	bool ProcessInput(const InputState& input);
-	bool Update(float delta);
+	BOOL ProcessInput(const InputState& input);
+	BOOL Update(FLOAT delta);
 
 	void AddActor(Actor* actor);
 	void RemoveActor(Actor* actor);
 	Actor* GetActor(const std::string& name);
 
 private:
-	bool bUpdating;
+	BOOL bUpdating;
 
 	std::vector<std::unique_ptr<Actor>> mActors;
 	std::vector<std::unique_ptr<Actor>> mPendingActors;

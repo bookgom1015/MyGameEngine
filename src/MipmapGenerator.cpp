@@ -13,14 +13,14 @@ namespace {
 	const std::string JustCopyPS = "JustCopyPS";
 }
 
-bool MipmapGeneratorClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
+BOOL MipmapGeneratorClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	return true;
 }
 
-bool MipmapGeneratorClass::CompileShaders(const std::wstring& filePath) {
+BOOL MipmapGeneratorClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"GenerateMipmap.hlsl";
 
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
@@ -38,7 +38,7 @@ bool MipmapGeneratorClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool MipmapGeneratorClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL MipmapGeneratorClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[MipmapGenerator::RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -59,7 +59,7 @@ bool MipmapGeneratorClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool MipmapGeneratorClass::BuildPso() {
+BOOL MipmapGeneratorClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.NumRenderTargets = 1;
@@ -84,7 +84,7 @@ bool MipmapGeneratorClass::BuildPso() {
 	return true;
 }
 
-bool MipmapGeneratorClass::GenerateMipmap(
+BOOL MipmapGeneratorClass::GenerateMipmap(
 		ID3D12GraphicsCommandList* const cmdList,
 		GpuResource* output,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
@@ -96,8 +96,8 @@ bool MipmapGeneratorClass::GenerateMipmap(
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	{
-		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-		D3D12_RECT scissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+		D3D12_RECT scissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 		cmdList->RSSetViewports(1, &viewport);
 		cmdList->RSSetScissorRects(1, &scissorRect);
@@ -111,10 +111,10 @@ bool MipmapGeneratorClass::GenerateMipmap(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input, si_input);
 
 	{
-		float invW = static_cast<float>(1 / width);
-		float invH = static_cast<float>(1 / height);
+		FLOAT invW = static_cast<FLOAT>(1 / width);
+		FLOAT invH = static_cast<FLOAT>(1 / height);
 
-		float values[RootConstantsLayout::Count] = { invW, invH, 0.0f, 0.0f };
+		FLOAT values[RootConstantsLayout::Count] = { invW, invH, 0.0f, 0.0f };
 		cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 	}
 
@@ -130,18 +130,18 @@ bool MipmapGeneratorClass::GenerateMipmap(
 		UINT mw = static_cast<UINT>(width / std::pow(2, mipLevel));
 		UINT mh = static_cast<UINT>(height / std::pow(2, mipLevel));
 
-		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(mw), static_cast<float>(mh), 0.0f, 1.0f };
-		D3D12_RECT scissorRect = { 0, 0, static_cast<int>(mw), static_cast<int>(mh) };
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<FLOAT>(mw), static_cast<FLOAT>(mh), 0.0f, 1.0f };
+		D3D12_RECT scissorRect = { 0, 0, static_cast<INT >(mw), static_cast<INT>(mh) };
 
 		cmdList->RSSetViewports(1, &viewport);
 		cmdList->RSSetScissorRects(1, &scissorRect);
 
-		float invW = static_cast<float>(1 / width);
-		float invH = static_cast<float>(1 / height);
-		float invMW = static_cast<float>(1 / mw);
-		float invMH = static_cast<float>(1 / mh);	
+		FLOAT invW = static_cast<FLOAT>(1 / width);
+		FLOAT invH = static_cast<FLOAT>(1 / height);
+		FLOAT invMW = static_cast<FLOAT>(1 / mw);
+		FLOAT invMH = static_cast<FLOAT>(1 / mh);	
 
-		float values[RootConstantsLayout::Count] = { invW, invH, invMW, invMH };
+		FLOAT values[RootConstantsLayout::Count] = { invW, invH, invMW, invMH };
 		cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 	
 		cmdList->IASetVertexBuffers(0, 0, nullptr);

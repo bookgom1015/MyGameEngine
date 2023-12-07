@@ -14,10 +14,10 @@ public:
 	virtual ~SphereActor();
 
 protected:
-	virtual bool OnInitialzing() override;
+	virtual BOOL OnInitialzing() override;
 
-	virtual bool ProcessActorInput(const InputState& input) override;
-	virtual bool UpdateActor(float delta) override;
+	virtual BOOL ProcessActorInput(const InputState& input) override;
+	virtual BOOL UpdateActor(FLOAT delta) override;
 
 private:
 	MeshComponent* mMeshComp;

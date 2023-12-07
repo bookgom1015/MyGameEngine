@@ -20,7 +20,7 @@ BloomClass::BloomClass() {
 	mResultMap = std::make_unique<GpuResource>();
 }
 
-bool BloomClass::Initialize(
+BOOL BloomClass::Initialize(
 		ID3D12Device* device, ShaderManager*const manager, 
 		UINT width, UINT height, UINT divider) {
 	md3dDevice = device;
@@ -34,18 +34,18 @@ bool BloomClass::Initialize(
 
 	mDivider = divider;
 
-	mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
-	mReducedScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
+	mReducedViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mBloomMapWidth), static_cast<FLOAT>(mBloomMapHeight), 0.0f, 1.0f };
+	mReducedScissorRect = { 0, 0, static_cast<INT>(mBloomMapWidth), static_cast<INT>(mBloomMapHeight) };
 
-	mOriginalViewport = { 0.0f, 0.0f, static_cast<float>(mResultMapWidth), static_cast<float>(mResultMapHeight), 0.0f, 1.0f };
-	mOriginalScissorRect = { 0, 0, static_cast<int>(mResultMapWidth), static_cast<int>(mResultMapHeight) };
+	mOriginalViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mResultMapWidth), static_cast<FLOAT>(mResultMapHeight), 0.0f, 1.0f };
+	mOriginalScissorRect = { 0, 0, static_cast<INT>(mResultMapWidth), static_cast<INT>(mResultMapHeight) };
 
 	CheckReturn(BuildResources());
 
 	return true;
 }
 
-bool BloomClass::CompileShaders(const std::wstring& filePath) {
+BOOL BloomClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring actualPath = filePath + L"Bloom.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
@@ -64,7 +64,7 @@ bool BloomClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[ExtractHighlights::RootSignatureLayout::Count];
 
@@ -106,7 +106,7 @@ bool BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool BloomClass::BuildPso() {
+BOOL BloomClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC extHlightsPsoDesc = quadPsoDesc;
@@ -137,7 +137,7 @@ bool BloomClass::BuildPso() {
 void BloomClass::ExtractHighlights(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-		float threshold) {
+		FLOAT threshold) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_Extract].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[PipelineState::E_Extract].Get());
 
@@ -153,7 +153,7 @@ void BloomClass::ExtractHighlights(
 
 	cmdList->SetGraphicsRootDescriptorTable(ExtractHighlights::RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
 
-	float values[ExtractHighlights::RootConstatLayout::Count] = { threshold };
+	FLOAT values[ExtractHighlights::RootConstatLayout::Count] = { threshold };
 	cmdList->SetGraphicsRoot32BitConstants(ExtractHighlights::RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -207,7 +207,7 @@ void BloomClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool BloomClass::OnResize(UINT width, UINT height) {
+BOOL BloomClass::OnResize(UINT width, UINT height) {
 	if ((mResultMapWidth != width) || (mResultMapHeight != height)) {
 		mBloomMapWidth = width / mDivider;
 		mBloomMapHeight = height / mDivider;
@@ -215,11 +215,11 @@ bool BloomClass::OnResize(UINT width, UINT height) {
 		mResultMapWidth = width;
 		mResultMapHeight = height;
 
-		mReducedViewport = { 0.0f, 0.0f, static_cast<float>(mBloomMapWidth), static_cast<float>(mBloomMapHeight), 0.0f, 1.0f };
-		mReducedScissorRect = { 0, 0, static_cast<int>(mBloomMapWidth), static_cast<int>(mBloomMapHeight) };
+		mReducedViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mBloomMapWidth), static_cast<FLOAT>(mBloomMapHeight), 0.0f, 1.0f };
+		mReducedScissorRect = { 0, 0, static_cast<INT>(mBloomMapWidth), static_cast<INT>(mBloomMapHeight) };
 
-		mOriginalViewport = { 0.0f, 0.0f, static_cast<float>(mResultMapWidth), static_cast<float>(mResultMapHeight), 0.0f, 1.0f };
-		mOriginalScissorRect = { 0, 0, static_cast<int>(mResultMapWidth), static_cast<int>(mResultMapHeight) };
+		mOriginalViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mResultMapWidth), static_cast<FLOAT>(mResultMapHeight), 0.0f, 1.0f };
+		mOriginalScissorRect = { 0, 0, static_cast<INT>(mResultMapWidth), static_cast<INT>(mResultMapHeight) };
 
 		CheckReturn(BuildResources());
 		BuildDescriptors();
@@ -243,7 +243,7 @@ void BloomClass::BuildDescriptors() {
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		auto bloomMap = mBloomMaps[i]->Resource();
 		md3dDevice->CreateShaderResourceView(bloomMap, &srvDesc, mhBloomMapCpuSrvs[i]);
 		md3dDevice->CreateRenderTargetView(bloomMap, &rtvDesc, mhBloomMapCpuRtvs[i]);
@@ -252,7 +252,7 @@ void BloomClass::BuildDescriptors() {
 	md3dDevice->CreateRenderTargetView(mResultMap->Resource(), &rtvDesc, mhResultMapCpuRtv);
 }
 
-bool BloomClass::BuildResources() {
+BOOL BloomClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -268,7 +268,7 @@ bool BloomClass::BuildResources() {
 	
 	rscDesc.Width = mBloomMapWidth;
 	rscDesc.Height = mBloomMapHeight;
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		std::wstringstream wsstream;
 		wsstream << "BloomMap_" << i;
 		CheckReturn(mBloomMaps[i]->Initialize(

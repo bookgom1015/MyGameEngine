@@ -74,7 +74,7 @@
 #define CheckReturn(__statement)															\
 	{																						\
 		try {																				\
-			bool __result = __statement;													\
+			BOOL __result = __statement;													\
 			if (!__result) {																\
 				std::wstringstream __wsstream_CR;											\
 				__wsstream_CR << __FILE__ << L"; line: " << __LINE__ << L"; ";				\
@@ -115,7 +115,7 @@
 namespace Logger {
 	class LogHelper {
 	public:
-		static bool StaticInit();
+		static BOOL StaticInit();
 
 	public:
 		static HANDLE ghLogFile;
@@ -163,7 +163,7 @@ namespace Logger {
 	}
 
 	inline void AppendTextToWnd(HWND hWnd, LPCWSTR newText) {
-		int finalLength = GetWindowTextLength(hWnd) + lstrlen(newText) + 1;
+		INT finalLength = GetWindowTextLength(hWnd) + lstrlen(newText) + 1;
 		wchar_t* buf = reinterpret_cast<wchar_t*>(std::malloc(finalLength * sizeof(wchar_t)));
 
 		GetWindowText(hWnd, buf, finalLength);

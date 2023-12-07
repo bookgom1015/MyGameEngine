@@ -19,7 +19,7 @@ VkRenderer::VkRenderer() {
 	mClientHeight = 0;
 
 	mSceneBounds.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	float widthSquared = 32.0f * 32.0f;
+	FLOAT widthSquared = 32.0f * 32.0f;
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
 	mLightDir = { 0.57735f, -0.57735f, 0.57735f };
 }
@@ -28,7 +28,7 @@ VkRenderer::~VkRenderer() {
 	if (!bIsCleanedUp) CleanUp();
 }
 
-bool VkRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
+BOOL VkRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
 	mClientWidth = width;
 	mClientHeight = height;
 
@@ -86,7 +86,7 @@ void VkRenderer::CleanUp() {
 		vkDestroySemaphore(mDevice, mImageAvailableSemaphores[i], nullptr);
 	}
 
-	vkFreeCommandBuffers(mDevice, mCommandPool, static_cast<std::uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+	vkFreeCommandBuffers(mDevice, mCommandPool, static_cast<UINT>(mCommandBuffers.size()), mCommandBuffers.data());
 
 	for (size_t i = 0; i < SwapChainImageCount; ++i) {
 		vkDestroyBuffer(mDevice, mShadowPassBuffers[i], nullptr);
@@ -125,7 +125,7 @@ void VkRenderer::CleanUp() {
 	bIsCleanedUp = true;
 }
 
-bool VkRenderer::Update(float delta) {
+BOOL VkRenderer::Update(FLOAT delta) {
 	vkWaitForFences(mDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
 	VkResult result = vkAcquireNextImageKHR(
@@ -155,7 +155,7 @@ bool VkRenderer::Update(float delta) {
 	return true;
 }
 
-bool VkRenderer::Draw() {
+BOOL VkRenderer::Draw() {
 	CheckReturn(DrawShadowMap());
 	CheckReturn(DrawBackBuffer());
 
@@ -164,7 +164,7 @@ bool VkRenderer::Draw() {
 	return true;
 }
 
-bool VkRenderer::OnResize(UINT width, UINT height) {
+BOOL VkRenderer::OnResize(UINT width, UINT height) {
 	mClientWidth = width;
 	mClientHeight = height;
 
@@ -199,7 +199,7 @@ void VkRenderer::UpdateModel(void* model, const Transform& trans) {
 	ptr->NumFramesDirty = SwapChainImageCount;
 }
 
-void VkRenderer::SetModelVisibility(void* model, bool visible) {
+void VkRenderer::SetModelVisibility(void* model, BOOL visible) {
 	RenderItem* ritem = reinterpret_cast<RenderItem*>(model);
 	if (ritem == nullptr) return;
 
@@ -212,21 +212,21 @@ void VkRenderer::SetModelVisibility(void* model, bool visible) {
 	iter->get()->Visible = visible;
 }
 
-void VkRenderer::SetModelPickable(void* model, bool pickable) {}
+void VkRenderer::SetModelPickable(void* model, BOOL pickable) {}
 
-bool VkRenderer::SetCubeMap(const std::string& file) {
+BOOL VkRenderer::SetCubeMap(const std::string& file) {
 	return true;
 }
 
-bool VkRenderer::SetEquirectangularMap(const std::string& file) {
+BOOL VkRenderer::SetEquirectangularMap(const std::string& file) {
 	return true;
 }
 
-void VkRenderer::Pick(float x, float y) {
+void VkRenderer::Pick(FLOAT x, FLOAT y) {
 
 }
 
-bool VkRenderer::CreateRenderPass() {
+BOOL VkRenderer::CreateRenderPass() {
 	auto depthFormat = VulkanHelper::FindDepthFormat(mPhysicalDevice);
 	// Default
 	{
@@ -276,7 +276,7 @@ bool VkRenderer::CreateRenderPass() {
 
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = static_cast<std::uint32_t>(attachments.size());
+		renderPassInfo.attachmentCount = static_cast<UINT>(attachments.size());
 		renderPassInfo.pAttachments = attachments.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
@@ -320,7 +320,7 @@ bool VkRenderer::CreateRenderPass() {
 	
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = static_cast<std::uint32_t>(attachments.size());
+		renderPassInfo.attachmentCount = static_cast<UINT>(attachments.size());
 		renderPassInfo.pAttachments = attachments.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
@@ -335,7 +335,7 @@ bool VkRenderer::CreateRenderPass() {
 	return true;
 }
 
-bool VkRenderer::CreateCommandPool() {
+BOOL VkRenderer::CreateCommandPool() {
 	QueueFamilyIndices indices = QueueFamilyIndices::FindQueueFamilies(mPhysicalDevice, mSurface);
 
 	VkCommandPoolCreateInfo poolInfo = {};
@@ -350,7 +350,7 @@ bool VkRenderer::CreateCommandPool() {
 	return true;
 }
 
-bool VkRenderer::CreateColorResources() {
+BOOL VkRenderer::CreateColorResources() {
 	VkFormat colorFormat = mSwapChainImageFormat;
 
 	// Default
@@ -382,7 +382,7 @@ bool VkRenderer::CreateColorResources() {
 	return true;
 }
 
-bool VkRenderer::CreateDepthResources() {
+BOOL VkRenderer::CreateDepthResources() {
 	VkFormat depthFormat = VulkanHelper::FindDepthFormat(mPhysicalDevice);
 
 	// Default
@@ -482,7 +482,7 @@ bool VkRenderer::CreateDepthResources() {
 	return true;
 }
 
-bool VkRenderer::CreateFramebuffers() {
+BOOL VkRenderer::CreateFramebuffers() {
 	// Default
 	{
 		for (size_t i = 0, end = mSwapChainImageViews.size(); i < end; ++i) {
@@ -494,7 +494,7 @@ bool VkRenderer::CreateFramebuffers() {
 			VkFramebufferCreateInfo framebufferInfo = {};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = mRenderPass;
-			framebufferInfo.attachmentCount = static_cast<std::uint32_t>(attachments.size());
+			framebufferInfo.attachmentCount = static_cast<UINT>(attachments.size());
 			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = mSwapChainExtent.width;
 			framebufferInfo.height = mSwapChainExtent.height;
@@ -514,7 +514,7 @@ bool VkRenderer::CreateFramebuffers() {
 	//	VkFramebufferCreateInfo framebufferInfo = {};
 	//	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	//	framebufferInfo.renderPass = mShadowRenderPass;
-	//	framebufferInfo.attachmentCount = static_cast<std::uint32_t>(attachments.size());
+	//	framebufferInfo.attachmentCount = static_cast<UINT>(attachments.size());
 	//	framebufferInfo.pAttachments = attachments.data();
 	//	framebufferInfo.width = ShadowMapSize;
 	//	framebufferInfo.height = ShadowMapSize;
@@ -528,7 +528,7 @@ bool VkRenderer::CreateFramebuffers() {
 	return true;
 }
 
-bool VkRenderer::CreateDescriptorSetLayout() {
+BOOL VkRenderer::CreateDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
 	uboLayoutBinding.binding = EDescriptorSetLayout::EDSL_Object;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -563,7 +563,7 @@ bool VkRenderer::CreateDescriptorSetLayout() {
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<std::uint32_t>(bindings.size());
+	layoutInfo.bindingCount = static_cast<UINT>(bindings.size());
 	layoutInfo.pBindings = bindings.data();
 
 	if (vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS) {
@@ -573,7 +573,7 @@ bool VkRenderer::CreateDescriptorSetLayout() {
 	return true;
 }
 
-bool VkRenderer::CreateGraphicsPipelineLayouts() {
+BOOL VkRenderer::CreateGraphicsPipelineLayouts() {
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
@@ -588,7 +588,7 @@ bool VkRenderer::CreateGraphicsPipelineLayouts() {
 	return true;
 }
 
-bool VkRenderer::CreateGraphicsPipelines() {
+BOOL VkRenderer::CreateGraphicsPipelines() {
 	// Default pipeline
 	{
 		VkShaderModule vertShaderModule;
@@ -626,7 +626,7 @@ bool VkRenderer::CreateGraphicsPipelines() {
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptioins.size());
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UINT>(attributeDescriptioins.size());
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptioins.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -637,8 +637,8 @@ bool VkRenderer::CreateGraphicsPipelines() {
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(mSwapChainExtent.width);
-		viewport.height = static_cast<float>(mSwapChainExtent.height);
+		viewport.width = static_cast<FLOAT>(mSwapChainExtent.width);
+		viewport.height = static_cast<FLOAT>(mSwapChainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
@@ -774,7 +774,7 @@ bool VkRenderer::CreateGraphicsPipelines() {
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptioins.size());
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UINT>(attributeDescriptioins.size());
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptioins.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -782,7 +782,7 @@ bool VkRenderer::CreateGraphicsPipelines() {
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-		float viewportSize = static_cast<float>(ShadowMapSize);
+		FLOAT viewportSize = static_cast<FLOAT>(ShadowMapSize);
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -869,8 +869,8 @@ bool VkRenderer::CreateGraphicsPipelines() {
 	return true;
 }
 
-bool VkRenderer::CreateDescriptorPool() {
-	auto maxSets = static_cast<std::uint32_t>(SwapChainImageCount * 32);
+BOOL VkRenderer::CreateDescriptorPool() {
+	auto maxSets = static_cast<UINT>(SwapChainImageCount * 32);
 
 	std::array<VkDescriptorPoolSize, EDescriptorSetLayout::EDSL_Count> poolSizes = {};
 	poolSizes[EDescriptorSetLayout::EDSL_Object].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -887,7 +887,7 @@ bool VkRenderer::CreateDescriptorPool() {
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = static_cast<std::uint32_t>(poolSizes.size());
+	poolInfo.poolSizeCount = static_cast<UINT>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = maxSets;
 	poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -899,7 +899,7 @@ bool VkRenderer::CreateDescriptorPool() {
 	return true;
 }
 
-bool VkRenderer::CreatePassBuffers() {
+BOOL VkRenderer::CreatePassBuffers() {
 	VkDeviceSize bufferSize = sizeof(UniformBufferPass);
 
 	mMainPassBuffers.resize(SwapChainImageCount);
@@ -935,7 +935,7 @@ bool VkRenderer::CreatePassBuffers() {
 	return true;
 }
 
-bool VkRenderer::CreateCommandBuffers() {
+BOOL VkRenderer::CreateCommandBuffers() {
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = mCommandPool;
@@ -949,7 +949,7 @@ bool VkRenderer::CreateCommandBuffers() {
 	return true;
 }
 
-bool VkRenderer::CreateSyncObjects() {
+BOOL VkRenderer::CreateSyncObjects() {
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -969,7 +969,7 @@ bool VkRenderer::CreateSyncObjects() {
 	return true;
 }
 
-bool VkRenderer::RecreateColorResources() {
+BOOL VkRenderer::RecreateColorResources() {
 	VkFormat colorFormat = mSwapChainImageFormat;
 
 	// Default
@@ -1001,7 +1001,7 @@ bool VkRenderer::RecreateColorResources() {
 	return true;
 }
 
-bool VkRenderer::RecreateDepthResources() {
+BOOL VkRenderer::RecreateDepthResources() {
 	VkFormat depthFormat = VulkanHelper::FindDepthFormat(mPhysicalDevice);
 
 	// Default
@@ -1043,7 +1043,7 @@ bool VkRenderer::RecreateDepthResources() {
 	return true;
 }
 
-bool VkRenderer::RecreateFramebuffers() {
+BOOL VkRenderer::RecreateFramebuffers() {
 	// Default
 	{
 		for (size_t i = 0, end = mSwapChainImageViews.size(); i < end; ++i) {
@@ -1055,7 +1055,7 @@ bool VkRenderer::RecreateFramebuffers() {
 			VkFramebufferCreateInfo framebufferInfo = {};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = mRenderPass;
-			framebufferInfo.attachmentCount = static_cast<std::uint32_t>(attachments.size());
+			framebufferInfo.attachmentCount = static_cast<UINT>(attachments.size());
 			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = mSwapChainExtent.width;
 			framebufferInfo.height = mSwapChainExtent.height;
@@ -1070,7 +1070,7 @@ bool VkRenderer::RecreateFramebuffers() {
 	return true;
 }
 
-bool VkRenderer::RecreateGraphicsPipelines() {
+BOOL VkRenderer::RecreateGraphicsPipelines() {
 	// Default pipeline
 	{
 		VkShaderModule vertShaderModule;
@@ -1108,7 +1108,7 @@ bool VkRenderer::RecreateGraphicsPipelines() {
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(attributeDescriptioins.size());
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<UINT>(attributeDescriptioins.size());
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptioins.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -1119,8 +1119,8 @@ bool VkRenderer::RecreateGraphicsPipelines() {
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(mSwapChainExtent.width);
-		viewport.height = static_cast<float>(mSwapChainExtent.height);
+		viewport.width = static_cast<FLOAT>(mSwapChainExtent.width);
+		viewport.height = static_cast<FLOAT>(mSwapChainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
@@ -1223,7 +1223,7 @@ bool VkRenderer::RecreateGraphicsPipelines() {
 	return true;
 }
 
-bool VkRenderer::RecreateSwapChain() {
+BOOL VkRenderer::RecreateSwapChain() {
 	vkDeviceWaitIdle(mDevice);
 
 	CleanUpSwapChain();
@@ -1259,7 +1259,7 @@ void VkRenderer::CleanUpSwapChain() {
 	VkLowRenderer::CleanUpSwapChain();
 }
 
-bool VkRenderer::AddGeometry(const std::string& file) {
+BOOL VkRenderer::AddGeometry(const std::string& file) {
 	Mesh mesh;
 	Material mat;
 	CheckReturn(MeshImporter::LoadObj(file, mesh, mat));
@@ -1306,7 +1306,7 @@ bool VkRenderer::AddGeometry(const std::string& file) {
 	{
 		auto& indices = mesh.Indices;
 
-		meshData->IndexCount = static_cast<std::uint32_t>(indices.size());
+		meshData->IndexCount = static_cast<UINT>(indices.size());
 
 		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
@@ -1348,10 +1348,10 @@ bool VkRenderer::AddGeometry(const std::string& file) {
 	return true;
 }
 
-bool VkRenderer::AddMaterial(const std::string& file, const Material& material) {
-	int texWidth = 0;
-	int texHeight = 0;
-	int texChannels = 0;
+BOOL VkRenderer::AddMaterial(const std::string& file, const Material& material) {
+	INT texWidth = 0;
+	INT texHeight = 0;
+	INT texChannels = 0;
 
 	stbi_uc* pixels = stbi_load(material.DiffuseMapFileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	if (!pixels) ReturnFalse(L"Failed to load texture image");
@@ -1387,10 +1387,10 @@ void* VkRenderer::AddRenderItem(const std::string& file, const Transform& trans,
 	return mRitems.back().get();
 }
 
-bool VkRenderer::CreateTextureImage(int width, int height, void* data, MaterialData* mat) {
+BOOL VkRenderer::CreateTextureImage(INT width, INT height, void* data, MaterialData* mat) {
 	VkDeviceSize imageSize = width * height * 4;
 
-	mat->MipLevels = static_cast<std::uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+	mat->MipLevels = static_cast<UINT>(std::floor(std::log2(std::max(width, height)))) + 1;
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1440,8 +1440,8 @@ bool VkRenderer::CreateTextureImage(int width, int height, void* data, MaterialD
 		mCommandPool,
 		stagingBuffer,
 		mat->TextureImage,
-		static_cast<std::uint32_t>(width),
-		static_cast<std::uint32_t>(height)
+		static_cast<UINT>(width),
+		static_cast<UINT>(height)
 	);
 	VulkanHelper::GenerateMipmaps(
 		mPhysicalDevice,
@@ -1461,7 +1461,7 @@ bool VkRenderer::CreateTextureImage(int width, int height, void* data, MaterialD
 	return true;
 }
 
-bool VkRenderer::CreateTextureImageView(MaterialData* mat) {
+BOOL VkRenderer::CreateTextureImageView(MaterialData* mat) {
 	CheckReturn(VulkanHelper::CreateImageView(
 		mDevice,
 		mat->TextureImage,
@@ -1474,7 +1474,7 @@ bool VkRenderer::CreateTextureImageView(MaterialData* mat) {
 	return true;
 }
 
-bool VkRenderer::CreateTextureSampler(MaterialData* mat) {
+BOOL VkRenderer::CreateTextureSampler(MaterialData* mat) {
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1491,7 +1491,7 @@ bool VkRenderer::CreateTextureSampler(MaterialData* mat) {
 	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
-	samplerInfo.maxLod = static_cast<float>(mat->MipLevels);
+	samplerInfo.maxLod = static_cast<FLOAT>(mat->MipLevels);
 
 	if (vkCreateSampler(mDevice, &samplerInfo, nullptr, &mat->TextureSampler) != VK_SUCCESS) {
 		ReturnFalse(L"Failed to create texture sampler");
@@ -1500,7 +1500,7 @@ bool VkRenderer::CreateTextureSampler(MaterialData* mat) {
 	return true;
 }
 
-bool VkRenderer::CreateUniformBuffers(RenderItem* ritem) {
+BOOL VkRenderer::CreateUniformBuffers(RenderItem* ritem) {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
 	for (size_t i = 0; i < SwapChainImageCount; ++i) {
@@ -1518,13 +1518,13 @@ bool VkRenderer::CreateUniformBuffers(RenderItem* ritem) {
 	return true;
 }
 
-bool VkRenderer::CreateDescriptorSets(RenderItem* ritem) {
+BOOL VkRenderer::CreateDescriptorSets(RenderItem* ritem) {
 	std::vector<VkDescriptorSetLayout> layouts(SwapChainImageCount, mDescriptorSetLayout);
 
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = mDescriptorPool;
-	allocInfo.descriptorSetCount = static_cast<std::uint32_t>(layouts.size());
+	allocInfo.descriptorSetCount = static_cast<UINT>(layouts.size());
 	allocInfo.pSetLayouts = layouts.data();
 
 	if (vkAllocateDescriptorSets(mDevice, &allocInfo, ritem->DescriptorSets.data()) != VK_SUCCESS) {
@@ -1534,7 +1534,7 @@ bool VkRenderer::CreateDescriptorSets(RenderItem* ritem) {
 	return true;
 }
 
-bool VkRenderer::UpdateUniformBuffer(float delta) {
+BOOL VkRenderer::UpdateUniformBuffer(FLOAT delta) {
 	UniformBufferPass mainPass = {};
 	UniformBufferPass shadowPass = {};
 
@@ -1551,12 +1551,12 @@ bool VkRenderer::UpdateUniformBuffer(float delta) {
 		XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
 
 		// Ortho frustum in light space encloses scene.
-		float l = sphereCenterLS.x - mSceneBounds.Radius;
-		float b = sphereCenterLS.y - mSceneBounds.Radius;
-		float n = sphereCenterLS.z - mSceneBounds.Radius;
-		float r = sphereCenterLS.x + mSceneBounds.Radius;
-		float t = sphereCenterLS.y + mSceneBounds.Radius;
-		float f = sphereCenterLS.z + mSceneBounds.Radius;
+		FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
+		FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
+		FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
+		FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
+		FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
+		FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
 
 		XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
 
@@ -1635,7 +1635,7 @@ bool VkRenderer::UpdateUniformBuffer(float delta) {
 	return true;
 }
 
-bool VkRenderer::UpdateDescriptorSet(const RenderItem* ritem) {
+BOOL VkRenderer::UpdateDescriptorSet(const RenderItem* ritem) {
 	for (size_t i = 0; i < SwapChainImageCount; ++i) {
 		VkDescriptorBufferInfo bufferInfo = {};
 		bufferInfo.buffer = ritem->UniformBuffers[i];
@@ -1695,19 +1695,19 @@ bool VkRenderer::UpdateDescriptorSet(const RenderItem* ritem) {
 		descriptorWrites[shadowIndex].descriptorCount = 1;
 		descriptorWrites[shadowIndex].pImageInfo = &shadowMapInfo;
 
-		vkUpdateDescriptorSets(mDevice, static_cast<std::uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+		vkUpdateDescriptorSets(mDevice, static_cast<UINT>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
 
 	return true;
 }
 
-bool VkRenderer::DrawShadowMap() {
+BOOL VkRenderer::DrawShadowMap() {
 
 
 	return true;
 }
 
-bool VkRenderer::DrawBackBuffer() {
+BOOL VkRenderer::DrawBackBuffer() {
 	auto& commandBuffer = mCommandBuffers[mCurrentFrame];
 	if (vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS) {
 		ReturnFalse(L"Failed to reset command buffer");
@@ -1734,7 +1734,7 @@ bool VkRenderer::DrawBackBuffer() {
 	clearValues[0].color = { 0.941176534f, 0.972549081f, 1.000000000f, 1.000000000f };
 	clearValues[1].depthStencil = { 1.0f, 0 };
 
-	renderPassInfo.clearValueCount = static_cast<std::uint32_t>(clearValues.size());
+	renderPassInfo.clearValueCount = static_cast<UINT>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

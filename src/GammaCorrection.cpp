@@ -16,7 +16,7 @@ GammaCorrectionClass::GammaCorrectionClass() {
 	mDuplicatedBackBuffer = std::make_unique<GpuResource>();
 }
 
-bool GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
+BOOL GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -28,7 +28,7 @@ bool GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const
 	return true;
 }
 
-bool GammaCorrectionClass::CompileShaders(const std::wstring& filePath) {
+BOOL GammaCorrectionClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"GammaCorrection.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
@@ -38,7 +38,7 @@ bool GammaCorrectionClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool GammaCorrectionClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL GammaCorrectionClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -58,7 +58,7 @@ bool GammaCorrectionClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool GammaCorrectionClass::BuildPso() {
+BOOL GammaCorrectionClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -80,7 +80,7 @@ void GammaCorrectionClass::Run(
 		D3D12_RECT scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-		float gamma) {
+		FLOAT gamma) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
@@ -97,7 +97,7 @@ void GammaCorrectionClass::Run(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	float values[RootConstantsLayout::Count] = { gamma };
+	FLOAT values[RootConstantsLayout::Count] = { gamma };
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhDuplicatedBackBufferGpuSrv);
 
@@ -122,7 +122,7 @@ void GammaCorrectionClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool GammaCorrectionClass::OnResize(UINT width, UINT height) {
+BOOL GammaCorrectionClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -147,7 +147,7 @@ void GammaCorrectionClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mDuplicatedBackBuffer->Resource(), &srvDesc, mhDuplicatedBackBufferCpuSrv);
 }
 
-bool GammaCorrectionClass::BuildResources() {
+BOOL GammaCorrectionClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;

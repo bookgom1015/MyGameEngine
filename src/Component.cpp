@@ -8,7 +8,7 @@ Component::Component(Actor* owner) {
 
 Component::~Component() {}
 
-bool Component::OnInitialzing() { return true; }
+BOOL Component::OnInitialzing() { return true; }
 
 const Transform& Component::GetActorTransform() {
 	return mOwner->GetTransform();

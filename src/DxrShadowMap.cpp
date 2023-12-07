@@ -26,7 +26,7 @@ DxrShadowMapClass::DxrShadowMapClass() {
 	mResources[Resources::EShadow1] = std::make_unique<GpuResource>();
 }
 
-bool DxrShadowMapClass::Initialize(
+BOOL DxrShadowMapClass::Initialize(
 		ID3D12Device5* const device, 
 		ID3D12GraphicsCommandList* const cmdList, 
 		ShaderManager* const manager, 
@@ -37,15 +37,15 @@ bool DxrShadowMapClass::Initialize(
 	mWidth = width;
 	mHeight = height;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 	CheckReturn(BuildResource(cmdList));
 
 	return true;
 }
 
-bool DxrShadowMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL DxrShadowMapClass::CompileShaders(const std::wstring& filePath) {
 	const auto fullPath = filePath + L"ShadowRay.hlsl";
 	auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"", L"lib_6_3");
 	CheckReturn(mShaderManager->CompileShader(shaderInfo, ShadowRayCS));
@@ -53,7 +53,7 @@ bool DxrShadowMapClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount) {
+BOOL DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[DxrShadowMap::RootSignature::Global::Count];
 
@@ -77,7 +77,7 @@ bool DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT
 	return true;
 }
 
-bool DxrShadowMapClass::BuildPso() {
+BOOL DxrShadowMapClass::BuildPso() {
 	// Subobjects need to be associated with DXIL exports (i.e. shaders) either by way of default or explicit associations.
 	// Default association applies to every exported shader entrypoint that doesn't have any of the same type of subobject associated with it.
 	// This simple sample utilizes default shader association except for local root signature subobject
@@ -97,7 +97,7 @@ bool DxrShadowMapClass::BuildPso() {
 	shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
 	auto shaderConfig = dxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = 4; // IsHit(bool)
+	UINT payloadSize = 4; // IsHit(BOOL)
 	UINT attribSize = sizeof(DirectX::XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
@@ -114,7 +114,7 @@ bool DxrShadowMapClass::BuildPso() {
 	return true;
 }
 
-bool DxrShadowMapClass::BuildShaderTables(UINT numRitems) {
+BOOL DxrShadowMapClass::BuildShaderTables(UINT numRitems) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	void* shadowRayGenShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowRayGen);
@@ -207,13 +207,13 @@ void DxrShadowMapClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD
 	hGpu.Offset(1, descSize);
 }
 
-bool DxrShadowMapClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
+BOOL DxrShadowMapClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 		CheckReturn(BuildResource(cmdList));
 		BuildDescriptors();
@@ -245,7 +245,7 @@ void DxrShadowMapClass::BuildDescriptors() {
 	md3dDevice->CreateUnorderedAccessView(pSmoothedResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow1]);
 }
 
-bool DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList) {
+BOOL DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList) {
 	D3D12_RESOURCE_DESC texDesc = {};
 	texDesc.DepthOrArraySize = 1;
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -258,7 +258,7 @@ bool DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList) 
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		std::wstringstream wsstream;
 		wsstream << "DXR_ShadowMap" << i;
 

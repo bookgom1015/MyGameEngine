@@ -62,7 +62,7 @@ DxLowRenderer::~DxLowRenderer() {
 	if (!bIsCleanedUp) LowCleanUp();
 }
 
-bool DxLowRenderer::LowInitialize(HWND hwnd, UINT width, UINT height) {
+BOOL DxLowRenderer::LowInitialize(HWND hwnd, UINT width, UINT height) {
 	mhMainWnd = hwnd;
 
 	CheckReturn(InitDirect3D(width, height));
@@ -91,7 +91,7 @@ void DxLowRenderer::LowCleanUp() {
 	bIsCleanedUp = true;
 }
 
-bool DxLowRenderer::LowOnResize(UINT width, UINT height) {
+BOOL DxLowRenderer::LowOnResize(UINT width, UINT height) {
 	// Flush before changing any resources.
 	CheckReturn(FlushCommandQueue());
 
@@ -112,8 +112,8 @@ bool DxLowRenderer::LowOnResize(UINT width, UINT height) {
 	// Update the viewport
 	mScreenViewport.TopLeftX = 0;
 	mScreenViewport.TopLeftY = 0;
-	mScreenViewport.Width = static_cast<float>(width);
-	mScreenViewport.Height = static_cast<float>(height);
+	mScreenViewport.Width = static_cast<FLOAT>(width);
+	mScreenViewport.Height = static_cast<FLOAT>(height);
 	mScreenViewport.MinDepth = 0.0f;
 	mScreenViewport.MaxDepth = 1.0f;
 
@@ -122,7 +122,7 @@ bool DxLowRenderer::LowOnResize(UINT width, UINT height) {
 	return true;
 }
 
-bool DxLowRenderer::CreateRtvAndDsvDescriptorHeaps() {
+BOOL DxLowRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	rtvHeapDesc.NumDescriptors = SwapChainBufferCount;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -152,7 +152,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE DxLowRenderer::DepthStencilView() const { return mDs
 
 HRESULT DxLowRenderer::GetDeviceRemovedReason() const { return md3dDevice->GetDeviceRemovedReason(); }
 
-bool DxLowRenderer::FlushCommandQueue() {
+BOOL DxLowRenderer::FlushCommandQueue() {
 	// Advance the fence value to mark commands up to this fence point.
 	++mCurrentFence;
 
@@ -176,7 +176,7 @@ bool DxLowRenderer::FlushCommandQueue() {
 	return true;
 }
 
-bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
+BOOL DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 #ifdef _DEBUG
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&mDebugController)))) {
 		mDebugController->EnableDebugLayer();
@@ -196,7 +196,7 @@ bool DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 	Adapters adapters;
 	SortAdapters(adapters);
 
-	bool found = false;
+	BOOL found = false;
 	for (auto begin = adapters.rbegin(), end = adapters.rend(); begin != end; ++begin) {
 		auto adapter = begin->second;
 
@@ -272,7 +272,7 @@ void DxLowRenderer::SortAdapters(Adapters& adapters) {
 #endif
 }
 
-bool DxLowRenderer::CreateDebugObjects() {
+BOOL DxLowRenderer::CreateDebugObjects() {
 	CheckHRESULT(md3dDevice->QueryInterface(IID_PPV_ARGS(&mInfoQueue)));
 
 	CheckHRESULT(mInfoQueue->RegisterMessageCallback(D3D12MessageCallback, D3D12_MESSAGE_CALLBACK_IGNORE_FILTERS, NULL, &mCallbakCookie));
@@ -280,7 +280,7 @@ bool DxLowRenderer::CreateDebugObjects() {
 	return true;
 }
 
-bool DxLowRenderer::CreateCommandObjects() {
+BOOL DxLowRenderer::CreateCommandObjects() {
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
@@ -306,7 +306,7 @@ bool DxLowRenderer::CreateCommandObjects() {
 	return true;
 }
 
-bool DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
+BOOL DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
 	// Release the previous swapchain we will be recreating.
 	mSwapChain.Reset();
 

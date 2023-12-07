@@ -23,12 +23,12 @@ namespace GBuffer {
 
 	static const UINT NumRenderTargets = 6;
 
-	const float AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float NormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
-	const float VelocityMapClearValues[2]			= { 1000.0f, 1000.0f };
-	const float ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT NormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
+	const FLOAT VelocityMapClearValues[2]			= { 1000.0f, 1000.0f };
+	const FLOAT ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class GBufferClass {
 	public:
@@ -62,11 +62,11 @@ namespace GBuffer {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ReprojNormalDepthMapRtv() const;
 
 	public:
-		bool Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager, 
+		BOOL Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager, 
 			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
@@ -80,11 +80,11 @@ namespace GBuffer {
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);

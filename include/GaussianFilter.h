@@ -42,10 +42,10 @@ namespace GaussianFilter {
 		virtual ~GaussianFilterClass() = default;
 
 	public:
-		bool Initialize(ID3D12Device*const device, ShaderManager* const manager);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device*const device, ShaderManager* const manager);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_input,

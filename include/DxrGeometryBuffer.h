@@ -21,7 +21,7 @@ namespace DxrGeometryBuffer {
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE IndicesSrv() const;
 
 	public:
-		bool Initialize(ID3D12Device5* const device);
+		BOOL Initialize(ID3D12Device5* const device);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 		void AddGeometry(MeshGeometry* geo);

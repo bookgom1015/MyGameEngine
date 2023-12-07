@@ -57,7 +57,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 posV = (pz / pin.PosV.z) * pin.PosV;
 	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
 
-	const float3 normalW = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
+	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 
 	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
 	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);

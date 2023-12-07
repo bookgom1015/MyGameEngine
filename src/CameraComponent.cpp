@@ -24,26 +24,26 @@ CameraComponent::CameraComponent(Actor* owner) : Component(owner) {
 
 CameraComponent::~CameraComponent() {}
 
-bool CameraComponent::OnInitialzing() {
+BOOL CameraComponent::OnInitialzing() {
 	GameWorld::GetWorld()->GetRenderer()->SetCamera(mCamera.get());
 
 	return true;
 }
 
-bool CameraComponent::ProcessInput(const InputState& input) { return true; }
+BOOL CameraComponent::ProcessInput(const InputState& input) { return true; }
 
-bool CameraComponent::Update(float delta) {	return true; }
+BOOL CameraComponent::Update(FLOAT delta) {	return true; }
 
-bool CameraComponent::OnUpdateWorldTransform() {
+BOOL CameraComponent::OnUpdateWorldTransform() {
 	mCamera->SetPosition(GetActorTransform().Position);
 	mCamera->UpdateViewMatrix();
 
 	return true;
 }
 
-void CameraComponent::Pitch(float rad) {
+void CameraComponent::Pitch(FLOAT rad) {
 	if (bLimitPitch) {
-		float newPitch = mPitch + rad;
+		FLOAT newPitch = mPitch + rad;
 		if (newPitch >= mPitchLimit) rad = mPitchLimit - mPitch;
 		else if (newPitch <= -mPitchLimit) rad = -mPitchLimit - mPitch;
 		mPitch += rad;
@@ -57,11 +57,11 @@ void CameraComponent::Pitch(float rad) {
 	mCamera->Pitch(rad);
 }
 
-void CameraComponent::Yaw(float rad) {
+void CameraComponent::Yaw(FLOAT rad) {
 	mCamera->Yaw(rad);
 }
 
-void CameraComponent::Roll(float rad) {
+void CameraComponent::Roll(FLOAT rad) {
 	mCamera->Roll(rad);
 }
 

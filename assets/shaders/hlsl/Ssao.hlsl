@@ -83,7 +83,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	float pz = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0.0f);
 	pz = NdcDepthToViewDepth(pz);
 
-	float3 n = gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz;
+	float3 n = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 	n = mul(n, (float3x3)cbSsao.View);
 
 	//

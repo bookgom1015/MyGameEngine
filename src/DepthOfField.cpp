@@ -14,7 +14,7 @@ DepthOfFieldClass::DepthOfFieldClass() {
 	mFocalDistanceBuffer = std::make_unique<GpuResource>();
 }
 
-bool DepthOfFieldClass::Initialize(
+BOOL DepthOfFieldClass::Initialize(
 		ID3D12Device* device, 
 		ShaderManager*const manager, 
 		ID3D12GraphicsCommandList* cmdList, 
@@ -25,15 +25,15 @@ bool DepthOfFieldClass::Initialize(
 	mWidth = width;
 	mHeight = height;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mWidth), static_cast<FLOAT>(mHeight), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(mWidth), static_cast<INT>(mHeight) };
 
 	CheckReturn(BuildResources(cmdList));
 
 	return true;
 }
 
-bool DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
+BOOL DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring actualPath = filePath + L"Coc.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
@@ -66,7 +66,7 @@ bool DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	// Circle of confusion
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[CircleOfConfusion::RootSignatureLayout::Count];
@@ -170,7 +170,7 @@ bool DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool DepthOfFieldClass::BuildPso() {
+BOOL DepthOfFieldClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC defaultPsoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::BufferFormat);
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
@@ -282,11 +282,11 @@ void DepthOfFieldClass::ApplyDof(
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-		float bokehRadius,
-		float cocThreshold,
-		float cocDiffThreshold,
-		float highlightPower,
-		int numSamples) {
+		FLOAT bokehRadius,
+		FLOAT cocThreshold,
+		FLOAT cocDiffThreshold,
+		FLOAT highlightPower,
+		INT numSamples) {
 	cmdList->SetPipelineState(mPSOs["dof"].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures["dof"].Get());
 
@@ -298,7 +298,7 @@ void DepthOfFieldClass::ApplyDof(
 
 	cmdList->OMSetRenderTargets(1, &mhDofMapCpuRtvs[0], true, nullptr);
 
-	float dofConstValues[ApplyingDof::RootConstantLayout::Count] = { bokehRadius, cocThreshold, cocDiffThreshold, highlightPower, static_cast<float>(numSamples) };
+	FLOAT dofConstValues[ApplyingDof::RootConstantLayout::Count] = { bokehRadius, cocThreshold, cocDiffThreshold, highlightPower, static_cast<FLOAT>(numSamples) };
 	cmdList->SetGraphicsRoot32BitConstants(ApplyingDof::RootSignatureLayout::EC_Consts, _countof(dofConstValues), dofConstValues, 0);
 
 	cmdList->SetGraphicsRootDescriptorTable(ApplyingDof::RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
@@ -356,13 +356,13 @@ void DepthOfFieldClass::BuildDescriptors(
 	hCpuRtv.Offset(1, rtvDescSize);
 }
 
-bool DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
+BOOL DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(mWidth), static_cast<float>(mHeight), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(mWidth), static_cast<int>(mHeight) };
+		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mWidth), static_cast<FLOAT>(mHeight), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<INT>(mWidth), static_cast<INT>(mHeight) };
 
 		CheckReturn(BuildResources(cmdList));
 		BuildDescriptors();
@@ -385,7 +385,7 @@ void DepthOfFieldClass::BuildDescriptors() {
 	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 	uavDesc.Buffer.FirstElement = 0;
 	uavDesc.Buffer.NumElements = 1;
-	uavDesc.Buffer.StructureByteStride = sizeof(float);
+	uavDesc.Buffer.StructureByteStride = sizeof(FLOAT);
 	uavDesc.Buffer.CounterOffsetInBytes = 0;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -399,7 +399,7 @@ void DepthOfFieldClass::BuildDescriptors() {
 
 	srvDesc.Format = DofMapFormat;
 	rtvDesc.Format = DofMapFormat;
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		md3dDevice->CreateShaderResourceView(mDofMaps[i]->Resource(), &srvDesc, mhDofMapCpuSrvs[i]);
 		md3dDevice->CreateRenderTargetView(mDofMaps[i]->Resource(), &rtvDesc, mhDofMapCpuRtvs[i]);
 	}
@@ -407,7 +407,7 @@ void DepthOfFieldClass::BuildDescriptors() {
 	md3dDevice->CreateUnorderedAccessView(mFocalDistanceBuffer->Resource(), nullptr, &uavDesc, mhFocalDistanceCpuUav);
 }
 
-bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
+BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -440,7 +440,7 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 		rscDesc.Width = mWidth;
 		rscDesc.Height = mHeight;
 		rscDesc.Format = DofMapFormat;
-		for (int i = 0; i < 2; ++i) {
+		for (INT i = 0; i < 2; ++i) {
 			std::wstringstream wsstream;
 			wsstream << L"DepthOfFieldMap_" << i;
 			CheckReturn(mDofMaps[i]->Initialize(
@@ -459,7 +459,7 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(float), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(FLOAT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			L"FocalDistanceMap"
@@ -472,12 +472,12 @@ bool DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
 	return true;
 }
 
-void DepthOfFieldClass::Blur(ID3D12GraphicsCommandList*const cmdList, bool horzBlur) {
+void DepthOfFieldClass::Blur(ID3D12GraphicsCommandList*const cmdList, BOOL horzBlur) {
 	ID3D12Resource* output = nullptr;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE inputSrv;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE outputRtv;
 
-	if (horzBlur == true) {
+	if (horzBlur == TRUE) {
 		output = mDofMaps[1]->Resource();
 		outputRtv = mhDofMapCpuRtvs[1];
 		inputSrv = mhDofMapGpuSrvs[0];

@@ -17,7 +17,7 @@ SsrClass::SsrClass() {
 	mSsrMaps[1] = std::make_unique<GpuResource>();	
 }
 
-bool SsrClass::Initialize(
+BOOL SsrClass::Initialize(
 		ID3D12Device* device, ShaderManager*const manager, 
 		UINT width, UINT height, UINT divider) {
 	md3dDevice = device;
@@ -31,15 +31,15 @@ bool SsrClass::Initialize(
 
 	mDivider = divider;
 
-	mViewport = { 0.0f, 0.0f, static_cast<float>(mReducedWidth), static_cast<float>(mReducedHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<int>(mReducedWidth), static_cast<int>(mReducedHeight) };
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mReducedWidth), static_cast<FLOAT>(mReducedHeight), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(mReducedWidth), static_cast<INT>(mReducedHeight) };
 
 	CheckReturn(BuildResources());
 
 	return true;
 }
 
-bool SsrClass::CompileShaders(const std::wstring& filePath) {
+BOOL SsrClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"BuildingSsr.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -49,7 +49,7 @@ bool SsrClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[4];
@@ -74,7 +74,7 @@ bool SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool SsrClass::BuildPso() {
+BOOL SsrClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
@@ -108,7 +108,7 @@ void SsrClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool SsrClass::OnResize(UINT width, UINT height) {
+BOOL SsrClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -116,8 +116,8 @@ bool SsrClass::OnResize(UINT width, UINT height) {
 		mReducedWidth = width / mDivider;
 		mReducedHeight = height / mDivider;
 
-		mViewport = { 0.0f, 0.0f, static_cast<float>(mReducedWidth), static_cast<float>(mReducedHeight), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<int>(mReducedWidth), static_cast<int>(mReducedHeight) };
+		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mReducedWidth), static_cast<FLOAT>(mReducedHeight), 0.0f, 1.0f };
+		mScissorRect = { 0, 0, static_cast<INT>(mReducedWidth), static_cast<INT>(mReducedHeight) };
 
 		CheckReturn(BuildResources());
 		BuildDescriptors();
@@ -174,13 +174,13 @@ void SsrClass::BuildDescriptors() {
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	for (int i = 0; i < 2; ++i) {
+	for (INT i = 0; i < 2; ++i) {
 		md3dDevice->CreateShaderResourceView(mSsrMaps[i]->Resource(), &srvDesc, mhSsrMapCpuSrvs[i]);
 		md3dDevice->CreateRenderTargetView(mSsrMaps[i]->Resource(), &rtvDesc, mhSsrMapCpuRtvs[i]);
 	}
 }
 
-bool SsrClass::BuildResources() {
+BOOL SsrClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -197,7 +197,7 @@ bool SsrClass::BuildResources() {
 		rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 		CD3DX12_CLEAR_VALUE optClear(SsrMapFormat, ClearValues);
-		for (int i = 0; i < 2; ++i) {
+		for (INT i = 0; i < 2; ++i) {
 			std::wstringstream wsstream;
 			wsstream << "SsrMap_" << i;
 

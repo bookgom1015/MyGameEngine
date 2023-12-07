@@ -64,7 +64,7 @@ void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 	float totalWeight = blurWeights[cbBlur.BlurRadius];
 
 	float2 centerTex = float2((dispatchThreadID.x + 0.5f) / (float)gDimension.x, (dispatchThreadID.y + 0.5f) / (float)gDimension.y);
-	float3 centerNormal = gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0);
+	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0));
 	float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
 
 	float dx = 1.0f / gDimension.x;
@@ -73,7 +73,7 @@ void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 		if (i == 0) continue;
 
 		float2 neighborTex = float2(centerTex.x + dx * i, centerTex.y);
-		float3 neighborNormal = gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0);
+		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0));
 		float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
 
 		if (dot(neighborNormal, centerNormal) >= 0.95f && abs(neighborDepth - centerDepth) <= 0.01f) {
@@ -132,7 +132,7 @@ void VertBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 	float totalWeight = blurWeights[cbBlur.BlurRadius];
 
 	float2 centerTex = float2((dispatchThreadID.x + 0.5f) / (float)gDimension.x, (dispatchThreadID.y + 0.5f) / (float)gDimension.y);
-	float3 centerNormal = gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0);
+	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0));
 	float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
 
 	float dy = 1.0f / gDimension.y;
@@ -141,7 +141,7 @@ void VertBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 		if (i == 0) continue;
 
 		float2 neighborTex = float2(centerTex.x, centerTex.y + dy * i);
-		float3 neighborNormal = gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0);
+		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0));
 		float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
 
 		if (dot(neighborNormal, centerNormal) >= 0.95f && abs(neighborDepth - centerDepth) <= 0.01f) {

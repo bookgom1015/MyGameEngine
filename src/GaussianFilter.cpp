@@ -6,14 +6,14 @@
 
 using namespace GaussianFilter;
 
-bool GaussianFilterClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
+BOOL GaussianFilterClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
 	return true;
 }
 
-bool GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
+BOOL GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const auto fullPath = filePath + L"GaussianFilter3x3CS.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
@@ -28,7 +28,7 @@ bool GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_DESCRIPTOR_RANGE texTables[2];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
@@ -48,7 +48,7 @@ bool GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool GaussianFilterClass::BuildPso() {
+BOOL GaussianFilterClass::BuildPso() {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -86,7 +86,7 @@ void GaussianFilterClass::Run(
 		cmdList->SetComputeRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
 	}
 	{
-		float values[2] = { 1.0f / width, 1.0f / height };
+		FLOAT values[2] = { 1.0f / width, 1.0f / height };
 		cmdList->SetComputeRoot32BitConstants(RootSignature
 			::EC_Consts, _countof(values), values, RootSignature::RootConstants::E_InvDimensionX);
 	}

@@ -75,11 +75,11 @@ IrradianceMapClass::IrradianceMapClass() {
 	for (UINT i = 0; i < MaxMipLevel; ++i)
 		mPrefilteredEnvironmentEquirectMaps[i] = std::make_unique<GpuResource>();
 
-	mCubeMapViewport = { 0.0f, 0.0f, static_cast<float>(CubeMapSize), static_cast<float>(CubeMapSize), 0.0f, 1.0f };
-	mCubeMapScissorRect = { 0, 0, static_cast<int>(CubeMapSize), static_cast<int>(CubeMapSize) };
+	mCubeMapViewport = { 0.0f, 0.0f, static_cast<FLOAT>(CubeMapSize), static_cast<FLOAT>(CubeMapSize), 0.0f, 1.0f };
+	mCubeMapScissorRect = { 0, 0, static_cast<INT>(CubeMapSize), static_cast<INT>(CubeMapSize) };
 
-	mIrradEquirectMapViewport = { 0.0f, 0.0f, static_cast<float>(EquirectangularMapWidth), static_cast<float>(EquirectangularMapHeight), 0.0f, 1.0f };
-	mIrradEquirectMapScissorRect = { 0, 0, static_cast<int>(EquirectangularMapWidth), static_cast<int>(EquirectangularMapHeight) };
+	mIrradEquirectMapViewport = { 0.0f, 0.0f, static_cast<FLOAT>(EquirectangularMapWidth), static_cast<FLOAT>(EquirectangularMapHeight), 0.0f, 1.0f };
+	mIrradEquirectMapScissorRect = { 0, 0, static_cast<INT>(EquirectangularMapWidth), static_cast<INT>(EquirectangularMapHeight) };
 
 	bNeedToUpdate = false;
 	mNeedToSave = Save::E_None;
@@ -91,7 +91,7 @@ UINT IrradianceMapClass::Size() const {
 	return CubeMapSize;
 }
 
-bool IrradianceMapClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
+BOOL IrradianceMapClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -100,7 +100,7 @@ bool IrradianceMapClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandL
 	return true;
 }
 
-bool IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring actualPath = filePath + L"ConvertEquirectangularToCubeMap.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
@@ -166,7 +166,7 @@ bool IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[ConvEquirectToCube::RootSignatureLayout::Count];
 
@@ -298,7 +298,7 @@ bool IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool IrradianceMapClass::BuildPso() {
+BOOL IrradianceMapClass::BuildPso() {
 	auto inputLayoutDesc = Vertex::InputLayoutDesc();
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
@@ -472,7 +472,7 @@ void IrradianceMapClass::BuildDescriptors(
 }
 
 
-bool IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file) {
+BOOL IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file) {
 	auto tex = std::make_unique<Texture>();
 
 	std::wstring filename;
@@ -524,7 +524,7 @@ bool IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, 
 	return true;
 }
 
-bool IrradianceMapClass::Update(
+BOOL IrradianceMapClass::Update(
 		ID3D12CommandQueue* const queue,
 		ID3D12DescriptorHeap* descHeap,
 		ID3D12GraphicsCommandList* const cmdList,
@@ -598,7 +598,7 @@ bool IrradianceMapClass::Update(
 		);
 	}
 	{
-		bool exists = Check(GenDiffuseIrradianceCubeMap);
+		BOOL exists = Check(GenDiffuseIrradianceCubeMap);
 		if (exists) {
 			WLogln(L"Pre-generated diffuse irradiance cubemap detected. Loading it...");
 
@@ -634,7 +634,7 @@ bool IrradianceMapClass::Update(
 		}
 	}
 	{
-		bool exists = Check(GenIntegratedBrdfMap);
+		BOOL exists = Check(GenIntegratedBrdfMap);
 		if (exists) {
 			WLogln(L"Pre-generated integrated BRDF map detected. Loading it...");
 
@@ -657,9 +657,9 @@ bool IrradianceMapClass::Update(
 		}
 	}
 	{
-		bool defected = false;
+		BOOL defected = false;
 		for (UINT mipLevel = 0; mipLevel < MaxMipLevel; ++mipLevel) {
-			bool exists = Check(GenPrefilteredEnvironmentCubeMaps[mipLevel]);
+			BOOL exists = Check(GenPrefilteredEnvironmentCubeMaps[mipLevel]);
 			if (!exists) {
 				mNeedToSave = static_cast<Save::Type>(mNeedToSave | (Save::E_PrefilteredL0 << mipLevel));
 				defected = true;
@@ -680,8 +680,8 @@ bool IrradianceMapClass::Update(
 					UINT width = static_cast<UINT>(EquirectangularMapWidth / std::pow(2.0, mipLevel));
 					UINT height = static_cast<UINT>(EquirectangularMapHeight / std::pow(2.0, mipLevel));
 
-					D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height) , 0.0f, 1.0f };
-					D3D12_RECT rect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
+					D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height) , 0.0f, 1.0f };
+					D3D12_RECT rect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
 
 					ConvertCubeToEquirectangular(
 						cmdList,
@@ -703,8 +703,8 @@ bool IrradianceMapClass::Update(
 
 				UINT size = static_cast<UINT>(CubeMapSize / std::pow(2.0, mipLevel));
 
-				D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(size), static_cast<float>(size) , 0.0f, 1.0f };
-				D3D12_RECT rect = { 0, 0, static_cast<int>(size), static_cast<int>(size) };
+				D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<FLOAT>(size), static_cast<FLOAT>(size) , 0.0f, 1.0f };
+				D3D12_RECT rect = { 0, 0, static_cast<INT>(size), static_cast<INT>(size) };
 
 				Load(
 					queue,
@@ -732,7 +732,7 @@ bool IrradianceMapClass::Update(
 	return true;
 }
 
-bool IrradianceMapClass::DrawCubeMap(
+BOOL IrradianceMapClass::DrawCubeMap(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
@@ -742,7 +742,7 @@ bool IrradianceMapClass::DrawCubeMap(
 		D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
 		UINT objCBByteSize,
 		RenderItem* box,
-		float mipLevel) {
+		FLOAT mipLevel) {
 	if (DrawCubeType == DrawCube::E_Equirectangular) cmdList->SetPipelineState(mPSOs[PipelineState::E_DrawEquirectangular].Get());
 	else cmdList->SetPipelineState(mPSOs[PipelineState::E_DrawCube].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_DrawCube].Get());
@@ -756,7 +756,7 @@ bool IrradianceMapClass::DrawCubeMap(
 
 	cmdList->SetGraphicsRootConstantBufferView(DrawCube::RootSignatureLayout::ECB_Pass, cbPassAddress);
 
-	float values[DrawCube::RootConstantsLayout::Count] = { mipLevel };
+	FLOAT values[DrawCube::RootConstantsLayout::Count] = { mipLevel };
 	cmdList->SetGraphicsRoot32BitConstants(DrawCube::RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	switch (DrawCubeType) {
@@ -787,7 +787,7 @@ bool IrradianceMapClass::DrawCubeMap(
 	return true;
 }
 
-bool IrradianceMapClass::DrawSkySphere(
+BOOL IrradianceMapClass::DrawSkySphere(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
@@ -929,7 +929,7 @@ void IrradianceMapClass::BuildDescriptors() {
 	}
 }
 
-bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList) {
+BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -1055,7 +1055,7 @@ bool IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 	return true;
 }
 
-bool IrradianceMapClass::Check(const std::wstring& filepath) {
+BOOL IrradianceMapClass::Check(const std::wstring& filepath) {
 	std::string filePath;
 	for (wchar_t ch : filepath)
 		filePath.push_back(static_cast<char>(ch));
@@ -1069,7 +1069,7 @@ bool IrradianceMapClass::Check(const std::wstring& filepath) {
 	return true;
 }
 
-bool IrradianceMapClass::Load(
+BOOL IrradianceMapClass::Load(
 		ID3D12CommandQueue*const queue, 
 		GpuResource*const dst, 
 		D3D12_CPU_DESCRIPTOR_HANDLE hDesc, 
@@ -1116,7 +1116,7 @@ bool IrradianceMapClass::Load(
 	return true;
 }
 
-bool IrradianceMapClass::Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath) {
+BOOL IrradianceMapClass::Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath) {
 	CheckHRESULT(SaveDDSTextureToFile(
 		queue, 
 		resource->Resource(),
@@ -1184,8 +1184,8 @@ void IrradianceMapClass::ConvertEquirectangularToCube(
 		UINT mw = static_cast<UINT>(width / std::pow(2, mipLevel));
 		UINT mh = static_cast<UINT>(height / std::pow(2, mipLevel));
 
-		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(mw), static_cast<float>(mh), 0.0f, 1.0f };
-		D3D12_RECT scissorRect = { 0, 0, static_cast<int>(mw), static_cast<int>(mh) };
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<FLOAT>(mw), static_cast<FLOAT>(mh), 0.0f, 1.0f };
+		D3D12_RECT scissorRect = { 0, 0, static_cast<INT>(mw), static_cast<INT>(mh) };
 
 		cmdList->RSSetViewports(1, &viewport);
 		cmdList->RSSetScissorRects(1, &scissorRect);
@@ -1251,7 +1251,7 @@ void IrradianceMapClass::GenerateDiffuseIrradiance(
 	cmdList->SetGraphicsRootConstantBufferView(ConvoluteDiffuseIrradiance::RootSignatureLayout::ECB_ConvEquirectToConv, cbConvEquirectToCube);
 	cmdList->SetGraphicsRootDescriptorTable(ConvoluteDiffuseIrradiance::RootSignatureLayout::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
 
-	float values[1] = { 0.025f };
+	FLOAT values[1] = { 0.025f };
 	cmdList->SetGraphicsRoot32BitConstants(
 		ConvoluteDiffuseIrradiance::RootSignatureLayout::EC_Consts,
 		_countof(values), values, 
@@ -1294,8 +1294,8 @@ void IrradianceMapClass::GeneratePrefilteredEnvironment(
 	for (UINT mipLevel = 0; mipLevel < IrradianceMap::MaxMipLevel; ++mipLevel) {
 		UINT size = static_cast<UINT>(CubeMapSize / std::pow(2.0, mipLevel));
 
-		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<float>(size), static_cast<float>(size), 0.0f, 1.0f };
-		D3D12_RECT rect = { 0, 0, static_cast<int>(size), static_cast<int>(size) };
+		D3D12_VIEWPORT viewport = { 0.0f, 0.0f, static_cast<FLOAT>(size), static_cast<FLOAT>(size), 0.0f, 1.0f };
+		D3D12_RECT rect = { 0, 0, static_cast<INT>(size), static_cast<INT>(size) };
 
 		cmdList->RSSetViewports(1, &viewport);
 		cmdList->RSSetScissorRects(1, &rect);
@@ -1306,7 +1306,7 @@ void IrradianceMapClass::GeneratePrefilteredEnvironment(
 			ConvoluteSpecularIrradiance::RootConstantsLayout::E_MipLevel
 		);
 
-		float values[1] = { static_cast<float>(0.16667f * mipLevel) };
+		FLOAT values[1] = { static_cast<FLOAT>(0.16667f * mipLevel) };
 		cmdList->SetGraphicsRoot32BitConstants(
 			ConvoluteSpecularIrradiance::RootSignatureLayout::EC_Consts,
 			_countof(values),

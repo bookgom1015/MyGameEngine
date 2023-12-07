@@ -2,7 +2,7 @@
 #include "Logger.h"
 #include "D3D12Util.h"
 
-bool GpuResource::Initialize(
+BOOL GpuResource::Initialize(
 		ID3D12Device* const device,
 		const D3D12_HEAP_PROPERTIES* heapProp,
 		D3D12_HEAP_FLAGS heapFlag,
@@ -25,7 +25,7 @@ bool GpuResource::Initialize(
 	return true;
 }
 
-bool GpuResource::OnResize(IDXGISwapChain* const swapChain, UINT index) {
+BOOL GpuResource::OnResize(IDXGISwapChain* const swapChain, UINT index) {
 	CheckHRESULT(swapChain->GetBuffer(index, IID_PPV_ARGS(&mResource)));
 
 	mCurrState = D3D12_RESOURCE_STATE_PRESENT;

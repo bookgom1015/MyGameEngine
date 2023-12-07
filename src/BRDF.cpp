@@ -30,7 +30,7 @@ BRDFClass::BRDFClass() {
 	ModelType = Model::E_CookTorrance;
 }
 
-bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -42,7 +42,7 @@ bool BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UI
 	return true;
 }
 
-bool BRDFClass::CompileShaders(const std::wstring& filePath) {
+BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring fullPath = filePath + L"BRDF.hlsl";
 
@@ -104,7 +104,7 @@ bool BRDFClass::CompileShaders(const std::wstring& filePath) {
 	return true;
 }
 
-bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcReflectanceEquation::Count];
 
@@ -171,7 +171,7 @@ bool BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	return true;
 }
 
-bool BRDFClass::BuildPso() {
+BOOL BRDFClass::BuildPso() {
 	const auto& diffuseRootSig = mRootSignatures[RootSignature::E_CalcReflectanceEquation].Get();
 	{
 		{
@@ -279,7 +279,7 @@ void BRDFClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-bool BRDFClass::OnResize(UINT width, UINT height) {
+BOOL BRDFClass::OnResize(UINT width, UINT height) {
 	if ((mWidth != width) || (mHeight != height)) {
 		mWidth = width;
 		mHeight = height;
@@ -395,7 +395,7 @@ void BRDFClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferSrvCpu);
 }
 
-bool BRDFClass::BuildResources() {
+BOOL BRDFClass::BuildResources() {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Width = mWidth;

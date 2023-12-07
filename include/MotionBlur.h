@@ -31,7 +31,7 @@ namespace MotionBlur {
 
 	const UINT NumRenderTargets = 1;
 
-	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class MotionBlurClass {
 	public:
@@ -47,27 +47,27 @@ namespace MotionBlur {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE MotionVectorMapRtv() const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv, UINT rtvDescSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
-			float intensity,
-			float limit,
-			float depthBias,
-			int sampleCount);
+			FLOAT intensity,
+			FLOAT limit,
+			FLOAT depthBias,
+			INT sampleCount);
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;

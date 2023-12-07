@@ -4,6 +4,6 @@
 
 class MeshImporter {
 public:
-	static bool LoadObj(const std::string& file, Mesh& mesh, Material& mat);
-	static bool LoadFbx(const std::string& file);
+	static BOOL LoadObj(const std::string& file, Mesh& mesh, Material& mat);
+	static BOOL LoadFbx(const std::string& file);
 };

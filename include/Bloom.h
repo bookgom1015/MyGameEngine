@@ -49,7 +49,7 @@ namespace Bloom {
 
 	static const UINT NumRenderTargets = 3;
 
-	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	class BloomClass {
 	public:
@@ -66,16 +66,16 @@ namespace Bloom {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResultMapRtv() const;
 
 	public:
-		bool Initialize(
+		BOOL Initialize(
 			ID3D12Device* device, ShaderManager*const manager, 
 			UINT width, UINT height, UINT divider);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void ExtractHighlights(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
-			float threshold);
+			FLOAT threshold);
 		void Bloom(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer);
@@ -85,11 +85,11 @@ namespace Bloom {
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 	public:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;

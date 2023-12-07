@@ -9,17 +9,17 @@ MeshComponent::~MeshComponent() {
 	GameWorld::GetWorld()->GetRenderer()->RemoveModel(mModel);
 }
 
-bool MeshComponent::ProcessInput(const InputState& input) { return true; }
+BOOL MeshComponent::ProcessInput(const InputState& input) { return true; }
 
-bool MeshComponent::Update(float delta) { return true; }
+BOOL MeshComponent::Update(FLOAT delta) { return true; }
 
-bool MeshComponent::OnUpdateWorldTransform() {
+BOOL MeshComponent::OnUpdateWorldTransform() {
 	GameWorld::GetWorld()->GetRenderer()->UpdateModel(mModel, GetActorTransform());
 
 	return true;
 }
 
-bool MeshComponent::LoadMesh(const std::string& file) {
+BOOL MeshComponent::LoadMesh(const std::string& file) {
 	mModel = GameWorld::GetWorld()->GetRenderer()->AddModel(file, GetActorTransform());
 	if (mModel == nullptr) {
 		std::wstringstream wsstream;
@@ -30,10 +30,10 @@ bool MeshComponent::LoadMesh(const std::string& file) {
 	return true;
 }
 
-void MeshComponent::SetVisibility(bool visible) {
+void MeshComponent::SetVisibility(BOOL visible) {
 	
 }
 
-void MeshComponent::SetPickable(bool pickable) {
+void MeshComponent::SetPickable(BOOL pickable) {
 	GameWorld::GetWorld()->GetRenderer()->SetModelPickable(mModel, false);
 }

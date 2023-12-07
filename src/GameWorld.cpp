@@ -29,7 +29,7 @@ using namespace DirectX;
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd) {
+INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, INT showCmd) {
 	try {
 		GameWorld game;
 
@@ -59,17 +59,17 @@ namespace {
 		return GameWorld::GetWorld()->MsgProc(hwnd, msg, wParam, lParam);
 	}
 
-	void GLFWKeyCallback(GLFWwindow* wnd, int key, int code, int action, int mods) {
+	void GLFWKeyCallback(GLFWwindow* wnd, INT key, INT code, INT action, INT mods) {
 		auto game = reinterpret_cast<GameWorld*>(glfwGetWindowUserPointer(wnd));
 		game->MsgProc(wnd, key, code, action, mods);
 	}
 
-	void GLFWResizeCallback(GLFWwindow* wnd, int width, int height) {
+	void GLFWResizeCallback(GLFWwindow* wnd, INT width, INT height) {
 		auto game = reinterpret_cast<GameWorld*>(glfwGetWindowUserPointer(wnd));
 		game->OnResize(width, height);
 	}
 
-	void GLFWFocusCallback(GLFWwindow* pWnd, int inState) {
+	void GLFWFocusCallback(GLFWwindow* pWnd, INT inState) {
 		auto game = reinterpret_cast<GameWorld*>(glfwGetWindowUserPointer(pWnd));
 		game->OnFocusChanged(inState);
 	}
@@ -110,7 +110,7 @@ GameWorld::~GameWorld() {
 	if (!bIsCleanedUp) CleanUp();
 }
 
-bool GameWorld::Initialize() {
+BOOL GameWorld::Initialize() {
 	Logger::LogHelper::StaticInit();
 
 	CheckReturn(InitMainWindow());
@@ -125,12 +125,12 @@ bool GameWorld::Initialize() {
 	return true;
 }
 
-bool GameWorld::RunLoop() {
+BOOL GameWorld::RunLoop() {
 	MSG msg = { 0 };
 
-	float beginTime = 0.0f;
-	float endTime = 0.0f;
-	float elapsedTime = 0.0f;
+	FLOAT beginTime = 0.0f;
+	FLOAT endTime = 0.0f;
+	FLOAT elapsedTime = 0.0f;
 
 	mTimer->Reset();
 
@@ -324,7 +324,7 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-LRESULT GameWorld::MsgProc(GLFWwindow* wnd, int key, int code, int action, int mods) {
+LRESULT GameWorld::MsgProc(GLFWwindow* wnd, INT key, INT code, INT action, INT mods) {
 	switch (key) {
 	case GLFW_KEY_ESCAPE:
 		if (action == GLFW_PRESS) {
@@ -342,12 +342,12 @@ void GameWorld::OnResize(UINT width, UINT height) {
 	}
 }
 
-void GameWorld::OnFocusChanged(int focused) {
+void GameWorld::OnFocusChanged(INT focused) {
 	bAppPaused = (focused == GLFW_TRUE ? false : true);
 	mInputManager->IgnoreMouseInput();
 }
 
-bool GameWorld::InitMainWindow() {
+BOOL GameWorld::InitMainWindow() {
 #ifdef _DirectX
 	WNDCLASS wc;
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -365,14 +365,14 @@ bool GameWorld::InitMainWindow() {
 	// Compute window rectangle dimensions based on requested client area dimensions.
 	RECT R = { 0, 0, static_cast<LONG>(InitClientWidth), static_cast<LONG>(InitClientHeight) };
 	AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
-	int width = R.right - R.left;
-	int height = R.bottom - R.top;
+	INT width = R.right - R.left;
+	INT height = R.bottom - R.top;
 
-	int outputWidth = GetSystemMetrics(SM_CXSCREEN);
-	int outputHeight = GetSystemMetrics(SM_CYSCREEN);
+	INT outputWidth = GetSystemMetrics(SM_CXSCREEN);
+	INT outputHeight = GetSystemMetrics(SM_CYSCREEN);
 
-	int clientPosX = static_cast<int>((outputWidth - InitClientWidth) * 0.5f);
-	int clientPosY = static_cast<int>((outputHeight - InitClientHeight) * 0.5f);
+	INT clientPosX = static_cast<INT >((outputWidth - InitClientWidth) * 0.5f);
+	INT clientPosY = static_cast<INT >((outputHeight - InitClientHeight) * 0.5f);
 
 	mhMainWnd = CreateWindow(
 		L"MyGameEngine", L"MyGameEngine - DirectX",
@@ -396,8 +396,8 @@ bool GameWorld::InitMainWindow() {
 	auto primaryMonitor = glfwGetPrimaryMonitor();
 	const auto videoMode = glfwGetVideoMode(primaryMonitor);
 
-	int clientPosX = (videoMode->width - InitClientWidth) >> 1;
-	int clientPosY = (videoMode->height - InitClientHeight) >> 1;
+	INT clientPosX = (videoMode->width - InitClientWidth) >> 1;
+	INT clientPosY = (videoMode->height - InitClientHeight) >> 1;
 
 	glfwSetWindowPos(mGlfwWnd, clientPosX, clientPosY);
 
@@ -457,28 +457,28 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 	}
 }
 
-bool GameWorld::ProcessInput() {
+BOOL GameWorld::ProcessInput() {
 	mInputManager->Update();
 	if (mGameState == EGameStates::EGS_Play) CheckReturn(mActorManager->ProcessInput(mInputManager->GetInputState()));
 
 	return true;
 }
 
-bool GameWorld::Update() {
-	float dt = mTimer->DeltaTime();
+BOOL GameWorld::Update() {
+	FLOAT dt = mTimer->DeltaTime();
 	CheckReturn(mActorManager->Update(dt * mTimeSlowDown));
 	CheckReturn(mRenderer->Update(dt * mTimeSlowDown));
 
 	return true;
 }
 
-bool GameWorld::Draw() {
+BOOL GameWorld::Draw() {
 	CheckReturn(mRenderer->Draw());
 
 	return true;
 }
 
-bool GameWorld::LoadData() {
+BOOL GameWorld::LoadData() {
 	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/brown_photostudio.dds"));
 
 	XMFLOAT4 rot;

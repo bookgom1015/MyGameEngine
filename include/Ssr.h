@@ -23,7 +23,7 @@ namespace Ssr {
 
 	static const UINT NumRenderTargets = 2;
 	
-	const float ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class SsrClass {
 	public:
@@ -37,17 +37,17 @@ namespace Ssr {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMapRtv(UINT index) const;
 
 	public:
-		bool Initialize(ID3D12Device* device, ShaderManager*const manager, 
+		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager,
 			UINT width, UINT height, UINT divider);
-		bool CompileShaders(const std::wstring& filePath);
-		bool BuildRootSignature(const StaticSamplers& samplers);
-		bool BuildPso();
+		BOOL CompileShaders(const std::wstring& filePath);
+		BOOL BuildRootSignature(const StaticSamplers& samplers);
+		BOOL BuildPso();
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		bool OnResize(UINT width, UINT height);
+		BOOL OnResize(UINT width, UINT height);
 
 		void Build(
 			ID3D12GraphicsCommandList*const cmdList,
@@ -58,7 +58,7 @@ namespace Ssr {
 
 	private:
 		void BuildDescriptors();
-		bool BuildResources();
+		BOOL BuildResources();
 
 	private:
 		ID3D12Device* md3dDevice;

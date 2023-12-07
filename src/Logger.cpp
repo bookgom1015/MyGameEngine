@@ -1,6 +1,6 @@
 #include "Logger.h"
 
-bool Logger::LogHelper::StaticInit() {
+BOOL Logger::LogHelper::StaticInit() {
 	DWORD writtenBytes = 0;
 	WORD bom = 0xFEFF;
 
