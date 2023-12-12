@@ -20,10 +20,7 @@ BOOL PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const mana
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	BuildResources();
+	BuildResources(width, height);
 
 	return true;
 }
@@ -88,21 +85,16 @@ void PixelationClass::BuildDescriptors(
 }
 
 BOOL PixelationClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
 
 void PixelationClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT pixelSize) {
@@ -125,7 +117,7 @@ void PixelationClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
 	FLOAT values[RootConstantsLayout::Count] = { 
-		static_cast<FLOAT>(mWidth), static_cast<FLOAT>(mHeight), pixelSize };
+		static_cast<FLOAT>(viewport.Width), static_cast<FLOAT>(viewport.Height), pixelSize };
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -148,11 +140,11 @@ void PixelationClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 }
 
-BOOL PixelationClass::BuildResources() {
+BOOL PixelationClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.Alignment = 0;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;

@@ -55,14 +55,14 @@ namespace ToneMapping {
 
 		void Resolve(
 			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer);
 		void Resolve(
 			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			FLOAT exposure);
@@ -76,7 +76,7 @@ namespace ToneMapping {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -84,9 +84,6 @@ namespace ToneMapping {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
-
-		UINT mWidth;
-		UINT mHeight;
 
 		std::unique_ptr<GpuResource> mIntermediateMap;
 

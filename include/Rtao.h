@@ -287,9 +287,6 @@ namespace Rtao {
 		virtual ~RtaoClass() = default;
 
 	public:
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
 		__forceinline const AOResourcesType& AOResources() const;
 		__forceinline const AOResourcesGpuDescriptors& AOResourcesGpuDescriptors() const;
 
@@ -341,7 +338,8 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_aoCoefficient,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_rayHitDistance);
+			D3D12_GPU_DESCRIPTOR_HANDLE uo_rayHitDistance,
+			UINT width, UINT height);
 		void RunCalculatingDepthPartialDerivative(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE i_depth,
@@ -357,7 +355,8 @@ namespace Rtao {
 		void FillInCheckerboard(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE uio_localMeanVariance);
+			D3D12_GPU_DESCRIPTOR_HANDLE uio_localMeanVariance,
+			UINT width, UINT height);
 		void ReverseReprojectPreviousFrame(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -371,7 +370,8 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficientSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedRayHitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_tsppCoefficientSquaredMeanRayHitDistance);
+			D3D12_GPU_DESCRIPTOR_HANDLE uo_tsppCoefficientSquaredMeanRayHitDistance,
+			UINT width, UINT height);
 		void BlendWithCurrentFrame(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -384,7 +384,8 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_coefficientSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_variance,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_blurStrength);
+			D3D12_GPU_DESCRIPTOR_HANDLE uo_blurStrength,
+			UINT width, UINT height);
 		void ApplyAtrousWaveletTransformFilter(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -394,7 +395,8 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depthPartialDerivative,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient);
+			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient,
+			UINT width, UINT height);
 		void BlurDisocclusion(
 			ID3D12GraphicsCommandList4* const cmdList,
 			GpuResource* aoCoefficient,
@@ -409,7 +411,7 @@ namespace Rtao {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList);
+		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 	private:
 		ID3D12Device5* md3dDevice;
@@ -421,9 +423,6 @@ namespace Rtao {
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mDxrPsoProp;
 
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
-
-		UINT mWidth;
-		UINT mHeight;
 
 		Rtao::AOResourcesType mAOResources;
 		Rtao::AOResourcesCpuDescriptors mhAOResourcesCpus;

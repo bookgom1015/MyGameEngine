@@ -45,10 +45,7 @@ BOOL RaytracedReflectionClass::Initialize(
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	CheckReturn(BuildResources(cmdList));
+	CheckReturn(BuildResources(cmdList, width, height));
 
 	return true;
 }
@@ -248,13 +245,8 @@ void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& 
 }
 
 BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources(cmdList));
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(cmdList, width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -267,7 +259,8 @@ void RaytracedReflectionClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps) {
+		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
@@ -297,8 +290,8 @@ void RaytracedReflectionClass::Run(
 	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
 	dispatchDesc.HitGroupTable.StrideInBytes = mHitGroupShaderTableStrideInBytes;
-	dispatchDesc.Width = mWidth;
-	dispatchDesc.Height = mHeight;
+	dispatchDesc.Width = width;
+	dispatchDesc.Height = height;
 	dispatchDesc.Depth = 1;
 	cmdList->DispatchRays(&dispatchDesc);
 
@@ -324,12 +317,12 @@ void RaytracedReflectionClass::BuildDescriptors() {
 	md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpuUav);
 }
 
-BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
+BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
@@ -362,7 +355,7 @@ BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList
 			nullptr
 		));
 	
-		const UINT size = mWidth * mHeight * 8;
+		const UINT size = width * height * 8;
 		std::vector<BYTE> data(size);
 	
 		for (UINT i = 0; i < size; i += 4) {
@@ -371,8 +364,8 @@ BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList
 	
 		D3D12_SUBRESOURCE_DATA subResourceData = {};
 		subResourceData.pData = data.data();
-		subResourceData.RowPitch = mWidth * 4;
-		subResourceData.SlicePitch = subResourceData.RowPitch * mHeight;
+		subResourceData.RowPitch = width * 4;
+		subResourceData.SlicePitch = subResourceData.RowPitch * height;
 		
 		UpdateSubresources(
 			cmdList,

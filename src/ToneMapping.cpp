@@ -22,10 +22,7 @@ BOOL ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const man
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 
 	return true;
 }
@@ -96,8 +93,8 @@ BOOL ToneMappingClass::BuildPso() {
 
 void ToneMappingClass::Resolve(
 		ID3D12GraphicsCommandList* const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_JustResolving].Get());
@@ -122,8 +119,8 @@ void ToneMappingClass::Resolve(
 
 void ToneMappingClass::Resolve(
 		ID3D12GraphicsCommandList* const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT exposure) {
@@ -166,13 +163,8 @@ void ToneMappingClass::BuildDescriptors(
 }
 
 BOOL ToneMappingClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -196,12 +188,12 @@ void ToneMappingClass::BuildDescriptors() {
 	md3dDevice->CreateRenderTargetView(mIntermediateMap->Resource(), &rtvDesc, mhIntermediateMapCpuRtv);
 }
 
-BOOL ToneMappingClass::BuildResources() {
+BOOL ToneMappingClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.Format = ToneMapping::IntermediateMapFormat;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;

@@ -20,10 +20,7 @@ BOOL SharpenClass::Initialize(ID3D12Device* device, ShaderManager* const manager
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	BuildResources();
+	BuildResources(width, height);
 
 	return true;
 }
@@ -88,13 +85,8 @@ void SharpenClass::BuildDescriptors(
 }
 
 BOOL SharpenClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -102,8 +94,8 @@ BOOL SharpenClass::OnResize(UINT width, UINT height) {
 
 void SharpenClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT amount) {
@@ -126,7 +118,7 @@ void SharpenClass::Run(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
 	FLOAT values[RootConstantsLayout::Count] = {
-		static_cast<FLOAT>(1.0f / mWidth), static_cast<FLOAT>(1.0f / mHeight), amount };
+		static_cast<FLOAT>(1.0f / viewport.Width), static_cast<FLOAT>(1.0f / viewport.Height), amount };
 	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -150,11 +142,11 @@ void SharpenClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 }
 
-BOOL SharpenClass::BuildResources() {
+BOOL SharpenClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.Alignment = 0;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;

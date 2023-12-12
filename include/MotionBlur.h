@@ -39,9 +39,6 @@ namespace MotionBlur {
 		virtual ~MotionBlurClass() = default;
 
 	public:
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
 		__forceinline GpuResource* MotionVectorMapResource();
 
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE MotionVectorMapRtv() const;
@@ -57,6 +54,8 @@ namespace MotionBlur {
 
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
@@ -67,7 +66,7 @@ namespace MotionBlur {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -76,21 +75,10 @@ namespace MotionBlur {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-		UINT mWidth;
-		UINT mHeight;
-
 		std::unique_ptr<GpuResource> mMotionVectorMap;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhMotionVectorMapCpuRtv;
 	};
-}
-
-constexpr UINT MotionBlur::MotionBlurClass::Width() const {
-	return mWidth;
-}
-
-constexpr UINT MotionBlur::MotionBlurClass::Height() const {
-	return mHeight;
 }
 
 GpuResource* MotionBlur::MotionBlurClass::MotionVectorMapResource() {

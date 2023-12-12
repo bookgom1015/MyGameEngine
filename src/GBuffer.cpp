@@ -29,13 +29,10 @@ BOOL GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
 	mDepthMap = depth;
 	mhDepthMapCpuDsv = dsv;
 
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 
 	return true;
 }
@@ -106,6 +103,8 @@ BOOL GBufferClass::BuildPso() {
 
 void GBufferClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
@@ -113,6 +112,9 @@ void GBufferClass::Run(
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	cmdList->RSSetViewports(1, &viewport);
+	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	mAlbedoMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mNormalMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -192,13 +194,8 @@ void GBufferClass::BuildDescriptors(
 }
 
 BOOL GBufferClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -258,12 +255,12 @@ void GBufferClass::BuildDescriptors() {
 	}
 }
 
-BOOL GBufferClass::BuildResources() {
+BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;

@@ -34,10 +34,7 @@ BOOL BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UI
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 
 	return true;
 }
@@ -280,21 +277,16 @@ void BRDFClass::BuildDescriptors(
 }
 
 BOOL BRDFClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
 
 void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
@@ -395,11 +387,11 @@ void BRDFClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferSrvCpu);
 }
 
-BOOL BRDFClass::BuildResources() {
+BOOL BRDFClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.Alignment = 0;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;

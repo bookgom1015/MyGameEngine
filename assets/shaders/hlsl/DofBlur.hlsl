@@ -38,7 +38,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	vout.TexC = gTexCoords[vid];
 
 	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	return vout;
 }
@@ -51,35 +51,35 @@ float4 PS(VertexOut pin) : SV_Target {
 		gBlurWeights[2].x, gBlurWeights[2].y, gBlurWeights[2].z, gBlurWeights[2].w,
 	};
 
-	uint width, height;
-	gi_BackBuffer.GetDimensions(width, height);
+	uint2 size;
+	gi_BackBuffer.GetDimensions(size.x, size.y);
 
-	float dx = 1.0f / width;
-	float dy = 1.0f / height;
-
-	float2 texOffset;
-	if (gHorizontalBlur) texOffset = float2(dx, 0.0f);
-	else texOffset = float2(0.0f, dy);
+	float dx = 1.0 / size.x;
+	float dy = 1.0 / size.y;
 
 	float totalWeight = blurWeights[gBlurRadius];
-	float3 color = totalWeight * gi_BackBuffer.Sample(gsamPointClamp, pin.TexC).rgb;
-
-	float centerCoc = abs(gi_Coc.Sample(gsamPointClamp, pin.TexC));
+	float3 color = totalWeight * gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
 
 	for (int i = -gBlurRadius; i <= gBlurRadius; ++i) {
-		if (i == 0) continue;
+		for (int j = -gBlurRadius; j <= gBlurRadius; ++j) {
+			if (i == 0 && j == 0) continue;
 
-		float2 tex = pin.TexC + i * texOffset;
+			float2 texOffset = float2(dx * i, dy * j);
+			float2 texc = pin.TexC + texOffset;
 
-		float coc = abs(min(gi_Coc.Sample(gsamPointClamp, tex), 0.0f));
-		float weight = blurWeights[i + gBlurRadius] * centerCoc;
+			float w_c = abs(gi_Coc.Sample(gsamLinearClamp, texc));
+			if (w_c <= 0.1) w_c = 0;
+			else w_c = 1;
 
-		color += weight * gi_BackBuffer.Sample(gsamPointClamp, tex).rgb;
-		totalWeight += weight;
+			float weight = blurWeights[i + gBlurRadius] * blurWeights[j + gBlurRadius] * w_c;
+
+			color += weight * gi_BackBuffer.Sample(gsamLinearClamp, texc).rgb;
+			totalWeight += weight;
+		}
 	}
 	color /= totalWeight;
 
-	return float4(color, 1.0f);
+	return float4(color, 1);
 }
 
 #endif // __DOFBLUR_HLSL__

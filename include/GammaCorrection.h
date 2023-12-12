@@ -36,8 +36,8 @@ namespace GammaCorrection {
 		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			FLOAT gamma);
@@ -47,7 +47,7 @@ namespace GammaCorrection {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -55,9 +55,6 @@ namespace GammaCorrection {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
-
-		UINT mWidth;
-		UINT mHeight;
 
 		std::unique_ptr<GpuResource> mDuplicatedBackBuffer;
 

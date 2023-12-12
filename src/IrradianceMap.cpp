@@ -332,7 +332,7 @@ BOOL IrradianceMapClass::BuildPso() {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_DrawCube].Get();
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = HDR_FORMAT;
+		psoDesc.RTVFormats[0] = SDR_FORMAT;
 		psoDesc.DepthStencilState.DepthEnable = FALSE;
 
 		{

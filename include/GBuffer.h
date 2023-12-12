@@ -36,9 +36,6 @@ namespace GBuffer {
 		virtual ~GBufferClass() = default;
 
 	public:
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
 		__forceinline GpuResource* AlbedoMapResource();
 		__forceinline GpuResource* NormalMapResource();
 		__forceinline GpuResource* NormalDepthMapResource();
@@ -69,6 +66,8 @@ namespace GBuffer {
 		BOOL BuildPso();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
 			D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
@@ -84,7 +83,7 @@ namespace GBuffer {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);
@@ -95,9 +94,6 @@ namespace GBuffer {
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
-
-		UINT mWidth;
-		UINT mHeight;
 
 		std::unique_ptr<GpuResource> mAlbedoMap;
 		std::unique_ptr<GpuResource> mNormalMap;

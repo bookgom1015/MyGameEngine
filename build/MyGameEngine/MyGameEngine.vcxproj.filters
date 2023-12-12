@@ -127,9 +127,6 @@
     <Filter Include="Shader Files\HLSL\Filter\Blur\Gaussian">
       <UniqueIdentifier>{4fe314f5-1aa3-4f61-978e-d1847a1e5259}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader Files\HLSL\Filter\Blur\DOF">
-      <UniqueIdentifier>{f448a15f-5732-42fa-8b45-229c35fd58db}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shader Files\HLSL\Filter\Blur\Motion">
       <UniqueIdentifier>{bf3da614-b12c-43bd-b6fb-92245be0a9c7}</UniqueIdentifier>
     </Filter>
@@ -141,6 +138,9 @@
     </Filter>
     <Filter Include="Shader Files\HLSL\Irradiance">
       <UniqueIdentifier>{de5827d5-a273-4696-9fc5-aa70ece0d076}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Filter\DOF">
+      <UniqueIdentifier>{f448a15f-5732-42fa-8b45-229c35fd58db}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -756,16 +756,16 @@
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
-      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
-      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CocBlur.hlsl">
-      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
-      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
       <Filter>Shader Files\HLSL\Filter\Blur\Gaussian</Filter>
@@ -813,7 +813,7 @@
       <Filter>Shader Files\HLSL\Filter\Bloom</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
-      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
       <Filter>Shader Files\HLSL\Irradiance</Filter>
@@ -828,7 +828,7 @@
       <Filter>Shader Files\HLSL\Irradiance</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
-      <Filter>Shader Files\HLSL\Filter\Blur\DOF</Filter>
+      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
       <Filter>Shader Files\HLSL\DXR</Filter>

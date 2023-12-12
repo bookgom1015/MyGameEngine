@@ -57,10 +57,7 @@ BOOL RtaoClass::Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandLis
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	CheckReturn(BuildResources(cmdList));
+	CheckReturn(BuildResources(cmdList, width, height));
 
 	return true;
 }
@@ -547,32 +544,28 @@ void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 }
 
 BOOL RtaoClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources(cmdList));
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(cmdList, width, height));
+	BuildDescriptors();
 
 	return true;
 }
 
 void RtaoClass::RunCalculatingAmbientOcclusion(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_aoCoefficient,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_rayHitDistance) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_aoCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_rayHitDistance,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcAmbientOcclusion].Get());
 
 	cmdList->SetComputeRootShaderResourceView(RootSignature::CalcAmbientOcclusion::ESI_AccelerationStructure, accelStruct);
 	cmdList->SetComputeRootConstantBufferView(RootSignature::CalcAmbientOcclusion::ECB_RtaoPass, cbAddress);
 
-	const UINT values[RootSignature::CalcAmbientOcclusion::RootConstant::Count] = { mWidth, mHeight };
+	const UINT values[RootSignature::CalcAmbientOcclusion::RootConstant::Count] = { width, height };
 	cmdList->SetComputeRoot32BitConstants(RootSignature::CalcAmbientOcclusion::EC_Consts, _countof(values), values, 0);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcAmbientOcclusion::ESI_Normal, si_normal);
@@ -592,17 +585,17 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
 	dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
-	dispatchDesc.Width = mWidth;
-	dispatchDesc.Height = mHeight;
+	dispatchDesc.Width = width;
+	dispatchDesc.Height = height;
 	dispatchDesc.Depth = 1;
 	cmdList->DispatchRays(&dispatchDesc);
 }
 
 void RtaoClass::RunCalculatingDepthPartialDerivative(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_DESCRIPTOR_HANDLE i_depth,
-	D3D12_GPU_DESCRIPTOR_HANDLE o_depthPartialDerivative,
-	UINT width, UINT height) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_DESCRIPTOR_HANDLE i_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE o_depthPartialDerivative,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcDepthPartialDerivative].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcDepthPartialDerivative].Get());
 
@@ -621,12 +614,12 @@ void RtaoClass::RunCalculatingDepthPartialDerivative(
 }
 
 void RtaoClass::RunCalculatingLocalMeanVariance(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_localMeanVariance,
-	UINT width, UINT height,
-	BOOL checkerboardSamplingEnabled) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_localMeanVariance,
+		UINT width, UINT height,
+		BOOL checkerboardSamplingEnabled) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcLocalMeanVariance].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcLocalMeanVariance].Get());
 
@@ -641,9 +634,10 @@ void RtaoClass::RunCalculatingLocalMeanVariance(
 }
 
 void RtaoClass::FillInCheckerboard(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-	D3D12_GPU_DESCRIPTOR_HANDLE uio_localMeanVariance) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE uio_localMeanVariance,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_FillInCheckerboard].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_FillInCheckerboard].Get());
 
@@ -651,24 +645,25 @@ void RtaoClass::FillInCheckerboard(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::FillInCheckerboard::EUIO_LocalMeanVar, uio_localMeanVariance);
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(mWidth, Default::ThreadGroup::Width),
-		D3D12Util::CeilDivide(mHeight, Default::ThreadGroup::Height * 2), 1);
+		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
+		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height * 2), 1);
 }
 
 void RtaoClass::ReverseReprojectPreviousFrame(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_depthPartialDerivative,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_reprojNormalDepth,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_cachedNormalDepth,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficient,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_cachedTspp,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficientSquaredMean,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_cachedRayHitDistance,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_tsppCoefficientSquaredMeanRayHitDistance) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depthPartialDerivative,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_reprojNormalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedNormalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedTspp,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficientSquaredMean,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedRayHitDistance,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_tsppCoefficientSquaredMeanRayHitDistance,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_TemporalSupersamplingReverseReproject].Get());
 
@@ -686,7 +681,7 @@ void RtaoClass::ReverseReprojectPreviousFrame(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppCoefficientSquaredMeanRayHitDistacne, uo_tsppCoefficientSquaredMeanRayHitDistance);
 
 	{
-		UINT values[] = { mWidth, mHeight };
+		UINT values[] = { width, height };
 		cmdList->SetComputeRoot32BitConstants(
 			RootSignature::TemporalSupersamplingReverseReproject::EC_Consts,
 			_countof(values), values,
@@ -694,7 +689,7 @@ void RtaoClass::ReverseReprojectPreviousFrame(
 		);
 	}
 	{
-		FLOAT values[] = { 1.0f / mWidth, 1.0f / mHeight };
+		FLOAT values[] = { 1.0f / width, 1.0f / height };
 		cmdList->SetComputeRoot32BitConstants(
 			RootSignature::TemporalSupersamplingReverseReproject::EC_Consts,
 			_countof(values), values,
@@ -703,23 +698,24 @@ void RtaoClass::ReverseReprojectPreviousFrame(
 	}
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(mWidth, Default::ThreadGroup::Width),
-		D3D12Util::CeilDivide(mHeight, Default::ThreadGroup::Height), 1);
+		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
+		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height), 1);
 }
 
 void RtaoClass::BlendWithCurrentFrame(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_localMeanVariance,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_rayHitDistance,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_tsppCoefficientSquaredMeanRayHitDistance,
-	D3D12_GPU_DESCRIPTOR_HANDLE uio_temporalAOCoefficient,
-	D3D12_GPU_DESCRIPTOR_HANDLE uio_tspp,
-	D3D12_GPU_DESCRIPTOR_HANDLE uio_coefficientSquaredMean,
-	D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_variance,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_blurStrength) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_localMeanVariance,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rayHitDistance,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_tsppCoefficientSquaredMeanRayHitDistance,
+		D3D12_GPU_DESCRIPTOR_HANDLE uio_temporalAOCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE uio_tspp,
+		D3D12_GPU_DESCRIPTOR_HANDLE uio_coefficientSquaredMean,
+		D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_variance,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_blurStrength,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_TemporalSupersamplingBlendWithCurrentFrame].Get());
 
@@ -736,20 +732,21 @@ void RtaoClass::BlendWithCurrentFrame(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_BlurStrength, uo_blurStrength);
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(mWidth, Default::ThreadGroup::Width),
-		D3D12Util::CeilDivide(mHeight, Default::ThreadGroup::Height), 1);
+		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
+		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height), 1);
 }
 
 void RtaoClass::ApplyAtrousWaveletTransformFilter(
-	ID3D12GraphicsCommandList4* const cmdList,
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_temporalAOCoefficient,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_variance,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_depthPartialDerivative,
-	D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
-	D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient) {
+		ID3D12GraphicsCommandList4* const cmdList,
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_temporalAOCoefficient,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_variance,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depthPartialDerivative,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get());
 
@@ -763,8 +760,8 @@ void RtaoClass::ApplyAtrousWaveletTransformFilter(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::AtrousWaveletTransformFilter::EUO_TemporalAOCoefficient, uo_temporalAOCoefficient);
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(mWidth, Default::ThreadGroup::Width),
-		D3D12Util::CeilDivide(mHeight, Default::ThreadGroup::Height), 1);
+		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
+		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height), 1);
 }
 
 void RtaoClass::BlurDisocclusion(
@@ -778,7 +775,7 @@ void RtaoClass::BlurDisocclusion(
 	cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_DisocclusionBlur].Get());
 
-	UINT values[2] = { mWidth, mHeight };
+	UINT values[2] = { width, height };
 	cmdList->SetComputeRoot32BitConstants(RootSignature::DisocclusionBlur::EC_Consts, _countof(values), values, 0);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::DisocclusionBlur::ESI_Depth, si_depth);
@@ -933,14 +930,14 @@ void RtaoClass::BuildDescriptors() {
 	}
 }
 
-BOOL RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList) {
+BOOL RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	texDesc.Alignment = 0;
 	// Ambient occlusion maps are at half resolution.
-	texDesc.Width = mWidth;
-	texDesc.Height = mHeight;
+	texDesc.Width = width;
+	texDesc.Height = height;
 	texDesc.DepthOrArraySize = 1;
 	texDesc.MipLevels = 1;
 	texDesc.SampleDesc.Count = 1;

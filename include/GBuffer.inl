@@ -1,14 +1,6 @@
 #ifndef __GBUFFER_INL__
 #define __GBUFFER_INL__
 
-constexpr UINT GBuffer::GBufferClass::Width() const {
-	return mWidth;
-}
-
-constexpr UINT GBuffer::GBufferClass::Height() const {
-	return mHeight;
-}
-
 GpuResource* GBuffer::GBufferClass::AlbedoMapResource() {
 	return mAlbedoMap.get();
 }

@@ -88,8 +88,8 @@ namespace BRDF {
 
 		void CalcReflectanceWithoutSpecIrrad(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
@@ -120,7 +120,7 @@ namespace BRDF {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	public:
 		Model::Type ModelType;
@@ -132,9 +132,6 @@ namespace BRDF {
 		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		std::unordered_map<Render::Type, std::unordered_map<Model::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>>> mPSOs;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mIntegrateSpecularPSO;
-
-		UINT mWidth;
-		UINT mHeight;
 
 		std::unique_ptr<GpuResource> mCopiedBackBuffer;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferSrvCpu;

@@ -57,9 +57,6 @@ namespace DxrShadowMap {
 		__forceinline GpuResource* Resource(Resources::Type type);
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE Descriptor(Descriptors::Type type) const;
 
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
 	public:
 		BOOL Initialize(ID3D12Device5*const device, ID3D12GraphicsCommandList*const cmdList, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
@@ -70,7 +67,8 @@ namespace DxrShadowMap {
 			ID3D12GraphicsCommandList4*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth);
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+			UINT width, UINT height);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 
@@ -78,7 +76,7 @@ namespace DxrShadowMap {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResource(ID3D12GraphicsCommandList*const cmdList);
+		BOOL BuildResource(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
 
 	private:
 		ID3D12Device5* md3dDevice;
@@ -90,12 +88,6 @@ namespace DxrShadowMap {
 
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
 		UINT mHitGroupShaderTableStrideInBytes;
-
-		UINT mWidth;
-		UINT mHeight;
-
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
 
 		DxrShadowMap::ResourcesType mResources;
 		DxrShadowMap::ResourcesCpuDescriptors mhCpuDescs;
@@ -109,12 +101,4 @@ D3D12_GPU_DESCRIPTOR_HANDLE DxrShadowMap::DxrShadowMapClass::Descriptor(Descript
 
 GpuResource* DxrShadowMap::DxrShadowMapClass::Resource(Resources::Type type) {
 	return mResources[type].get();
-}
-
-constexpr UINT DxrShadowMap::DxrShadowMapClass::Width() const {
-	return mWidth;
-}
-
-constexpr UINT DxrShadowMap::DxrShadowMapClass::Height() const {
-	return mHeight;
 }

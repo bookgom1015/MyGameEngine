@@ -35,7 +35,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	vout.TexC = gTexCoords[vid];
 
 	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	// Transform quad corners to view space near plane.
 	float4 ph = mul(vout.PosH, gInvProj);
@@ -59,7 +59,7 @@ DepthOfField::CocMapFormat PS(VertexOut pin) : SV_Target {
 
 	float diff = depth - focusDist;
 	float coc = diff / gFocusRange;
-	coc = clamp(coc, -1.0f, 1.0f);
+	coc = clamp(coc, -1, 1);
 
 	return coc;
 }

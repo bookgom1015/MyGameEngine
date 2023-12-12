@@ -44,15 +44,15 @@ namespace Sharpen {
 
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			FLOAT amount);
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -64,8 +64,5 @@ namespace Sharpen {
 		std::unique_ptr<GpuResource> mCopiedBackBuffer;
 		D3D12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferCpuSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferGpuSrv;
-
-		UINT mWidth;
-		UINT mHeight;
 	};
 }

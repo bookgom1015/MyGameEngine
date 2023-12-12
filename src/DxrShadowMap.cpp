@@ -34,13 +34,7 @@ BOOL DxrShadowMapClass::Initialize(
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
-
-	CheckReturn(BuildResource(cmdList));
+	CheckReturn(BuildResource(cmdList, width, height));
 
 	return true;
 }
@@ -149,7 +143,8 @@ void DxrShadowMapClass::Run(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth) {
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+		UINT width, UINT height) {
 	cmdList->SetPipelineState1(mPSO.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
@@ -178,8 +173,8 @@ void DxrShadowMapClass::Run(
 	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
 	dispatchDesc.HitGroupTable.StrideInBytes = mHitGroupShaderTableStrideInBytes;
-	dispatchDesc.Width = mWidth;
-	dispatchDesc.Height = mHeight;
+	dispatchDesc.Width = width;
+	dispatchDesc.Height = height;
 	dispatchDesc.Depth = 1;
 
 	cmdList->SetPipelineState1(mPSO.Get());
@@ -208,16 +203,8 @@ void DxrShadowMapClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD
 }
 
 BOOL DxrShadowMapClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
-
-		CheckReturn(BuildResource(cmdList));
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResource(cmdList, width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -245,14 +232,14 @@ void DxrShadowMapClass::BuildDescriptors() {
 	md3dDevice->CreateUnorderedAccessView(pSmoothedResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow1]);
 }
 
-BOOL DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList) {
+BOOL DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
 	D3D12_RESOURCE_DESC texDesc = {};
 	texDesc.DepthOrArraySize = 1;
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	texDesc.Format = ShadowMapFormat;
 	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	texDesc.Width = mWidth;
-	texDesc.Height = mHeight;
+	texDesc.Width = width;
+	texDesc.Height = height;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	texDesc.MipLevels = 1;
 	texDesc.SampleDesc.Count = 1;

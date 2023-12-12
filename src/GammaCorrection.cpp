@@ -20,10 +20,7 @@ BOOL GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 
 	return true;
 }
@@ -76,8 +73,8 @@ BOOL GammaCorrectionClass::BuildPso() {
 
 void GammaCorrectionClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT gamma) {
@@ -123,13 +120,8 @@ void GammaCorrectionClass::BuildDescriptors(
 }
 
 BOOL GammaCorrectionClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -147,12 +139,12 @@ void GammaCorrectionClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mDuplicatedBackBuffer->Resource(), &srvDesc, mhDuplicatedBackBufferCpuSrv);
 }
 
-BOOL GammaCorrectionClass::BuildResources() {
+BOOL GammaCorrectionClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.Format = SDR_FORMAT;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;

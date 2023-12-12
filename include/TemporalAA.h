@@ -21,24 +21,13 @@ namespace TemporalAA {
 		};
 	}
 
-	const UINT NumRenderTargets = 1;
-
-	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
 	class TemporalAAClass {
 	public:
 		TemporalAAClass();
 		virtual ~TemporalAAClass() = default;
 
 	public:
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
-		__forceinline GpuResource* ResolveMapResource();
 		__forceinline GpuResource* HistoryMapResource();
-
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolveMapSrv() const;
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResolveMapRtv() const;
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE HistoryMapSrv() const;
 
@@ -50,7 +39,10 @@ namespace TemporalAA {
 
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
 			FLOAT factor);
@@ -58,13 +50,12 @@ namespace TemporalAA {
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
-			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
-			UINT descSize, UINT rtvDescSize);
+			UINT descSize);
 		BOOL OnResize(UINT width, UINT height);
 
 	public:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -73,23 +64,14 @@ namespace TemporalAA {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-		UINT mWidth;
-		UINT mHeight;
-
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
-
-		std::unique_ptr<GpuResource> mResolveMap;
+		std::unique_ptr<GpuResource> mCopiedBackBuffer;
 		std::unique_ptr<GpuResource> mHistoryMap;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResolveMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhResolveMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResolveMapCpuRtv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferGpuSrv;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhHistoryMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhHistoryMapGpuSrv;
-
-		BOOL bInitiatingTaa;
 	};
 }
 

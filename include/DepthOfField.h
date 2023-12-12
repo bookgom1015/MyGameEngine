@@ -91,34 +91,21 @@ namespace DepthOfField {
 	}
 
 
-	const UINT NumRenderTargets = 3;
+	const UINT NumRenderTargets = 1;
 
 	const FLOAT CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT BokehMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	const FLOAT DofMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	class DepthOfFieldClass {
 	public:
 		DepthOfFieldClass();
 		virtual ~DepthOfFieldClass() = default;
 
-	public:
-		__forceinline constexpr UINT CocMapWidth() const;
-		__forceinline constexpr UINT CocMapHeight() const;
-
-		__forceinline constexpr UINT DofMapWidth() const;
-		__forceinline constexpr UINT DofMapHeight() const;
-		
+	public:		
 		__forceinline GpuResource* CocMapResource();
-		__forceinline GpuResource* DofMapResource();
-		__forceinline GpuResource* FocalDistanceBufferResource();
-
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CocMapSrv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CocMapRtv() const;
 
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DofMapSrv() const;
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DofMapRtv() const;
-
+		__forceinline GpuResource* FocalDistanceBufferResource();
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocalDistanceBufferUav() const;
 
 	public:
@@ -130,19 +117,22 @@ namespace DepthOfField {
 
 		void CalcFocalDist(
 			ID3D12GraphicsCommandList*const cmdList,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
 		void CalcCoc(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
 		void ApplyDof(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
+			GpuResource* backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			FLOAT bokehRadius,
 			FLOAT cocThreshold,
 			FLOAT cocDiffThreshold,
@@ -150,7 +140,12 @@ namespace DepthOfField {
 			INT numSamples);
 		void BlurDof(
 			ID3D12GraphicsCommandList*const cmdList,
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			GpuResource* backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			UINT blurCount);
 
 		void BuildDescriptors(
@@ -162,9 +157,7 @@ namespace DepthOfField {
 
 	public:
 		void BuildDescriptors();
-		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList);
-
-		void Blur(ID3D12GraphicsCommandList*const cmdList, BOOL horzBlur);
+		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -173,21 +166,18 @@ namespace DepthOfField {
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
-		UINT mWidth;
-		UINT mHeight;
-
-		D3D12_VIEWPORT mViewport;
-		D3D12_RECT mScissorRect;
-
 		std::unique_ptr<GpuResource> mCocMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCocMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuRtv;
 
-		std::array<std::unique_ptr<GpuResource>, 2> mDofMaps;
-		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhDofMapCpuSrvs;
-		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhDofMapGpuSrvs;
-		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhDofMapCpuRtvs;
+		std::unique_ptr<GpuResource> mDofTempMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofTempMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDofTempMapGpuSrv;
+
+		std::unique_ptr<GpuResource> mDofBlurTempMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofBlurTempMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDofBlurTempMapGpuSrv;
 
 		std::unique_ptr<GpuResource> mFocalDistanceBuffer;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFocalDistanceCpuUav;

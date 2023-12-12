@@ -6,6 +6,7 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "HlslCompaction.h"
 
 class ShaderManager;
 
@@ -16,7 +17,10 @@ namespace BlurFilter {
 			EC_Consts,
 			ESI_Normal,
 			ESI_Depth,
-			ESI_Input,
+			ESI_Input_F4,
+			ESI_Input_F3,
+			ESI_Input_F2,
+			ESI_Input_F1,
 			Count
 		};
 	}
@@ -28,14 +32,6 @@ namespace BlurFilter {
 			Count
 		};
 	}
-
-	enum FilterType {
-		R8G8B8A8,
-		R16,
-		R16G16B16A16,
-		R32G32B32A32,
-		Count
-	};
 
 	class BlurFilterClass {
 	public:
@@ -78,6 +74,7 @@ namespace BlurFilter {
 			GpuResource*const output,
 			D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
 			D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
+			FilterType type,
 			BOOL horzBlur);
 
 	private:

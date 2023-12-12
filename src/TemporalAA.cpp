@@ -8,7 +8,7 @@
 using namespace TemporalAA;
 
 TemporalAAClass::TemporalAAClass() {
-	mResolveMap	= std::make_unique<GpuResource>();
+	mCopiedBackBuffer = std::make_unique<GpuResource>();
 	mHistoryMap = std::make_unique<GpuResource>();
 }
 
@@ -16,15 +16,7 @@ BOOL TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
-
-	bInitiatingTaa = true;
-
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 
 	return true;
 }
@@ -80,39 +72,32 @@ BOOL TemporalAAClass::BuildPso() {
 
 void TemporalAAClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity, 
 		FLOAT factor) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 	
-	cmdList->RSSetViewports(1, &mViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
+	cmdList->RSSetViewports(1, &viewport);
+	cmdList->RSSetScissorRects(1, &scissorRect);
 
-	auto resolveMap = mResolveMap->Resource();
-	auto historyMap = mHistoryMap->Resource();
-	auto backBufferResource = backBuffer->Resource();
+	auto backBuff = backBuffer->Resource();
 
-	if (bInitiatingTaa) {
-		mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-		cmdList->CopyResource(resolveMap, backBufferResource);
+	cmdList->CopyResource(mCopiedBackBuffer->Resource(), backBuff);
 
-		mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		bInitiatingTaa = false;
-	}
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-	cmdList->ClearRenderTargetView(mhResolveMapCpuRtv, TemporalAA::ClearValues, 0, nullptr);
-	cmdList->OMSetRenderTargets(1, &mhResolveMapCpuRtv, true, nullptr);
-
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input, si_backBuffer);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input, mhCopiedBackBufferGpuSrv);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_History, mhHistoryMapGpuSrv);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Velocity, si_velocity);
 
@@ -124,47 +109,33 @@ void TemporalAAClass::Run(
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
 	mHistoryMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-	mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-	cmdList->CopyResource(historyMap, resolveMap);
-	cmdList->CopyResource(backBufferResource, resolveMap);
+	cmdList->CopyResource(mHistoryMap->Resource(), backBuff);
 
 	mHistoryMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	mResolveMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void TemporalAAClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
-		UINT descSize, UINT rtvDescSize) {
-	mhResolveMapCpuSrv = hCpu;
-	mhResolveMapGpuSrv = hGpu;
-	mhResolveMapCpuRtv = hCpuRtv;
+		UINT descSize) {
+	mhCopiedBackBufferCpuSrv = hCpu;
+	mhCopiedBackBufferGpuSrv = hGpu;
 
 	mhHistoryMapCpuSrv = hCpu.Offset(1, descSize);
 	mhHistoryMapGpuSrv = hGpu.Offset(1, descSize);
 
 	hCpu.Offset(1, descSize);
 	hGpu.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
 
 	BuildDescriptors();
 }
 
 BOOL TemporalAAClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
@@ -178,52 +149,41 @@ void TemporalAAClass::BuildDescriptors() {
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = SDR_FORMAT;
-	rtvDesc.Texture2D.MipSlice = 0;
-	rtvDesc.Texture2D.PlaneSlice = 0;
-
-	md3dDevice->CreateShaderResourceView(mResolveMap->Resource(), &srvDesc, mhResolveMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mResolveMap->Resource(), &rtvDesc, mhResolveMapCpuRtv);
-
+	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 	md3dDevice->CreateShaderResourceView(mHistoryMap->Resource(), &srvDesc, mhHistoryMapCpuSrv);
 }
 
-BOOL TemporalAAClass::BuildResources() {
+BOOL TemporalAAClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = SDR_FORMAT;
 	rscDesc.Alignment = 0;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	CD3DX12_CLEAR_VALUE optClear(SDR_FORMAT, ClearValues);
-
-	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-	CheckReturn(mResolveMap->Initialize(
+	CheckReturn(mCopiedBackBuffer->Initialize(
 		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		&optClear,
-		L"TAA_ResolveMap"
+		nullptr,
+		L"TAA_CopiedBackBuffer"
 	));
 
-	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 	CheckReturn(mHistoryMap->Initialize(
 		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-		NULL,
+		nullptr,
 		L"TAA_HistoryMap"
 	));
 

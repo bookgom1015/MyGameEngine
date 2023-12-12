@@ -111,7 +111,7 @@ namespace DepthOfField {
 	typedef float	CocMapFormat;
 #else
 	static const DXGI_FORMAT DofMapFormat = HDR_FORMAT;
-	static const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R16_SNORM;
+	static const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R16_FLOAT;
 #endif
 }
 
@@ -133,6 +133,16 @@ namespace IrradianceMap {
 	static const DXGI_FORMAT EquirectMapFormat					= HDR_FORMAT;
 	static const DXGI_FORMAT IntegratedBrdfMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
 #endif
+}
+
+namespace BlurFilter {
+	enum FilterType {
+		R8G8B8A8,
+		R16,
+		R16G16B16A16,
+		R32G32B32A32,
+		Count
+	};
 }
 
 namespace RaytracedReflection{

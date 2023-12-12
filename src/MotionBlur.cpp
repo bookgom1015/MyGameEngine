@@ -14,10 +14,7 @@ BOOL MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width;
-	mHeight = height;
-
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 
 	return true;
 }
@@ -77,7 +74,6 @@ BOOL MotionBlurClass::BuildPso() {
 	return true;
 }
 
-
 void MotionBlurClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv, UINT rtvDescSize) {
 	mhMotionVectorMapCpuRtv = hCpuRtv;
 
@@ -87,19 +83,16 @@ void MotionBlurClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv, U
 }
 
 BOOL MotionBlurClass::OnResize(UINT width, UINT height) {
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
 	return true;
 }
 
 void MotionBlurClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
+		const D3D12_VIEWPORT& viewport,
+		const D3D12_RECT& scissorRect,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
@@ -109,6 +102,9 @@ void MotionBlurClass::Run(
 		INT sampleCount) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+	cmdList->RSSetViewports(1, &viewport);
+	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	cmdList->ClearRenderTargetView(mhMotionVectorMapCpuRtv, MotionBlur::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhMotionVectorMapCpuRtv, true, nullptr);
@@ -136,13 +132,13 @@ void MotionBlurClass::BuildDescriptors() {
 	md3dDevice->CreateRenderTargetView(mMotionVectorMap->Resource(), &rtvDesc, mhMotionVectorMapCpuRtv);
 }
 
-BOOL MotionBlurClass::BuildResources() {
+BOOL MotionBlurClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Format = SDR_FORMAT;
 	rscDesc.Alignment = 0;
-	rscDesc.Width = mWidth;
-	rscDesc.Height = mHeight;
+	rscDesc.Width = width;
+	rscDesc.Height = height;
 	rscDesc.DepthOrArraySize = 1;
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;

@@ -19,30 +19,30 @@ struct VertexOut {
 };
 
 VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
 
 	// Quad covering screen in NDC space.
-	float2 pos = float2(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y);
+	float2 pos = float2(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y);
 
 	// Already in homogeneous clip space.
-	vout.PosH = float4(pos, 0.0f, 1.0f);
+	vout.PosH = float4(pos, 0, 1);
 
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_TARGET {
-	uint width, height, numMips;
-	gi_Input.GetDimensions(0, width, height, numMips);
+	uint2 size;
+	gi_Input.GetDimensions(size.x, size.y);
 
-	float dx = 1.0f / width;
-	float dy = 1.0f / height;
+	float dx = 1.0 / size.x;
+	float dy = 1.0 / size.y;
 
 	float2 velocity = gi_Velocity.Sample(gsamPointClamp, pin.TexC);
 	float2 prevTexC = pin.TexC - velocity;
 
-	float3 inputColor = gi_Input.Sample(gsamPointClamp, pin.TexC);
+	float3 inputColor = gi_Input.Sample(gsamLinearClamp, pin.TexC);
 	float3 historyColor = gi_History.Sample(gsamLinearClamp, prevTexC).rgb;
 
 	float3 nearColor0 = gi_Input.Sample(gsamPointClamp, pin.TexC + dx);
@@ -55,9 +55,9 @@ float4 PS(VertexOut pin) : SV_TARGET {
 
 	historyColor = clamp(historyColor, minColor, maxColor);
 
-	float3 resolvedColor = inputColor * (1.0f - gModulationFactor) + historyColor * gModulationFactor;
+	float3 resolvedColor = inputColor * (1 - gModulationFactor) + historyColor * gModulationFactor;
 
-	return float4(resolvedColor, 1.0f);
+	return float4(resolvedColor, 1);
 }
 
 #endif // __TEMPORALAA_HLSL__

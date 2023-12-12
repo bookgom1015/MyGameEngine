@@ -1,14 +1,6 @@
 #ifndef __RTAO_INL__
 #define __RTAO_INL__
 
-constexpr UINT Rtao::RtaoClass::Width() const {
-	return mWidth;
-}
-
-constexpr UINT Rtao::RtaoClass::Height() const {
-	return mHeight;
-}
-
 const Rtao::AOResourcesType& Rtao::RtaoClass::AOResources() const {
 	return mAOResources;
 }

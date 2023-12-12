@@ -25,7 +25,21 @@ cbuffer cbRootConstants : register(b1) {
 
 Texture2D<GBuffer::NormalMapFormat>	gi_Normal	: register(t0);
 Texture2D<GBuffer::DepthMapFormat>	gi_Depth	: register(t1);
-Texture2D<float4>					gi_Input	: register(t2);
+
+Texture2D<float4>					gi_Input_F4	: register(t2);
+Texture2D<float3>					gi_Input_F3	: register(t3);
+Texture2D<float2>					gi_Input_F2	: register(t4);
+Texture2D<float>					gi_Input_F1	: register(t5);
+
+#if FT_F4
+typedef float4 PixelOut;
+#elif FT_F3
+typedef float3 PixelOut;
+#elif FT_F2
+typedef float2 PixelOut;
+#else
+typedef float PixelOut;
+#endif
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -40,18 +54,12 @@ VertexOut VS(uint vid : SV_VertexID) {
 	vout.TexC = gTexCoords[vid];
 
 	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	return vout;
 }
 
-float NdcDepthToViewDepth(float z_ndc) {
-	// z_ndc = A + B/viewZ, where gProj[2,2]=A and gProj[3,2]=B.
-	float viewZ = gProj[3][2] / (z_ndc - gProj[2][2]);
-	return viewZ;
-}
-
-float4 PS(VertexOut pin) : SV_Target {
+PixelOut PS(VertexOut pin) : SV_Target {
 	// unpack into float array.
 	const float blurWeights[12] = {
 		gBlurWeights[0].x, gBlurWeights[0].y, gBlurWeights[0].z, gBlurWeights[0].w,
@@ -59,25 +67,41 @@ float4 PS(VertexOut pin) : SV_Target {
 		gBlurWeights[2].x, gBlurWeights[2].y, gBlurWeights[2].z, gBlurWeights[2].w,
 	};
 
-	uint width, height;
-	gi_Input.GetDimensions(width, height);
+	uint2 size;
+#if FT_F4
+	gi_Input_F4.GetDimensions(size.x, size.y);
+#elif FT_F3
+	gi_Input_F3.GetDimensions(size.x, size.y);
+#elif FT_F2
+	gi_Input_F2.GetDimensions(size.x, size.y);
+#else
+	gi_Input_F1.GetDimensions(size.x, size.y);
+#endif
 
-	const float dx = 1.0f / width;
-	const float dy = 1.0f / height;
+	const float dx = 1.0 / size.x;
+	const float dy = 1.0 / size.y;
 
 	float2 texOffset;
-	if (gHorizontal) texOffset = float2(dx, 0.0f);
-	else texOffset = float2(0.0f, dy);
+	if (gHorizontal) texOffset = float2(dx, 0);
+	else texOffset = float2(0, dy);
 
 	// The center value always contributes to the sum.
-	float4 color = blurWeights[gBlurRadius] * gi_Input.Sample(gsamLinearClamp, pin.TexC);
+#if FT_F4
+	float4 color = blurWeights[gBlurRadius] * gi_Input_F4.Sample(gsamLinearClamp, pin.TexC);
+#elif FT_F3
+	float3 color = blurWeights[gBlurRadius] * gi_Input_F3.Sample(gsamLinearClamp, pin.TexC);
+#elif FT_F2
+	float2 color = blurWeights[gBlurRadius] * gi_Input_F2.Sample(gsamLinearClamp, pin.TexC);
+#else
+	float color = blurWeights[gBlurRadius] * gi_Input_F1.Sample(gsamLinearClamp, pin.TexC);
+#endif
 	float totalWeight = blurWeights[gBlurRadius];
 
 	float3 centerNormal;
 	float centerDepth;
 	if (gBilateral) {		
 		centerNormal = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
-		centerDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, pin.TexC));
+		centerDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, pin.TexC), gProj);
 	}
 
 	for (int i = -gBlurRadius; i <= gBlurRadius; ++i)	{
@@ -88,18 +112,26 @@ float4 PS(VertexOut pin) : SV_Target {
 
 		if (gBilateral) {
 			const float3 neighborNormal = normalize(gi_Normal.Sample(gsamLinearClamp, tex).xyz);
-			const float neighborDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, tex));
+			const float neighborDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, tex), gProj);
 
 			//
 			// If the center value and neighbor values differ too much (either in 
 			// normal or depth), then we assume we are sampling across a discontinuity.
 			// We discard such samples from the blur.
 			//
-			if (dot(neighborNormal, centerNormal) >= 0.75f && abs(neighborDepth - centerDepth) <= 1.0f) {
+			if (dot(neighborNormal, centerNormal) >= 0.75 && abs(neighborDepth - centerDepth) <= 1) {
 				float weight = blurWeights[i + gBlurRadius];
 
 				// Add neighbor pixel to blur.
-				color += weight * gi_Input.Sample(gsamLinearClamp, tex);
+#if FT_F4
+				color += weight * gi_Input_F4.Sample(gsamLinearClamp, tex);
+#elif FT_F3
+				color += weight * gi_Input_F3.Sample(gsamLinearClamp, tex);
+#elif FT_F2
+				color += weight * gi_Input_F2.Sample(gsamLinearClamp, tex);
+#else
+				color += weight * gi_Input_F1.Sample(gsamLinearClamp, tex);
+#endif
 
 				totalWeight += weight;
 			}
@@ -107,7 +139,15 @@ float4 PS(VertexOut pin) : SV_Target {
 		else {
 			const float weight = blurWeights[i + gBlurRadius];
 
-			color += weight * gi_Input.Sample(gsamLinearClamp, tex);
+#if FT_F4
+			color += weight * gi_Input_F4.Sample(gsamLinearClamp, tex);
+#elif FT_F3
+			color += weight * gi_Input_F3.Sample(gsamLinearClamp, tex);
+#elif FT_F2
+			color += weight * gi_Input_F2.Sample(gsamLinearClamp, tex);
+#else
+			color += weight * gi_Input_F1.Sample(gsamLinearClamp, tex);
+#endif
 
 			totalWeight += weight;
 		}

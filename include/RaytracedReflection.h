@@ -64,9 +64,6 @@ namespace RaytracedReflection {
 		virtual ~RaytracedReflectionClass() = default;
 
 	public:
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE ReflectionMapSrv() const;
 
 	public:
@@ -88,11 +85,12 @@ namespace RaytracedReflection {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps);
+			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
+			UINT width, UINT height);
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList);
+		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 
 	private:
 		ID3D12Device5* md3dDevice;
@@ -108,9 +106,6 @@ namespace RaytracedReflection {
 		UINT mHitGroupShaderTableStrideInBytes;
 		UINT mShadowRayOffset;
 
-		UINT mWidth;
-		UINT mHeight;
-
 		std::unique_ptr<GpuResource> mReflectionMap;
 		std::unique_ptr<GpuResource> mReflectionUploadBuffer;
 
@@ -119,14 +114,6 @@ namespace RaytracedReflection {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReflectionMapCpuUav;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhReflectionMapGpuUav;
 	};
-}
-
-constexpr UINT RaytracedReflection::RaytracedReflectionClass::Width() const {
-	return mWidth;
-}
-
-constexpr UINT RaytracedReflection::RaytracedReflectionClass::Height() const {
-	return mHeight;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE RaytracedReflection::RaytracedReflectionClass::ReflectionMapSrv() const {

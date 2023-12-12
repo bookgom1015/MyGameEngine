@@ -365,16 +365,21 @@ BOOL DxRenderer::Update(FLOAT delta) {
 
 	CheckReturn(UpdateShadowPassCB(delta));
 	CheckReturn(UpdateMainPassCB(delta));
-	CheckReturn(UpdateSsaoPassCB(delta));
 	CheckReturn(UpdateBlurPassCB(delta));
 	CheckReturn(UpdateDofCB(delta));
-	CheckReturn(UpdateSsrCB(delta));
 	CheckReturn(UpdateObjectCBs(delta));
 	CheckReturn(UpdateMaterialCBs(delta));
 	CheckReturn(UpdateConvEquirectToCubeCB(delta));
-	CheckReturn(UpdateRtaoCB(delta));
-	CheckReturn(UpdateRrCB(delta));
 	CheckReturn(UpdateDebugMapCB(delta));
+
+	if (bRaytracing) {
+		CheckReturn(UpdateRtaoCB(delta));
+		CheckReturn(UpdateRrCB(delta));
+	}
+	else {
+		CheckReturn(UpdateSsaoPassCB(delta));
+		CheckReturn(UpdateSsrCB(delta));
+	}
 	
 	CheckReturn(UpdateShadingObjects(delta));
 
@@ -386,14 +391,13 @@ BOOL DxRenderer::Draw() {
 	
 	// Pre-pass and main-pass
 	{
+		CheckReturn(DrawGBuffer());
 		if (bRaytracing) {
-			CheckReturn(DrawGBuffer());
 			CheckReturn(DrawDxrShadowMap());
 			CheckReturn(DrawRtao());
 			CheckReturn(DrawDxrBackBuffer());
 		}
 		else {
-			CheckReturn(DrawGBuffer());
 			CheckReturn(DrawShadowMap());
 			CheckReturn(DrawSsao());
 			CheckReturn(DrawBackBuffer());
@@ -403,8 +407,8 @@ BOOL DxRenderer::Draw() {
 	{
 		CheckReturn(DrawSkySphere());
 	
-		if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
-		else { CheckReturn(BuildSsr()); }
+		//if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
+		//else { CheckReturn(BuildSsr()); }
 	
 		CheckReturn(IntegrateSpecIrrad());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
@@ -433,6 +437,8 @@ BOOL DxRenderer::Draw() {
 }
 
 BOOL DxRenderer::OnResize(UINT width, UINT height) {
+	bool bNeedToReszie = mClientWidth != width || mClientHeight != height;
+
 	mClientWidth = width;
 	mClientHeight = height;
 	
@@ -446,23 +452,26 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
-	CheckReturn(mBRDF->OnResize(width, height));
 	CheckReturn(mSwapChainBuffer->OnResize());
-	CheckReturn(mGBuffer->OnResize(width, height));
+	if (bNeedToReszie) {
+		CheckReturn(mBRDF->OnResize(width, height));
+		CheckReturn(mGBuffer->OnResize(width, height));
+		CheckReturn(mDof->OnResize(cmdList, width, height));
+		CheckReturn(mMotionBlur->OnResize(width, height));
+		CheckReturn(mTaa->OnResize(width, height));
+		CheckReturn(mGammaCorrection->OnResize(width, height));
+		CheckReturn(mToneMapping->OnResize(width, height));
+		CheckReturn(mPixelation->OnResize(width, height));
+		CheckReturn(mSharpen->OnResize(width, height));
+
+		CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
+		CheckReturn(mRtao->OnResize(cmdList, width, height));
+		CheckReturn(mRr->OnResize(cmdList, width, height));
+	}
 	CheckReturn(mSsao->OnResize(width, height));
 	CheckReturn(mBloom->OnResize(width, height));
 	CheckReturn(mSsr->OnResize(width, height));
-	CheckReturn(mDof->OnResize(cmdList, width, height));
-	CheckReturn(mMotionBlur->OnResize(width, height));
-	CheckReturn(mTaa->OnResize(width, height));
-	CheckReturn(mGammaCorrection->OnResize(width, height));
-	CheckReturn(mToneMapping->OnResize(width, height));
-	CheckReturn(mPixelation->OnResize(width, height));
-	CheckReturn(mSharpen->OnResize(width, height));
 
-	CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
-	CheckReturn(mRtao->OnResize(cmdList, width, height));
-	CheckReturn(mRr->OnResize(cmdList, width, height));
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -578,7 +587,6 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 		SwapChainBufferCount
 		+ GBuffer::NumRenderTargets
 		+ Ssao::NumRenderTargets
-		+ TemporalAA::NumRenderTargets
 		+ MotionBlur::NumRenderTargets
 		+ DepthOfField::NumRenderTargets
 		+ Bloom::NumRenderTargets
@@ -798,7 +806,7 @@ void DxRenderer::BuildDescriptors() {
 	mSsr->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mDof->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mMotionBlur->BuildDescriptors(hCpuRtv, rtvDescSize);
-	mTaa->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mTaa->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -1474,7 +1482,7 @@ BOOL DxRenderer::UpdateRtaoCB(FLOAT delta) {
 
 		ShaderArgs::Rtao::CheckerboardGenerateRaysForEvenPixels = !ShaderArgs::Rtao::CheckerboardGenerateRaysForEvenPixels;
 
-		calcLocalMeanVarCB.TextureDim = { mRtao->Width(), mRtao->Height() };
+		calcLocalMeanVarCB.TextureDim = { mClientWidth, mClientHeight };
 		calcLocalMeanVarCB.KernelWidth = 9;
 		calcLocalMeanVarCB.KernelRadius = 9 >> 1;
 
@@ -1526,14 +1534,14 @@ BOOL DxRenderer::UpdateRtaoCB(FLOAT delta) {
 			kernelRadiusLerfCoef = i / static_cast<FLOAT>(ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles);
 		}
 
-		atrousFilterCB.TextureDim = XMUINT2(mRtao->Width(), mRtao->Height());
+		atrousFilterCB.TextureDim = XMUINT2(mClientWidth, mClientHeight);
 		atrousFilterCB.DepthWeightCutoff = ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::DepthWeightCutoff;
 		atrousFilterCB.UsingBilateralDownsamplingBuffers = ShaderArgs::Rtao::QuarterResolutionAO;
 
 		atrousFilterCB.UseAdaptiveKernelSize = ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::UseAdaptiveKernelSize;
 		atrousFilterCB.KernelRadiusLerfCoef = kernelRadiusLerfCoef;
 		atrousFilterCB.MinKernelWidth = ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::FilterMinKernelWidth;
-		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100) * mRtao->Width());
+		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100) * mClientWidth);
 
 		atrousFilterCB.RayHitDistanceToKernelWidthScale = 22 / ShaderArgs::Rtao::MaxRayHitTime *
 			ShaderArgs::Rtao::Denoiser::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
@@ -1571,7 +1579,7 @@ BOOL DxRenderer::UpdateRrCB(FLOAT delta) {
 	rrCB.EyePosW = mMainPassCB->EyePosW;
 	rrCB.ReflectionRadius = ShaderArgs::RaytracedReflection::ReflectionRadius;
 
-	rrCB.TextureDim = { mRr->Width(), mRr->Height() };
+	rrCB.TextureDim = { mClientWidth, mClientHeight };
 
 	auto& currRrCB = mCurrFrameResource->RrCB;
 	currRrCB.CopyData(0, rrCB);
@@ -1745,16 +1753,15 @@ BOOL DxRenderer::DrawGBuffer() {
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	
-	cmdList->RSSetViewports(1, &mScreenViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
-	
+		
 	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
 
 	mGBuffer->Run(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
 		passCBAddress,
 		objCBAddress,
 		matCBAddress,
@@ -1980,7 +1987,10 @@ BOOL DxRenderer::ApplyTAA() {
 
 	mTaa->Run(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
+		mSwapChainBuffer->CurrentBackBufferRtv(),
 		mSwapChainBuffer->CurrentBackBufferSrv(),
 		mGBuffer->VelocityMapSrv(),
 		ShaderArgs::TemporalAA::ModulationFactor
@@ -2136,11 +2146,14 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	const auto backBuffer = mToneMapping->InterMediateMapResource();
+	auto backBufferRtv = mToneMapping->InterMediateMapRtv();
 	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
 
 	const auto dofCBAddress = mCurrFrameResource->DofCB.Resource()->GetGPUVirtualAddress();
 	mDof->CalcFocalDist(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
 		dofCBAddress,
 		mGBuffer->DepthMapSrv()
 	);
@@ -2157,7 +2170,8 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
-		backBufferSrv,
+		backBuffer,
+		backBufferRtv,
 		ShaderArgs::DepthOfField::BokehRadius,
 		ShaderArgs::DepthOfField::CocThreshold,
 		ShaderArgs::DepthOfField::CocDiffThreshold,
@@ -2168,19 +2182,14 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	const auto blurCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
 	mDof->BlurDof(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
 		blurCBAddress,
+		backBuffer,
+		backBufferRtv,
+		backBufferSrv,
 		ShaderArgs::DepthOfField::BlurCount
 	);
-
-	const auto dofMap = mDof->DofMapResource();
-
-	dofMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-
-	cmdList->CopyResource(backBuffer->Resource(), dofMap->Resource());
-
-	dofMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
@@ -2199,9 +2208,6 @@ BOOL DxRenderer::ApplyMotionBlur() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	cmdList->RSSetViewports(1, &mScreenViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
-
 	const auto backBuffer = mSwapChainBuffer->CurrentBackBuffer();
 	auto backBufferSrv = mSwapChainBuffer->CurrentBackBufferSrv();
 	
@@ -2209,6 +2215,8 @@ BOOL DxRenderer::ApplyMotionBlur() {
 
 	mMotionBlur->Run(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
 		backBufferSrv,
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->VelocityMapSrv(),
@@ -2459,155 +2467,172 @@ BOOL DxRenderer::DrawImGui() {
 					}
 					ImGui::TreePop();
 				} // ImGui::TreeNode("G-Buffer")
-				if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Shadow]))) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Shadow],
-						mShadowMap->Srv(),
-						DebugMap::SampleMask::RRR);
-				}
-				if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_SSAO],
-						mSsao->AOCoefficientMapSrv(0),
-						DebugMap::SampleMask::RRR);
-				}
-				if (ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Bloom]))) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Bloom],
-						mBloom->BloomMapSrv(0),
-						DebugMap::SampleMask::RGB);
-				}
-				if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_SSR],
-						mSsr->SsrMapSrv(0),
-						DebugMap::SampleMask::RGB);
-				}
 				if (ImGui::TreeNode("Irradiance")) {
-					if (ImGui::Checkbox("Equirectangular Map", 
+					if (ImGui::Checkbox("Equirectangular Map",
 						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Equirectangular]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Equirectangular],
 							mIrradianceMap->EquirectangularMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Temporary Equirectangular Map", 
+					if (ImGui::Checkbox("Temporary Equirectangular Map",
 						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
 							mIrradianceMap->TemporaryEquirectangularMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map", 
+					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map",
 						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
 							mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
 							DebugMap::SampleMask::RGB);
 					}
-					ImGui::TreePop();
-				} // ImGui::TreeNode("Irradiance")
-				if (ImGui::Checkbox("DXR Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
+					ImGui::TreePop(); // ImGui::TreeNode("Irradiance")
+				} 
+				if (ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Bloom]))) {
 					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_DxrShadow],
-						mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
-						DebugMap::SampleMask::RRR);
+						mDebugMapStates[DebugMapLayout::E_Bloom],
+						mBloom->BloomMapSrv(0),
+						DebugMap::SampleMask::RGB);
 				}
-				if (ImGui::TreeNode("RTAO")) {
-					auto index = mRtao->TemporalCurrentFrameResourceIndex();
 
-					if (ImGui::Checkbox("AO Coefficients", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_AOCoeff]))) {
+				if (ImGui::TreeNode("Rasterization")) {
+					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Shadow]))) {
 						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_AOCoeff],
-							mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_AmbientCoefficient],
+							mDebugMapStates[DebugMapLayout::E_Shadow],
+							mShadowMap->Srv(),
 							DebugMap::SampleMask::RRR);
 					}
-					if (ImGui::Checkbox("Temporal AO Coefficients", 
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff]))) {
+					if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
 						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
-							mRtao->TemporalAOCoefficientsGpuDescriptors()[index][Rtao::Descriptor::TemporalAOCoefficient::Srv],
+							mDebugMapStates[DebugMapLayout::E_SSAO],
+							mSsao->AOCoefficientMapSrv(0),
 							DebugMap::SampleMask::RRR);
 					}
-					if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
-						DebugMapSampleDesc desc;
-						desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
-						desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-						desc.Denominator = 22.0f;
-
-						BuildDebugMapWithSampleDesc(
-							mDebugMapStates[DebugMapLayout::E_Tspp],
-							mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_Tspp],
-							DebugMap::SampleMask::UINT,
-							desc);
-					}
-					if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RayHitDist]))) {
-						DebugMapSampleDesc desc;
-						desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
-						desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-						desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
-
-						BuildDebugMapWithSampleDesc(
-							mDebugMapStates[DebugMapLayout::E_RayHitDist],
-							mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
-							DebugMap::SampleMask::FLOAT,
-							desc);
-					}
-					if (ImGui::Checkbox("Temporal Ray Hit Distance", 
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist]))) {
-						DebugMapSampleDesc desc;
-						desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
-						desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
-						desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
-
-						BuildDebugMapWithSampleDesc(
-							mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
-							mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
-							DebugMap::SampleMask::FLOAT,
-							desc);
-					}
-					if (ImGui::Checkbox("Local Mean Variance", 
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_LocalMeanVariance]))) {
+					if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
 						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
-							mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
-							DebugMap::SampleMask::RG);
+							mDebugMapStates[DebugMapLayout::E_SSR],
+							mSsr->SsrMapSrv(0),
+							DebugMap::SampleMask::RGB);
 					}
-					if (ImGui::Checkbox("Disocclusion Blur Strength", 
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
-							mRtao->DisocclusionBlurStrengthSrv(),
-							DebugMap::SampleMask::RRR);
-					}
+
 					ImGui::TreePop();
-				} // ImGui::TreeNode("RTAO")
-				ImGui::TreePop();
-			} // ImGui::TreeNode("Texture Maps")
-			if (ImGui::Checkbox("Raytraced Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RaytracedReflection]))) {
-				BuildDebugMap(
-					mDebugMapStates[DebugMapLayout::E_RaytracedReflection],
-					mRr->ReflectionMapSrv(),
-					DebugMap::SampleMask::RGB);
-			}
+				}								
+				if (ImGui::TreeNode("Raytracing")) {
+					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_DxrShadow],
+							mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::TreeNode("RTAO")) {
+						auto index = mRtao->TemporalCurrentFrameResourceIndex();
+
+						if (ImGui::Checkbox("AO Coefficients", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_AOCoeff]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_AOCoeff],
+								mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_AmbientCoefficient],
+								DebugMap::SampleMask::RRR);
+						}
+						if (ImGui::Checkbox("Temporal AO Coefficients",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
+								mRtao->TemporalAOCoefficientsGpuDescriptors()[index][Rtao::Descriptor::TemporalAOCoefficient::Srv],
+								DebugMap::SampleMask::RRR);
+						}
+						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.Denominator = 22.0f;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_Tspp],
+								mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_Tspp],
+								DebugMap::SampleMask::UINT,
+								desc);
+						}
+						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RayHitDist]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_RayHitDist],
+								mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
+								DebugMap::SampleMask::FLOAT,
+								desc);
+						}
+						if (ImGui::Checkbox("Temporal Ray Hit Distance",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+							desc.Denominator = ShaderArgs::Rtao::OcclusionRadius;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
+								mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
+								DebugMap::SampleMask::FLOAT,
+								desc);
+						}
+						if (ImGui::Checkbox("Local Mean Variance",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_LocalMeanVariance]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
+								mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
+								DebugMap::SampleMask::RG);
+						}
+						if (ImGui::Checkbox("Disocclusion Blur Strength",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
+								mRtao->DisocclusionBlurStrengthSrv(),
+								DebugMap::SampleMask::RRR);
+						}
+						ImGui::TreePop();
+					} // ImGui::TreeNode("RTAO")
+					if (ImGui::Checkbox("Raytraced Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RaytracedReflection]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_RaytracedReflection],
+							mRr->ReflectionMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+				
+					ImGui::TreePop();
+				}				
+				ImGui::TreePop(); // ImGui::TreeNode("Texture Maps")
+			} 
 			ImGui::Checkbox("Show Collision Box", reinterpret_cast<bool*>(&ShaderArgs::Debug::ShowCollisionBox));
 		}
 		if (ImGui::CollapsingHeader("Effects")) {
-			ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&bShadowEnabled));
-			ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&bSsaoEnabled));
 			ImGui::Checkbox("TAA", reinterpret_cast<bool*>(&bTaaEnabled));
 			ImGui::Checkbox("Motion Blur", reinterpret_cast<bool*>(&bMotionBlurEnabled));
 			ImGui::Checkbox("Depth of Field", reinterpret_cast<bool*>(&bDepthOfFieldEnabled));
 			ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&bBloomEnabled));
-			ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&bSsrEnabled));
 			ImGui::Checkbox("Gamma Correction", reinterpret_cast<bool*>(&bGammaCorrectionEnabled));
 			ImGui::Checkbox("Tone Mapping", reinterpret_cast<bool*>(&bToneMappingEnabled));
 			ImGui::Checkbox("Pixelation", reinterpret_cast<bool*>(&bPixelationEnabled));
 			ImGui::Checkbox("Sharpen", reinterpret_cast<bool*>(&bSharpenEnabled));
+
+			if (ImGui::TreeNode("Rasterization")) {
+				ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&bShadowEnabled));
+				ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&bSsaoEnabled));
+				ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&bSsrEnabled));
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Raytracing")) {
+
+				ImGui::TreePop();
+			}
 		}
 		if (ImGui::CollapsingHeader("Lights")) {
-			ImGui::ColorPicker3("Amblient Light", ShaderArgs::Light::AmbientLight);
-
 			if (ImGui::TreeNode("Directional Lights")) {
 				ImGui::ColorPicker3("Strength", ShaderArgs::Light::DirectionalLight::Strength);
 				ImGui::SliderFloat("Multiplier", &ShaderArgs::Light::DirectionalLight::Multiplier, 0, 100.0f);
@@ -2780,7 +2805,8 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 		cmdList,
 		mTLAS->Result->GetGPUVirtualAddress(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->NormalDepthMapSrv()
+		mGBuffer->NormalDepthMapSrv(),
+		mClientWidth, mClientHeight
 	);
 	
 	mBlurFilterCS->Run(
@@ -2795,7 +2821,7 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow1),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::EU_Shadow1),
 		BlurFilterCS::Filter::R16,
-		mDxrShadowMap->Width(), mDxrShadowMap->Height(),
+		mClientWidth, mClientHeight,
 		ShaderArgs::DxrShadowMap::BlurCount
 	);
 	
@@ -2872,7 +2898,8 @@ BOOL DxRenderer::DrawRtao() {
 			mGBuffer->NormalDepthMapSrv(),
 			mGBuffer->DepthMapSrv(),
 			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_AmbientCoefficient],
-			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_RayHitDistance]
+			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_RayHitDistance],
+			mClientWidth, mClientHeight
 		);
 		{
 			ambientCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -2929,12 +2956,12 @@ BOOL DxRenderer::DrawRtao() {
 				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_CoefficientSquaredMean],
 				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourcIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
-				mRtao->TsppCoefficientSquaredMeanRayHitDistanceUav()
+				mRtao->TsppCoefficientSquaredMeanRayHitDistanceUav(),
+				mClientWidth, mClientHeight
 			);
 
 			currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			tsppCoefficientSquaredMeanRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
 			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
 			// Copy the current normal and depth values to the cached map.
@@ -2964,7 +2991,7 @@ BOOL DxRenderer::DrawRtao() {
 					mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
 					localMeanVarianceResourcesGpuDescriptors[Rtao::Descriptor::LocalMeanVariance::EU_Raw],
-					mRtao->Width(), mRtao->Height(),
+					mClientWidth, mClientHeight,
 					false //bCheckerboardSamplingEnabled
 				);
 
@@ -2979,7 +3006,8 @@ BOOL DxRenderer::DrawRtao() {
 					mRtao->FillInCheckerboard(
 						cmdList,
 						mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
-						localMeanVarianceResourcesGpuDescriptors[Rtao::Descriptor::LocalMeanVariance::EU_Raw]
+						localMeanVarianceResourcesGpuDescriptors[Rtao::Descriptor::LocalMeanVariance::EU_Raw],
+						mClientWidth, mClientHeight
 					);
 
 
@@ -3030,7 +3058,8 @@ BOOL DxRenderer::DrawRtao() {
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_CoefficientSquaredMean],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_RayHitDistance],
 					varianceResourcesGpuDescriptors[Rtao::Descriptor::AOVariance::EU_Raw],
-					mRtao->DisocclusionBlurStrengthUav()
+					mRtao->DisocclusionBlurStrengthUav(),
+					mClientWidth, mClientHeight
 				);
 
 				currTemporalAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -3053,7 +3082,7 @@ BOOL DxRenderer::DrawRtao() {
 					varianceResourcesGpuDescriptors[Rtao::Descriptor::AOVariance::ES_Raw],
 					varianceResourcesGpuDescriptors[Rtao::Descriptor::AOVariance::EU_Smoothed],
 					GaussianFilter::Filter3x3,
-					mRtao->Width(), mRtao->Height()
+					mClientWidth, mClientHeight
 				);
 
 				smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -3081,7 +3110,8 @@ BOOL DxRenderer::DrawRtao() {
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
 				mRtao->DepthPartialDerivativeSrv(),
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
-				temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav]
+				temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
+				mClientWidth, mClientHeight
 			);
 			
 			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -3101,7 +3131,7 @@ BOOL DxRenderer::DrawRtao() {
 				mGBuffer->DepthMapSrv(),
 				mRtao->DisocclusionBlurStrengthSrv(),
 				temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
-				mRtao->Width(), mRtao->Height(),
+				mClientWidth, mClientHeight,
 				ShaderArgs::Rtao::Denoiser::LowTsppBlurPasses
 			);
 
@@ -3136,7 +3166,8 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		mToneMapping->InterMediateMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
-		mhGpuDescForTexMaps
+		mhGpuDescForTexMaps,
+		mClientWidth, mClientHeight
 	);
 
 	CheckHRESULT(cmdList->Close());
