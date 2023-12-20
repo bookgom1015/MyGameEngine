@@ -782,8 +782,6 @@ BOOL IrradianceMapClass::DrawCubeMap(
 
 	cmdList->DrawIndexedInstanced(box->IndexCount, 1, box->StartIndexLocation, box->BaseVertexLocation, 0);
 
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-
 	return true;
 }
 

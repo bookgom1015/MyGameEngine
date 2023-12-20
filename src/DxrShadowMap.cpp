@@ -51,14 +51,18 @@ BOOL DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[DxrShadowMap::RootSignature::Global::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[2];
+		CD3DX12_DESCRIPTOR_RANGE texTables[4];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		slotRootParameter[RootSignature::Global::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::Global::ESI_AccelerationStructure].InitAsShaderResourceView(0);
-		slotRootParameter[RootSignature::Global::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::Global::EUO_Shadow].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::Global::ESI_Position].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::Global::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::Global::EUO_Shadow].InitAsDescriptorTable(1, &texTables[3]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -143,7 +147,9 @@ void DxrShadowMapClass::Run(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		UINT width, UINT height) {
 	cmdList->SetPipelineState1(mPSO.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
@@ -151,13 +157,15 @@ void DxrShadowMapClass::Run(
 	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::ESI_AccelerationStructure, as_bvh);
 	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Pass, cb_pass);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_NormalDepth, si_normalDepth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Position, si_pos);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Normal, si_normal);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Depth, si_depth);
 
 	const auto shadow0 = mResources[Resources::EShadow0].get();
 	const auto shadow1 = mResources[Resources::EShadow1].get();
 
 	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	shadow1->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, shadow0);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Shadow, mhGpuDescs[Descriptors::EU_Shadow0]);
 
@@ -181,7 +189,7 @@ void DxrShadowMapClass::Run(
 	cmdList->DispatchRays(&dispatchDesc);
 	
 	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	shadow1->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, shadow0);
 }
 
 

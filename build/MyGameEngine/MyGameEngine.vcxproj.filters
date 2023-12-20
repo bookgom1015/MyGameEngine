@@ -671,9 +671,6 @@
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ApplyingSsr.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
@@ -759,9 +756,6 @@
       <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
-      <Filter>Shader Files\HLSL\Filter\DOF</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\CocBlur.hlsl">
       <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">

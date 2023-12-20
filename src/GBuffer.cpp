@@ -22,6 +22,7 @@ GBufferClass::GBufferClass() {
 	mRMSMap = std::make_unique<GpuResource>();
 	mVelocityMap = std::make_unique<GpuResource>();
 	mReprojNormalDepthMap = std::make_unique<GpuResource>();
+	mPositionMap = std::make_unique<GpuResource>();
 }
 
 BOOL GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, 
@@ -94,6 +95,7 @@ BOOL GBufferClass::BuildPso() {
 	psoDesc.RTVFormats[3] = RMSMapFormat;
 	psoDesc.RTVFormats[4] = VelocityMapFormat;
 	psoDesc.RTVFormats[5] = ReprojNormalDepthMapFormat;
+	psoDesc.RTVFormats[6] = PositionMapFormat;
 	psoDesc.DSVFormat = DepthStencilBuffer::BufferFormat;
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
@@ -123,6 +125,7 @@ void GBufferClass::Run(
 	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	mReprojNormalDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mPositionMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	
 	cmdList->ClearRenderTargetView(mhAlbedoMapCpuRtv, GBuffer::AlbedoMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhNormalMapCpuRtv, GBuffer::NormalMapClearValues, 0, nullptr);
@@ -130,9 +133,10 @@ void GBufferClass::Run(
 	cmdList->ClearRenderTargetView(mhRMSMapCpuRtv, GBuffer::RMSMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhVelocityMapCpuRtv, GBuffer::VelocityMapClearValues, 0, nullptr);
 	cmdList->ClearRenderTargetView(mhReprojNormalDepthMapCpuRtv, GBuffer::ReprojNormalDepthMapClearValues, 0, nullptr);
+	cmdList->ClearRenderTargetView(mhPositionMapCpuRtv, GBuffer::PositionMapClearValues, 0, nullptr);
 	
 	std::array<D3D12_CPU_DESCRIPTOR_HANDLE, GBuffer::NumRenderTargets> renderTargets = { 
-		mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhNormalDepthMapCpuRtv, mhRMSMapCpuRtv, mhVelocityMapCpuRtv, mhReprojNormalDepthMapCpuRtv
+		mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhNormalDepthMapCpuRtv, mhRMSMapCpuRtv, mhVelocityMapCpuRtv, mhReprojNormalDepthMapCpuRtv, mhPositionMapCpuRtv
 	};
 	
 	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &mhDepthMapCpuDsv);
@@ -151,6 +155,7 @@ void GBufferClass::Run(
 	mVelocityMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 	mReprojNormalDepthMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mPositionMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 
@@ -185,6 +190,10 @@ void GBufferClass::BuildDescriptors(
 	mhReprojNormalDepthMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhReprojNormalDepthMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhReprojNormalDepthMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
+	mhPositionMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhPositionMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhPositionMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	hCpuSrv.Offset(1, descSize);
 	hGpuSrv.Offset(1, descSize);
@@ -252,6 +261,12 @@ void GBufferClass::BuildDescriptors() {
 		rtvDesc.Format = ReprojNormalDepthMapFormat;
 		md3dDevice->CreateShaderResourceView(mReprojNormalDepthMap->Resource(), &srvDesc, mhReprojNormalDepthMapCpuSrv);
 		md3dDevice->CreateRenderTargetView(mReprojNormalDepthMap->Resource(), &rtvDesc, mhReprojNormalDepthMapCpuRtv);
+	}
+	{
+		srvDesc.Format = PositionMapFormat;
+		rtvDesc.Format = PositionMapFormat;
+		md3dDevice->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
 	}
 }
 
@@ -356,6 +371,21 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optClear,
 			L"ReprojNormalDepthMap"
+		));
+	}
+	{
+		rscDesc.Format = PositionMapFormat;
+
+		CD3DX12_CLEAR_VALUE optClear(PositionMapFormat, PositionMapClearValues);
+
+		CheckReturn(mPositionMap->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&rscDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&optClear,
+			L"PositionMap"
 		));
 	}
 

@@ -4,6 +4,7 @@
 #include "D3D12Util.h"
 #include "RenderItem.h"
 #include "HlslCompaction.h"
+#include "GpuResource.h"
 
 using namespace DebugCollision;
 
@@ -75,6 +76,7 @@ void DebugCollisionClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
+		GpuResource*const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_object,
@@ -85,11 +87,15 @@ void DebugCollisionClass::Run(
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
 
 	DrawRenderItems(cmdList, ritems, cb_object);
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void DebugCollisionClass::DrawRenderItems(

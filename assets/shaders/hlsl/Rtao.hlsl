@@ -57,7 +57,7 @@ bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surf
 	RayDesc ray;
 	// Nudge the origin along the surface normal a bit to avoid starting from
 	//  behind the surface due to float calculations imprecision.
-	ray.Origin = aoRay.Origin + 0.01 * surfaceNormal;
+	ray.Origin = aoRay.Origin + 0.1 * surfaceNormal;
 	ray.Direction = aoRay.Direction;
 	ray.TMin = 0;
 	ray.TMax = TMax;

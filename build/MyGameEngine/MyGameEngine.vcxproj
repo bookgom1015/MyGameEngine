@@ -417,11 +417,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\CocBlur.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
       <FileType>Document</FileType>
     </None>
@@ -438,11 +433,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\ApplyingSsr.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

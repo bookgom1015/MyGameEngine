@@ -93,6 +93,7 @@ void MotionBlurClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
+		GpuResource* const backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
@@ -106,8 +107,12 @@ void MotionBlurClass::Run(
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
+	mMotionVectorMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
 	cmdList->ClearRenderTargetView(mhMotionVectorMapCpuRtv, MotionBlur::ClearValues, 0, nullptr);
 	cmdList->OMSetRenderTargets(1, &mhMotionVectorMapCpuRtv, true, nullptr);
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input, si_backBuffer);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
@@ -120,6 +125,14 @@ void MotionBlurClass::Run(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+
+	mMotionVectorMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+	cmdList->CopyResource(backBuffer->Resource(), mMotionVectorMap->Resource());
+
+	mMotionVectorMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void MotionBlurClass::BuildDescriptors() {

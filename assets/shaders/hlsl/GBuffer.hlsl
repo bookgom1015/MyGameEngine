@@ -10,9 +10,9 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<PassConstants>		cbPass	: register(b0);
-ConstantBuffer<ObjectConstants>		cbObj	: register(b1);
-ConstantBuffer<MaterialConstants>	cbMat	: register(b2);
+ConstantBuffer<PassConstants>		cb_Pass	: register(b0);
+ConstantBuffer<ObjectConstants>		cb_Obj	: register(b1);
+ConstantBuffer<MaterialConstants>	cb_Mat	: register(b2);
 
 Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]		: register(t0);
 
@@ -36,33 +36,34 @@ struct PixelOut {
 	GBuffer::RMSMapFormat				RoughnessMetalicSpecular	: SV_TARGET3;
 	GBuffer::VelocityMapFormat			Velocity					: SV_TARGET4;
 	GBuffer::ReprojNormalDepthMapFormat	ReprojNormalDepth			: SV_TARGET5;
+	GBuffer::PositionMapFormat			Position					: SV_TARGET6;
 };
 
 VertexOut VS(VertexIn vin) {
 	VertexOut vout = (VertexOut)0;
 
-	float4 posW = mul(float4(vin.PosL, 1), cbObj.World);
+	float4 posW = mul(float4(vin.PosL, 1), cb_Obj.World);
 	vout.PosW = posW.xyz;
 
-	vout.NormalW = mul(vin.NormalL, (float3x3)cbObj.World);
-	vout.PrevNormalW = mul(vin.NormalL, (float3x3)cbObj.PrevWorld);
+	vout.NormalW = mul(vin.NormalL, (float3x3)cb_Obj.World);
+	vout.PrevNormalW = mul(vin.NormalL, (float3x3)cb_Obj.PrevWorld);
 
-	vout.NonJitPosH = mul(posW, cbPass.ViewProj);
-	vout.PosH = vout.NonJitPosH + float4(cbPass.JitteredOffset * vout.NonJitPosH.w, 0, 0);
+	vout.NonJitPosH = mul(posW, cb_Pass.ViewProj);
+	vout.PosH = vout.NonJitPosH + float4(cb_Pass.JitteredOffset * vout.NonJitPosH.w, 0, 0);
 
-	float4 prevPosW = mul(float4(vin.PosL, 1), cbObj.PrevWorld);
+	float4 prevPosW = mul(float4(vin.PosL, 1), cb_Obj.PrevWorld);
 	vout.PrevPosW = prevPosW.xyz;
-	vout.PrevPosH = mul(prevPosW, cbPass.PrevViewProj);
+	vout.PrevPosH = mul(prevPosW, cb_Pass.PrevViewProj);
 
-	float4 texC = mul(float4(vin.TexC, 0, 1), cbObj.TexTransform);
-	vout.TexC = mul(texC, cbMat.MatTransform).xy;
+	float4 texC = mul(float4(vin.TexC, 0, 1), cb_Obj.TexTransform);
+	vout.TexC = mul(texC, cb_Mat.MatTransform).xy;
 	
 	return vout;
 }
 
 PixelOut PS(VertexOut pin) {
-	float4 albedo = cbMat.Albedo;
-	if (cbMat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cbMat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	float4 albedo = cb_Mat.Albedo;
+	if (cb_Mat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cb_Mat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 	
 	pin.NonJitPosH /= pin.NonJitPosH.w;
 	pin.PrevPosH /= pin.PrevPosH.w;
@@ -74,9 +75,10 @@ PixelOut PS(VertexOut pin) {
 	pout.Color = albedo;
 	pout.Normal = float4(normal, 0);
 	pout.NormalDepth = EncodeNormalDepth(normal, pin.NonJitPosH.z);
-	pout.RoughnessMetalicSpecular = float4(cbMat.Roughness, cbMat.Metalic, cbMat.Specular, 0);
+	pout.RoughnessMetalicSpecular = float4(cb_Mat.Roughness, cb_Mat.Metalic, cb_Mat.Specular, 0);
 	pout.Velocity = velocity;
 	pout.ReprojNormalDepth = EncodeNormalDepth(pin.PrevNormalW, pin.PrevPosH.z);
+	pout.Position = float4(pin.PosW, 1);
 	return pout;
 }
 

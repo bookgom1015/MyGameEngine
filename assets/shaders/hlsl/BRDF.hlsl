@@ -29,9 +29,10 @@ Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t0);
 Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t1);
 Texture2D<GBuffer::DepthMapFormat>						gi_Depth		: register(t2);
 Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t3);
-Texture2D<ShadowMap::ShadowMapFormat>					gi_Shadow		: register(t4);
-Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t5);
-TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad	: register(t6);
+Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t4);
+Texture2D<ShadowMap::ShadowMapFormat>					gi_Shadow		: register(t5);
+Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
+TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad	: register(t7);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -54,21 +55,15 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
-	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
-
-	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
-	depth = NdcDepthToViewDepth(depth, cbPass.Proj);
-
-	const float3 posV = (depth / pin.PosV.z) * pin.PosV;
-	const float4 posW = mul(float4(posV, 1), cbPass.InvView);
-	
-	const float4 albedo = gi_Albedo.Sample(gsamAnisotropicWrap, pin.TexC);
+float4 PS(VertexOut pin) : SV_Target {	
+	const float4 posW = gi_Position.Sample(gsamLinearClamp, pin.TexC);
 
 	float4 ssaoPosH = mul(posW, cbPass.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
 	
-	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamAnisotropicWrap, pin.TexC).xyz;
+	const float4 albedo = gi_Albedo.Sample(gsamLinearClamp, pin.TexC);
+
+	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamLinearClamp, pin.TexC).xyz;
 	const float roughness = roughnessMetalicSpecular.r;
 	const float metalic = roughnessMetalicSpecular.g;
 	const float specular = roughnessMetalicSpecular.b;
@@ -80,11 +75,13 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	float3 shadowFactor = 0;
 #ifdef DXR
-	shadowFactor[0] = gi_Shadow.Sample(gsamPointClamp, pin.TexC);
+	shadowFactor[0] = gi_Shadow.Sample(gsamLinearClamp, pin.TexC);
 #else
 	const float4 shadowPosH = mul(posW, cbPass.ShadowTransform);
 	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
 #endif
+
+	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 
 	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
 	const float3 radiance = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor), (float3)0);

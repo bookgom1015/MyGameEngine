@@ -4,6 +4,8 @@
 #include <wrl.h>
 
 class ShaderManager;
+class GpuResource;
+
 struct RenderItem;
 
 namespace DebugCollision {
@@ -29,6 +31,7 @@ namespace DebugCollision {
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
+			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_object,

@@ -27,6 +27,11 @@ namespace RaytracedReflection {
 				ESI_BackBuffer,
 				ESI_Normal,
 				ESI_Depth,
+				ESI_Position,
+				ESI_DiffIrrad,
+				ESI_AOCoeiff,
+				ESI_Prefiltered,
+				ESI_BrdfLUT,
 				ESI_TexMaps,
 				EUO_Reflection,
 				Count
@@ -35,6 +40,7 @@ namespace RaytracedReflection {
 			namespace RootConstantsLayout {
 				enum {
 					E_ShadowRayOffset = 0,
+					E_ReflectionRadius,
 					Count
 				};
 			}
@@ -85,8 +91,14 @@ namespace RaytracedReflection {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_diffIrrad,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_prefiltered,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-			UINT width, UINT height);
+			UINT width, UINT height,
+			FLOAT radius);
 
 	private:
 		void BuildDescriptors();

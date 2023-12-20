@@ -1,6 +1,18 @@
 #ifndef __REFLECTIONRAY_HLSL__
 #define __REFLECTIONRAY_HLSL__
 
+#ifndef NUM_DIR_LIGHTS
+#define NUM_DIR_LIGHTS 1
+#endif
+
+#ifndef NUM_POINT_LIGHTS
+#define NUM_POINT_LIGHTS 0
+#endif
+
+#ifndef NUM_SPOT_LIGHTS
+#define NUM_SPOT_LIGHTS 0
+#endif
+
 #ifndef HLSL
 #define HLSL
 #endif
@@ -14,17 +26,22 @@
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
 cbuffer cbRootConstants : register(b0) {
-	uint gShadowRayOffset;
+	uint	gShadowRayOffset;
+	float	gReflectionRadius;
 }
 
-ConstantBuffer<PassConstants>						cb_Pass	: register(b1);
-ConstantBuffer<RaytracedReflectionConstantBuffer>	cb_Rr	: register(b2);
+ConstantBuffer<PassConstants> cb_Pass : register(b1);
 
-RaytracingAccelerationStructure		gi_BVH							: register(t0);
-Texture2D<HDR_FORMAT>				gi_BackBuffer					: register(t1);
-Texture2D<GBuffer::NormalMapFormat>	gi_Normal						: register(t2);
-Texture2D<GBuffer::DepthMapFormat>	gi_Depth						: register(t3);
-Texture2D							gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t4);
+RaytracingAccelerationStructure							gi_BVH							: register(t0);
+Texture2D<HDR_FORMAT>									gi_BackBuffer					: register(t1);
+Texture2D<GBuffer::NormalMapFormat>						gi_Normal						: register(t2);
+Texture2D<GBuffer::DepthMapFormat>						gi_Depth						: register(t3);
+Texture2D<GBuffer::PositionMapFormat>					gi_Position						: register(t4);
+TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad					: register(t5);
+Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff						: register(t6);
+TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: register(t7);
+Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t8);
+Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t9);
 
 RWTexture2D<float4>							go_Reflection	: register(u0);
 
@@ -42,7 +59,6 @@ struct RayPayload {
 [shader("raygeneration")]
 void RadianceRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
-	float2 texc = (launchIndex + 0.5) / cb_Rr.TextureDim;
 
 	float3 normal = gi_Normal[launchIndex].xyz;
 	float depth = gi_Depth[launchIndex];
@@ -52,17 +68,16 @@ void RadianceRayGen() {
 		return;
 	}
 
-	float3 hitPosition;
-	CalculateHitPosition(cb_Rr.Proj, cb_Rr.InvProj, cb_Rr.InvView, cb_Rr.TextureDim, depth, launchIndex, hitPosition);
+	float3 origin = gi_Position[launchIndex].xyz;
 
-	float3 fromEye = normalize(hitPosition - cb_Rr.EyePosW);
+	float3 fromEye = normalize(origin - cb_Pass.EyePosW);
 	float3 toLight = reflect(fromEye, normal);
 
 	RayDesc ray;
-	ray.Origin = hitPosition + 0.001 * normal;
+	ray.Origin = origin + 0.1 * normal;
 	ray.Direction = toLight;
 	ray.TMin = 0;
-	ray.TMax = cb_Rr.ReflectionRadius;
+	ray.TMax = gReflectionRadius;
 
 	RayPayload payload = { (float4)0, false };
 
@@ -97,12 +112,19 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	float2 texc = HitAttribute(texCoords, attr);
 
 	float3 hitPosition = HitWorldPosition();
+	float3 origin = WorldRayOrigin();
+
+	uint2 launchIndex = DispatchRaysIndex().xy;
+
+	const float4 albedo = lcb_Mat.Albedo;
+	const float roughness = lcb_Mat.Roughness;
+	const float metalic = lcb_Mat.Metalic;
 
 	//
 	// Trace shadow rays
 	//
 	RayDesc ray;
-	ray.Origin = hitPosition + 0.001 * normal;
+	ray.Origin = hitPosition + 0.1 * normal;
 	ray.Direction = -cb_Pass.Lights[0].Direction;
 	ray.TMin = 0;
 	ray.TMax = 1000;
@@ -118,29 +140,47 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 		payload
 	);
 
-	float3 shadowFactor = payload.IsHit ? 0 : 1;
+	float3 shadowFactor = 1;
+	shadowFactor[0] = payload.IsHit ? 0 : 1;
 
 	//
 	// Integrate irradiances
 	//
 	Texture2D tex2D = gi_TexMaps[lcb_Mat.DiffuseSrvIndex];
+	const float4 samp = tex2D.SampleLevel(gsamLinearClamp, texc, 0);
 
-	uint2 texSize;
-	tex2D.GetDimensions(texSize.x, texSize.y);
+	const float shiness = 1 - roughness;
+	const float3 fresnelR0 = lerp((float3)0.08 * lcb_Mat.Specular, albedo.rgb, metalic);
 
-	uint2 texIdx = texSize * texc + 0.5;
-	float4 samp = tex2D.Load(uint3(texIdx, 0));	
+	const float3 fromEye = normalize(hitPosition - origin);
+	const float3 toLight = reflect(fromEye, normal);
 
-	float shiness = 1 - lcb_Mat.Roughness;
+	const float3 viewW = -fromEye;
+	const float3 halfW = normalize(viewW + toLight);
 
-	Material mat = { lcb_Mat.Albedo, (float3)0.1, shiness, lcb_Mat.Metalic };
+	const float3 kS = FresnelSchlickRoughness(saturate(dot(normal, viewW)), fresnelR0, roughness);
+	const float3 kD = 1 - kS;
 
-	float3 origin = WorldRayOrigin();
-	float3 toEye = normalize(origin - hitPosition);
+	Material mat = { albedo, fresnelR0, shiness, metalic };
 
-	float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normal, toEye, shadowFactor), shadowFactor);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normal, viewW, shadowFactor), (float3)0);
 
-	payload.Irrad = float4(radiance, 1);
+	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normal, 0).xyz;
+	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;
+
+	const float aoCoeiff = gi_AOCoeiff[launchIndex];
+
+	const float3 reflectedW = reflect(-viewW, normal);
+	const float NdotV = max(dot(normal, viewW), 0);
+	const float MaxMipLevel = 5;
+
+	const float3 prefilteredColor = gi_Prefiltered.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel).rgb;
+	const float2 envBRDF = gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);
+	const float3 specRadiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
+
+	const float3 ambient = (kD * diffuseIrradiance + specRadiance) * aoCoeiff;
+
+	payload.Irrad = float4(radiance + ambient, 1);
 }
 
 [shader("miss")]

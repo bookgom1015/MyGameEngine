@@ -34,6 +34,10 @@ namespace GBuffer {
 	typedef float4	RMSMapFormat;
 	typedef float2	VelocityMapFormat;
 	typedef uint	ReprojNormalDepthMapFormat;
+	typedef float4	PositionMapFormat;
+
+	static const float InvalidPositionValueW	= -1;
+	static const float InvalidNormalValueW		= -1;
 #else 
 	static const DXGI_FORMAT AlbedoMapFormat			= DXGI_FORMAT_R8G8B8A8_UNORM;
 	static const DXGI_FORMAT NormalMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -42,6 +46,15 @@ namespace GBuffer {
 	static const DXGI_FORMAT RMSMapFormat				= DXGI_FORMAT_R8G8B8A8_UNORM;
 	static const DXGI_FORMAT VelocityMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
 	static const DXGI_FORMAT ReprojNormalDepthMapFormat	= COMPACT_NORMAL_DEPTH_DXGI_FORMAT;
+	static const DXGI_FORMAT PositionMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+	const FLOAT AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, -1.0f };
+	const FLOAT NormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
+	const FLOAT VelocityMapClearValues[2]			= { 1000.0f, 1000.0f };
+	const FLOAT ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT PositionMapClearValues[4]			= { 0.0f, 0.0f, 0.0f, -1.0f };
 #endif 
 }
 

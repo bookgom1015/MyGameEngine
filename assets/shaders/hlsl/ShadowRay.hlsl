@@ -16,36 +16,29 @@ struct ShadowHitInfo {
 
 ConstantBuffer<PassConstants> cb_Pass		: register(b0);
 
-RaytracingAccelerationStructure				gi_BVH			: register(t0);
-Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t1);
-RWTexture2D<DxrShadowMap::ShadowMapFormat>	gi_Shadow		: register(u0);
+RaytracingAccelerationStructure				gi_BVH		: register(t0);
+Texture2D<GBuffer::PositionMapFormat>		gi_Position	: register(t1);
+Texture2D<GBuffer::NormalMapFormat>			gi_Normal	: register(t2);
+Texture2D<GBuffer::DepthMapFormat>			gi_Depth	: register(t3);
+RWTexture2D<DxrShadowMap::ShadowMapFormat>	gi_Shadow	: register(u0);
 
 [shader("raygeneration")]
 void ShadowRayGen() {
-	float width, height;
-	gi_NormalDepth.GetDimensions(width, height);
-
 	uint2 launchIndex = DispatchRaysIndex().xy;
 
-	float3 normal;
-	float d;
-	DecodeNormalDepth(gi_NormalDepth[launchIndex], normal, d);
+	float2 size;
+	gi_Normal.GetDimensions(size.x, size.y);
 
-	if (d !=  GBuffer::InvalidNormDepthValue) {
-		float2 tex = float2((launchIndex.x + 0.5) / width, (launchIndex.y + 0.5) / height);
-		float4 posH = float4(tex.x * 2 - 1, (1 - tex.y) * 2.0f - 1, 0, 1);
-		float4 posV = mul(posH, cb_Pass.InvProj);
-		posV /= posV.w;
+	float3 normal = gi_Normal[launchIndex].xyz;
+	float d = gi_Depth[launchIndex];
 
-		float dv = NdcDepthToViewDepth(d, cb_Pass.Proj);
-		posV = (dv / posV.z) * posV;
-
-		float4 posW = mul(float4(posV.xyz, 1), cb_Pass.InvView);
+	if (d !=  GBuffer::InvalidDepthValue) {
+		float3 posW = gi_Position[launchIndex].xyz;
 
 		RayDesc ray;
-		ray.Origin = posW.xyz + 0.001 * normal;
+		ray.Origin = posW + 0.1 * normal;
 		ray.Direction = -cb_Pass.Lights[0].Direction;
-		ray.TMin = 0.001;
+		ray.TMin = 0;
 		ray.TMax = 1000;
 
 		ShadowHitInfo payload;

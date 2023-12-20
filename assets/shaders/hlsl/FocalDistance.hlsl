@@ -6,6 +6,7 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
+#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
 cbuffer cbDof : register(b0) {
@@ -41,16 +42,10 @@ VertexOut VS() {
 	return vout;
 }
 
-float NdcDepthToViewDepth(float z_ndc) {
-	// z_ndc = A + B/viewZ, where gProj[2,2]=A and gProj[3,2]=B.
-	float viewZ = gProj[3][2] / (z_ndc - gProj[2][2]);
-	return viewZ;
-}
-
 void PS(VertexOut pin) {
 	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
-	depth = NdcDepthToViewDepth(depth);
+	depth = NdcDepthToViewDepth(depth, gProj);
 
 	float prev = uio_FocalDistance[0];
 	float diff = depth - prev;

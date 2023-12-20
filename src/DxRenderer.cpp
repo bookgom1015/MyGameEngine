@@ -309,8 +309,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #endif
 	
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
 	CheckReturn(CompileShaders());
@@ -407,8 +406,8 @@ BOOL DxRenderer::Draw() {
 	{
 		CheckReturn(DrawSkySphere());
 	
-		//if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
-		//else { CheckReturn(BuildSsr()); }
+		if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
+		else { CheckReturn(BuildSsr()); }
 	
 		CheckReturn(IntegrateSpecIrrad());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
@@ -475,7 +474,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 
 	CheckHRESULT(cmdList->Close());
 	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
@@ -755,8 +754,7 @@ BOOL DxRenderer::BuildGeometries() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
 	geo->VertexByteStride = static_cast<UINT>(sizeof(Vertex));
@@ -1000,8 +998,7 @@ BOOL DxRenderer::AddGeometry(const std::string& file) {
 	CheckReturn(AddBLAS(cmdList, geo.get()));
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
 	mGeometries[file] = std::move(geo);
@@ -1106,9 +1103,7 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	md3dDevice->CreateShaderResourceView(resource.Get(), &srvDesc, hDescriptor);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList*const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
 	mTextures[file] = std::move(texMap);
@@ -1144,8 +1139,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	}
 	
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
 	return true;
@@ -1703,8 +1697,7 @@ BOOL DxRenderer::DrawShadowMap() {
 			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 
 			CheckHRESULT(cmdList->Close());
-			ID3D12CommandList* cmdsLists[] = { cmdList };
-			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 			bShadowMapCleanedUp = true;
 		}
@@ -1738,8 +1731,7 @@ BOOL DxRenderer::DrawShadowMap() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1770,8 +1762,7 @@ BOOL DxRenderer::DrawGBuffer() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1791,8 +1782,7 @@ BOOL DxRenderer::DrawSsao() {
 			aoCoeffMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 			CheckHRESULT(cmdList->Close());
-			ID3D12CommandList* cmdsLists[] = { cmdList };
-			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 			bSsaoMapCleanedUp = true;
 		}
@@ -1834,8 +1824,7 @@ BOOL DxRenderer::DrawSsao() {
 	);	
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1859,6 +1848,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
+		mGBuffer->PositionMapSrv(),
 		mShadowMap->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
@@ -1866,8 +1856,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1894,6 +1883,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
+		mGBuffer->PositionMapSrv(),
 		aoCoeffDesc,
 		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
 		mIrradianceMap->IntegratedBrdfMapSrv(),
@@ -1901,8 +1891,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 	);	
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1935,8 +1924,7 @@ BOOL DxRenderer::DrawSkySphere() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1969,8 +1957,7 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 	);
 	
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -1997,8 +1984,7 @@ BOOL DxRenderer::ApplyTAA() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList*const*>(&cmdList));
 
 	return true;
 }
@@ -2025,17 +2011,14 @@ BOOL DxRenderer::BuildSsr() {
 		ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
 		mSsr->Build(
 			cmdList,
 			ssrCBAddress,
+			backBuffer,
 			backBufferSrv,
 			mGBuffer->NormalMapSrv(),
 			mGBuffer->DepthMapSrv()
 		);
-
-		backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 		auto blurPassCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
 		mBlurFilter->Run(
@@ -2052,8 +2035,7 @@ BOOL DxRenderer::BuildSsr() {
 		);
 
 		CheckHRESULT(cmdList->Close());
-		ID3D12CommandList* cmdsLists[] = { cmdList };
-		mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+		mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	}
 	else {
 		if (!bSsrMapCleanedUp) {
@@ -2066,8 +2048,7 @@ BOOL DxRenderer::BuildSsr() {
 			ssrMap0->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 			CheckHRESULT(cmdList->Close());
-			ID3D12CommandList* cmdsLists[] = { cmdList };
-			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 			bSsrMapCleanedUp = true;
 		};
@@ -2129,8 +2110,7 @@ BOOL DxRenderer::ApplyBloom() {
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2192,8 +2172,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2207,17 +2186,13 @@ BOOL DxRenderer::ApplyMotionBlur() {
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	const auto backBuffer = mSwapChainBuffer->CurrentBackBuffer();
-	auto backBufferSrv = mSwapChainBuffer->CurrentBackBufferSrv();
-	
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
+		
 	mMotionBlur->Run(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
-		backBufferSrv,
+		mSwapChainBuffer->CurrentBackBuffer(),
+		mSwapChainBuffer->CurrentBackBufferSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->VelocityMapSrv(),
 		ShaderArgs::MotionBlur::Intensity,
@@ -2226,19 +2201,8 @@ BOOL DxRenderer::ApplyMotionBlur() {
 		ShaderArgs::MotionBlur::SampleCount
 	);
 
-	const auto motionVector = mMotionBlur->MotionVectorMapResource();
-
-	motionVector->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-
-	cmdList->CopyResource(backBuffer->Resource(), motionVector->Resource());
-
-	motionVector->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2274,8 +2238,7 @@ BOOL DxRenderer::ResolveToneMapping() {
 	}
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2300,8 +2263,7 @@ BOOL DxRenderer::ApplyGammaCorrection() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2326,8 +2288,7 @@ BOOL DxRenderer::ApplySharpen() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2352,8 +2313,7 @@ BOOL DxRenderer::ApplyPixelation() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2383,6 +2343,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 			cmdList,
 			mScreenViewport,
 			mScissorRect,
+			mSwapChainBuffer->CurrentBackBuffer(),
 			mSwapChainBuffer->CurrentBackBufferRtv(),
 			mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
 			mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress(),
@@ -2391,8 +2352,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 	}
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2787,8 +2747,7 @@ BOOL DxRenderer::DrawImGui() {
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2805,7 +2764,9 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 		cmdList,
 		mTLAS->Result->GetGPUVirtualAddress(),
 		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->PositionMapSrv(),
+		mGBuffer->NormalMapSrv(),
+		mGBuffer->DepthMapSrv(),
 		mClientWidth, mClientHeight
 	);
 	
@@ -2826,8 +2787,7 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 	);
 	
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -2851,6 +2811,7 @@ BOOL DxRenderer::DrawDxrBackBuffer() {
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
+		mGBuffer->PositionMapSrv(),
 		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
 		mRtao->ResolvedAOCoefficientSrv(),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
@@ -2858,8 +2819,7 @@ BOOL DxRenderer::DrawDxrBackBuffer() {
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -3141,8 +3101,7 @@ BOOL DxRenderer::DrawRtao() {
 	}
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }
@@ -3166,13 +3125,18 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		mToneMapping->InterMediateMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
+		mGBuffer->PositionMapSrv(),
+		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
+		mRtao->ResolvedAOCoefficientSrv(),
+		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
+		mIrradianceMap->IntegratedBrdfMapSrv(),
 		mhGpuDescForTexMaps,
-		mClientWidth, mClientHeight
+		mClientWidth, mClientHeight,
+		ShaderArgs::RaytracedReflection::ReflectionRadius
 	);
 
 	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
 	return true;
 }

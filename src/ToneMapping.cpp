@@ -142,7 +142,7 @@ void ToneMappingClass::Resolve(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
-	
+
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 

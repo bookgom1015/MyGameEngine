@@ -105,7 +105,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcReflectanceEquation::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[7];
+		CD3DX12_DESCRIPTOR_RANGE texTables[8];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
@@ -113,15 +113,17 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
 		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
+		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
 
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Shadow].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Position].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Shadow].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad].InitAsDescriptorTable(1, &texTables[7]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -134,7 +136,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::IntegrateSpecular::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[9];
+		CD3DX12_DESCRIPTOR_RANGE texTables[10];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
@@ -144,6 +146,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
 		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
 		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
+		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0);
 
 		slotRootParameter[RootSignature::IntegrateSpecular::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
@@ -151,10 +154,11 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
 		slotRootParameter[RootSignature::IntegrateSpecular::ESI_RMS].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Reflection].InitAsDescriptorTable(1, &texTables[8]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Position].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[7]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[8]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Reflection].InitAsDescriptorTable(1, &texTables[9]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -294,6 +298,7 @@ void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_shadow,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_diffuseIrrad,
@@ -313,6 +318,7 @@ void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_RMS, si_rms);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Position, si_pos);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Shadow, si_shadow);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_AOCoeiff, si_aocoeiff);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad, si_diffuseIrrad);
@@ -321,8 +327,6 @@ void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
-
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
 void BRDFClass::IntegrateSpecularIrrad(
@@ -336,6 +340,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_prefiltered,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
@@ -347,6 +352,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 
 	cmdList->CopyResource(mCopiedBackBuffer->Resource(), backBuffer->Resource());
 
@@ -361,6 +367,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_RMS, si_rms);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_Position, si_pos);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_AOCoeiff, si_aocoeiff);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_Prefiltered, si_prefiltered);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_BrdfLUT, si_brdf);
@@ -370,9 +377,6 @@ void BRDFClass::IntegrateSpecularIrrad(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
-
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 }
 
 void BRDFClass::BuildDescriptors() {

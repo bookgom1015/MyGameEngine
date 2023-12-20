@@ -56,6 +56,7 @@ namespace MotionBlur {
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
+			GpuResource* const backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,

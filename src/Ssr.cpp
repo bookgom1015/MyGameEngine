@@ -129,6 +129,7 @@ BOOL SsrClass::OnResize(UINT width, UINT height) {
 void SsrClass::Build(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		GpuResource*const backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth) {
@@ -139,6 +140,8 @@ void SsrClass::Build(
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
 	const auto ssrMap = mSsrMaps[0].get();
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	ssrMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	const auto rtv = mhSsrMapCpuRtvs[0];
@@ -156,6 +159,7 @@ void SsrClass::Build(
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 	ssrMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 

@@ -52,6 +52,7 @@ namespace Ssr {
 		void Build(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			GpuResource* const backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
