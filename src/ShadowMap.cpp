@@ -112,13 +112,9 @@ void ShadowMapClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
 		UINT descSize, UINT dsvDescSize) {
-	mhCpuSrv = hCpu;
-	mhGpuSrv = hGpu;
-	mhCpuDsv = hCpuDsv;
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
-	hCpuDsv.Offset(1, dsvDescSize);
+	mhCpuSrv = hCpu.Offset(1, descSize);
+	mhGpuSrv = hGpu.Offset(1, descSize);
+	mhCpuDsv = hCpuDsv.Offset(1, dsvDescSize);
 
 	BuildDescriptors();
 }

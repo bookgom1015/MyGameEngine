@@ -25,33 +25,14 @@ struct RayPayload {
 
 ConstantBuffer<RtaoConstants> cbRtao : register(b0);
 
-cbuffer cbRootConstants : register(b1) {
-	uint2 gTextureDim;
-};
-
 // Nonnumeric values cannot be added to a cbuffer.
 RaytracingAccelerationStructure				gBVH			: register(t0);
-Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t1);
-Texture2D<GBuffer::DepthMapFormat>			gi_DepthMap		: register(t2);
+Texture2D<GBuffer::PositionMapFormat>		gi_Position		: register(t1);
+Texture2D<GBuffer::NormalDepthMapFormat>	gi_NormalDepth	: register(t2);
+Texture2D<GBuffer::DepthMapFormat>			gi_DepthMap		: register(t3);
 
 RWTexture2D<float> go_AOCoefficient		: register(u0);
 RWTexture2D<float> go_RayHitDistance	: register(u1);
-
-// Generates a seed for a random number generator from 2 inputs plus a backoff
-uint InitRand(uint val0, uint val1, uint backoff = 16) {
-	uint v0 = val0;
-	uint v1 = val1;
-	uint s0 = 0;
-
-	[unroll]
-	for (uint n = 0; n < backoff; ++n) {
-		s0 += 0x9e3779b9;
-		v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
-		v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761e);
-	}
-
-	return v0;
-}
 
 bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surfaceNormal) {
 	RayDesc ray;
@@ -94,6 +75,7 @@ float CalculateAO(out float tHit, uint2 launchIndex, Ray aoRay, float3 surfaceNo
 [shader("raygeneration")]
 void RtaoRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
+	uint2 dimensions = DispatchRaysDimensions().xy;
 
 	float3 surfaceNormal;
 	float depth;
@@ -103,10 +85,9 @@ void RtaoRayGen() {
 	float ambientCoef = Rtao::InvalidAOCoefficientValue;
 
 	if (depth != Rtao::RayHitDistanceOnMiss) {
-		float3 hitPosition;
-		CalculateHitPosition(cbRtao.Proj, cbRtao.InvProj, cbRtao.InvView, gTextureDim, depth, launchIndex, hitPosition);
+		float3 hitPosition = gi_Position[launchIndex].xyz;
 
-		uint seed = InitRand(launchIndex.x + launchIndex.y * gTextureDim.x, cbRtao.FrameCount);
+		uint seed = InitRand(launchIndex.x + launchIndex.y * dimensions.x, cbRtao.FrameCount);
 
 		float3 direction = CosHemisphereSample(seed, surfaceNormal);
 		float flip = sign(dot(direction, surfaceNormal));

@@ -21,11 +21,13 @@
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 #include "DxrShadingHelpers.hlsli"
+#include "RandGenerator.hlsli"
 #include "Samplers.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
 cbuffer cbRootConstants : register(b0) {
+	uint	gFrameCount;
 	uint	gShadowRayOffset;
 	float	gReflectionRadius;
 }
@@ -36,14 +38,15 @@ RaytracingAccelerationStructure							gi_BVH							: register(t0);
 Texture2D<HDR_FORMAT>									gi_BackBuffer					: register(t1);
 Texture2D<GBuffer::NormalMapFormat>						gi_Normal						: register(t2);
 Texture2D<GBuffer::DepthMapFormat>						gi_Depth						: register(t3);
-Texture2D<GBuffer::PositionMapFormat>					gi_Position						: register(t4);
-TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad					: register(t5);
-Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff						: register(t6);
-TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: register(t7);
-Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t8);
-Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t9);
+Texture2D<GBuffer::RMSMapFormat>						gi_RMS							: register(t4);
+Texture2D<GBuffer::PositionMapFormat>					gi_Position						: register(t5);
+TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad					: register(t6);
+Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff						: register(t7);
+TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: register(t8);
+Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t9);
+Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t10);
 
-RWTexture2D<float4>							go_Reflection	: register(u0);
+RWTexture2D<float4>	go_Reflection	: register(u0);
 
 ConstantBuffer<ObjectConstants>		lcb_Obj	: register(b0, space1);
 ConstantBuffer<MaterialConstants>	lcb_Mat	: register(b1, space1);
@@ -59,6 +62,7 @@ struct RayPayload {
 [shader("raygeneration")]
 void RadianceRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
+	uint2 dimensions = DispatchRaysDimensions().xy;
 
 	float3 normal = gi_Normal[launchIndex].xyz;
 	float depth = gi_Depth[launchIndex];
@@ -69,13 +73,21 @@ void RadianceRayGen() {
 	}
 
 	float3 origin = gi_Position[launchIndex].xyz;
-
 	float3 fromEye = normalize(origin - cb_Pass.EyePosW);
 	float3 toLight = reflect(fromEye, normal);
 
+	float4 rms = gi_RMS[launchIndex];
+	const float roughness = rms.x;
+
+	uint seed = InitRand(launchIndex.x + launchIndex.y * dimensions.x, gFrameCount);
+	
+	float3 direction = CosHemisphereSample(seed, normal);
+	float flip = sign(dot(direction, normal));
+	direction = lerp(toLight, flip * direction, roughness);
+
 	RayDesc ray;
 	ray.Origin = origin + 0.1 * normal;
-	ray.Direction = toLight;
+	ray.Direction = direction;
 	ray.TMin = 0;
 	ray.TMax = gReflectionRadius;
 

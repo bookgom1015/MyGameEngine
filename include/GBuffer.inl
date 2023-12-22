@@ -37,6 +37,14 @@ constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::NormalDepthMapRtv
 	return mhNormalDepthMapCpuRtv;
 }
 
+GpuResource* GBuffer::GBufferClass::PrevNormalDepthMapResource() {
+	return mPrevNormalDepthMap.get();
+}
+
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::PrevNormalDepthMapSrv() const {
+	return mhPrevNormalDepthMapGpuSrv;
+}
+
 constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE GBuffer::GBufferClass::DepthMapSrv() const {
 	return mhDepthMapGpuSrv;
 }

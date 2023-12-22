@@ -110,11 +110,8 @@ void GammaCorrectionClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv, 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv, 
 		UINT descSize) {
-	mhDuplicatedBackBufferCpuSrv = hCpuSrv;
-	mhDuplicatedBackBufferGpuSrv = hGpuSrv;
-
-	hCpuSrv.Offset(1, descSize);
-	hGpuSrv.Offset(1, descSize);
+	mhDuplicatedBackBufferCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhDuplicatedBackBufferGpuSrv = hGpuSrv.Offset(1, descSize);
 
 	BuildDescriptors();
 }

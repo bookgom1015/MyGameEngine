@@ -27,11 +27,8 @@ BOOL ImGuiManager::Initialize(HWND hwnd, ID3D12Device*const device, ID3D12Descri
 }
 
 BOOL ImGuiManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
-	mhCpuSrv = hCpu;
-	mhGpuSrv = hGpu;
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
+	mhCpuSrv = hCpu.Offset(1, descSize);
+	mhGpuSrv = hGpu.Offset(1, descSize);
 
 	CheckReturn(ImGui_ImplDX12_Init(
 		md3dDevice,

@@ -271,11 +271,8 @@ void BRDFClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		UINT descSize) {
-	mhCopiedBackBufferSrvCpu = hCpu;
-	mhCopiedBackBufferSrvGpu = hGpu;
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
+	mhCopiedBackBufferSrvCpu = hCpu.Offset(1, descSize);
+	mhCopiedBackBufferSrvGpu = hGpu.Offset(1, descSize);
 
 	BuildDescriptors();
 }

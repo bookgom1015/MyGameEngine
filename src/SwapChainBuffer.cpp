@@ -68,11 +68,8 @@ void SwapChainBufferClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		UINT descSize) {
 	for (UINT i = 0; i < mSwapChainBufferCount; ++i) {
-		mhBackBufferCpuSrvs[i] = hCpuSrv;
-		mhBackBufferGpuSrvs[i] = hGpuSrv;
-
-		hCpuSrv.Offset(1, descSize);
-		hGpuSrv.Offset(1, descSize);
+		mhBackBufferCpuSrvs[i] = hCpuSrv.Offset(1, descSize);
+		mhBackBufferGpuSrvs[i] = hGpuSrv.Offset(1, descSize);
 	}
 
 	BuildDescriptors();

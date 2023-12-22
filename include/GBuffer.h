@@ -41,6 +41,9 @@ namespace GBuffer {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE NormalDepthMapSrv() const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE NormalDepthMapRtv() const;
 
+		__forceinline GpuResource* PrevNormalDepthMapResource();
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE PrevNormalDepthMapSrv() const;
+
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthMapSrv() const;
 
 		__forceinline GpuResource* RMSMapResource();
@@ -110,6 +113,10 @@ namespace GBuffer {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhNormalDepthMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhNormalDepthMapGpuSrv;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhNormalDepthMapCpuRtv;
+
+		std::unique_ptr<GpuResource> mPrevNormalDepthMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrevNormalDepthMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhPrevNormalDepthMapGpuSrv;
 
 		GpuResource* mDepthMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthMapCpuSrv;

@@ -19,6 +19,7 @@ GBufferClass::GBufferClass() {
 	mAlbedoMap = std::make_unique<GpuResource>();
 	mNormalMap = std::make_unique<GpuResource>();
 	mNormalDepthMap = std::make_unique<GpuResource>();
+	mPrevNormalDepthMap = std::make_unique<GpuResource>();
 	mRMSMap = std::make_unique<GpuResource>();
 	mVelocityMap = std::make_unique<GpuResource>();
 	mReprojNormalDepthMap = std::make_unique<GpuResource>();
@@ -164,9 +165,9 @@ void GBufferClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhAlbedoMapCpuSrv = hCpuSrv;
-	mhAlbedoMapGpuSrv = hGpuSrv;
-	mhAlbedoMapCpuRtv = hCpuRtv;
+	mhAlbedoMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhAlbedoMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhAlbedoMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhNormalMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhNormalMapGpuSrv = hGpuSrv.Offset(1, descSize);
@@ -175,6 +176,9 @@ void GBufferClass::BuildDescriptors(
 	mhNormalDepthMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhNormalDepthMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhNormalDepthMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+
+	mhPrevNormalDepthMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhPrevNormalDepthMapGpuSrv = hGpuSrv.Offset(1, descSize);
 
 	mhDepthMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhDepthMapGpuSrv = hGpuSrv.Offset(1, descSize);
@@ -193,11 +197,7 @@ void GBufferClass::BuildDescriptors(
 
 	mhPositionMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhPositionMapGpuSrv = hGpuSrv.Offset(1, descSize);
-	mhPositionMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
-
-	hCpuSrv.Offset(1, descSize);
-	hGpuSrv.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
+	mhPositionMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);	
 
 	BuildDescriptors();
 }
@@ -239,6 +239,8 @@ void GBufferClass::BuildDescriptors() {
 		rtvDesc.Format = NormalDepthMapFormat;
 		md3dDevice->CreateShaderResourceView(mNormalDepthMap->Resource(), &srvDesc, mhNormalDepthMapCpuSrv);
 		md3dDevice->CreateRenderTargetView(mNormalDepthMap->Resource(), &rtvDesc, mhNormalDepthMapCpuRtv);
+
+		md3dDevice->CreateShaderResourceView(mPrevNormalDepthMap->Resource(), &srvDesc, mhPrevNormalDepthMapCpuSrv);
 	}
 	{
 		srvDesc.Format = DepthMapFormat;
@@ -281,111 +283,128 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 	{
-		rscDesc.Format = AlbedoMapFormat;
+		rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-		CD3DX12_CLEAR_VALUE optClear(AlbedoMapFormat, AlbedoMapClearValues);
+		{
+			rscDesc.Format = AlbedoMapFormat;
 
-		CheckReturn(mAlbedoMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"AlbedoMap"
-		));
-	}
-	{
-		rscDesc.Format = NormalMapFormat;
+			CD3DX12_CLEAR_VALUE optClear(AlbedoMapFormat, AlbedoMapClearValues);
 
-		CD3DX12_CLEAR_VALUE optClear(NormalMapFormat, NormalMapClearValues);
+			CheckReturn(mAlbedoMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"AlbedoMap"
+			));
+		}
+		{
+			rscDesc.Format = NormalMapFormat;
 
-		CheckReturn(mNormalMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"NormalMap"
-		));
+			CD3DX12_CLEAR_VALUE optClear(NormalMapFormat, NormalMapClearValues);
+
+			CheckReturn(mNormalMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"NormalMap"
+			));
+		}
+		{
+			rscDesc.Format = NormalDepthMapFormat;
+
+			CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, NormalDepthMapClearValues);
+
+			CheckReturn(mNormalDepthMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"NormalDepthMap"
+			));
+		}
+		{
+			rscDesc.Format = RMSMapFormat;
+
+			CD3DX12_CLEAR_VALUE optClear(RMSMapFormat, RMSMapClearValues);
+
+			CheckReturn(mRMSMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"RoughnessMetalicSpecularMap"
+			));
+		}
+		{
+			rscDesc.Format = VelocityMapFormat;
+
+			CD3DX12_CLEAR_VALUE optClear(VelocityMapFormat, VelocityMapClearValues);
+
+			CheckReturn(mVelocityMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"VelocityMap"
+			));
+		}
+		{
+			rscDesc.Format = ReprojNormalDepthMapFormat;
+
+			CD3DX12_CLEAR_VALUE optClear(ReprojNormalDepthMapFormat, ReprojNormalDepthMapClearValues);
+
+			CheckReturn(mReprojNormalDepthMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"ReprojNormalDepthMap"
+			));
+		}
+		{
+			rscDesc.Format = PositionMapFormat;
+
+			CD3DX12_CLEAR_VALUE optClear(PositionMapFormat, PositionMapClearValues);
+
+			CheckReturn(mPositionMap->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				&optClear,
+				L"PositionMap"
+			));
+		}
 	}
 	{
 		rscDesc.Format = NormalDepthMapFormat;
+		rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-		CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, NormalDepthMapClearValues);
-
-		CheckReturn(mNormalDepthMap->Initialize(
+		CheckReturn(mPrevNormalDepthMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"NormalDepthMap"
-		));
-	}
-	{
-		rscDesc.Format = RMSMapFormat;
-
-		CD3DX12_CLEAR_VALUE optClear(RMSMapFormat, RMSMapClearValues);
-
-		CheckReturn(mRMSMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"RoughnessMetalicSpecularMap"
-		));
-	}
-	{
-		rscDesc.Format = VelocityMapFormat;
-
-		CD3DX12_CLEAR_VALUE optClear(VelocityMapFormat, VelocityMapClearValues);
-
-		CheckReturn(mVelocityMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"VelocityMap"
-		));
-	}
-	{
-		rscDesc.Format = ReprojNormalDepthMapFormat;
-
-		CD3DX12_CLEAR_VALUE optClear(ReprojNormalDepthMapFormat, ReprojNormalDepthMapClearValues);
-
-		CheckReturn(mReprojNormalDepthMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"ReprojNormalDepthMap"
-		));
-	}
-	{
-		rscDesc.Format = PositionMapFormat;
-
-		CD3DX12_CLEAR_VALUE optClear(PositionMapFormat, PositionMapClearValues);
-
-		CheckReturn(mPositionMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"PositionMap"
+			nullptr,
+			L"PrevNormalDepthMap"
 		));
 	}
 

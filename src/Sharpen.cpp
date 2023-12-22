@@ -75,13 +75,10 @@ void SharpenClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		UINT descSize) {
-	mhCopiedBackBufferCpuSrv = hCpuSrv;
-	mhCopiedBackBufferGpuSrv = hGpuSrv;
+	mhCopiedBackBufferCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhCopiedBackBufferGpuSrv = hGpuSrv.Offset(1, descSize);
 
-	BuildDescriptors();
-
-	hCpuSrv.Offset(1, descSize);
-	hGpuSrv.Offset(1, descSize);
+	BuildDescriptors();	
 }
 
 BOOL SharpenClass::OnResize(UINT width, UINT height) {

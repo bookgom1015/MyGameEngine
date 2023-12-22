@@ -133,20 +133,14 @@ void SsaoClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhRandomVectorMapCpuSrv = hCpu;
-	mhRandomVectorMapGpuSrv = hGpu;
+	mhRandomVectorMapCpuSrv = hCpu.Offset(1, descSize);
+	mhRandomVectorMapGpuSrv = hGpu.Offset(1, descSize);
 
-	mhAOCoefficientMapCpuSrvs[0] = hCpu.Offset(1, descSize);
-	mhAOCoefficientMapGpuSrvs[0] = hGpu.Offset(1, descSize);
-	mhAOCoefficientMapCpuRtvs[0] = hCpuRtv;
-
-	mhAOCoefficientMapCpuSrvs[1] = hCpu.Offset(1, descSize);
-	mhAOCoefficientMapGpuSrvs[1] = hGpu.Offset(1, descSize);
-	mhAOCoefficientMapCpuRtvs[1] = hCpuRtv.Offset(1, rtvDescSize);
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
+	for (UINT i = 0; i < 2; ++i) {
+		mhAOCoefficientMapCpuSrvs[i] = hCpu.Offset(1, descSize);
+		mhAOCoefficientMapGpuSrvs[i] = hGpu.Offset(1, descSize);
+		mhAOCoefficientMapCpuRtvs[i] = hCpuRtv.Offset(1, rtvDescSize);
+	}
 
 	BuildDescriptors();
 }

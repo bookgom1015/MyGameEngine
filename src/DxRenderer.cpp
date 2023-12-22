@@ -225,7 +225,6 @@ DxRenderer::DxRenderer() {
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
-	mDxrGeometryBuffer = std::make_unique<DxrGeometryBuffer::DxrGeometryBufferClass>();
 	mBlurFilterCS = std::make_unique<BlurFilterCS::BlurFilterCSClass>();
 	mRtao = std::make_unique<Rtao::RtaoClass>();
 
@@ -794,6 +793,11 @@ void DxRenderer::BuildDescriptors() {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
+	hCpu.Offset(-1, descSize);
+	hGpu.Offset(-1, descSize);
+	hCpuDsv.Offset(-1, dsvDescSize);
+	hCpuRtv.Offset(-1, rtvDescSize);
+
 	mImGui->BuildDescriptors(hCpu, hGpu, descSize);
 	mSwapChainBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
@@ -812,12 +816,11 @@ void DxRenderer::BuildDescriptors() {
 	mSharpen->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
-	mDxrGeometryBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 	mRtao->BuildDescriptors(hCpu, hGpu, descSize);
 	mRr->BuildDesscriptors(hCpu, hGpu, descSize);
 
-	mhCpuDescForTexMaps = hCpu;
-	mhGpuDescForTexMaps = hGpu;
+	mhCpuDescForTexMaps = hCpu.Offset(1, descSize);
+	mhGpuDescForTexMaps = hGpu.Offset(1, descSize);
 }
 
 BOOL DxRenderer::BuildRootSignatures() {
@@ -1745,7 +1748,21 @@ BOOL DxRenderer::DrawGBuffer() {
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-		
+
+	// Copy the previous frame normal and depth values to the cached map.
+	{
+		const auto nd = mGBuffer->NormalDepthMapResource();
+		const auto prevNd = mGBuffer->PrevNormalDepthMapResource();
+
+		nd->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		prevNd->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+		cmdList->CopyResource(prevNd->Resource(), nd->Resource());
+
+		nd->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		prevNd->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+
 	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
@@ -2855,6 +2872,7 @@ BOOL DxRenderer::DrawRtao() {
 			cmdList,
 			mTLAS->Result->GetGPUVirtualAddress(),
 			mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress(),
+			mGBuffer->PositionMapSrv(),
 			mGBuffer->NormalDepthMapSrv(),
 			mGBuffer->DepthMapSrv(),
 			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_AmbientCoefficient],
@@ -2909,7 +2927,7 @@ BOOL DxRenderer::DrawRtao() {
 				mGBuffer->NormalDepthMapSrv(),
 				mRtao->DepthPartialDerivativeSrv(),
 				mGBuffer->ReprojNormalDepthMapSrv(),
-				mRtao->PrevFrameNormalDepthSrv(),
+				mGBuffer->PrevNormalDepthMapSrv(),
 				mGBuffer->VelocityMapSrv(),
 				temporalAOCoefficientsGpuDescriptors[temporalPreviousFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
 				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
@@ -2923,20 +2941,6 @@ BOOL DxRenderer::DrawRtao() {
 			currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			tsppCoefficientSquaredMeanRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
-
-			// Copy the current normal and depth values to the cached map.
-			{
-				const auto normal = mGBuffer->NormalDepthMapResource();
-				const auto prevFrameNormalDepth = mRtao->PrevFrameNormalDepth();
-			
-				normal->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-				prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-			
-				cmdList->CopyResource(prevFrameNormalDepth->Resource(), normal->Resource());
-			
-				normal->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				prevFrameNormalDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			}
 		}
 		// Stage 2: Blending current frame value with the reprojected cachec value
 		{
@@ -3117,7 +3121,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	const auto rrCBAddress = mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress();
 
-	mRr->Run(
+	mRr->CalcReflection(
 		cmdList,
 		passCBAddress,
 		rrCBAddress,
@@ -3125,6 +3129,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		mToneMapping->InterMediateMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
+		mGBuffer->RMSMapSrv(),
 		mGBuffer->PositionMapSrv(),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
 		mRtao->ResolvedAOCoefficientSrv(),

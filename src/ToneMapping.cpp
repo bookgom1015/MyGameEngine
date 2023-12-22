@@ -151,13 +151,9 @@ void ToneMappingClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhIntermediateMapCpuSrv = hCpuSrv;
-	mhIntermediateMapGpuSrv = hGpuSrv;
-	mhIntermediateMapCpuRtv = hCpuRtv;
-
-	hCpuSrv.Offset(1, descSize);
-	hGpuSrv.Offset(1, descSize);
-	hCpuRtv.Offset(1, descSize);
+	mhIntermediateMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhIntermediateMapGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhIntermediateMapCpuRtv = hCpuRtv.Offset(1, descSize);
 
 	BuildDescriptors();
 }

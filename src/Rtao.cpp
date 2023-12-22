@@ -24,9 +24,6 @@ namespace {
 }
 
 RtaoClass::RtaoClass() {
-	mTemporalCurrentFrameResourceIndex = 0;
-	mTemporalCurrentFrameTemporalAOCeofficientResourceIndex = 0;
-
 	for (INT i = 0; i < Resource::AO::Count; ++i) {
 		mAOResources[i] = std::make_unique<GpuResource>();
 	}
@@ -47,7 +44,6 @@ RtaoClass::RtaoClass() {
 		mTemporalAOCoefficients[i] = std::make_unique<GpuResource>();
 	}
 
-	mPrevFrameNormalDepth = std::make_unique<GpuResource>();
 	mTsppCoefficientSquaredMeanRayHitDistance = std::make_unique<GpuResource>();
 	mDisocclusionBlurStrength = std::make_unique<GpuResource>();
 	mDepthPartialDerivative = std::make_unique<GpuResource>();
@@ -110,21 +106,21 @@ BOOL RtaoClass::CompileShaders(const std::wstring& filePath) {
 BOOL RtaoClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Ray-traced ambient occlusion
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[4];
+		CD3DX12_DESCRIPTOR_RANGE texTables[5];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcAmbientOcclusion::Count];
 		slotRootParameter[RootSignature::CalcAmbientOcclusion::ESI_AccelerationStructure].InitAsShaderResourceView(0);
 		slotRootParameter[RootSignature::CalcAmbientOcclusion::ECB_RtaoPass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::CalcAmbientOcclusion::EC_Consts].InitAsConstants(
-			RootSignature::CalcAmbientOcclusion::RootConstant::Count, 1, 0);
-		slotRootParameter[RootSignature::CalcAmbientOcclusion::ESI_Normal].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::CalcAmbientOcclusion::ESI_Depth].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::CalcAmbientOcclusion::EUO_AOCoefficient].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::CalcAmbientOcclusion::EUO_RayHitDistance].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::CalcAmbientOcclusion::ESI_Pos].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::CalcAmbientOcclusion::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::CalcAmbientOcclusion::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::CalcAmbientOcclusion::EUO_AOCoefficient].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::CalcAmbientOcclusion::EUO_RayHitDistance].InitAsDescriptorTable(1, &texTables[4]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -468,52 +464,27 @@ BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 }
 
 void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
-	mhAOResourcesCpus[Descriptor::AO::ES_AmbientCoefficient] = hCpu;
-	mhAOResourcesGpus[Descriptor::AO::ES_AmbientCoefficient] = hGpu;
-	mhAOResourcesCpus[Descriptor::AO::EU_AmbientCoefficient] = hCpu.Offset(1, descSize);
-	mhAOResourcesGpus[Descriptor::AO::EU_AmbientCoefficient] = hGpu.Offset(1, descSize);
-	mhAOResourcesCpus[Descriptor::AO::ES_RayHitDistance] = hCpu.Offset(1, descSize);
-	mhAOResourcesGpus[Descriptor::AO::ES_RayHitDistance] = hGpu.Offset(1, descSize);
-	mhAOResourcesCpus[Descriptor::AO::EU_RayHitDistance] = hCpu.Offset(1, descSize);
-	mhAOResourcesGpus[Descriptor::AO::EU_RayHitDistance] = hGpu.Offset(1, descSize);
-
-	mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::ES_Raw] = hCpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesGpus[Descriptor::LocalMeanVariance::ES_Raw] = hGpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::EU_Raw] = hCpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesGpus[Descriptor::LocalMeanVariance::EU_Raw] = hGpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::ES_Smoothed] = hCpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesGpus[Descriptor::LocalMeanVariance::ES_Smoothed] = hGpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::EU_Smoothed] = hCpu.Offset(1, descSize);
-	mhLocalMeanVarianceResourcesGpus[Descriptor::LocalMeanVariance::EU_Smoothed] = hGpu.Offset(1, descSize);
-
-	mhAOVarianceResourcesCpus[Descriptor::AOVariance::ES_Raw] = hCpu.Offset(1, descSize);
-	mhAOVarianceResourcesGpus[Descriptor::AOVariance::ES_Raw] = hGpu.Offset(1, descSize);
-	mhAOVarianceResourcesCpus[Descriptor::AOVariance::EU_Raw] = hCpu.Offset(1, descSize);
-	mhAOVarianceResourcesGpus[Descriptor::AOVariance::EU_Raw] = hGpu.Offset(1, descSize);
-	mhAOVarianceResourcesCpus[Descriptor::AOVariance::ES_Smoothed] = hCpu.Offset(1, descSize);
-	mhAOVarianceResourcesGpus[Descriptor::AOVariance::ES_Smoothed] = hGpu.Offset(1, descSize);
-	mhAOVarianceResourcesCpus[Descriptor::AOVariance::EU_Smoothed] = hCpu.Offset(1, descSize);
-	mhAOVarianceResourcesGpus[Descriptor::AOVariance::EU_Smoothed] = hGpu.Offset(1, descSize);
-
-	for (size_t i = 0; i < 2; ++i) {
-		mhTemporalCachesCpus[i][Descriptor::TemporalCache::ES_Tspp] = hCpu.Offset(1, descSize);
-		mhTemporalCachesGpus[i][Descriptor::TemporalCache::ES_Tspp] = hGpu.Offset(1, descSize);
-		mhTemporalCachesCpus[i][Descriptor::TemporalCache::EU_Tspp] = hCpu.Offset(1, descSize);
-		mhTemporalCachesGpus[i][Descriptor::TemporalCache::EU_Tspp] = hGpu.Offset(1, descSize);
-
-		mhTemporalCachesCpus[i][Descriptor::TemporalCache::ES_RayHitDistance] = hCpu.Offset(1, descSize);
-		mhTemporalCachesGpus[i][Descriptor::TemporalCache::ES_RayHitDistance] = hGpu.Offset(1, descSize);
-		mhTemporalCachesCpus[i][Descriptor::TemporalCache::EU_RayHitDistance] = hCpu.Offset(1, descSize);
-		mhTemporalCachesGpus[i][Descriptor::TemporalCache::EU_RayHitDistance] = hGpu.Offset(1, descSize);
-
-		mhTemporalCachesCpus[i][Descriptor::TemporalCache::ES_CoefficientSquaredMean] = hCpu.Offset(1, descSize);
-		mhTemporalCachesGpus[i][Descriptor::TemporalCache::ES_CoefficientSquaredMean] = hGpu.Offset(1, descSize);
-		mhTemporalCachesCpus[i][Descriptor::TemporalCache::EU_CoefficientSquaredMean] = hCpu.Offset(1, descSize);
-		mhTemporalCachesGpus[i][Descriptor::TemporalCache::EU_CoefficientSquaredMean] = hGpu.Offset(1, descSize);
+	for (UINT i = 0; i < Descriptor::AO::Count; ++i) {
+		mhAOResourcesCpus[i] = hCpu.Offset(1, descSize);
+		mhAOResourcesGpus[i] = hGpu.Offset(1, descSize);
 	}
 
-	mhPrevFrameNormalDepthCpuSrv = hCpu.Offset(1, descSize);
-	mhPrevFrameNormalDepthGpuSrv = hGpu.Offset(1, descSize);
+	for (UINT i = 0; i < Descriptor::LocalMeanVariance::Count; ++i) {
+		mhLocalMeanVarianceResourcesCpus[i] = hCpu.Offset(1, descSize);
+		mhLocalMeanVarianceResourcesGpus[i] = hGpu.Offset(1, descSize);
+	}
+
+	for (UINT i = 0; i < Descriptor::AOVariance::Count; ++i) {
+		mhAOVarianceResourcesCpus[i] = hCpu.Offset(1, descSize);
+		mhAOVarianceResourcesGpus[i] = hGpu.Offset(1, descSize);
+	}
+
+	for (UINT i = 0; i < 2; ++i) {
+		for (UINT j = 0; j < Descriptor::TemporalCache::Count; ++j) {
+			mhTemporalCachesCpus[i][j] = hCpu.Offset(1, descSize);
+			mhTemporalCachesGpus[i][j] = hGpu.Offset(1, descSize);
+		}
+	}
 
 	mhTsppCoefficientSquaredMeanRayHitDistanceCpuSrv = hCpu.Offset(1, descSize);
 	mhTsppCoefficientSquaredMeanRayHitDistanceGpuSrv = hGpu.Offset(1, descSize);
@@ -525,11 +496,11 @@ void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 	mhDisocclusionBlurStrengthCpuUav = hCpu.Offset(1, descSize);
 	mhDisocclusionBlurStrengthGpuUav = hGpu.Offset(1, descSize);
 
-	for (size_t i = 0; i < 2; ++i) {
-		mhTemporalAOCoefficientsCpus[i][Descriptor::TemporalAOCoefficient::Srv] = hCpu.Offset(1, descSize);
-		mhTemporalAOCoefficientsGpus[i][Descriptor::TemporalAOCoefficient::Srv] = hGpu.Offset(1, descSize);
-		mhTemporalAOCoefficientsCpus[i][Descriptor::TemporalAOCoefficient::Uav] = hCpu.Offset(1, descSize);
-		mhTemporalAOCoefficientsGpus[i][Descriptor::TemporalAOCoefficient::Uav] = hGpu.Offset(1, descSize);
+	for (UINT i = 0; i < 2; ++i) {
+		for (UINT j = 0; j < Descriptor::TemporalAOCoefficient::Count; ++j) {
+			mhTemporalAOCoefficientsCpus[i][j] = hCpu.Offset(1, descSize);
+			mhTemporalAOCoefficientsGpus[i][j] = hGpu.Offset(1, descSize);
+		}
 	}
 
 	mhDepthPartialDerivativeCpuSrv = hCpu.Offset(1, descSize);
@@ -537,10 +508,7 @@ void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 	mhDepthPartialDerivativeCpuUav = hCpu.Offset(1, descSize);
 	mhDepthPartialDerivativeGpuUav = hGpu.Offset(1, descSize);
 
-	BuildDescriptors();
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
+	BuildDescriptors();	
 }
 
 BOOL RtaoClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
@@ -554,6 +522,7 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE uo_aoCoefficient,
@@ -565,9 +534,7 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	cmdList->SetComputeRootShaderResourceView(RootSignature::CalcAmbientOcclusion::ESI_AccelerationStructure, accelStruct);
 	cmdList->SetComputeRootConstantBufferView(RootSignature::CalcAmbientOcclusion::ECB_RtaoPass, cbAddress);
 
-	const UINT values[RootSignature::CalcAmbientOcclusion::RootConstant::Count] = { width, height };
-	cmdList->SetComputeRoot32BitConstants(RootSignature::CalcAmbientOcclusion::EC_Consts, _countof(values), values, 0);
-
+	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcAmbientOcclusion::ESI_Pos, si_pos);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcAmbientOcclusion::ESI_Normal, si_normal);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcAmbientOcclusion::ESI_Depth, si_depth);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcAmbientOcclusion::EUO_AOCoefficient, uo_aoCoefficient);
@@ -892,9 +859,6 @@ void RtaoClass::BuildDescriptors() {
 		md3dDevice->CreateUnorderedAccessView(smoothedResource, nullptr, &uavDesc, mhAOVarianceResourcesCpus[Descriptor::AOVariance::EU_Smoothed]);
 	}
 	{
-		srvDesc.Format = NormalDepthMapFormat;
-		md3dDevice->CreateShaderResourceView(mPrevFrameNormalDepth->Resource(), &srvDesc, mhPrevFrameNormalDepthCpuSrv);
-
 		srvDesc.Format = TsppCoefficientSquaredMeanRayHitDistanceFormat;
 		uavDesc.Format = TsppCoefficientSquaredMeanRayHitDistanceFormat;
 		md3dDevice->CreateShaderResourceView(mTsppCoefficientSquaredMeanRayHitDistance->Resource(), &srvDesc, mhTsppCoefficientSquaredMeanRayHitDistanceCpuSrv);
@@ -972,7 +936,7 @@ BOOL RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, U
 	{
 		texDesc.Format = TsppMapFormat;
 		for (INT i = 0; i < 2; ++i) {
-			std::wstring name = L"TsppMap_";
+			std::wstring name = L"RTAO_TsppMap_";
 			name.append(std::to_wstring(i));
 			CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_Tspp]->Initialize(
 				md3dDevice,
@@ -1063,20 +1027,6 @@ BOOL RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, U
 		));
 	}
 	{
-		auto _texDesc = texDesc;
-		_texDesc.Format = NormalDepthMapFormat;
-		_texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		CheckReturn(mPrevFrameNormalDepth->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&_texDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			L"PrevFrameNormalDepthMap"
-		));
-	}
-	{
 		texDesc.Format = TsppCoefficientSquaredMeanRayHitDistanceFormat;
 		CheckReturn(mTsppCoefficientSquaredMeanRayHitDistance->Initialize(
 			md3dDevice,
@@ -1125,7 +1075,7 @@ BOOL RtaoClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, U
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"DepthPartialDerivativeMap"
+			L"RTAO_DepthPartialDerivativeMap"
 		));
 	}
 

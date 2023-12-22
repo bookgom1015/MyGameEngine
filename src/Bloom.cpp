@@ -190,19 +190,15 @@ void BloomClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhBloomMapCpuSrvs[0] = hCpu;
-	mhBloomMapGpuSrvs[0] = hGpu;
-	mhBloomMapCpuRtvs[0] = hCpuRtv;
+	mhBloomMapCpuSrvs[0] = hCpu.Offset(1, descSize);
+	mhBloomMapGpuSrvs[0] = hGpu.Offset(1, descSize);
+	mhBloomMapCpuRtvs[0] = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhBloomMapCpuSrvs[1] = hCpu.Offset(1, descSize);
 	mhBloomMapGpuSrvs[1] = hGpu.Offset(1, descSize);
 	mhBloomMapCpuRtvs[1] = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhResultMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
 
 	BuildDescriptors();
 }

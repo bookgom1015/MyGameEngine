@@ -121,14 +121,11 @@ void TemporalAAClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		UINT descSize) {
-	mhCopiedBackBufferCpuSrv = hCpu;
-	mhCopiedBackBufferGpuSrv = hGpu;
+	mhCopiedBackBufferCpuSrv = hCpu.Offset(1, descSize);
+	mhCopiedBackBufferGpuSrv = hGpu.Offset(1, descSize);
 
 	mhHistoryMapCpuSrv = hCpu.Offset(1, descSize);
-	mhHistoryMapGpuSrv = hGpu.Offset(1, descSize);
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
+	mhHistoryMapGpuSrv = hGpu.Offset(1, descSize);	
 
 	BuildDescriptors();
 }

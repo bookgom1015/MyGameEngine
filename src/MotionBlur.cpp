@@ -75,9 +75,7 @@ BOOL MotionBlurClass::BuildPso() {
 }
 
 void MotionBlurClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv, UINT rtvDescSize) {
-	mhMotionVectorMapCpuRtv = hCpuRtv;
-
-	hCpuRtv.Offset(1, rtvDescSize);
+	mhMotionVectorMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	BuildDescriptors();
 }

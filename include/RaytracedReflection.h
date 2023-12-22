@@ -27,6 +27,7 @@ namespace RaytracedReflection {
 				ESI_BackBuffer,
 				ESI_Normal,
 				ESI_Depth,
+				ESI_RMS,
 				ESI_Position,
 				ESI_DiffIrrad,
 				ESI_AOCoeiff,
@@ -39,7 +40,8 @@ namespace RaytracedReflection {
 			
 			namespace RootConstantsLayout {
 				enum {
-					E_ShadowRayOffset = 0,
+					E_FrameCount = 0,
+					E_ShadowRayOffset,
 					E_ReflectionRadius,
 					Count
 				};
@@ -64,6 +66,35 @@ namespace RaytracedReflection {
 		}
 	}
 
+	namespace Resource {
+		
+	}
+
+	namespace Descriptor {
+		namespace Reflection {
+			enum {
+				E_Srv = 0,
+				E_Uav,
+				Count
+			};
+		}
+
+		namespace TemporalReflection {
+			enum {
+				E_Srv = 0,
+				E_Uav,
+				Count
+			};
+		}
+	}
+
+	using ReflectionCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::Reflection::Count>;
+	using ReflectionGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::Reflection::Count>;
+
+	using TemporalReflectionType = std::array<std::unique_ptr<GpuResource>, 2>;
+	using TemporalReflectionCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::TemporalReflection::Count>, 2>;
+	using TemporalReflectionGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::TemporalReflection::Count>, 2>;
+
 	class RaytracedReflectionClass {
 	public:
 		RaytracedReflectionClass();
@@ -71,6 +102,9 @@ namespace RaytracedReflection {
 
 	public:
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE ReflectionMapSrv() const;
+
+		__forceinline constexpr UINT TemporalCurrentFrameResourceIndex() const;
+		__forceinline constexpr UINT TemporalCurrentFrameTemporalReflectionResourceIndex() const;
 
 	public:
 		BOOL Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
@@ -83,7 +117,7 @@ namespace RaytracedReflection {
 		void BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 		BOOL OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
 
-		void Run(
+		void CalcReflection(
 			ID3D12GraphicsCommandList4* const  cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
@@ -91,6 +125,7 @@ namespace RaytracedReflection {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_diffIrrad,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
@@ -99,6 +134,9 @@ namespace RaytracedReflection {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 			UINT width, UINT height,
 			FLOAT radius);
+
+		UINT MoveToNextFrame();
+		UINT MoveToNextFrameTemporalReflection();
 
 	private:
 		void BuildDescriptors();
@@ -119,15 +157,28 @@ namespace RaytracedReflection {
 		UINT mShadowRayOffset;
 
 		std::unique_ptr<GpuResource> mReflectionMap;
+		ReflectionCpuDescriptors mhReflectionMapCpus;
+		ReflectionGpuDescriptors mhReflectionMapGpus;
+
 		std::unique_ptr<GpuResource> mReflectionUploadBuffer;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReflectionMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhReflectionMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhReflectionMapCpuUav;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhReflectionMapGpuUav;
+		TemporalReflectionType mTemporalReflectionMaps;
+		TemporalReflectionCpuDescriptors mhTemporalReflectionMapCpus;
+		TemporalReflectionGpuDescriptors mhTemporalReflectionMapGpus;
+
+		UINT mTemporalCurrentFrameResourceIndex = 0;
+		UINT mTemporalCurrentFrameTemporalReflectionResourceIndex = 0;
 	};
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE RaytracedReflection::RaytracedReflectionClass::ReflectionMapSrv() const {
-	return mhReflectionMapGpuSrv;
+	return mhReflectionMapGpus[RaytracedReflection::Descriptor::Reflection::E_Srv];
+}
+
+constexpr UINT RaytracedReflection::RaytracedReflectionClass::TemporalCurrentFrameResourceIndex() const {
+	return mTemporalCurrentFrameResourceIndex;
+}
+
+constexpr UINT RaytracedReflection::RaytracedReflectionClass::TemporalCurrentFrameTemporalReflectionResourceIndex() const {
+	return mTemporalCurrentFrameTemporalReflectionResourceIndex;
 }

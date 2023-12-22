@@ -194,20 +194,17 @@ void DxrShadowMapClass::Run(
 
 
 void DxrShadowMapClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
-	mhCpuDescs[Descriptors::ES_Shadow0] = hCpu;
-	mhGpuDescs[Descriptors::ES_Shadow0] = hGpu;
-	mhCpuDescs[Descriptors::EU_Shadow0] = hCpu;
-	mhGpuDescs[Descriptors::EU_Shadow0] = hGpu;
+	mhCpuDescs[Descriptors::ES_Shadow0] = hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptors::ES_Shadow0] = hGpu.Offset(1, descSize);
+	mhCpuDescs[Descriptors::EU_Shadow0] = hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptors::EU_Shadow0] = hGpu.Offset(1, descSize);
 
 	mhCpuDescs[Descriptors::ES_Shadow1] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptors::ES_Shadow1] = hGpu.Offset(1, descSize);
 	mhCpuDescs[Descriptors::EU_Shadow1] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptors::EU_Shadow1] = hGpu.Offset(1, descSize);
 
-	BuildDescriptors();
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
+	BuildDescriptors();	
 }
 
 BOOL DxrShadowMapClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {

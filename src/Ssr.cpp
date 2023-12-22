@@ -94,16 +94,11 @@ void SsrClass::BuildDescriptors(
 	CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 	CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 	UINT descSize, UINT rtvDescSize) {
-	mhSsrMapCpuSrvs[0] = hCpu;
-	mhSsrMapGpuSrvs[0] = hGpu;
-	mhSsrMapCpuRtvs[0] = hCpuRtv;
-	mhSsrMapCpuSrvs[1] = hCpu.Offset(1, descSize);
-	mhSsrMapGpuSrvs[1] = hGpu.Offset(1, descSize);
-	mhSsrMapCpuRtvs[1] = hCpuRtv.Offset(1, rtvDescSize);
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
+	for (UINT i = 0; i < 2; ++i) {
+		mhSsrMapCpuSrvs[i] = hCpu.Offset(1, descSize);
+		mhSsrMapGpuSrvs[i] = hGpu.Offset(1, descSize);
+		mhSsrMapCpuRtvs[i] = hCpuRtv.Offset(1, rtvDescSize);
+	}
 
 	BuildDescriptors();
 }

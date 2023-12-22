@@ -362,9 +362,9 @@ void DepthOfFieldClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhCocMapCpuSrv = hCpu;
-	mhCocMapGpuSrv = hGpu;
-	mhCocMapCpuRtv = hCpuRtv;
+	mhCocMapCpuSrv = hCpu.Offset(1, descSize);
+	mhCocMapGpuSrv = hGpu.Offset(1, descSize);
+	mhCocMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhDofTempMapCpuSrv = hCpu.Offset(1, descSize);
 	mhDofTempMapGpuSrv = hGpu.Offset(1, descSize);
@@ -375,11 +375,7 @@ void DepthOfFieldClass::BuildDescriptors(
 	mhFocalDistanceCpuUav = hCpu.Offset(1, descSize);
 	mhFocalDistanceGpuUav = hGpu.Offset(1, descSize);
 
-	BuildDescriptors();
-
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
+	BuildDescriptors();	
 }
 
 BOOL DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {

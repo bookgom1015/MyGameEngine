@@ -28,21 +28,13 @@ namespace Rtao {
 			enum {
 				ESI_AccelerationStructure = 0,
 				ECB_RtaoPass,
-				EC_Consts,
+				ESI_Pos,
 				ESI_Normal,
 				ESI_Depth,
 				EUO_AOCoefficient,
 				EUO_RayHitDistance,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_TextureDim_X = 0,
-					E_TextureDim_Y,
-					Count
-				};
-			}
 		}
 
 		namespace TemporalSupersamplingReverseReproject {
@@ -299,9 +291,6 @@ namespace Rtao {
 		__forceinline const AOVarianceResourcesType& AOVarianceResources() const;
 		__forceinline const AOVarianceResourcesGpuDescriptors& AOVarianceResourcesGpuDescriptors() const;
 
-		__forceinline GpuResource* PrevFrameNormalDepth();
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE PrevFrameNormalDepthSrv() const;
-
 		__forceinline GpuResource* TsppCoefficientSquaredMeanRayHitDistance();
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TsppCoefficientSquaredMeanRayHitDistanceSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TsppCoefficientSquaredMeanRayHitDistanceUav() const;
@@ -335,6 +324,7 @@ namespace Rtao {
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_aoCoefficient,
@@ -440,11 +430,6 @@ namespace Rtao {
 		Rtao::AOVarianceResourcesCpuDescriptors mhAOVarianceResourcesCpus;
 		Rtao::AOVarianceResourcesGpuDescriptors mhAOVarianceResourcesGpus;
 
-		std::unique_ptr<GpuResource> mPrevFrameNormalDepth;
-		std::unique_ptr<GpuResource> mPrevFrameNormalDepthUploadBuffer;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrevFrameNormalDepthCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhPrevFrameNormalDepthGpuSrv;
-
 		std::unique_ptr<GpuResource> mTsppCoefficientSquaredMeanRayHitDistance;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTsppCoefficientSquaredMeanRayHitDistanceCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhTsppCoefficientSquaredMeanRayHitDistanceGpuSrv;
@@ -467,8 +452,8 @@ namespace Rtao {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthPartialDerivativeCpuUav;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDepthPartialDerivativeGpuUav;
 
-		UINT mTemporalCurrentFrameResourceIndex;
-		UINT mTemporalCurrentFrameTemporalAOCeofficientResourceIndex;
+		UINT mTemporalCurrentFrameResourceIndex = 0;
+		UINT mTemporalCurrentFrameTemporalAOCeofficientResourceIndex = 0;
 	};
 }
 

@@ -38,6 +38,9 @@ namespace {
 RaytracedReflectionClass::RaytracedReflectionClass() {
 	mReflectionMap = std::make_unique<GpuResource>();
 	mReflectionUploadBuffer = std::make_unique<GpuResource>();
+
+	for (UINT i = 0; i < 2; ++i)
+		mTemporalReflectionMaps[i] = std::make_unique<GpuResource>();
 }
 
 BOOL RaytracedReflectionClass::Initialize(
@@ -65,8 +68,9 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
+	// Global
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[10];
+		CD3DX12_DESCRIPTOR_RANGE texTables[11];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
@@ -75,8 +79,9 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
 		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8);
-		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 9);
-		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);
+		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 10);
+		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
@@ -86,13 +91,14 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::Global::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
 		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::Global::ESI_Position].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::Global::ESI_DiffIrrad].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::Global::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::Global::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[8]);
-		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[9]);
+		slotRootParameter[RootSignature::Global::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::Global::ESI_Position].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[RootSignature::Global::ESI_DiffIrrad].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[RootSignature::Global::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::Global::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[7]);
+		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[8]);
+		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[9]);
+		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[10]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -102,6 +108,7 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		CheckReturn(D3D12Util::CreateRootSignature(
 			md3dDevice, globalRootSignatureDesc, &mRootSignatures[RootSignature::E_Global]));
 	}
+	// Local
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Local::Count];
 		slotRootParameter[RootSignature::Local::ECB_Obj].InitAsConstantBufferView(0, 1);
@@ -247,15 +254,19 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 }
 
 void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
-	mhReflectionMapCpuSrv = hCpu;
-	mhReflectionMapGpuSrv = hGpu;
-	mhReflectionMapCpuUav = hCpu.Offset(1, descSize);
-	mhReflectionMapGpuUav = hGpu.Offset(1, descSize);
+	for (UINT type = 0; type < Descriptor::Reflection::Count; ++type) {
+		mhReflectionMapCpus[type] = hCpu.Offset(1, descSize);
+		mhReflectionMapGpus[type] = hGpu.Offset(1, descSize);
+	}
 
-	BuildDescriptors();
+	for (UINT i = 0; i < 2; ++i) {
+		for (UINT type = 0; type < Descriptor::TemporalReflection::Count; ++type) {
+			mhTemporalReflectionMapCpus[i][type] = hCpu.Offset(1, descSize);
+			mhTemporalReflectionMapGpus[i][type] = hGpu.Offset(1, descSize);
+		}
+	}
 
-	hCpu.Offset(1, descSize);
-	hGpu.Offset(1, descSize);
+	BuildDescriptors();	
 }
 
 BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height) {
@@ -265,7 +276,7 @@ BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList,
 	return true;
 }
 
-void RaytracedReflectionClass::Run(
+void RaytracedReflectionClass::CalcReflection(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
@@ -273,6 +284,7 @@ void RaytracedReflectionClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_diffIrrad,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
@@ -284,6 +296,10 @@ void RaytracedReflectionClass::Run(
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
+	static UINT count = 0;
+	++count;
+	cmdList->SetComputeRoot32BitConstants(RootSignature::Global::EC_Rr, 1, &count, RootSignature::Global::RootConstantsLayout::E_FrameCount);
+
 	cmdList->SetComputeRoot32BitConstants(RootSignature::Global::EC_Rr, 1, &mShadowRayOffset, RootSignature::Global::RootConstantsLayout::E_ShadowRayOffset);
 	cmdList->SetComputeRoot32BitConstants(RootSignature::Global::EC_Rr, 1, &radius, RootSignature::Global::RootConstantsLayout::E_ReflectionRadius);
 
@@ -294,6 +310,7 @@ void RaytracedReflectionClass::Run(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BackBuffer, si_backBuffer);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Normal, si_normal);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Depth, si_depth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_RMS, si_rms);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Position, si_pos);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_DiffIrrad, si_diffIrrad);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_AOCoeiff, si_aocoeiff);
@@ -304,7 +321,7 @@ void RaytracedReflectionClass::Run(
 	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpuUav);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpus[Descriptor::Reflection::E_Uav]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	const auto& rayGen = mShaderTables[RayGenShaderTableName];
@@ -327,6 +344,16 @@ void RaytracedReflectionClass::Run(
 	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
 }
 
+UINT RaytracedReflectionClass::MoveToNextFrame() {
+	mTemporalCurrentFrameResourceIndex = (mTemporalCurrentFrameResourceIndex + 1) % 2;
+	return mTemporalCurrentFrameResourceIndex;
+}
+
+UINT RaytracedReflectionClass::MoveToNextFrameTemporalReflection() {
+	mTemporalCurrentFrameTemporalReflectionResourceIndex = (mTemporalCurrentFrameTemporalReflectionResourceIndex + 1) % 2;
+	return mTemporalCurrentFrameTemporalReflectionResourceIndex;
+}
+
 void RaytracedReflectionClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -341,8 +368,13 @@ void RaytracedReflectionClass::BuildDescriptors() {
 	uavDesc.Format = ReflectionMapFormat;
 
 	auto resource = mReflectionMap->Resource();
-	md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpuSrv);
-	md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpuUav);
+	md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::E_Srv]);
+	md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::E_Uav]);
+
+	for (UINT i = 0; i < 2; ++i) {
+		md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhTemporalReflectionMapCpus[i][Descriptor::Reflection::E_Srv]);
+		md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhTemporalReflectionMapCpus[i][Descriptor::Reflection::E_Uav]);
+	}
 }
 
 BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {

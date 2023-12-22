@@ -29,13 +29,6 @@ const Rtao::AOVarianceResourcesGpuDescriptors& Rtao::RtaoClass::AOVarianceResour
 	return mhAOVarianceResourcesGpus;
 }
 
-GpuResource* Rtao::RtaoClass::PrevFrameNormalDepth() {
-	return mPrevFrameNormalDepth.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::PrevFrameNormalDepthSrv() const {
-	return mhPrevFrameNormalDepthGpuSrv;
-}
-
 GpuResource* Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistance() {
 	return mTsppCoefficientSquaredMeanRayHitDistance.get();
 }

@@ -415,8 +415,8 @@ void IrradianceMapClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhEquirectangularMapCpuSrv = hCpuSrv;
-	mhEquirectangularMapGpuSrv = hGpuSrv;
+	mhEquirectangularMapCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhEquirectangularMapGpuSrv = hGpuSrv.Offset(1, descSize);
 
 	mhTemporaryEquirectangularMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhTemporaryEquirectangularMapGpuSrv = hGpuSrv.Offset(1, descSize);
@@ -441,7 +441,7 @@ void IrradianceMapClass::BuildDescriptors(
 		mhPrefilteredEnvironmentEquirectMapGpuSrvs[i] = hGpuSrv.Offset(1, descSize);
 	}
 	
-	mhDiffuseIrradianceEquirectMapCpuRtv = hCpuRtv;
+	mhDiffuseIrradianceEquirectMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 	mhIntegratedBrdfMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
 	for (UINT mipLevel = 0; mipLevel < MaxMipLevel; ++mipLevel) {
@@ -465,10 +465,6 @@ void IrradianceMapClass::BuildDescriptors(
 	}
 
 	BuildDescriptors();
-
-	hCpuSrv.Offset(1, descSize);
-	hGpuSrv.Offset(1, descSize);
-	hCpuRtv.Offset(1, rtvDescSize);
 }
 
 
