@@ -15,7 +15,7 @@
 #include "CrossBilateralWeights.hlsli"
 #include "Rtao.hlsli"
 
-ConstantBuffer<CrossBilateralFilterConstants> cbReproject : register (b0);
+ConstantBuffer<CrossBilateralFilterConstants> cb_Reproject : register (b0);
 
 cbuffer cbRootConstants : register (b1) {
 	uint2	gTextureDim;
@@ -23,17 +23,17 @@ cbuffer cbRootConstants : register (b1) {
 };
 
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_CurrentFrameNormalDepth	: register(t0);
-Texture2D<Rtao::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t1);
-Texture2D<GBuffer::ReprojNormalDepthMapFormat>		gi_ReprojectedNormalDepth	: register(t2);
-Texture2D<Rtao::NormalDepthMapFormat>				gi_CachedNormalDepth		: register(t3);
+Texture2D<SVGF::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t1);
+Texture2D<GBuffer::NormalDepthMapFormat>			gi_ReprojectedNormalDepth	: register(t2);
+Texture2D<GBuffer::NormalDepthMapFormat>			gi_CachedNormalDepth		: register(t3);
 Texture2D<GBuffer::VelocityMapFormat>				gi_Velocity					: register(t4);
-Texture2D<Rtao::AOCoefficientMapFormat>				gi_CachedValue				: register(t5);
-Texture2D<Rtao::TsppMapFormat>						gi_CachedTspp				: register(t6);
-Texture2D<Rtao::CoefficientSquaredMeanMapFormat>	gi_CachedValueSquaredMean	: register(t7);
-Texture2D<Rtao::RayHitDistanceFormat>				gi_CachedRayHitDistance		: register(t8);
+Texture2D<SVGF::F1ValueMapFormat>					gi_CachedValue				: register(t5);
+Texture2D<SVGF::TsppMapFormat>						gi_CachedTspp				: register(t6);
+Texture2D<SVGF::F1ValueSquaredMeanMapFormat>		gi_CachedValueSquaredMean	: register(t7);
+Texture2D<SVGF::RayHitDistanceFormat>				gi_CachedRayHitDistance		: register(t8);
 
-RWTexture2D<Rtao::TsppMapFormat>									go_CachedTspp				: register(u0);
-RWTexture2D<Rtao::TsppCoefficientSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u1);
+RWTexture2D<SVGF::TsppMapFormat>								go_CachedTspp				: register(u0);
+RWTexture2D<SVGF::TsppF1ValueSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u1);
 
 float4 BilateralResampleWeights(
 		float	targetDepth, 
@@ -52,9 +52,9 @@ float4 BilateralResampleWeights(
 	);
 
 	CrossBilateral::BilinearDepthNormal::Parameters params;
-	params.Depth.Sigma = cbReproject.DepthSigma;
+	params.Depth.Sigma = cb_Reproject.DepthSigma;
 	params.Depth.WeightCutoff = 0.5;
-	params.Depth.NumMantissaBits = cbReproject.DepthNumMantissaBits;
+	params.Depth.NumMantissaBits = cb_Reproject.DepthNumMantissaBits;
 	params.Normal.Sigma = 1.1; // Bump the sigma a bit to add tolerance for slight geometry misalignments and/or format precision limitations.
 	params.Normal.SigmaExponent = 32;
 
@@ -75,7 +75,7 @@ float4 BilateralResampleWeights(
 	return weights;
 }
 
-[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
 	if (!IsWithinBounds(DTid, gTextureDim)) return;
 
@@ -87,7 +87,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	float2 velocity = gi_Velocity.SampleLevel(gsamLinearClamp, tex, 0);
 
-	if (reprojDepth == Rtao::RayHitDistanceOnMiss || velocity.x > 100) {
+	if (reprojDepth == GBuffer::InvalidNormDepthValue || velocity.x > 100) {
 		go_CachedTspp[DTid] = 0;
 		return;
 	}

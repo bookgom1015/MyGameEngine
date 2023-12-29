@@ -33,6 +33,7 @@
 #include "GaussianFilter.h"
 #include "RaytracedReflection.h"
 #include "AccelerationStructure.h"
+#include "SVGF.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -221,12 +222,13 @@ DxRenderer::DxRenderer() {
 	mPixelation = std::make_unique<Pixelation::PixelationClass>();
 	mSharpen = std::make_unique<Sharpen::SharpenClass>();
 	mGaussianFilter = std::make_unique<GaussianFilter::GaussianFilterClass>();
-	mRr = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
 	mBlurFilterCS = std::make_unique<BlurFilterCS::BlurFilterCSClass>();
 	mRtao = std::make_unique<Rtao::RtaoClass>();
+	mRr = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
+	mSVGF = std::make_unique<SVGF::SVGFClass>();
 
 	auto blurWeights = Blur::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
@@ -290,9 +292,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height));
 	CheckReturn(mDebugMap->Initialize(device, shaderManager));
-	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
-	CheckReturn(mRtao->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager));
 	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height));
 	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height));
@@ -301,7 +301,11 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mPixelation->Initialize(device, shaderManager, width, height));
 	CheckReturn(mSharpen->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGaussianFilter->Initialize(device, shaderManager));
+
+	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
+	CheckReturn(mRtao->Initialize(device, shaderManager, width, height));
 	CheckReturn(mRr->Initialize(device, cmdList, shaderManager, width, height));
+	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -463,8 +467,9 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		CheckReturn(mSharpen->OnResize(width, height));
 
 		CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
-		CheckReturn(mRtao->OnResize(cmdList, width, height));
+		CheckReturn(mRtao->OnResize(width, height));
 		CheckReturn(mRr->OnResize(cmdList, width, height));
+		CheckReturn(mSVGF->OnResize(width , height))
 	}
 	CheckReturn(mSsao->OnResize(width, height));
 	CheckReturn(mBloom->OnResize(width, height));
@@ -641,6 +646,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
 	CheckReturn(mRtao->CompileShaders(ShaderFilePath));
 	CheckReturn(mRr->CompileShaders(ShaderFilePath));
+	CheckReturn(mSVGF->CompileShaders(ShaderFilePath));
 
 #ifdef _DEBUG
 	WLogln(L"Finished compiling shaders \n");
@@ -818,6 +824,7 @@ void DxRenderer::BuildDescriptors() {
 	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
 	mRtao->BuildDescriptors(hCpu, hGpu, descSize);
 	mRr->BuildDesscriptors(hCpu, hGpu, descSize);
+	mSVGF->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mhCpuDescForTexMaps = hCpu.Offset(1, descSize);
 	mhGpuDescForTexMaps = hGpu.Offset(1, descSize);
@@ -853,6 +860,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
 	CheckReturn(mRtao->BuildRootSignatures(staticSamplers));
 	CheckReturn(mRr->BuildRootSignatures(staticSamplers));
+	CheckReturn(mSVGF->BuildRootSignatures(staticSamplers));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -890,6 +898,7 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mBlurFilterCS->BuildPso());
 	CheckReturn(mRtao->BuildPSO());
 	CheckReturn(mRr->BuildPSO());
+	CheckReturn(mSVGF->BuildPSO());
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
@@ -1676,10 +1685,7 @@ BOOL DxRenderer::BuildShaderTables() {
 	UINT numRitems = static_cast<UINT>(opaques.size());
 	CheckReturn(mDxrShadowMap->BuildShaderTables(numRitems));
 	CheckReturn(mRtao->BuildShaderTables(numRitems));
-	CheckReturn(mRr->BuildShaderTables(
-		opaques,
-		mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress())
-	);
+	CheckReturn(mRr->BuildShaderTables(opaques, mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress()));
 
 	return true;
 }
@@ -2557,20 +2563,20 @@ BOOL DxRenderer::DrawImGui() {
 								DebugMap::SampleMask::FLOAT,
 								desc);
 						}
-						if (ImGui::Checkbox("Local Mean Variance",
-							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_LocalMeanVariance]))) {
-							BuildDebugMap(
-								mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
-								mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
-								DebugMap::SampleMask::RG);
-						}
-						if (ImGui::Checkbox("Disocclusion Blur Strength",
-							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength]))) {
-							BuildDebugMap(
-								mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
-								mRtao->DisocclusionBlurStrengthSrv(),
-								DebugMap::SampleMask::RRR);
-						}
+						//if (ImGui::Checkbox("Local Mean Variance",
+						//	reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_LocalMeanVariance]))) {
+						//	BuildDebugMap(
+						//		mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
+						//		mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
+						//		DebugMap::SampleMask::RG);
+						//}
+						//if (ImGui::Checkbox("Disocclusion Blur Strength",
+						//	reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength]))) {
+						//	BuildDebugMap(
+						//		mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
+						//		mRtao->DisocclusionBlurStrengthSrv(),
+						//		DebugMap::SampleMask::RRR);
+						//}
 						ImGui::TreePop();
 					} // ImGui::TreeNode("RTAO")
 					if (ImGui::Checkbox("Raytraced Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RaytracedReflection]))) {
@@ -2855,10 +2861,11 @@ BOOL DxRenderer::DrawRtao() {
 	const auto& temporalCachesGpuDescriptors = mRtao->TemporalCachesGpuDescriptors();
 	const auto& temporalAOCoefficients = mRtao->TemporalAOCoefficients();
 	const auto& temporalAOCoefficientsGpuDescriptors = mRtao->TemporalAOCoefficientsGpuDescriptors();
-	const auto& localMeanVarianceResources = mRtao->LocalMeanVarianceResources();
-	const auto& localMeanVarianceResourcesGpuDescriptors = mRtao->LocalMeanVarianceResourcesGpuDescriptors();
-	const auto& varianceResources = mRtao->AOVarianceResources();
-	const auto& varianceResourcesGpuDescriptors = mRtao->AOVarianceResourcesGpuDescriptors();
+
+	const auto& localMeanVarianceResources = mSVGF->LocalMeanVarianceResources();
+	const auto& localMeanVarianceResourcesGpuDescriptors = mSVGF->LocalMeanVarianceResourcesGpuDescriptors();
+	const auto& varianceResources = mSVGF->VarianceResources();
+	const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
 
 	// Calculate ambient occlusion.
 	{
@@ -2886,15 +2893,14 @@ BOOL DxRenderer::DrawRtao() {
 	}
 	// Calculate partial-derivatives.
 	{
-		const auto depthPartialDerivative = mRtao->DepthPartialDerivativeMapResource();
+		const auto depthPartialDerivative = mSVGF->DepthPartialDerivativeMapResource();
 
 		depthPartialDerivative->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		D3D12Util::UavBarrier(cmdList, depthPartialDerivative);
 
-		mRtao->RunCalculatingDepthPartialDerivative(
+		mSVGF->RunCalculatingDepthPartialDerivative(
 			cmdList,
 			mGBuffer->DepthMapSrv(),
-			mRtao->DepthPartialDerivativeUav(),
 			mClientWidth, mClientHeight
 		);
 
@@ -2912,7 +2918,7 @@ BOOL DxRenderer::DrawRtao() {
 			UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
 
 			const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][Rtao::Resource::TemporalCache::E_Tspp].get();
-			const auto tsppCoefficientSquaredMeanRayHitDistance = mRtao->TsppCoefficientSquaredMeanRayHitDistance();
+			const auto tsppCoefficientSquaredMeanRayHitDistance = mSVGF->TsppValueSquaredMeanRayHitDistance();
 
 			currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			tsppCoefficientSquaredMeanRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -2921,11 +2927,10 @@ BOOL DxRenderer::DrawRtao() {
 			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
 			// Retrieves values from previous frame via reverse reprojection.				
-			mRtao->ReverseReprojectPreviousFrame(
+			mSVGF->ReverseReprojectPreviousFrame(
 				cmdList,
 				mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
 				mGBuffer->NormalDepthMapSrv(),
-				mRtao->DepthPartialDerivativeSrv(),
 				mGBuffer->ReprojNormalDepthMapSrv(),
 				mGBuffer->PrevNormalDepthMapSrv(),
 				mGBuffer->VelocityMapSrv(),
@@ -2934,7 +2939,6 @@ BOOL DxRenderer::DrawRtao() {
 				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_CoefficientSquaredMean],
 				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourcIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
-				mRtao->TsppCoefficientSquaredMeanRayHitDistanceUav(),
 				mClientWidth, mClientHeight
 			);
 
@@ -2946,15 +2950,15 @@ BOOL DxRenderer::DrawRtao() {
 		{
 			// Calculate local mean and variance for clamping during the blending operation.
 			{
-				const auto rawLocalMeanVariance = localMeanVarianceResources[Rtao::Resource::LocalMeanVariance::E_Raw].get();
+				const auto rawLocalMeanVariance = localMeanVarianceResources[SVGF::Resource::LocalMeanVariance::E_Raw].get();
 				rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
 
-				mRtao->RunCalculatingLocalMeanVariance(
+				mSVGF->RunCalculatingLocalMeanVariance(
 					cmdList,
 					mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
-					localMeanVarianceResourcesGpuDescriptors[Rtao::Descriptor::LocalMeanVariance::EU_Raw],
+					localMeanVarianceResourcesGpuDescriptors[SVGF::Descriptor::LocalMeanVariance::EU_Raw],
 					mClientWidth, mClientHeight,
 					false //bCheckerboardSamplingEnabled
 				);
@@ -2967,10 +2971,10 @@ BOOL DxRenderer::DrawRtao() {
 					rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 					D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
 
-					mRtao->FillInCheckerboard(
+					mSVGF->FillInCheckerboard(
 						cmdList,
 						mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
-						localMeanVarianceResourcesGpuDescriptors[Rtao::Descriptor::LocalMeanVariance::EU_Raw],
+						localMeanVarianceResourcesGpuDescriptors[SVGF::Descriptor::LocalMeanVariance::EU_Raw],
 						mClientWidth, mClientHeight
 					);
 
@@ -2990,8 +2994,9 @@ BOOL DxRenderer::DrawRtao() {
 				const auto currTemporalSupersampling = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_Tspp].get();
 				const auto currCoefficientSquaredMean = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_CoefficientSquaredMean].get();
 				const auto currRayHitDistance = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_RayHitDistance].get();
-				const auto rawVariance = varianceResources[Rtao::Resource::AOVariance::E_Raw].get();
-				const auto diocclusionBlurStrength = mRtao->DisocclusionBlurStrengthResource();
+
+				const auto rawVariance = varianceResources[SVGF::Resource::Variance::E_Raw].get();
+				const auto diocclusionBlurStrength = mSVGF->DisocclusionBlurStrengthResource();
 
 				std::vector<GpuResource*> resources = {
 					currTemporalAOCoefficient,
@@ -3010,19 +3015,17 @@ BOOL DxRenderer::DrawRtao() {
 				diocclusionBlurStrength->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
-				mRtao->BlendWithCurrentFrame(
+				mSVGF->BlendWithCurrentFrame(
 					cmdList,
 					mCurrFrameResource->TsppBlendCB.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
-					localMeanVarianceResourcesGpuDescriptors[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
+					localMeanVarianceResourcesGpuDescriptors[SVGF::Descriptor::LocalMeanVariance::ES_Raw],
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_RayHitDistance],
-					mRtao->TsppCoefficientSquaredMeanRayHitDistanceSrv(),
 					temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_CoefficientSquaredMean],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_RayHitDistance],
-					varianceResourcesGpuDescriptors[Rtao::Descriptor::AOVariance::EU_Raw],
-					mRtao->DisocclusionBlurStrengthUav(),
+					varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::EU_Raw],
 					mClientWidth, mClientHeight
 				);
 
@@ -3036,15 +3039,15 @@ BOOL DxRenderer::DrawRtao() {
 			}
 
 			if (ShaderArgs::Rtao::Denoiser::UseSmoothingVariance) {
-				const auto smoothedVariance = varianceResources[Rtao::Resource::AOVariance::E_Smoothed].get();
+				const auto smoothedVariance = varianceResources[SVGF::Resource::Variance::E_Smoothed].get();
 
 				smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				D3D12Util::UavBarrier(cmdList, smoothedVariance);
 
 				mGaussianFilter->Run(
 					cmdList,
-					varianceResourcesGpuDescriptors[Rtao::Descriptor::AOVariance::ES_Raw],
-					varianceResourcesGpuDescriptors[Rtao::Descriptor::AOVariance::EU_Smoothed],
+					varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::ES_Raw],
+					varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::EU_Smoothed],
 					GaussianFilter::Filter3x3,
 					mClientWidth, mClientHeight
 				);
@@ -3064,15 +3067,14 @@ BOOL DxRenderer::DrawRtao() {
 			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
 			
-			mRtao->ApplyAtrousWaveletTransformFilter(
+			mSVGF->ApplyAtrousWaveletTransformFilter(
 				cmdList,
 				mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
 				temporalAOCoefficientsGpuDescriptors[inputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
 				mGBuffer->NormalDepthMapSrv(),
 				varianceResourcesGpuDescriptors[ShaderArgs::Rtao::Denoiser::UseSmoothingVariance ?
-				Rtao::Descriptor::AOVariance::ES_Smoothed : Rtao::Descriptor::AOVariance::ES_Raw],
+				SVGF::Descriptor::Variance::ES_Smoothed : SVGF::Descriptor::Variance::ES_Raw],
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
-				mRtao->DepthPartialDerivativeSrv(),
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
 				temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
 				mClientWidth, mClientHeight
@@ -3089,11 +3091,10 @@ BOOL DxRenderer::DrawRtao() {
 			aoCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			D3D12Util::UavBarrier(cmdList, aoCoefficient);
 
-			mRtao->BlurDisocclusion(
+			mSVGF->BlurDisocclusion(
 				cmdList,
 				aoCoefficient,
 				mGBuffer->DepthMapSrv(),
-				mRtao->DisocclusionBlurStrengthSrv(),
 				temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
 				mClientWidth, mClientHeight,
 				ShaderArgs::Rtao::Denoiser::LowTsppBlurPasses

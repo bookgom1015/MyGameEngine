@@ -25,7 +25,7 @@ int2 GetInactivePixelIndex(int2 pixel) {
 	return cbLocalMeanVar.EvenPixelActivated == isEvenPixel ? pixel + int2(0, 1) : pixel;
 }
 
-[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	int2 pixel = GetInactivePixelIndex(int2(dispatchThreadID.x, dispatchThreadID.y * 2));
 

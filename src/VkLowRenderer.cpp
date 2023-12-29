@@ -112,8 +112,9 @@ BOOL VkLowRenderer::CreateInstance() {
 	createInfo.enabledExtensionCount = static_cast<UINT>(requiredExtensions.size());
 	createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 #ifdef _DEBUG
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+
 	createInfo.enabledLayerCount = static_cast<UINT>(VulkanHelper::ValidationLayers.size());
 	createInfo.ppEnabledLayerNames = VulkanHelper::ValidationLayers.data();
 

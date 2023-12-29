@@ -225,6 +225,7 @@
     <ClInclude Include="..\..\include\SphereActor.h" />
     <ClInclude Include="..\..\include\Ssao.h" />
     <ClInclude Include="..\..\include\Ssr.h" />
+    <ClInclude Include="..\..\include\SVGF.h" />
     <ClInclude Include="..\..\include\SwapChainBuffer.h" />
     <ClInclude Include="..\..\include\TemporalAA.h" />
     <ClInclude Include="..\..\include\ToneMapping.h" />
@@ -299,6 +300,7 @@
     <ClCompile Include="..\..\src\SphereActor.cpp" />
     <ClCompile Include="..\..\src\Ssao.cpp" />
     <ClCompile Include="..\..\src\Ssr.cpp" />
+    <ClCompile Include="..\..\src\SVGF.cpp" />
     <ClCompile Include="..\..\src\SwapChainBuffer.cpp" />
     <ClCompile Include="..\..\src\TemporalAA.cpp" />
     <ClCompile Include="..\..\src\ToneMapping.cpp" />
@@ -342,6 +344,7 @@
     <None Include="..\..\include\ShadowMap.inl" />
     <None Include="..\..\include\Ssao.inl" />
     <None Include="..\..\include\Ssr.inl" />
+    <None Include="..\..\include\SVGF.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
     <None Include="..\..\include\UploadBuffer.inl" />
     <None Include="..\..\include\VkLowRenderer.inl" />

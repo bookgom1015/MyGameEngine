@@ -12,14 +12,14 @@
 
 ConstantBuffer<AtrousWaveletTransformFilterConstantBuffer> cbAtrous : register(b0);
 
-Texture2D<Rtao::AOCoefficientMapFormat>				gi_Value					: register(t0);
+Texture2D<SVGF::F1ValueMapFormat>					gi_Value					: register(t0);
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_NormalDepth				: register(t1);
-Texture2D<Rtao::VarianceMapFormat>					gi_Variance					: register(t2);
-Texture2D<Rtao::RayHitDistanceFormat>				gi_HitDistance				: register(t3);
-Texture2D<Rtao::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t4);
-Texture2D<Rtao::TsppMapFormat>						gi_Tspp						: register(t5);
+Texture2D<SVGF::VarianceMapFormat>					gi_Variance					: register(t2);
+Texture2D<SVGF::RayHitDistanceFormat>				gi_HitDistance				: register(t3);
+Texture2D<SVGF::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t4);
+Texture2D<SVGF::TsppMapFormat>						gi_Tspp						: register(t5);
 
-RWTexture2D<Rtao::AOCoefficientMapFormat>			go_FilteredValue			: register(u0);
+RWTexture2D<SVGF::F1ValueMapFormat>			go_FilteredValue			: register(u0);
 
 float DepthThreshold(float depth, float2 ddxy, float2 pixelOffset) {
 	float depthThreshold;
@@ -65,7 +65,7 @@ void AddFilterContribution(
 	float iValue = gi_Value[id];
 
 	bool isValidValue = iValue != Rtao::InvalidAOCoefficientValue;
-	if (!isValidValue || iDepth == Rtao::RayHitDistanceOnMiss) return;
+	if (!isValidValue || iDepth == GBuffer::InvalidNormDepthValue) return;
 
 	// Calculate a weight for the neighbor's contribution.
 	float w;
@@ -114,7 +114,7 @@ void AddFilterContribution(
 	weightSum += w;
 }
 
-[numthreads(Rtao::Atrous::ThreadGroup::Width, Rtao::Atrous::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Atrous::ThreadGroup::Width, SVGF::Atrous::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
 	if (!IsWithinBounds(DTid, cbAtrous.TextureDim)) return;
 
@@ -129,7 +129,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	float filteredValue = value;
 	float variance = gi_Variance[DTid];
 
-	if (depth != Rtao::RayHitDistanceOnMiss) {
+	if (depth != GBuffer::InvalidNormDepthValue) {
 		float2 ddxy = gi_DepthPartialDerivative[DTid];
 		float weightSum = 0;
 		float weightedValueSum = 0;

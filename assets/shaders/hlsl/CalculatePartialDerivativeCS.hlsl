@@ -16,7 +16,7 @@ cbuffer cbRootConstants : register (b0) {
 Texture2D<float>	gi_Depth					: register(t0);
 RWTexture2D<float2>	go_DepthPartialDerivative	: register(u0);
 
-[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
 	float2 tex = (DTid + 0.5) * gInvTextureDim;
 

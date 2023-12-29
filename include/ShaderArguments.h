@@ -45,7 +45,6 @@ namespace GBuffer {
 	static const DXGI_FORMAT DepthMapFormat				= DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	static const DXGI_FORMAT RMSMapFormat				= DXGI_FORMAT_R8G8B8A8_UNORM;
 	static const DXGI_FORMAT VelocityMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
-	static const DXGI_FORMAT ReprojNormalDepthMapFormat	= COMPACT_NORMAL_DEPTH_DXGI_FORMAT;
 	static const DXGI_FORMAT PositionMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 	const FLOAT AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -209,6 +208,51 @@ namespace GaussianFilter {
 	}
 }
 
+namespace SVGF {
+#ifdef HLSL
+	typedef float	F1ValueMapFormat;
+	typedef float	F1ValueSquaredMeanMapFormat;
+	typedef uint4	TsppF1ValueSquaredMeanRayHitDistanceFormat;
+
+	typedef float2	DepthPartialDerivativeMapFormat;
+	typedef float2	LocalMeanVarianceMapFormat;
+	typedef uint	TsppMapFormat;
+	typedef float	VarianceMapFormat;
+	typedef float	RayHitDistanceFormat;
+	typedef float	DisocclusionBlurStrengthMapFormat;
+#else
+	const DXGI_FORMAT F1ValueMapFormat = DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT F1ValueSquaredMeanMapFormat = DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT TsppF1ValueSquaredMeanRayHitDistanceFormat = DXGI_FORMAT_R16G16B16A16_UINT;
+
+	const DXGI_FORMAT DepthPartialDerivativeMapFormat = DXGI_FORMAT_R16G16_FLOAT;
+	const DXGI_FORMAT LocalMeanVarianceMapFormat = DXGI_FORMAT_R16G16_FLOAT;
+	const DXGI_FORMAT TsppMapFormat = DXGI_FORMAT_R8_UINT;
+	const DXGI_FORMAT VarianceMapFormat = DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT RayHitDistanceFormat = DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT DisocclusionBlurStrengthMapFormat = DXGI_FORMAT_R8_UNORM;
+#endif
+	namespace Default {
+		namespace ThreadGroup {
+			enum {
+				Width = 8,
+				Height = 8,
+				Size = Width * Height
+			};
+		}
+	}
+
+	namespace Atrous {
+		namespace ThreadGroup {
+			enum {
+				Width = 16,
+				Height = 16,
+				Size = Width * Height
+		};
+	}
+}
+}
+
 namespace Rtao {
 #ifdef HLSL
 	typedef float	AOCoefficientMapFormat;
@@ -233,26 +277,6 @@ namespace Rtao {
 	const DXGI_FORMAT LocalMeanVarianceMapFormat						= DXGI_FORMAT_R16G16_FLOAT;
 	const DXGI_FORMAT VarianceMapFormat									= DXGI_FORMAT_R16_FLOAT;
 #endif
-
-	namespace Default {
-		namespace ThreadGroup {
-			enum {
-				Width	= 8,
-				Height	= 8,
-				Size	= Width * Height
-			};
-		}
-	}
-
-	namespace Atrous {
-		namespace ThreadGroup {
-			enum {
-				Width	= 16,
-				Height	= 16,
-				Size	= Width * Height
-			};
-		}
-	}
 }
 
 namespace RaytracedReflection {

@@ -15,19 +15,19 @@
 
 ConstantBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> cbBlend : register(b0);
 
-Texture2D<float>	gi_CurrentFrameValue						: register(t0);
-Texture2D<float2>	gi_CurrentFrameLocalMeanVariance			: register(t1);
-Texture2D<float>	gi_CurrentFrameRayHitDistance				: register(t2);
-Texture2D<uint4>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t3);
+Texture2D<SVGF::F1ValueMapFormat>							gi_CurrentFrameValue						: register(t0);
+Texture2D<SVGF::LocalMeanVarianceMapFormat>					gi_CurrentFrameLocalMeanVariance			: register(t1);
+Texture2D<SVGF::RayHitDistanceFormat>						gi_CurrentFrameRayHitDistance				: register(t2);
+Texture2D<SVGF::TsppF1ValueSquaredMeanRayHitDistanceFormat>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t3);
 
-RWTexture2D<float>	gio_Value				: register(u0);
-RWTexture2D<uint>	gio_Tspp				: register(u1);
-RWTexture2D<float>	gio_ValueSquaredMean	: register(u2);
-RWTexture2D<float>	gio_RayHitDistance		: register(u3);
-RWTexture2D<float>	go_Variance				: register(u4);
-RWTexture2D<float>	go_BlurStrength			: register(u5);
+RWTexture2D<SVGF::F1ValueMapFormat>						gio_Value				: register(u0);
+RWTexture2D<SVGF::TsppMapFormat>						gio_Tspp				: register(u1);
+RWTexture2D<SVGF::F1ValueSquaredMeanMapFormat>			gio_ValueSquaredMean	: register(u2);
+RWTexture2D<SVGF::RayHitDistanceFormat>					gio_RayHitDistance		: register(u3);
+RWTexture2D<SVGF::VarianceMapFormat>					go_Variance				: register(u4);
+RWTexture2D<SVGF::DisocclusionBlurStrengthMapFormat>	go_BlurStrength			: register(u5);
 
-[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
 	const uint4 EncodedCachedValues = gi_ReprojTsppValueSquaredMeanRayHitDist[DTid];
 	uint tspp = EncodedCachedValues.x;

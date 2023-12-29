@@ -24,3 +24,4 @@ namespace Pixelation { class PixelationClass; }
 namespace Sharpen { class SharpenClass; }
 namespace GaussianFilter { class GaussianFilterClass; }
 namespace RaytracedReflection { class RaytracedReflectionClass; }
+namespace SVGF { class SVGFClass; }

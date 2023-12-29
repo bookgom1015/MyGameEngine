@@ -109,15 +109,6 @@
     <Filter Include="Shader Files\HLSL\DXR\RTAO">
       <UniqueIdentifier>{ea35a6de-abc7-4515-ae29-30890cf8e0af}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising">
-      <UniqueIdentifier>{61e3ccf9-9027-4bf5-88d5-248652b89967}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising\Filtering">
-      <UniqueIdentifier>{5a9400c2-77c5-43c2-b9ae-ae1764cedaac}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader Files\HLSL\DXR\RTAO\Denoising\Temporal">
-      <UniqueIdentifier>{d10a3c5b-843e-457f-b4c1-57eb2b26201f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shader Files\HLSL\Filter">
       <UniqueIdentifier>{5c0b326f-1166-46d4-882b-ee758f727f9f}</UniqueIdentifier>
     </Filter>
@@ -141,6 +132,30 @@
     </Filter>
     <Filter Include="Shader Files\HLSL\Filter\DOF">
       <UniqueIdentifier>{f448a15f-5732-42fa-8b45-229c35fd58db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\RaytracedReflection">
+      <UniqueIdentifier>{8ea95187-d31e-402a-b465-003e7ec11d5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\Shadow">
+      <UniqueIdentifier>{ed5feb19-fd56-464c-83ea-1f5c594b442e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\GI">
+      <UniqueIdentifier>{6dda2034-d419-4aa2-8cb2-769793891e1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\AA">
+      <UniqueIdentifier>{77ed25e0-a7ee-4615-acc0-1c4a8667420b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\Debug">
+      <UniqueIdentifier>{e11252cc-0072-46d8-9c8b-f4b3b0011e32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\Denoising">
+      <UniqueIdentifier>{61e3ccf9-9027-4bf5-88d5-248652b89967}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\Denoising\Filtering">
+      <UniqueIdentifier>{5a9400c2-77c5-43c2-b9ae-ae1764cedaac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\DXR\Denoising\Temporal">
+      <UniqueIdentifier>{d10a3c5b-843e-457f-b4c1-57eb2b26201f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -370,7 +385,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\RaytracedReflection.h">
-      <Filter>Header Files\Render\DirectX\Shading</Filter>
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SVGF.h">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -584,11 +602,14 @@
     <ClCompile Include="..\..\src\HashUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\RaytracedReflection.cpp">
-      <Filter>Source Files\Render\DirectX\Shading</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\AccelerationStructure.cpp">
       <Filter>Source Files\Render\DirectX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\RaytracedReflection.cpp">
+      <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\SVGF.cpp">
+      <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -629,9 +650,6 @@
     <None Include="..\..\assets\shaders\glsl\Common.glsli">
       <Filter>Shader Files\GLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\glsl\Shadow.frag">
       <Filter>Shader Files\GLSL</Filter>
     </None>
@@ -644,13 +662,7 @@
     <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\glsl\Debug.frag">
@@ -671,9 +683,6 @@
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\include\Ssao.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
@@ -689,9 +698,6 @@
     <None Include="..\..\assets\shaders\hlsl\DxrShadingHelpers.hlsli">
       <Filter>Shader Files\HLSL\DXR</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
-      <Filter>Shader Files\HLSL\DXR</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
     </None>
@@ -699,40 +705,34 @@
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS.hlsli">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CalculatePartialDerivativeCS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\FillInCheckerboardCS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Temporal</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS.hlsl">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Temporal</Filter>
+      <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
@@ -745,9 +745,6 @@
     </None>
     <None Include="..\..\include\Rtao.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli">
-      <Filter>Shader Files\HLSL\DXR\RTAO\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\include\Ssr.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
@@ -824,14 +821,41 @@
     <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
       <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
-      <Filter>Shader Files\HLSL\DXR</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
       <Filter>Shader Files\HLSL\BRDF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli">
       <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli">
+      <Filter>Shader Files\HLSL\DXR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+      <Filter>Shader Files\HLSL\DXR\RaytracedReflection</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
+      <Filter>Shader Files\HLSL\DXR\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
+      <Filter>Shader Files\HLSL\GI</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">
+      <Filter>Shader Files\HLSL\GI</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
+      <Filter>Shader Files\HLSL\AA</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
+      <Filter>Shader Files\HLSL\Debug</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
+      <Filter>Shader Files\HLSL\Debug</Filter>
+    </None>
+    <None Include="..\..\include\SVGF.inl">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
   </ItemGroup>
 </Project>

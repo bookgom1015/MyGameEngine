@@ -196,6 +196,7 @@ private:
 	std::unique_ptr<Sharpen::SharpenClass> mSharpen;
 	std::unique_ptr<GaussianFilter::GaussianFilterClass> mGaussianFilter;
 	std::unique_ptr<RaytracedReflection::RaytracedReflectionClass> mRr;
+	std::unique_ptr<SVGF::SVGFClass> mSVGF;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

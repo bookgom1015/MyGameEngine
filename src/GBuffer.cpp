@@ -95,7 +95,7 @@ BOOL GBufferClass::BuildPso() {
 	psoDesc.RTVFormats[2] = NormalDepthMapFormat;
 	psoDesc.RTVFormats[3] = RMSMapFormat;
 	psoDesc.RTVFormats[4] = VelocityMapFormat;
-	psoDesc.RTVFormats[5] = ReprojNormalDepthMapFormat;
+	psoDesc.RTVFormats[5] = NormalDepthMapFormat;
 	psoDesc.RTVFormats[6] = PositionMapFormat;
 	psoDesc.DSVFormat = DepthStencilBuffer::BufferFormat;
 
@@ -240,6 +240,9 @@ void GBufferClass::BuildDescriptors() {
 		md3dDevice->CreateShaderResourceView(mNormalDepthMap->Resource(), &srvDesc, mhNormalDepthMapCpuSrv);
 		md3dDevice->CreateRenderTargetView(mNormalDepthMap->Resource(), &rtvDesc, mhNormalDepthMapCpuRtv);
 
+		md3dDevice->CreateShaderResourceView(mReprojNormalDepthMap->Resource(), &srvDesc, mhReprojNormalDepthMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mReprojNormalDepthMap->Resource(), &rtvDesc, mhReprojNormalDepthMapCpuRtv);
+
 		md3dDevice->CreateShaderResourceView(mPrevNormalDepthMap->Resource(), &srvDesc, mhPrevNormalDepthMapCpuSrv);
 	}
 	{
@@ -257,12 +260,6 @@ void GBufferClass::BuildDescriptors() {
 		rtvDesc.Format = VelocityMapFormat;
 		md3dDevice->CreateShaderResourceView(mVelocityMap->Resource(), &srvDesc, mhVelocityMapCpuSrv);
 		md3dDevice->CreateRenderTargetView(mVelocityMap->Resource(), &rtvDesc, mhVelocityMapCpuRtv);
-	}
-	{
-		srvDesc.Format = ReprojNormalDepthMapFormat;
-		rtvDesc.Format = ReprojNormalDepthMapFormat;
-		md3dDevice->CreateShaderResourceView(mReprojNormalDepthMap->Resource(), &srvDesc, mhReprojNormalDepthMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mReprojNormalDepthMap->Resource(), &rtvDesc, mhReprojNormalDepthMapCpuRtv);
 	}
 	{
 		srvDesc.Format = PositionMapFormat;
@@ -320,17 +317,32 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		{
 			rscDesc.Format = NormalDepthMapFormat;
 
-			CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, NormalDepthMapClearValues);
+			{
+				CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, NormalDepthMapClearValues);
 
-			CheckReturn(mNormalDepthMap->Initialize(
-				md3dDevice,
-				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-				D3D12_HEAP_FLAG_NONE,
-				&rscDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				&optClear,
-				L"NormalDepthMap"
-			));
+				CheckReturn(mNormalDepthMap->Initialize(
+					md3dDevice,
+					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+					D3D12_HEAP_FLAG_NONE,
+					&rscDesc,
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					&optClear,
+					L"NormalDepthMap"
+				));
+			}
+			{
+				CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, ReprojNormalDepthMapClearValues);
+
+				CheckReturn(mReprojNormalDepthMap->Initialize(
+					md3dDevice,
+					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+					D3D12_HEAP_FLAG_NONE,
+					&rscDesc,
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					&optClear,
+					L"ReprojNormalDepthMap"
+				));
+			}
 		}
 		{
 			rscDesc.Format = RMSMapFormat;
@@ -360,21 +372,6 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
 				L"VelocityMap"
-			));
-		}
-		{
-			rscDesc.Format = ReprojNormalDepthMapFormat;
-
-			CD3DX12_CLEAR_VALUE optClear(ReprojNormalDepthMapFormat, ReprojNormalDepthMapClearValues);
-
-			CheckReturn(mReprojNormalDepthMap->Initialize(
-				md3dDevice,
-				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-				D3D12_HEAP_FLAG_NONE,
-				&rscDesc,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				&optClear,
-				L"ReprojNormalDepthMap"
 			));
 		}
 		{

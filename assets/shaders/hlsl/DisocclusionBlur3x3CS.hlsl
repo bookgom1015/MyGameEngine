@@ -17,15 +17,13 @@ cbuffer cbRootConstants : register(b0) {
 	uint	gStep;
 };
 
-Texture2D<float>									gi_Depth		: register(t0);
-Texture2D<Rtao::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
+Texture2D<GBuffer::DepthMapFormat>					gi_Depth		: register(t0);
+Texture2D<SVGF::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
 
-RWTexture2D<Rtao::AOCoefficientMapFormat>			gio_Value		: register(u0);
+RWTexture2D<SVGF::F1ValueMapFormat>					gio_Value		: register(u0);
 
 // Group shared memory cache for the row aggregated results.
-static const uint NumValuesToLoadPerRowOrColumn =
-	Rtao::Default::ThreadGroup::Width 
-	+ (FilterKernel::Width - 1);
+static const uint NumValuesToLoadPerRowOrColumn = SVGF::Default::ThreadGroup::Width	+ (FilterKernel::Width - 1);
 groupshared uint PackedValueDepthCache[NumValuesToLoadPerRowOrColumn][8]; // 16bit float value, depth.
 groupshared float FilteredResultCache[NumValuesToLoadPerRowOrColumn][8];	// 32bit float filtered value.
 
@@ -97,7 +95,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Initialize the first 8 lanes to the center cell contribution of the kernel.
 			// This covers the remainder of 1 in FilterKernel::Width / 2 used in the loop below.
-			if (GTid4x16.x < GroupDim.x && kcValue != Rtao::InvalidAOCoefficientValue && kcDepth != Rtao::RayHitDistanceOnMiss) {
+			if (GTid4x16.x < GroupDim.x && kcValue != Rtao::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue) {
 				float w_h = FilterKernel::Kernel1D[FilterKernel::Radius];
 				gaussianWeightedValueSum = w_h * kcValue;
 				gaussianWeightedSum = w_h;
@@ -117,7 +115,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 				float cValue = WaveReadLaneAt(value, laneToReadFrom);
 				float cDepth = WaveReadLaneAt(depth, laneToReadFrom);
 
-				if (cValue != Rtao::InvalidAOCoefficientValue && kcDepth != Rtao::RayHitDistanceOnMiss && cDepth != Rtao::RayHitDistanceOnMiss) {
+				if (cValue != Rtao::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue && cDepth != GBuffer::InvalidNormDepthValue) {
 					float w_h = FilterKernel::Kernel1D[kernelCellIndex];
 
 					// Simple depth test with tolerance growing as the kernel radius increases.
@@ -159,7 +157,7 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 	float kcDepth = kcValueDepth.y;
 
 	float filteredValue = kcValue;
-	if (blurStrength >= 0.01 && kcDepth != Rtao::RayHitDistanceOnMiss) {
+	if (blurStrength >= 0.01 && kcDepth != GBuffer::InvalidNormDepthValue) {
 		float weightedValueSum = 0;
 		float weightSum = 0;
 		float gaussianWeightedValueSum = 0;
@@ -174,7 +172,7 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 			float rDepth = rUnpackedValueDepth.y;
 			float rFilteredValue = FilteredResultCache[rowID][GTid.x];
 
-			if (rDepth != Rtao::RayHitDistanceOnMiss && rFilteredValue != Rtao::InvalidAOCoefficientValue) {
+			if (rDepth != GBuffer::InvalidNormDepthValue && rFilteredValue != Rtao::InvalidAOCoefficientValue) {
 				float w_h = FilterKernel::Kernel1D[r];
 
 				// Simple depth test with tolerance growing as the kernel radius increases.
@@ -197,7 +195,7 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 	gio_Value[DTid] = filteredValue;
 }
 
-[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex) {
 	const uint2 sDTid = GetPixelIndex(Gid, GTid);
 	// Pass through if all pixels have 0 blur strength set.

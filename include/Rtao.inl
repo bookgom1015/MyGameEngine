@@ -15,55 +15,11 @@ const Rtao::TemporalCachesGpuDescriptors& Rtao::RtaoClass::TemporalCachesGpuDesc
 	return mhTemporalCachesGpus;
 }
 
-const Rtao::LocalMeanVarianceResourcesType& Rtao::RtaoClass::LocalMeanVarianceResources() const {
-	return mLocalMeanVarianceResources;
-}
-const Rtao::LocalMeanVarianceResourcesGpuDescriptors& Rtao::RtaoClass::LocalMeanVarianceResourcesGpuDescriptors() const {
-	return mhLocalMeanVarianceResourcesGpus;
-}
-
-const Rtao::AOVarianceResourcesType& Rtao::RtaoClass::AOVarianceResources() const {
-	return mAOVarianceResources;
-}
-const Rtao::AOVarianceResourcesGpuDescriptors& Rtao::RtaoClass::AOVarianceResourcesGpuDescriptors() const {
-	return mhAOVarianceResourcesGpus;
-}
-
-GpuResource* Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistance() {
-	return mTsppCoefficientSquaredMeanRayHitDistance.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistanceSrv() const {
-	return mhTsppCoefficientSquaredMeanRayHitDistanceGpuSrv;
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::TsppCoefficientSquaredMeanRayHitDistanceUav() const {
-	return mhTsppCoefficientSquaredMeanRayHitDistanceGpuUav;
-}
-
-GpuResource* Rtao::RtaoClass::DisocclusionBlurStrengthResource() {
-	return mDisocclusionBlurStrength.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DisocclusionBlurStrengthSrv() const {
-	return mhDisocclusionBlurStrengthGpuSrv;
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DisocclusionBlurStrengthUav() const {
-	return mhDisocclusionBlurStrengthGpuUav;
-}
-
 const Rtao::TemporalAOCoefficientsType& Rtao::RtaoClass::TemporalAOCoefficients() {
 	return mTemporalAOCoefficients;
 }
 const Rtao::TemporalAOCoefficientsGpuDescriptors& Rtao::RtaoClass::TemporalAOCoefficientsGpuDescriptors() const {
 	return mhTemporalAOCoefficientsGpus;
-}
-
-GpuResource* Rtao::RtaoClass::DepthPartialDerivativeMapResource() {
-	return mDepthPartialDerivative.get();
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DepthPartialDerivativeSrv() const {
-	return mhDepthPartialDerivativeGpuSrv;
-}
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::DepthPartialDerivativeUav() const {
-	return mhDepthPartialDerivativeGpuUav;
 }
 
 constexpr UINT Rtao::RtaoClass::TemporalCurrentFrameResourceIndex() const {

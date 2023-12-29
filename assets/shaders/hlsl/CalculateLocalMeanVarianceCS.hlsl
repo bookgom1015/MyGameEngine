@@ -154,7 +154,7 @@ void FilterVertically(uint2 DTid, uint2 GTid) {
 	go_LocalMeanVariance[pixel] = numValues > 0 ? float2(mean, variance) : Rtao::InvalidAOCoefficientValue;
 }
 
-[numthreads(Rtao::Default::ThreadGroup::Width, Rtao::Default::ThreadGroup::Height, 1)]
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex, uint2 DTid : SV_DispatchThreadID) {
 	FilterHorizontally(Gid, GI);
 	GroupMemoryBarrierWithGroupSync();
