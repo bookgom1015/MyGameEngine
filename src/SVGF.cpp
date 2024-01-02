@@ -397,6 +397,11 @@ void SVGFClass::RunCalculatingDepthPartialDerivative(
 	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcDepthPartialDerivative].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcDepthPartialDerivative].Get());
 
+	const auto depthPartialDerivative = mDepthPartialDerivative.get();
+
+	depthPartialDerivative->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, depthPartialDerivative);
+
 	const FLOAT values[RootSignature::CalcDepthPartialDerivative::RootConstant::Count] = { 1.0f / width, 1.0f / height };
 	cmdList->SetComputeRoot32BitConstants(
 		RootSignature::CalcDepthPartialDerivative::EC_Consts,
@@ -409,17 +414,25 @@ void SVGFClass::RunCalculatingDepthPartialDerivative(
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
 		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height), 1);
+
+	depthPartialDerivative->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, depthPartialDerivative);
 }
 
 void SVGFClass::RunCalculatingLocalMeanVariance(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-		D3D12_GPU_DESCRIPTOR_HANDLE uo_localMeanVariance,
 		UINT width, UINT height,
 		BOOL checkerboardSamplingEnabled) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcLocalMeanVariance].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcLocalMeanVariance].Get());
+
+	const auto rawLocalMeanVariance = mLocalMeanVarianceResources[SVGF::Resource::LocalMeanVariance::E_Raw].get();
+	rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
+
+	const auto uo_localMeanVariance = mhLocalMeanVarianceResourcesGpus[SVGF::Descriptor::LocalMeanVariance::EU_Raw];
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::CalcLocalMeanVariance::ECB_LocalMeanVar, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcLocalMeanVariance::ESI_AOCoefficient, si_aoCoefficient);
@@ -429,15 +442,23 @@ void SVGFClass::RunCalculatingLocalMeanVariance(
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
 		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height * pixelStepY), 1);
+
+	rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
 }
 
 void SVGFClass::FillInCheckerboard(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE uio_localMeanVariance,
 		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_FillInCheckerboard].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_FillInCheckerboard].Get());
+
+	const auto rawLocalMeanVariance = mLocalMeanVarianceResources[SVGF::Resource::LocalMeanVariance::E_Raw].get();
+	rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
+
+	const auto uio_localMeanVariance = mhLocalMeanVarianceResourcesGpus[SVGF::Descriptor::LocalMeanVariance::EU_Raw];
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::FillInCheckerboard::ECB_LocalMeanVar, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::FillInCheckerboard::EUIO_LocalMeanVar, uio_localMeanVariance);
@@ -445,6 +466,9 @@ void SVGFClass::FillInCheckerboard(
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
 		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height * 2), 1);
+
+	rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
 }
 
 void SVGFClass::ReverseReprojectPreviousFrame(
@@ -502,32 +526,43 @@ void SVGFClass::BlendWithCurrentFrame(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_localMeanVariance,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rayHitDistance,
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_temporalAOCoefficient,
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_tspp,
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_coefficientSquaredMean,
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
-		D3D12_GPU_DESCRIPTOR_HANDLE uo_variance,
 		UINT width, UINT height) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_TemporalSupersamplingBlendWithCurrentFrame].Get());
 
+	const auto rawVariance = mVarianceResources[SVGF::Resource::Variance::E_Raw].get();
+	const auto disocclusionBlurStrength = mDisocclusionBlurStrength.get();
+
+	std::vector<GpuResource*> resources = { rawVariance, disocclusionBlurStrength };
+
+	rawVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	disocclusionBlurStrength->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
+
 	cmdList->SetComputeRootConstantBufferView(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ECB_TsspBlendWithCurrentFrame, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_AOCoefficient, si_aoCoefficient);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_LocalMeanVaraince, si_localMeanVariance);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_LocalMeanVaraince, mhLocalMeanVarianceResourcesGpus[SVGF::Descriptor::LocalMeanVariance::ES_Raw]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_RayHitDistance, si_rayHitDistance);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppCoefficientSquaredMeanRayHitDistance, mhTsppValueSquaredMeanRayHitDistanceGpuSrv);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_TemporalAOCoefficient, uio_temporalAOCoefficient);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_Tspp, uio_tspp);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_CoefficientSquaredMean, uio_coefficientSquaredMean);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_RayHitDistance, uio_rayHitDistance);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_VarianceMap, uo_variance);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_VarianceMap, mhVarianceResourcesGpus[SVGF::Descriptor::Variance::EU_Raw]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_BlurStrength, mhDisocclusionBlurStrengthGpuUav);
 
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(width, Default::ThreadGroup::Width),
 		D3D12Util::CeilDivide(height, Default::ThreadGroup::Height), 1);
+
+	rawVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	disocclusionBlurStrength->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 }
 
 void SVGFClass::ApplyAtrousWaveletTransformFilter(
@@ -535,13 +570,15 @@ void SVGFClass::ApplyAtrousWaveletTransformFilter(
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_temporalAOCoefficient,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_variance,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
 		D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient,
-		UINT width, UINT height) {
+		UINT width, UINT height,
+		bool useSmoothingVar) {
 	cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get());
+
+	const auto si_variance = mhVarianceResourcesGpus[useSmoothingVar ? SVGF::Descriptor::Variance::ES_Smoothed : SVGF::Descriptor::Variance::ES_Raw];
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::AtrousWaveletTransformFilter::ECB_AtrousFilter, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::AtrousWaveletTransformFilter::ESI_TemporalAOCoefficient, si_temporalAOCoefficient);

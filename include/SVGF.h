@@ -250,13 +250,11 @@ namespace SVGF {
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_localMeanVariance,
 			UINT width, UINT height,
 			BOOL checkerboardSamplingEnabled);
 		void FillInCheckerboard(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE uio_localMeanVariance,
 			UINT width, UINT height);
 		void ReverseReprojectPreviousFrame(
 			ID3D12GraphicsCommandList4* const cmdList,
@@ -275,24 +273,22 @@ namespace SVGF {
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_localMeanVariance,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rayHitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_temporalAOCoefficient,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_tspp,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_coefficientSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_variance,
 			UINT width, UINT height);
 		void ApplyAtrousWaveletTransformFilter(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_temporalAOCoefficient,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_variance,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient,
-			UINT width, UINT height);
+			UINT width, UINT height,
+			bool useSmoothingVar);
 		void BlurDisocclusion(
 			ID3D12GraphicsCommandList4* const cmdList,
 			GpuResource* aoCoefficient,

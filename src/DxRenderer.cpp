@@ -131,27 +131,28 @@ namespace ShaderArgs {
 	}
 
 	namespace Rtao {
-		BOOL CheckerboardSamplingEnabled = false;
-		BOOL CheckerboardGenerateRaysForEvenPixels = false;
+		BOOL CheckerboardSamplingEnabled = FALSE;
+		BOOL CheckerboardGenerateRaysForEvenPixels = FALSE;
 
 		FLOAT OcclusionRadius = 10.0f;
 		FLOAT OcclusionFadeStart = 1.0f;
 		FLOAT OcclusionFadeEnd = 100.0f;
 		FLOAT OcclusionEpsilon = 0.05f;
 		UINT SampleCount = 2;
-		BOOL QuarterResolutionAO = false;
+		BOOL QuarterResolutionAO = FALSE;
 		FLOAT MaxRayHitTime = 22.0f;
 
 		namespace Denoiser {
-			BOOL UseSmoothingVariance = true;
-			BOOL DisocclusionBlur = true;
+			BOOL CheckerboardSamplingEnabled = FALSE;
+			BOOL UseSmoothingVariance = TRUE;
+			BOOL DisocclusionBlur = TRUE;
 			UINT LowTsppBlurPasses = 3;
 
 			namespace TemporalSupersampling {
 				UINT MaxTspp = 33;
 
 				namespace ClampCachedValues {
-					BOOL UseClamping = true;
+					BOOL UseClamping = TRUE;
 					FLOAT StdDevGamma = 0.6f;
 					FLOAT MinStdDevTolerance = 0.05f;
 					FLOAT DepthSigma = 1.0f;
@@ -169,10 +170,10 @@ namespace ShaderArgs {
 				FLOAT DepthWeightCutoff = 0.2f;
 				FLOAT NormalSigma = 64.0f;
 				FLOAT MinVarianceToDenoise = 0.0f;
-				BOOL UseSmoothedVariance = false;
-				BOOL PerspectiveCorrectDepthInterpolation = true;
-				BOOL UseAdaptiveKernelSize = true;
-				BOOL KernelRadiusRotateKernelEnabled = true;
+				BOOL UseSmoothedVariance = FALSE;
+				BOOL PerspectiveCorrectDepthInterpolation = TRUE;
+				BOOL UseAdaptiveKernelSize = TRUE;
+				BOOL KernelRadiusRotateKernelEnabled = TRUE;
 				INT KernelRadiusRotateKernelNumCycles = 3;
 				INT FilterMinKernelWidth = 3;
 				FLOAT FilterMaxKernelWidthPercentage = 1.5f;
@@ -2868,45 +2869,23 @@ BOOL DxRenderer::DrawRtao() {
 	const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
 
 	// Calculate ambient occlusion.
-	{
-		const auto& ambientCoefficient = aoResources[Rtao::Resource::AO::E_AmbientCoefficient].get();
-		{
-			ambientCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			D3D12Util::UavBarrier(cmdList, ambientCoefficient);
-		}
-
-		mRtao->RunCalculatingAmbientOcclusion(
-			cmdList,
-			mTLAS->Result->GetGPUVirtualAddress(),
-			mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress(),
-			mGBuffer->PositionMapSrv(),
-			mGBuffer->NormalDepthMapSrv(),
-			mGBuffer->DepthMapSrv(),
-			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_AmbientCoefficient],
-			aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_RayHitDistance],
-			mClientWidth, mClientHeight
-		);
-		{
-			ambientCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			D3D12Util::UavBarrier(cmdList, ambientCoefficient);
-		}
-	}
+	mRtao->RunCalculatingAmbientOcclusion(
+		cmdList,
+		mTLAS->Result->GetGPUVirtualAddress(),
+		mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress(),
+		mGBuffer->PositionMapSrv(),
+		mGBuffer->NormalDepthMapSrv(),
+		mGBuffer->DepthMapSrv(),
+		aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_AmbientCoefficient],
+		aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_RayHitDistance],
+		mClientWidth, mClientHeight
+	);
 	// Calculate partial-derivatives.
-	{
-		const auto depthPartialDerivative = mSVGF->DepthPartialDerivativeMapResource();
-
-		depthPartialDerivative->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		D3D12Util::UavBarrier(cmdList, depthPartialDerivative);
-
-		mSVGF->RunCalculatingDepthPartialDerivative(
-			cmdList,
-			mGBuffer->DepthMapSrv(),
-			mClientWidth, mClientHeight
-		);
-
-		depthPartialDerivative->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		D3D12Util::UavBarrier(cmdList, depthPartialDerivative);
-	}
+	mSVGF->RunCalculatingDepthPartialDerivative(
+		cmdList,
+		mGBuffer->DepthMapSrv(),
+		mClientWidth, mClientHeight
+	);
 	// Denosing(Spatio-Temporal Variance Guided Filtering)
 	{
 		// Stage 1: Reverse reprojection
@@ -2949,39 +2928,20 @@ BOOL DxRenderer::DrawRtao() {
 		// Stage 2: Blending current frame value with the reprojected cachec value
 		{
 			// Calculate local mean and variance for clamping during the blending operation.
-			{
-				const auto rawLocalMeanVariance = localMeanVarianceResources[SVGF::Resource::LocalMeanVariance::E_Raw].get();
-				rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
-
-				mSVGF->RunCalculatingLocalMeanVariance(
+			mSVGF->RunCalculatingLocalMeanVariance(
+				cmdList,
+				mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
+				aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
+				mClientWidth, mClientHeight,
+				ShaderArgs::Rtao::CheckerboardSamplingEnabled
+			);
+			// Interpolate the variance for the inactive cells from the valid checkerboard cells.
+			if (ShaderArgs::Rtao::CheckerboardSamplingEnabled) {
+				mSVGF->FillInCheckerboard(
 					cmdList,
 					mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
-					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
-					localMeanVarianceResourcesGpuDescriptors[SVGF::Descriptor::LocalMeanVariance::EU_Raw],
-					mClientWidth, mClientHeight,
-					false //bCheckerboardSamplingEnabled
+					mClientWidth, mClientHeight
 				);
-
-				rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
-
-				// Interpolate the variance for the inactive cells from the valid checkerboard cells.
-				if (false) { // bCheckerboardSamplingEnabled
-					rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-					D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
-
-					mSVGF->FillInCheckerboard(
-						cmdList,
-						mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
-						localMeanVarianceResourcesGpuDescriptors[SVGF::Descriptor::LocalMeanVariance::EU_Raw],
-						mClientWidth, mClientHeight
-					);
-
-
-					rawLocalMeanVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-					D3D12Util::UavBarrier(cmdList, rawLocalMeanVariance);
-				}
 			}
 
 			// Blends reprojected values with current frame values.
@@ -2995,37 +2955,28 @@ BOOL DxRenderer::DrawRtao() {
 				const auto currCoefficientSquaredMean = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_CoefficientSquaredMean].get();
 				const auto currRayHitDistance = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_RayHitDistance].get();
 
-				const auto rawVariance = varianceResources[SVGF::Resource::Variance::E_Raw].get();
-				const auto diocclusionBlurStrength = mSVGF->DisocclusionBlurStrengthResource();
-
 				std::vector<GpuResource*> resources = {
 					currTemporalAOCoefficient,
 					currTemporalSupersampling,
 					currCoefficientSquaredMean,
 					currRayHitDistance,
-					rawVariance,
-					diocclusionBlurStrength
 				};
 
 				currTemporalAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				currTemporalSupersampling->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				currCoefficientSquaredMean->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				rawVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				diocclusionBlurStrength->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
 				mSVGF->BlendWithCurrentFrame(
 					cmdList,
 					mCurrFrameResource->TsppBlendCB.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
-					localMeanVarianceResourcesGpuDescriptors[SVGF::Descriptor::LocalMeanVariance::ES_Raw],
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_RayHitDistance],
 					temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_CoefficientSquaredMean],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_RayHitDistance],
-					varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::EU_Raw],
 					mClientWidth, mClientHeight
 				);
 
@@ -3033,8 +2984,6 @@ BOOL DxRenderer::DrawRtao() {
 				currTemporalSupersampling->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				currCoefficientSquaredMean->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				rawVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				diocclusionBlurStrength->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 			}
 
@@ -3072,12 +3021,11 @@ BOOL DxRenderer::DrawRtao() {
 				mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
 				temporalAOCoefficientsGpuDescriptors[inputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
 				mGBuffer->NormalDepthMapSrv(),
-				varianceResourcesGpuDescriptors[ShaderArgs::Rtao::Denoiser::UseSmoothingVariance ?
-				SVGF::Descriptor::Variance::ES_Smoothed : SVGF::Descriptor::Variance::ES_Raw],
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
 				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
 				temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
-				mClientWidth, mClientHeight
+				mClientWidth, mClientHeight,
+				ShaderArgs::Rtao::Denoiser::UseSmoothingVariance
 			);
 			
 			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

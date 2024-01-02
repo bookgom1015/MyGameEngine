@@ -181,6 +181,10 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignature.Get());
 
+	const auto& aoCoeff = mAOResources[Rtao::Resource::AO::E_AmbientCoefficient].get();
+	aoCoeff->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, aoCoeff);
+
 	cmdList->SetComputeRootShaderResourceView(RootSignature::ESI_AccelerationStructure, accelStruct);
 	cmdList->SetComputeRootConstantBufferView(RootSignature::ECB_RtaoPass, cbAddress);
 
@@ -206,6 +210,9 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	dispatchDesc.Height = height;
 	dispatchDesc.Depth = 1;
 	cmdList->DispatchRays(&dispatchDesc);
+
+	aoCoeff->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, aoCoeff);
 }
 
 UINT RtaoClass::MoveToNextFrame() {
