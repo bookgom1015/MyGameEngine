@@ -36,11 +36,13 @@ namespace {
 }
 
 RaytracedReflectionClass::RaytracedReflectionClass() {
-	mReflectionMap = std::make_unique<GpuResource>();
-	mReflectionUploadBuffer = std::make_unique<GpuResource>();
-
-	for (UINT i = 0; i < 2; ++i)
+	for (UINT i = 0; i < Resource::Reflection::Count; ++i) 
+		mReflectionMaps[i] = std::make_unique<GpuResource>();
+	for (UINT i = 0; i < 2; ++i) {
+		for (UINT j = 0; j < Resource::TemporalCache::Count; ++j)
+			mTemporalCaches[i][j] = std::make_unique<GpuResource>();
 		mTemporalReflectionMaps[i] = std::make_unique<GpuResource>();
+	}
 }
 
 BOOL RaytracedReflectionClass::Initialize(
@@ -50,7 +52,7 @@ BOOL RaytracedReflectionClass::Initialize(
 
 	CheckReturn(BuildResources(cmdList, width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
@@ -64,7 +66,7 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, ReflectionRayCS));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
@@ -125,7 +127,7 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 			md3dDevice, globalRootSignatureDesc, &mRootSignatures[RootSignature::E_Local]));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL RaytracedReflectionClass::BuildPSO() {
@@ -167,7 +169,7 @@ BOOL RaytracedReflectionClass::BuildPSO() {
 	CheckHRESULT(md3dDevice->CreateStateObject(reflectionDxrPso, IID_PPV_ARGS(&mDxrPso)));
 	CheckHRESULT(mDxrPso->QueryInterface(IID_PPV_ARGS(&mDxrPsoProp)));
 
-	return true;
+	return TRUE;
 }
 
 BOOL RaytracedReflectionClass::BuildShaderTables(
@@ -250,7 +252,7 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 		mShaderTables[HitGroupShaderTableName] = hitGroupTable.GetResource();
 	}
 
-	return true;
+	return TRUE;
 }
 
 void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
@@ -258,8 +260,11 @@ void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& 
 		mhReflectionMapCpus[type] = hCpu.Offset(1, descSize);
 		mhReflectionMapGpus[type] = hGpu.Offset(1, descSize);
 	}
-
 	for (UINT i = 0; i < 2; ++i) {
+		for (UINT type = 0; type < Descriptor::TemporalCache::Count; ++type) {
+			mhTemporalCachesCpus[i][type] = hCpu.Offset(1, descSize);
+			mhTemporalCachesGpus[i][type] = hGpu.Offset(1, descSize);
+		}
 		for (UINT type = 0; type < Descriptor::TemporalReflection::Count; ++type) {
 			mhTemporalReflectionMapCpus[i][type] = hCpu.Offset(1, descSize);
 			mhTemporalReflectionMapGpus[i][type] = hGpu.Offset(1, descSize);
@@ -273,7 +278,7 @@ BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList,
 	CheckReturn(BuildResources(cmdList, width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void RaytracedReflectionClass::CalcReflection(
@@ -318,10 +323,11 @@ void RaytracedReflectionClass::CalcReflection(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BrdfLUT, si_brdf);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_TexMaps, si_texMaps);
 
-	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
+	const auto reflection = mReflectionMaps[Resource::Reflection::E_Reflection].get();
+	reflection->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, reflection);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpus[Descriptor::Reflection::E_Uav]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpus[Descriptor::Reflection::EU_Reflection]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	const auto& rayGen = mShaderTables[RayGenShaderTableName];
@@ -340,8 +346,8 @@ void RaytracedReflectionClass::CalcReflection(
 	dispatchDesc.Depth = 1;
 	cmdList->DispatchRays(&dispatchDesc);
 
-	mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	D3D12Util::UavBarrier(cmdList, mReflectionMap->Resource());
+	reflection->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, reflection);
 }
 
 UINT RaytracedReflectionClass::MoveToNextFrame() {
@@ -361,19 +367,69 @@ void RaytracedReflectionClass::BuildDescriptors() {
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Format = ReflectionMapFormat;
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	uavDesc.Format = ReflectionMapFormat;
 
-	auto resource = mReflectionMap->Resource();
-	md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::E_Srv]);
-	md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::E_Uav]);
-
-	for (UINT i = 0; i < 2; ++i) {
-		md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhTemporalReflectionMapCpus[i][Descriptor::Reflection::E_Srv]);
-		md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhTemporalReflectionMapCpus[i][Descriptor::Reflection::E_Uav]);
+	// Reflection
+	{
+		{
+			srvDesc.Format = ReflectionMapFormat;
+			uavDesc.Format = ReflectionMapFormat;
+			const auto resource = mReflectionMaps[Resource::Reflection::E_Reflection]->Resource();
+			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::ES_Reflection]);
+			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::EU_Reflection]);
+		}
+		{
+			srvDesc.Format = RayHitDistanceFormat;
+			uavDesc.Format = RayHitDistanceFormat;
+			const auto resource = mReflectionMaps[Resource::Reflection::E_RayHitDistance]->Resource();
+			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::ES_RayHitDistance]);
+			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::EU_RayHitDistance]);
+		}
+	}
+	// Temporal Cache
+	{
+		{
+			srvDesc.Format = TsppMapFormat;
+			uavDesc.Format = TsppMapFormat;
+			for (size_t i = 0; i < 2; ++i) {
+				auto resource = mTemporalCaches[i][Resource::TemporalCache::E_Tspp]->Resource();
+				auto& cpus = mhTemporalCachesCpus[i];
+				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_Tspp]);
+				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_Tspp]);
+			}
+		}
+		{
+			srvDesc.Format = RayHitDistanceFormat;
+			uavDesc.Format = RayHitDistanceFormat;
+			for (size_t i = 0; i < 2; ++i) {
+				auto resource = mTemporalCaches[i][Resource::TemporalCache::E_RayHitDistance]->Resource();
+				auto& cpus = mhTemporalCachesCpus[i];
+				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_RayHitDistance]);
+				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_RayHitDistance]);
+			}
+		}
+		{
+			srvDesc.Format = ReflectionSquaredMeanMapFormat;
+			uavDesc.Format = ReflectionSquaredMeanMapFormat;
+			for (size_t i = 0; i < 2; ++i) {
+				auto resource = mTemporalCaches[i][Resource::TemporalCache::E_ReflectionSquaredMean]->Resource();
+				auto& cpus = mhTemporalCachesCpus[i];
+				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_ReflectionSquaredMean]);
+				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_ReflectionSquaredMean]);
+			}
+		}
+	}
+	// Temporal Reflection
+	{
+		srvDesc.Format = ReflectionMapFormat;
+		uavDesc.Format = ReflectionMapFormat;
+		for (UINT i = 0; i < 2; ++i) {
+			const auto resource = mTemporalReflectionMaps[i]->Resource();
+			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhTemporalReflectionMapCpus[i][Descriptor::TemporalReflection::E_Srv]);
+			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhTemporalReflectionMapCpus[i][Descriptor::TemporalReflection::E_Uav]);
+		}
 	}
 }
 
@@ -387,57 +443,105 @@ BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList
 	rscDesc.MipLevels = 1;
 	rscDesc.SampleDesc.Count = 1;
 	rscDesc.SampleDesc.Quality = 0;
-	rscDesc.Format = ReflectionMapFormat;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
+	// Reflection
 	{
-		CheckReturn(mReflectionMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			L"RaytracedReflectionMap"
-		));
+		{
+			rscDesc.Format = ReflectionMapFormat;
+			CheckReturn(mReflectionMaps[Resource::Reflection::E_Reflection]->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				L"RR_RaytracedReflectionMap"
+			));
+		}
+		{
+			rscDesc.Format = RayHitDistanceFormat;
+			CheckReturn(mReflectionMaps[Resource::Reflection::E_RayHitDistance]->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				L"RR_RayHitDistanceMap"
+			));
+		}
+		
+	}
+	// Temporal Cache
+	{
+		{
+			rscDesc.Format = TsppMapFormat;
+			for (INT i = 0; i < 2; ++i) {
+				std::wstring name = L"RR_TsppMap_";
+				name.append(std::to_wstring(i));
+				CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_Tspp]->Initialize(
+					md3dDevice,
+					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+					D3D12_HEAP_FLAG_NONE,
+					&rscDesc,
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					nullptr,
+					name.c_str()
+				));
+			}
+		}
+		{
+			rscDesc.Format = RayHitDistanceFormat;
+			for (INT i = 0; i < 2; ++i) {
+				std::wstring name = L"RR_TemporalRayHitDistanceMap_";
+				name.append(std::to_wstring(i));
+				CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_RayHitDistance]->Initialize(
+					md3dDevice,
+					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+					D3D12_HEAP_FLAG_NONE,
+					&rscDesc,
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					nullptr,
+					name.c_str()
+				));
+			}
+		}
+		{
+			rscDesc.Format = ReflectionSquaredMeanMapFormat;
+			for (INT i = 0; i < 2; ++i) {
+				std::wstring name = L"RR_ReflectionSquaredMeanMap_";
+				name.append(std::to_wstring(i));
+				CheckReturn(mTemporalCaches[i][Resource::TemporalCache::E_ReflectionSquaredMean]->Initialize(
+					md3dDevice,
+					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+					D3D12_HEAP_FLAG_NONE,
+					&rscDesc,
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					nullptr,
+					name.c_str()
+				));
+			}
+		}
+	}
+	// Temporal Reflection
+	{
+		rscDesc.Format = ReflectionMapFormat;
+		for (UINT i = 0; i < 2; ++i) {
+			std::wstringstream wsstream;
+			wsstream << "RR_TemporalRaytracedReflectionMap_" << i;
+			CheckReturn(mTemporalReflectionMaps[i]->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&rscDesc,
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				wsstream.str().c_str()
+			));
+		}
 	}
 
-		const UINT num2DSubresources = rscDesc.DepthOrArraySize * rscDesc.MipLevels;
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(mReflectionMap->Resource(), 0, num2DSubresources);
-	
-		CheckReturn(mReflectionUploadBuffer->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
-			D3D12_RESOURCE_STATE_COPY_SOURCE,
-			nullptr
-		));
-	
-		const UINT size = width * height * 8;
-		std::vector<BYTE> data(size);
-	
-		for (UINT i = 0; i < size; i += 4) {
-			data[i] = data[i + 1] = data[i + 2] = data[i + 3] = 0;	// rgba-channels(normal) = 0 / 128;
-		}
-	
-		D3D12_SUBRESOURCE_DATA subResourceData = {};
-		subResourceData.pData = data.data();
-		subResourceData.RowPitch = width * 4;
-		subResourceData.SlicePitch = subResourceData.RowPitch * height;
-		
-		UpdateSubresources(
-			cmdList,
-			mReflectionMap->Resource(),
-			mReflectionUploadBuffer->Resource(),
-			0,
-			0,
-			num2DSubresources,
-			&subResourceData
-		);
-	
-		mReflectionMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-	return true;
+	return TRUE;
 }

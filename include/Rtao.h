@@ -96,13 +96,13 @@ namespace Rtao {
 
 	public:
 		__forceinline const AOResourcesType& AOResources() const;
-		__forceinline const AOResourcesGpuDescriptors& AOResourcesGpuDescriptors() const;
+		__forceinline const AOResourcesGpuDescriptors& AOResourceGpuDescriptors() const;
 
 		__forceinline const TemporalCachesType& TemporalCaches() const;
-		__forceinline const TemporalCachesGpuDescriptors& TemporalCachesGpuDescriptors() const;
+		__forceinline const TemporalCachesGpuDescriptors& TemporalCacheGpuDescriptors() const;
 
 		__forceinline const TemporalAOCoefficientsType& TemporalAOCoefficients();
-		__forceinline const TemporalAOCoefficientsGpuDescriptors& TemporalAOCoefficientsGpuDescriptors() const;
+		__forceinline const TemporalAOCoefficientsGpuDescriptors& TemporalAOCoefficientGpuDescriptors() const;
 
 		__forceinline constexpr UINT TemporalCurrentFrameResourceIndex() const;
 		__forceinline constexpr UINT TemporalCurrentFrameTemporalAOCoefficientResourceIndex() const;
@@ -125,8 +125,6 @@ namespace Rtao {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_aoCoefficient,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_rayHitDistance,
 			UINT width, UINT height);
 
 		UINT MoveToNextFrame();

@@ -857,5 +857,8 @@
     <None Include="..\..\include\SVGF.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
+    <None Include="..\..\include\RaytracedReflection.inl">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </None>
   </ItemGroup>
 </Project>

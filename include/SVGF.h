@@ -202,6 +202,14 @@ namespace SVGF {
 		}
 	}
 
+	namespace ValueType {
+		enum {
+			E_Float1 = 0,
+			E_Float4,
+			Count
+		};
+	}
+
 	using LocalMeanVarianceResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::LocalMeanVariance::Count>;
 	using LocalMeanVarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::LocalMeanVariance::Count>;
 	using LocalMeanVarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::LocalMeanVariance::Count>;
@@ -249,7 +257,7 @@ namespace SVGF {
 		void RunCalculatingLocalMeanVariance(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_value,
 			UINT width, UINT height,
 			BOOL checkerboardSamplingEnabled);
 		void FillInCheckerboard(
@@ -263,37 +271,37 @@ namespace SVGF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_reprojNormalDepth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedNormalDepth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedValue,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedTspp,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedAOCoefficientSquaredMean,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedValueSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedRayHitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
 			UINT width, UINT height);
 		void BlendWithCurrentFrame(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_aoCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_value,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rayHitDistance,
-			D3D12_GPU_DESCRIPTOR_HANDLE uio_temporalAOCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE uio_temporalValue,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_tspp,
-			D3D12_GPU_DESCRIPTOR_HANDLE uio_coefficientSquaredMean,
+			D3D12_GPU_DESCRIPTOR_HANDLE uio_valueSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
 			UINT width, UINT height);
 		void ApplyAtrousWaveletTransformFilter(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_temporalAOCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_temporalValue,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
-			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalAOCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalValue,
 			UINT width, UINT height,
 			bool useSmoothingVar);
 		void BlurDisocclusion(
 			ID3D12GraphicsCommandList4* const cmdList,
-			GpuResource* aoCoefficient,
+			GpuResource* value,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
-			D3D12_GPU_DESCRIPTOR_HANDLE uio_aoCoefficient,
+			D3D12_GPU_DESCRIPTOR_HANDLE uio_value,
 			UINT width, UINT height,
 			UINT lowTsppBlurPasses);
 

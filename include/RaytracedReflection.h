@@ -67,14 +67,43 @@ namespace RaytracedReflection {
 	}
 
 	namespace Resource {
-		
+		namespace Reflection {
+			enum {
+				E_Reflection = 0,
+				E_RayHitDistance,
+				Count
+			};
+		}
+
+		namespace TemporalCache {
+			enum {
+				E_Tspp = 0,
+				E_RayHitDistance,
+				E_ReflectionSquaredMean,
+				Count
+			};
+		}
 	}
 
 	namespace Descriptor {
 		namespace Reflection {
 			enum {
-				E_Srv = 0,
-				E_Uav,
+				ES_Reflection = 0,
+				EU_Reflection,
+				ES_RayHitDistance,
+				EU_RayHitDistance,
+				Count
+			};
+		}
+
+		namespace TemporalCache {
+			enum {
+				ES_Tspp = 0,
+				EU_Tspp,
+				ES_RayHitDistance,
+				EU_RayHitDistance,
+				ES_ReflectionSquaredMean,
+				EU_ReflectionSquaredMean,
 				Count
 			};
 		}
@@ -88,8 +117,13 @@ namespace RaytracedReflection {
 		}
 	}
 
+	using ReflectionType = std::array<std::unique_ptr<GpuResource>, Resource::Reflection::Count>;
 	using ReflectionCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::Reflection::Count>;
 	using ReflectionGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::Reflection::Count>;
+
+	using TemporalCachesType = std::array<std::array<std::unique_ptr<GpuResource>, Resource::TemporalCache::Count>, 2>;
+	using TemporalCachesCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::TemporalCache::Count>, 2>;
+	using TemporalCachesGpuDescriptors = std::array<std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::TemporalCache::Count>, 2>;
 
 	using TemporalReflectionType = std::array<std::unique_ptr<GpuResource>, 2>;
 	using TemporalReflectionCpuDescriptors = std::array<std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::TemporalReflection::Count>, 2>;
@@ -102,6 +136,15 @@ namespace RaytracedReflection {
 
 	public:
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE ReflectionMapSrv() const;
+
+		__forceinline const ReflectionType& Reflections() const;
+		__forceinline const ReflectionGpuDescriptors& ReflectionGpuDescriptors() const;
+
+		__forceinline const TemporalCachesType& TemporalCaches() const;
+		__forceinline const TemporalCachesGpuDescriptors& TemporalCacheGpuDescriptors() const;
+
+		__forceinline const TemporalReflectionType& TemporalReflections();
+		__forceinline const TemporalReflectionGpuDescriptors& TemporalReflectionGpuDescriptors() const;
 
 		__forceinline constexpr UINT TemporalCurrentFrameResourceIndex() const;
 		__forceinline constexpr UINT TemporalCurrentFrameTemporalReflectionResourceIndex() const;
@@ -147,7 +190,6 @@ namespace RaytracedReflection {
 		ShaderManager* mShaderManager;
 
 		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPso;
 		Microsoft::WRL::ComPtr<ID3D12StateObject> mDxrPso;
 		Microsoft::WRL::ComPtr<ID3D12StateObjectProperties> mDxrPsoProp;
 
@@ -156,29 +198,21 @@ namespace RaytracedReflection {
 		UINT mHitGroupShaderTableStrideInBytes;
 		UINT mShadowRayOffset;
 
-		std::unique_ptr<GpuResource> mReflectionMap;
-		ReflectionCpuDescriptors mhReflectionMapCpus;
-		ReflectionGpuDescriptors mhReflectionMapGpus;
+		RaytracedReflection::ReflectionType mReflectionMaps;
+		RaytracedReflection::ReflectionCpuDescriptors mhReflectionMapCpus;
+		RaytracedReflection::ReflectionGpuDescriptors mhReflectionMapGpus;
 
-		std::unique_ptr<GpuResource> mReflectionUploadBuffer;
+		RaytracedReflection::TemporalCachesType mTemporalCaches;
+		RaytracedReflection::TemporalCachesCpuDescriptors mhTemporalCachesCpus;
+		RaytracedReflection::TemporalCachesGpuDescriptors mhTemporalCachesGpus;
 
-		TemporalReflectionType mTemporalReflectionMaps;
-		TemporalReflectionCpuDescriptors mhTemporalReflectionMapCpus;
-		TemporalReflectionGpuDescriptors mhTemporalReflectionMapGpus;
+		RaytracedReflection::TemporalReflectionType mTemporalReflectionMaps;
+		RaytracedReflection::TemporalReflectionCpuDescriptors mhTemporalReflectionMapCpus;
+		RaytracedReflection::TemporalReflectionGpuDescriptors mhTemporalReflectionMapGpus;
 
 		UINT mTemporalCurrentFrameResourceIndex = 0;
 		UINT mTemporalCurrentFrameTemporalReflectionResourceIndex = 0;
 	};
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE RaytracedReflection::RaytracedReflectionClass::ReflectionMapSrv() const {
-	return mhReflectionMapGpus[RaytracedReflection::Descriptor::Reflection::E_Srv];
-}
-
-constexpr UINT RaytracedReflection::RaytracedReflectionClass::TemporalCurrentFrameResourceIndex() const {
-	return mTemporalCurrentFrameResourceIndex;
-}
-
-constexpr UINT RaytracedReflection::RaytracedReflectionClass::TemporalCurrentFrameTemporalReflectionResourceIndex() const {
-	return mTemporalCurrentFrameTemporalReflectionResourceIndex;
-}
+#include "RaytracedReflection.inl"

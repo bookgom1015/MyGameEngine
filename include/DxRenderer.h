@@ -141,6 +141,7 @@ private:
 
 	BOOL DrawDxrShadowMap();
 	BOOL DrawDxrBackBuffer();
+	BOOL CalcDepthPartialDerivative();
 	BOOL DrawRtao();
 	BOOL BuildRaytracedReflection();
 

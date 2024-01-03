@@ -29,11 +29,11 @@ Texture2D<GBuffer::NormalDepthMapFormat>			gi_CachedNormalDepth		: register(t3);
 Texture2D<GBuffer::VelocityMapFormat>				gi_Velocity					: register(t4);
 Texture2D<SVGF::F1ValueMapFormat>					gi_CachedValue				: register(t5);
 Texture2D<SVGF::TsppMapFormat>						gi_CachedTspp				: register(t6);
-Texture2D<SVGF::F1ValueSquaredMeanMapFormat>		gi_CachedValueSquaredMean	: register(t7);
+Texture2D<SVGF::ValueSquaredMeanMapFormat>			gi_CachedValueSquaredMean	: register(t7);
 Texture2D<SVGF::RayHitDistanceFormat>				gi_CachedRayHitDistance		: register(t8);
 
-RWTexture2D<SVGF::TsppMapFormat>								go_CachedTspp				: register(u0);
-RWTexture2D<SVGF::TsppF1ValueSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u1);
+RWTexture2D<SVGF::TsppMapFormat>							go_CachedTspp				: register(u0);
+RWTexture2D<SVGF::TsppValueSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u1);
 
 float4 BilateralResampleWeights(
 		float	targetDepth, 

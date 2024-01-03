@@ -399,6 +399,7 @@ BOOL DxRenderer::Draw() {
 			CheckReturn(DrawDxrShadowMap());
 			CheckReturn(DrawRtao());
 			CheckReturn(DrawDxrBackBuffer());
+			CheckReturn(CalcDepthPartialDerivative());
 		}
 		else {
 			CheckReturn(DrawShadowMap());
@@ -2517,14 +2518,14 @@ BOOL DxRenderer::DrawImGui() {
 						if (ImGui::Checkbox("AO Coefficients", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_AOCoeff]))) {
 							BuildDebugMap(
 								mDebugMapStates[DebugMapLayout::E_AOCoeff],
-								mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_AmbientCoefficient],
+								mRtao->AOResourceGpuDescriptors()[Rtao::Descriptor::AO::ES_AmbientCoefficient],
 								DebugMap::SampleMask::RRR);
 						}
 						if (ImGui::Checkbox("Temporal AO Coefficients",
 							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff]))) {
 							BuildDebugMap(
 								mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
-								mRtao->TemporalAOCoefficientsGpuDescriptors()[index][Rtao::Descriptor::TemporalAOCoefficient::Srv],
+								mRtao->TemporalAOCoefficientGpuDescriptors()[index][Rtao::Descriptor::TemporalAOCoefficient::Srv],
 								DebugMap::SampleMask::RRR);
 						}
 						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
@@ -2535,7 +2536,7 @@ BOOL DxRenderer::DrawImGui() {
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_Tspp],
-								mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_Tspp],
+								mRtao->TemporalCacheGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_Tspp],
 								DebugMap::SampleMask::UINT,
 								desc);
 						}
@@ -2547,7 +2548,7 @@ BOOL DxRenderer::DrawImGui() {
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_RayHitDist],
-								mRtao->AOResourcesGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
+								mRtao->AOResourceGpuDescriptors()[Rtao::Descriptor::AO::ES_RayHitDistance],
 								DebugMap::SampleMask::FLOAT,
 								desc);
 						}
@@ -2560,24 +2561,10 @@ BOOL DxRenderer::DrawImGui() {
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
-								mRtao->TemporalCachesGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
+								mRtao->TemporalCacheGpuDescriptors()[index][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
 								DebugMap::SampleMask::FLOAT,
 								desc);
 						}
-						//if (ImGui::Checkbox("Local Mean Variance",
-						//	reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_LocalMeanVariance]))) {
-						//	BuildDebugMap(
-						//		mDebugMapStates[DebugMapLayout::E_LocalMeanVariance],
-						//		mRtao->LocalMeanVarianceResourcesGpuDescriptors()[Rtao::Descriptor::LocalMeanVariance::ES_Raw],
-						//		DebugMap::SampleMask::RG);
-						//}
-						//if (ImGui::Checkbox("Disocclusion Blur Strength",
-						//	reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength]))) {
-						//	BuildDebugMap(
-						//		mDebugMapStates[DebugMapLayout::E_DiocclusionBlurStrength],
-						//		mRtao->DisocclusionBlurStrengthSrv(),
-						//		DebugMap::SampleMask::RRR);
-						//}
 						ImGui::TreePop();
 					} // ImGui::TreeNode("RTAO")
 					if (ImGui::Checkbox("Raytraced Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RaytracedReflection]))) {
@@ -2848,6 +2835,26 @@ BOOL DxRenderer::DrawDxrBackBuffer() {
 	return true;
 }
 
+BOOL DxRenderer::CalcDepthPartialDerivative() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+
+	const auto pDescHeap = mCbvSrvUavHeap.Get();
+	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mSVGF->RunCalculatingDepthPartialDerivative(
+		cmdList,
+		mGBuffer->DepthMapSrv(),
+		mClientWidth, mClientHeight
+	);
+
+	CheckHRESULT(cmdList->Close());
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
+
+	return TRUE;
+}
+
 BOOL DxRenderer::DrawRtao() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
@@ -2856,77 +2863,67 @@ BOOL DxRenderer::DrawRtao() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	const auto& aoResources = mRtao->AOResources();
-	const auto& aoResourcesGpuDescriptors = mRtao->AOResourcesGpuDescriptors();
-	const auto& temporalCaches = mRtao->TemporalCaches();
-	const auto& temporalCachesGpuDescriptors = mRtao->TemporalCachesGpuDescriptors();
-	const auto& temporalAOCoefficients = mRtao->TemporalAOCoefficients();
-	const auto& temporalAOCoefficientsGpuDescriptors = mRtao->TemporalAOCoefficientsGpuDescriptors();
-
-	const auto& localMeanVarianceResources = mSVGF->LocalMeanVarianceResources();
-	const auto& localMeanVarianceResourcesGpuDescriptors = mSVGF->LocalMeanVarianceResourcesGpuDescriptors();
-	const auto& varianceResources = mSVGF->VarianceResources();
-	const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
-
 	// Calculate ambient occlusion.
-	mRtao->RunCalculatingAmbientOcclusion(
-		cmdList,
-		mTLAS->Result->GetGPUVirtualAddress(),
-		mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->PositionMapSrv(),
-		mGBuffer->NormalDepthMapSrv(),
-		mGBuffer->DepthMapSrv(),
-		aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_AmbientCoefficient],
-		aoResourcesGpuDescriptors[Rtao::Descriptor::AO::EU_RayHitDistance],
-		mClientWidth, mClientHeight
-	);
-	// Calculate partial-derivatives.
-	mSVGF->RunCalculatingDepthPartialDerivative(
-		cmdList,
-		mGBuffer->DepthMapSrv(),
-		mClientWidth, mClientHeight
-	);
+	{
+		const auto rtaoCBAddress = mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress();
+		const auto tlasVAddress = mTLAS->Result->GetGPUVirtualAddress();
+
+		mRtao->RunCalculatingAmbientOcclusion(
+			cmdList,
+			tlasVAddress,
+			rtaoCBAddress,
+			mGBuffer->PositionMapSrv(),
+			mGBuffer->NormalDepthMapSrv(),
+			mGBuffer->DepthMapSrv(),
+			mClientWidth, mClientHeight
+		);
+	}
 	// Denosing(Spatio-Temporal Variance Guided Filtering)
 	{
-		// Stage 1: Reverse reprojection
+		const auto& aoResources = mRtao->AOResources();
+		const auto& aoResourcesGpuDescriptors = mRtao->AOResourceGpuDescriptors();
+		const auto& temporalCaches = mRtao->TemporalCaches();
+		const auto& temporalCachesGpuDescriptors = mRtao->TemporalCacheGpuDescriptors();
+		const auto& temporalAOCoefficients = mRtao->TemporalAOCoefficients();
+		const auto& temporalAOCoefficientsGpuDescriptors = mRtao->TemporalAOCoefficientGpuDescriptors();
+
+		// Temporal supersampling 
 		{
-			UINT temporalPreviousFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
-			UINT temporalCurrentFrameResourcIndex = mRtao->MoveToNextFrame();
+			// Stage 1: Reverse reprojection
+			{
+				UINT temporalPreviousFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
+				UINT temporalCurrentFrameResourcIndex = mRtao->MoveToNextFrame();
 
-			UINT temporalPreviousFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
-			UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
+				UINT temporalPreviousFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+				UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
 
-			const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][Rtao::Resource::TemporalCache::E_Tspp].get();
-			const auto tsppCoefficientSquaredMeanRayHitDistance = mSVGF->TsppValueSquaredMeanRayHitDistance();
+				const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][Rtao::Resource::TemporalCache::E_Tspp].get();
 
-			currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			tsppCoefficientSquaredMeanRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				D3D12Util::UavBarrier(cmdList, currTsppMap);
 
-			std::vector<GpuResource*> resources = { currTsppMap, tsppCoefficientSquaredMeanRayHitDistance };
-			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
-
-			// Retrieves values from previous frame via reverse reprojection.				
-			mSVGF->ReverseReprojectPreviousFrame(
-				cmdList,
-				mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
-				mGBuffer->NormalDepthMapSrv(),
-				mGBuffer->ReprojNormalDepthMapSrv(),
-				mGBuffer->PrevNormalDepthMapSrv(),
-				mGBuffer->VelocityMapSrv(),
-				temporalAOCoefficientsGpuDescriptors[temporalPreviousFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
-				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
-				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_CoefficientSquaredMean],
-				temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
-				temporalCachesGpuDescriptors[temporalCurrentFrameResourcIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
-				mClientWidth, mClientHeight
-			);
-
-			currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			tsppCoefficientSquaredMeanRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
-		}
-		// Stage 2: Blending current frame value with the reprojected cachec value
-		{
+				// Retrieves values from previous frame via reverse reprojection.				
+				mSVGF->ReverseReprojectPreviousFrame(
+					cmdList,
+					mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
+					mGBuffer->NormalDepthMapSrv(),
+					mGBuffer->ReprojNormalDepthMapSrv(),
+					mGBuffer->PrevNormalDepthMapSrv(),
+					mGBuffer->VelocityMapSrv(),
+					temporalAOCoefficientsGpuDescriptors[temporalPreviousFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
+					temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
+					temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_CoefficientSquaredMean],
+					temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
+					temporalCachesGpuDescriptors[temporalCurrentFrameResourcIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
+					mClientWidth, mClientHeight
+					);
+					
+					currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					D3D12Util::UavBarrier(cmdList, currTsppMap
+				);
+			}
+			// Stage 2: Blending current frame value with the reprojected cached value.
+			{
 			// Calculate local mean and variance for clamping during the blending operation.
 			mSVGF->RunCalculatingLocalMeanVariance(
 				cmdList,
@@ -2988,6 +2985,9 @@ BOOL DxRenderer::DrawRtao() {
 			}
 
 			if (ShaderArgs::Rtao::Denoiser::UseSmoothingVariance) {
+				const auto& varianceResources = mSVGF->VarianceResources();
+				const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
+
 				const auto smoothedVariance = varianceResources[SVGF::Resource::Variance::E_Smoothed].get();
 
 				smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -3004,52 +3004,57 @@ BOOL DxRenderer::DrawRtao() {
 				smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				D3D12Util::UavBarrier(cmdList, smoothedVariance);
 			}
+			}
 		}
-		// Applies a single pass of a Atrous wavelet transform filter.
+		// Filtering
 		{
-			UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
-			UINT inputAOCoefficientIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
-			UINT outputAOCoefficientIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
-			
-			const auto outputAOCoefficient = temporalAOCoefficients[outputAOCoefficientIndex].get();
-			
-			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
-			
-			mSVGF->ApplyAtrousWaveletTransformFilter(
-				cmdList,
-				mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
-				temporalAOCoefficientsGpuDescriptors[inputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
-				mGBuffer->NormalDepthMapSrv(),
-				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
-				temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
-				temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
-				mClientWidth, mClientHeight,
-				ShaderArgs::Rtao::Denoiser::UseSmoothingVariance
-			);
-			
-			outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
-		}
-		if (ShaderArgs::Rtao::Denoiser::DisocclusionBlur) {
-			UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
+			{
+				UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
+				UINT inputAOCoefficientIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+				UINT outputAOCoefficientIndex = mRtao->MoveToNextFrameTemporalAOCoefficient();
 
-			const auto aoCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
+				const auto outputAOCoefficient = temporalAOCoefficients[outputAOCoefficientIndex].get();
 
-			aoCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			D3D12Util::UavBarrier(cmdList, aoCoefficient);
+				outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
 
-			mSVGF->BlurDisocclusion(
-				cmdList,
-				aoCoefficient,
-				mGBuffer->DepthMapSrv(),
-				temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
-				mClientWidth, mClientHeight,
-				ShaderArgs::Rtao::Denoiser::LowTsppBlurPasses
-			);
+				mSVGF->ApplyAtrousWaveletTransformFilter(
+					cmdList,
+					mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
+					temporalAOCoefficientsGpuDescriptors[inputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
+					mGBuffer->NormalDepthMapSrv(),
+					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
+					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
+					temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
+					mClientWidth, mClientHeight,
+					ShaderArgs::Rtao::Denoiser::UseSmoothingVariance
+				);
 
-			aoCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			D3D12Util::UavBarrier(cmdList, aoCoefficient);
+				outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
+			}
+			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
+			if (ShaderArgs::Rtao::Denoiser::DisocclusionBlur) {
+				UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+
+				const auto aoCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
+
+				aoCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				D3D12Util::UavBarrier(cmdList, aoCoefficient);
+
+				mSVGF->BlurDisocclusion(
+					cmdList,
+					aoCoefficient,
+					mGBuffer->DepthMapSrv(),
+					temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
+					mClientWidth, mClientHeight,
+					ShaderArgs::Rtao::Denoiser::LowTsppBlurPasses
+				);
+
+				aoCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				D3D12Util::UavBarrier(cmdList, aoCoefficient);
+			}
 		}
 	}
 
@@ -3067,27 +3072,91 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
-	const auto rrCBAddress = mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress();
+	// Calculate raytraced reflection.
+	{
+		const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
+		const auto rrCBAddress = mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress();
+		const auto tlasVAddress = mTLAS->Result->GetGPUVirtualAddress();
 
-	mRr->CalcReflection(
-		cmdList,
-		passCBAddress,
-		rrCBAddress,
-		mTLAS->Result->GetGPUVirtualAddress(),
-		mToneMapping->InterMediateMapSrv(),
-		mGBuffer->NormalMapSrv(),
-		mGBuffer->DepthMapSrv(),
-		mGBuffer->RMSMapSrv(),
-		mGBuffer->PositionMapSrv(),
-		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
-		mRtao->ResolvedAOCoefficientSrv(),
-		mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
-		mIrradianceMap->IntegratedBrdfMapSrv(),
-		mhGpuDescForTexMaps,
-		mClientWidth, mClientHeight,
-		ShaderArgs::RaytracedReflection::ReflectionRadius
-	);
+		mRr->CalcReflection(
+			cmdList,
+			passCBAddress,
+			rrCBAddress,
+			tlasVAddress,
+			mToneMapping->InterMediateMapSrv(),
+			mGBuffer->NormalMapSrv(),
+			mGBuffer->DepthMapSrv(),
+			mGBuffer->RMSMapSrv(),
+			mGBuffer->PositionMapSrv(),
+			mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
+			mRtao->ResolvedAOCoefficientSrv(),
+			mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
+			mIrradianceMap->IntegratedBrdfMapSrv(),
+			mhGpuDescForTexMaps,
+			mClientWidth, mClientHeight,
+			ShaderArgs::RaytracedReflection::ReflectionRadius
+		);
+	}
+	// Denosing(Spatio-Temporal Variance Guided Filtering)
+	{
+		const auto& reflections = mRr->Reflections();
+		const auto& reflectionGpuDescriptors = mRr->ReflectionGpuDescriptors();
+		const auto& temporalCaches = mRr->TemporalCaches();
+		const auto& temporalCacheGpuDescriptors = mRr->TemporalCacheGpuDescriptors();
+		const auto& temporalReflections = mRr->TemporalReflections();
+		const auto& temporalReflectionGpuDescriptors = mRr->TemporalReflectionGpuDescriptors();
+
+		// Temporal supersampling 
+		//{
+		//	// Stage 1: Reverse reprojection
+		//	{
+		//		UINT temporalPreviousFrameResourceIndex = mRr->TemporalCurrentFrameResourceIndex();
+		//		UINT temporalCurrentFrameResourcIndex = mRr->MoveToNextFrame();
+		//
+		//		UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRr->TemporalCurrentFrameTemporalReflectionResourceIndex();
+		//		UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRr->MoveToNextFrameTemporalReflection();
+		//
+		//		const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
+		//
+		//		currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		//		D3D12Util::UavBarrier(cmdList, currTsppMap);
+		//
+		//		// Retrieves values from previous frame via reverse reprojection.				
+		//		mSVGF->ReverseReprojectPreviousFrame(
+		//			cmdList,
+		//			mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
+		//			mGBuffer->NormalDepthMapSrv(),
+		//			mGBuffer->ReprojNormalDepthMapSrv(),
+		//			mGBuffer->PrevNormalDepthMapSrv(),
+		//			mGBuffer->VelocityMapSrv(),
+		//			temporalReflectionGpuDescriptors[temporalPreviousFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
+		//			temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
+		//			temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_ReflectionSquaredMean],
+		//			temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
+		//			temporalCacheGpuDescriptors[temporalCurrentFrameResourcIndex][RaytracedReflection::Descriptor::TemporalCache::EU_Tspp],
+		//			mClientWidth, mClientHeight
+		//		);
+		//
+		//		currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		//		D3D12Util::UavBarrier(cmdList, currTsppMap);
+		//	}
+		//	// Stage 2: Blending current frame value with the reprojected cached value.
+		//	{
+		//
+		//	}
+		//}
+		// Filtering
+		{
+			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
+			{
+
+			}
+			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
+			{
+
+			}
+		}
+	}
 
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));

@@ -339,6 +339,7 @@
     <None Include="..\..\include\DxLowRenderer.inl" />
     <None Include="..\..\include\GBuffer.inl" />
     <None Include="..\..\include\MathHelper.inl" />
+    <None Include="..\..\include\RaytracedReflection.inl" />
     <None Include="..\..\include\Renderer.inl" />
     <None Include="..\..\include\Rtao.inl" />
     <None Include="..\..\include\ShadowMap.inl" />

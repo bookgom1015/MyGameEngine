@@ -4,21 +4,21 @@
 const Rtao::AOResourcesType& Rtao::RtaoClass::AOResources() const {
 	return mAOResources;
 }
-const Rtao::AOResourcesGpuDescriptors& Rtao::RtaoClass::AOResourcesGpuDescriptors() const {
+const Rtao::AOResourcesGpuDescriptors& Rtao::RtaoClass::AOResourceGpuDescriptors() const {
 	return mhAOResourcesGpus;
 }
 
 const Rtao::TemporalCachesType& Rtao::RtaoClass::TemporalCaches() const {
 	return mTemporalCaches;
 }
-const Rtao::TemporalCachesGpuDescriptors& Rtao::RtaoClass::TemporalCachesGpuDescriptors() const {
+const Rtao::TemporalCachesGpuDescriptors& Rtao::RtaoClass::TemporalCacheGpuDescriptors() const {
 	return mhTemporalCachesGpus;
 }
 
 const Rtao::TemporalAOCoefficientsType& Rtao::RtaoClass::TemporalAOCoefficients() {
 	return mTemporalAOCoefficients;
 }
-const Rtao::TemporalAOCoefficientsGpuDescriptors& Rtao::RtaoClass::TemporalAOCoefficientsGpuDescriptors() const {
+const Rtao::TemporalAOCoefficientsGpuDescriptors& Rtao::RtaoClass::TemporalAOCoefficientGpuDescriptors() const {
 	return mhTemporalAOCoefficientsGpus;
 }
 
