@@ -203,6 +203,8 @@ namespace GaussianFilter {
 namespace SVGF {
 #ifdef HLSL
 	typedef float	F1ValueMapFormat;
+	typedef float4	F4ValueMapFormat;
+
 	typedef float	ValueSquaredMeanMapFormat;
 	typedef uint4	TsppValueSquaredMeanRayHitDistanceFormat;
 
@@ -214,6 +216,8 @@ namespace SVGF {
 	typedef float	DisocclusionBlurStrengthMapFormat;
 #else
 	const DXGI_FORMAT F1ValueMapFormat = DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT F4ValueMapFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
 	const DXGI_FORMAT ValueSquaredMeanMapFormat = DXGI_FORMAT_R16_FLOAT;
 	const DXGI_FORMAT TsppValueSquaredMeanRayHitDistanceFormat = DXGI_FORMAT_R16G16B16A16_UINT;
 

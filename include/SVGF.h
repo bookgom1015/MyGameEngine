@@ -49,6 +49,7 @@ namespace SVGF {
 				ESI_CachedAOCoefficientSquaredMean,
 				ESI_CachedRayHitDistance,
 				EUO_CachedTspp,
+				EUO_CachedValue,
 				EUO_TsppCoefficientSquaredMeanRayHitDistacne,
 				Count
 			};
@@ -70,6 +71,7 @@ namespace SVGF {
 				ESI_AOCoefficient,
 				ESI_LocalMeanVaraince,
 				ESI_RayHitDistance,
+				ESI_CachedValue,
 				ESI_TsppCoefficientSquaredMeanRayHitDistance,
 				EUIO_TemporalAOCoefficient,
 				EUIO_Tspp,
@@ -151,10 +153,13 @@ namespace SVGF {
 
 	namespace PipelineState {
 		enum Type {
-			E_TemporalSupersamplingReverseReproject = 0,
-			E_TemporalSupersamplingBlendWithCurrentFrame,
+			E_TemporalSupersamplingReverseReproject_F1 = 0,
+			E_TemporalSupersamplingReverseReproject_F4,
+			E_TemporalSupersamplingBlendWithCurrentFrame_F1,
+			E_TemporalSupersamplingBlendWithCurrentFrame_F4,
 			E_CalcDepthPartialDerivative,
-			E_CalcLocalMeanVariance,
+			E_CalcLocalMeanVariance_F1,
+			E_CalcLocalMeanVariance_F4,
 			E_FillInCheckerboard,
 			E_AtrousWaveletTransformFilter,
 			E_DisocclusionBlur,
@@ -175,6 +180,14 @@ namespace SVGF {
 			enum {
 				E_Raw = 0,
 				E_Smoothed,
+				Count
+			};
+		}
+
+		namespace Cached {
+			enum {
+				E_F1 = 0,
+				E_F4,
 				Count
 			};
 		}
@@ -200,6 +213,16 @@ namespace SVGF {
 				Count
 			};
 		}
+
+		namespace Cached {
+			enum {
+				ES_F1 = 0,
+				EU_F1,
+				ES_F4,
+				EU_F4,
+				Count
+			};
+		}
 	}
 
 	namespace ValueType {
@@ -217,6 +240,10 @@ namespace SVGF {
 	using VarianceResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::Variance::Count>;
 	using VarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::Variance::Count>;
 	using VarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::Variance::Count>;
+
+	using CachedValueResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::Cached::Count>;
+	using CachedValueResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::Cached::Count>;
+	using CachedValueResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::Cached::Count>;
 
 	class SVGFClass {
 	public:
@@ -324,6 +351,10 @@ namespace SVGF {
 		SVGF::VarianceResourcesCpuDescriptors mhVarianceResourcesCpus;
 		SVGF::VarianceResourcesGpuDescriptors mhVarianceResourcesGpus;
 		
+		SVGF::CachedValueResourcesType mCachedValues;
+		SVGF::CachedValueResourcesCpuDescriptors mhCachedValueCpus;
+		SVGF::CachedValueResourcesGpuDescriptors mhCachedValueGpus;
+
 		std::unique_ptr<GpuResource> mDepthPartialDerivative;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthPartialDerivativeCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDepthPartialDerivativeGpuSrv;

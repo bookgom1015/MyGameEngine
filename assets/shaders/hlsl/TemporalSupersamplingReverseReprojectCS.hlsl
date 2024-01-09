@@ -27,13 +27,22 @@ Texture2D<SVGF::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: reg
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_ReprojectedNormalDepth	: register(t2);
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_CachedNormalDepth		: register(t3);
 Texture2D<GBuffer::VelocityMapFormat>				gi_Velocity					: register(t4);
+#ifdef VT_FLOAT4
+Texture2D<SVGF::F4ValueMapFormat>					gi_CachedValue				: register(t5);
+#else
 Texture2D<SVGF::F1ValueMapFormat>					gi_CachedValue				: register(t5);
+#endif
 Texture2D<SVGF::TsppMapFormat>						gi_CachedTspp				: register(t6);
 Texture2D<SVGF::ValueSquaredMeanMapFormat>			gi_CachedValueSquaredMean	: register(t7);
 Texture2D<SVGF::RayHitDistanceFormat>				gi_CachedRayHitDistance		: register(t8);
 
 RWTexture2D<SVGF::TsppMapFormat>							go_CachedTspp				: register(u0);
-RWTexture2D<SVGF::TsppValueSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u1);
+#ifdef VT_FLOAT4
+RWTexture2D<SVGF::F4ValueMapFormat>							go_CachedValue				: register(u1);
+#else
+RWTexture2D<SVGF::F1ValueMapFormat>							go_CachedValue				: register(u1);
+#endif
+RWTexture2D<SVGF::TsppValueSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u2);
 
 float4 BilateralResampleWeights(
 		float	targetDepth, 
@@ -124,6 +133,14 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	float4 weights = BilateralResampleWeights(
 		reprojDepth, reprojNormal, cacheDepths, cacheNormals, cachePixelOffset, DTid, cacheIndices, ddxy);
 
+#ifdef VT_FLOAT4
+	uint2 size;
+	gi_CachedValue.GetDimensions(size.x, size.y);
+
+	float dx = 1.0 / size.x;
+	float dy = 1.0 / size.y;
+#endif
+
 	// Invalidate weights for invalid values in the cache.
 	float4 vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 	weights = vCacheValues != Rtao::InvalidAOCoefficientValue ? weights : 0;
@@ -175,7 +192,8 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	}
 
 	go_CachedTspp[DTid] = tspp;
-	go_ReprojectedCachedValues[DTid] = uint4(tspp, f32tof16(float3(cachedValue, cachedValueSquaredMean, cachedRayHitDist)));
+	go_CachedValue[DTid] = cachedValue;
+	go_ReprojectedCachedValues[DTid] = uint4(tspp, f32tof16(float3(cachedValueSquaredMean, cachedRayHitDist, 0)));
 }
 
 #endif // __TEMPORALSUPERSAMPLINGREVERSEREPROJECTCS_HLSL__

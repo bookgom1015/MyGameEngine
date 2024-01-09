@@ -2924,86 +2924,86 @@ BOOL DxRenderer::DrawRtao() {
 			}
 			// Stage 2: Blending current frame value with the reprojected cached value.
 			{
-			// Calculate local mean and variance for clamping during the blending operation.
-			mSVGF->RunCalculatingLocalMeanVariance(
-				cmdList,
-				mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
-				aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
-				mClientWidth, mClientHeight,
-				ShaderArgs::Rtao::CheckerboardSamplingEnabled
-			);
-			// Interpolate the variance for the inactive cells from the valid checkerboard cells.
-			if (ShaderArgs::Rtao::CheckerboardSamplingEnabled) {
-				mSVGF->FillInCheckerboard(
+				// Calculate local mean and variance for clamping during the blending operation.
+				mSVGF->RunCalculatingLocalMeanVariance(
 					cmdList,
 					mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
-					mClientWidth, mClientHeight
-				);
-			}
-
-			// Blends reprojected values with current frame values.
-			// Inactive pixels are filtered from active neighbors on checkerboard sampling before the blending operation.
-			{
-				UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
-				UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
-
-				const auto currTemporalAOCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
-				const auto currTemporalSupersampling = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_Tspp].get();
-				const auto currCoefficientSquaredMean = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_CoefficientSquaredMean].get();
-				const auto currRayHitDistance = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_RayHitDistance].get();
-
-				std::vector<GpuResource*> resources = {
-					currTemporalAOCoefficient,
-					currTemporalSupersampling,
-					currCoefficientSquaredMean,
-					currRayHitDistance,
-				};
-
-				currTemporalAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				currTemporalSupersampling->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				currCoefficientSquaredMean->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
-
-				mSVGF->BlendWithCurrentFrame(
-					cmdList,
-					mCurrFrameResource->TsppBlendCB.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
-					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_RayHitDistance],
-					temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
-					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
-					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_CoefficientSquaredMean],
-					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_RayHitDistance],
-					mClientWidth, mClientHeight
+					mClientWidth, mClientHeight,
+					ShaderArgs::Rtao::CheckerboardSamplingEnabled
 				);
+				// Interpolate the variance for the inactive cells from the valid checkerboard cells.
+				if (ShaderArgs::Rtao::CheckerboardSamplingEnabled) {
+					mSVGF->FillInCheckerboard(
+						cmdList,
+						mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
+						mClientWidth, mClientHeight
+					);
+				}
 
-				currTemporalAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				currTemporalSupersampling->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				currCoefficientSquaredMean->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
-			}
+				// Blends reprojected values with current frame values.
+				// Inactive pixels are filtered from active neighbors on checkerboard sampling before the blending operation.
+				{
+					UINT temporalCurrentFrameResourceIndex = mRtao->TemporalCurrentFrameResourceIndex();
+					UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRtao->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 
-			if (ShaderArgs::Rtao::Denoiser::UseSmoothingVariance) {
-				const auto& varianceResources = mSVGF->VarianceResources();
-				const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
+					const auto currTemporalAOCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
+					const auto currTemporalSupersampling = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_Tspp].get();
+					const auto currCoefficientSquaredMean = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_CoefficientSquaredMean].get();
+					const auto currRayHitDistance = temporalCaches[temporalCurrentFrameResourceIndex][Rtao::Resource::TemporalCache::E_RayHitDistance].get();
 
-				const auto smoothedVariance = varianceResources[SVGF::Resource::Variance::E_Smoothed].get();
+					std::vector<GpuResource*> resources = {
+						currTemporalAOCoefficient,
+						currTemporalSupersampling,
+						currCoefficientSquaredMean,
+						currRayHitDistance,
+					};
 
-				smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-				D3D12Util::UavBarrier(cmdList, smoothedVariance);
+					currTemporalAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					currTemporalSupersampling->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					currCoefficientSquaredMean->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
-				mGaussianFilter->Run(
-					cmdList,
-					varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::ES_Raw],
-					varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::EU_Smoothed],
-					GaussianFilter::Filter3x3,
-					mClientWidth, mClientHeight
-				);
+					mSVGF->BlendWithCurrentFrame(
+						cmdList,
+						mCurrFrameResource->TsppBlendCB.Resource()->GetGPUVirtualAddress(),
+						aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
+						aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_RayHitDistance],
+						temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
+						temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
+						temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_CoefficientSquaredMean],
+						temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::EU_RayHitDistance],
+						mClientWidth, mClientHeight
+					);
 
-				smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				D3D12Util::UavBarrier(cmdList, smoothedVariance);
-			}
+					currTemporalAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					currTemporalSupersampling->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					currCoefficientSquaredMean->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
+				}
+
+				if (ShaderArgs::Rtao::Denoiser::UseSmoothingVariance) {
+					const auto& varianceResources = mSVGF->VarianceResources();
+					const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
+
+					const auto smoothedVariance = varianceResources[SVGF::Resource::Variance::E_Smoothed].get();
+
+					smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+					D3D12Util::UavBarrier(cmdList, smoothedVariance);
+
+					mGaussianFilter->Run(
+						cmdList,
+						varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::ES_Raw],
+						varianceResourcesGpuDescriptors[SVGF::Descriptor::Variance::EU_Smoothed],
+						GaussianFilter::Filter3x3,
+						mClientWidth, mClientHeight
+					);
+
+					smoothedVariance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					D3D12Util::UavBarrier(cmdList, smoothedVariance);
+				}
 			}
 		}
 		// Filtering
@@ -3107,44 +3107,44 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		const auto& temporalReflectionGpuDescriptors = mRr->TemporalReflectionGpuDescriptors();
 
 		// Temporal supersampling 
-		//{
-		//	// Stage 1: Reverse reprojection
-		//	{
-		//		UINT temporalPreviousFrameResourceIndex = mRr->TemporalCurrentFrameResourceIndex();
-		//		UINT temporalCurrentFrameResourcIndex = mRr->MoveToNextFrame();
-		//
-		//		UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRr->TemporalCurrentFrameTemporalReflectionResourceIndex();
-		//		UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRr->MoveToNextFrameTemporalReflection();
-		//
-		//		const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
-		//
-		//		currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		//		D3D12Util::UavBarrier(cmdList, currTsppMap);
-		//
-		//		// Retrieves values from previous frame via reverse reprojection.				
-		//		mSVGF->ReverseReprojectPreviousFrame(
-		//			cmdList,
-		//			mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
-		//			mGBuffer->NormalDepthMapSrv(),
-		//			mGBuffer->ReprojNormalDepthMapSrv(),
-		//			mGBuffer->PrevNormalDepthMapSrv(),
-		//			mGBuffer->VelocityMapSrv(),
-		//			temporalReflectionGpuDescriptors[temporalPreviousFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
-		//			temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
-		//			temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_ReflectionSquaredMean],
-		//			temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
-		//			temporalCacheGpuDescriptors[temporalCurrentFrameResourcIndex][RaytracedReflection::Descriptor::TemporalCache::EU_Tspp],
-		//			mClientWidth, mClientHeight
-		//		);
-		//
-		//		currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		//		D3D12Util::UavBarrier(cmdList, currTsppMap);
-		//	}
-		//	// Stage 2: Blending current frame value with the reprojected cached value.
-		//	{
-		//
-		//	}
-		//}
+		{
+			// Stage 1: Reverse reprojection
+			//{
+			//	UINT temporalPreviousFrameResourceIndex = mRr->TemporalCurrentFrameResourceIndex();
+			//	UINT temporalCurrentFrameResourcIndex = mRr->MoveToNextFrame();
+			//
+			//	UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRr->TemporalCurrentFrameTemporalReflectionResourceIndex();
+			//	UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRr->MoveToNextFrameTemporalReflection();
+			//
+			//	const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
+			//
+			//	currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+			//	D3D12Util::UavBarrier(cmdList, currTsppMap);
+			//
+			//	// Retrieves values from previous frame via reverse reprojection.				
+			//	mSVGF->ReverseReprojectPreviousFrame(
+			//		cmdList,
+			//		mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
+			//		mGBuffer->NormalDepthMapSrv(),
+			//		mGBuffer->ReprojNormalDepthMapSrv(),
+			//		mGBuffer->PrevNormalDepthMapSrv(),
+			//		mGBuffer->VelocityMapSrv(),
+			//		temporalReflectionGpuDescriptors[temporalPreviousFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
+			//		temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
+			//		temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_ReflectionSquaredMean],
+			//		temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
+			//		temporalCacheGpuDescriptors[temporalCurrentFrameResourcIndex][RaytracedReflection::Descriptor::TemporalCache::EU_Tspp],
+			//		mClientWidth, mClientHeight
+			//	);
+			//
+			//	currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			//	D3D12Util::UavBarrier(cmdList, currTsppMap);
+			//}
+			// Stage 2: Blending current frame value with the reprojected cached value.
+			{
+		
+			}
+		}
 		// Filtering
 		{
 			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.

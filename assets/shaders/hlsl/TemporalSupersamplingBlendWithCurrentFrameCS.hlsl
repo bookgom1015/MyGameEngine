@@ -18,7 +18,12 @@ ConstantBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> cbBlend : re
 Texture2D<SVGF::F1ValueMapFormat>							gi_CurrentFrameValue						: register(t0);
 Texture2D<SVGF::LocalMeanVarianceMapFormat>					gi_CurrentFrameLocalMeanVariance			: register(t1);
 Texture2D<SVGF::RayHitDistanceFormat>						gi_CurrentFrameRayHitDistance				: register(t2);
-Texture2D<SVGF::TsppValueSquaredMeanRayHitDistanceFormat>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t3);
+#ifdef VT_FLOAT4
+Texture2D<SVGF::F4ValueMapFormat>							gi_CachedValue								: register(t3);
+#else
+Texture2D<SVGF::F1ValueMapFormat>							gi_CachedValue								: register(t3);
+#endif
+Texture2D<SVGF::TsppValueSquaredMeanRayHitDistanceFormat>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t4);
 
 RWTexture2D<SVGF::F1ValueMapFormat>						gio_Value				: register(u0);
 RWTexture2D<SVGF::TsppMapFormat>						gio_Tspp				: register(u1);
@@ -49,7 +54,11 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		const uint MaxTspp = 1 / cbBlend.MinSmoothingFactor;
 		tspp = IsValidValue ? min(tspp + 1, MaxTspp) : tspp;
 
-		float cachedValue = CachedValues.y;
+#ifdef VT_FLOAT4
+		float cachedValue = gi_CachedValue[DTid].x;
+#else
+		float cachedValue = gi_CachedValue[DTid];
+#endif
 
 		const float2 LocalMeanVariance = gi_CurrentFrameLocalMeanVariance[DTid];
 		const float LocalMean = LocalMeanVariance.x;
@@ -79,7 +88,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		value = IsValidValue ? lerp(cachedValue, value, a) : cachedValue;
 
 		// Value Squared Mean.
-		float cachedSquaredMeanValue = CachedValues.z;
+		float cachedSquaredMeanValue = CachedValues.y;
 		valueSquaredMean = IsValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
 
 		// Variance.
@@ -90,7 +99,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 		// RayHitDistance.
 		rayHitDistance = IsValidValue ? gi_CurrentFrameRayHitDistance[DTid] : 0;
-		float cachedRayHitDistance = CachedValues.w;
+		float cachedRayHitDistance = CachedValues.z;
 		rayHitDistance = IsValidValue ? lerp(cachedRayHitDistance, rayHitDistance, a) : cachedRayHitDistance;
 	}
 	else if (IsValidValue) {
