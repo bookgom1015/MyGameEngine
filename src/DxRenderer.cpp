@@ -2915,8 +2915,8 @@ BOOL DxRenderer::DrawRtao() {
 					temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_CoefficientSquaredMean],
 					temporalCachesGpuDescriptors[temporalPreviousFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourcIndex][Rtao::Descriptor::TemporalCache::EU_Tspp],
-					mClientWidth, mClientHeight
-					);
+					mClientWidth, mClientHeight,
+					SVGF::Value::E_Float1);
 					
 					currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 					D3D12Util::UavBarrier(cmdList, currTsppMap
@@ -3109,37 +3109,38 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		// Temporal supersampling 
 		{
 			// Stage 1: Reverse reprojection
-			//{
-			//	UINT temporalPreviousFrameResourceIndex = mRr->TemporalCurrentFrameResourceIndex();
-			//	UINT temporalCurrentFrameResourcIndex = mRr->MoveToNextFrame();
-			//
-			//	UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRr->TemporalCurrentFrameTemporalReflectionResourceIndex();
-			//	UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRr->MoveToNextFrameTemporalReflection();
-			//
-			//	const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
-			//
-			//	currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-			//	D3D12Util::UavBarrier(cmdList, currTsppMap);
-			//
-			//	// Retrieves values from previous frame via reverse reprojection.				
-			//	mSVGF->ReverseReprojectPreviousFrame(
-			//		cmdList,
-			//		mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
-			//		mGBuffer->NormalDepthMapSrv(),
-			//		mGBuffer->ReprojNormalDepthMapSrv(),
-			//		mGBuffer->PrevNormalDepthMapSrv(),
-			//		mGBuffer->VelocityMapSrv(),
-			//		temporalReflectionGpuDescriptors[temporalPreviousFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
-			//		temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
-			//		temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_ReflectionSquaredMean],
-			//		temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
-			//		temporalCacheGpuDescriptors[temporalCurrentFrameResourcIndex][RaytracedReflection::Descriptor::TemporalCache::EU_Tspp],
-			//		mClientWidth, mClientHeight
-			//	);
-			//
-			//	currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			//	D3D12Util::UavBarrier(cmdList, currTsppMap);
-			//}
+			{
+				UINT temporalPreviousFrameResourceIndex = mRr->TemporalCurrentFrameResourceIndex();
+				UINT temporalCurrentFrameResourcIndex = mRr->MoveToNextFrame();
+			
+				UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRr->TemporalCurrentFrameTemporalReflectionResourceIndex();
+				UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRr->MoveToNextFrameTemporalReflection();
+			
+				const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
+			
+				currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				D3D12Util::UavBarrier(cmdList, currTsppMap);
+			
+				// Retrieves values from previous frame via reverse reprojection.				
+				mSVGF->ReverseReprojectPreviousFrame(
+					cmdList,
+					mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
+					mGBuffer->NormalDepthMapSrv(),
+					mGBuffer->ReprojNormalDepthMapSrv(),
+					mGBuffer->PrevNormalDepthMapSrv(),
+					mGBuffer->VelocityMapSrv(),
+					temporalReflectionGpuDescriptors[temporalPreviousFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
+					temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
+					temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_ReflectionSquaredMean],
+					temporalCacheGpuDescriptors[temporalPreviousFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
+					temporalCacheGpuDescriptors[temporalCurrentFrameResourcIndex][RaytracedReflection::Descriptor::TemporalCache::EU_Tspp],
+					mClientWidth, mClientHeight,
+					SVGF::Value::E_Float4
+				);
+			
+				currTsppMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				D3D12Util::UavBarrier(cmdList, currTsppMap);
+			}
 			// Stage 2: Blending current frame value with the reprojected cached value.
 			{
 		

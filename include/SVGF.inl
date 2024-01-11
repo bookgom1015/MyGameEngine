@@ -35,14 +35,14 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SVGF::SVGFClass::DisocclusionBlurStrengt
 	return mhDisocclusionBlurStrengthGpuUav;
 }
 
-GpuResource* SVGF::SVGFClass::TsppValueSquaredMeanRayHitDistance() {
-	return mTsppValueSquaredMeanRayHitDistance.get();
+GpuResource* SVGF::SVGFClass::TsppSquaredMeanRayHitDistance() {
+	return mTsppSquaredMeanRayHitDistance.get();
 }
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SVGF::SVGFClass::TsppValueSquaredMeanRayHitDistanceSrv() const {
-	return mhTsppValueSquaredMeanRayHitDistanceGpuSrv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SVGF::SVGFClass::TsppSquaredMeanRayHitDistanceSrv() const {
+	return mhTsppSquaredMeanRayHitDistanceGpuSrv;
 }
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SVGF::SVGFClass::TsppValueSquaredMeanRayHitDistanceUav() const {
-	return mhTsppValueSquaredMeanRayHitDistanceGpuUav;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SVGF::SVGFClass::TsppSquaredMeanRayHitDistanceUav() const {
+	return mhTsppSquaredMeanRayHitDistanceGpuUav;
 }
 
 #endif // __SVGF_INL__

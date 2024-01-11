@@ -15,15 +15,15 @@
 
 ConstantBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> cbBlend : register(b0);
 
-Texture2D<SVGF::F1ValueMapFormat>							gi_CurrentFrameValue						: register(t0);
-Texture2D<SVGF::LocalMeanVarianceMapFormat>					gi_CurrentFrameLocalMeanVariance			: register(t1);
-Texture2D<SVGF::RayHitDistanceFormat>						gi_CurrentFrameRayHitDistance				: register(t2);
+Texture2D<SVGF::F1ValueMapFormat>						gi_CurrentFrameValue						: register(t0);
+Texture2D<SVGF::LocalMeanVarianceMapFormat>				gi_CurrentFrameLocalMeanVariance			: register(t1);
+Texture2D<SVGF::RayHitDistanceFormat>					gi_CurrentFrameRayHitDistance				: register(t2);
 #ifdef VT_FLOAT4
-Texture2D<SVGF::F4ValueMapFormat>							gi_CachedValue								: register(t3);
+Texture2D<SVGF::F4ValueMapFormat>						gi_CachedValue								: register(t3);
 #else
-Texture2D<SVGF::F1ValueMapFormat>							gi_CachedValue								: register(t3);
+Texture2D<SVGF::F1ValueMapFormat>						gi_CachedValue								: register(t3);
 #endif
-Texture2D<SVGF::TsppValueSquaredMeanRayHitDistanceFormat>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t4);
+Texture2D<SVGF::TsppSquaredMeanRayHitDistanceFormat>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t4);
 
 RWTexture2D<SVGF::F1ValueMapFormat>						gio_Value				: register(u0);
 RWTexture2D<SVGF::TsppMapFormat>						gio_Tspp				: register(u1);

@@ -50,7 +50,7 @@ namespace SVGF {
 				ESI_CachedRayHitDistance,
 				EUO_CachedTspp,
 				EUO_CachedValue,
-				EUO_TsppCoefficientSquaredMeanRayHitDistacne,
+				EUO_TsppSquaredMeanRayHitDistacne,
 				Count
 			};
 
@@ -72,7 +72,7 @@ namespace SVGF {
 				ESI_LocalMeanVaraince,
 				ESI_RayHitDistance,
 				ESI_CachedValue,
-				ESI_TsppCoefficientSquaredMeanRayHitDistance,
+				ESI_TsppSquaredMeanRayHitDistance,
 				EUIO_TemporalAOCoefficient,
 				EUIO_Tspp,
 				EUIO_CoefficientSquaredMean,
@@ -225,8 +225,8 @@ namespace SVGF {
 		}
 	}
 
-	namespace ValueType {
-		enum {
+	namespace Value {
+		enum Type {
 			E_Float1 = 0,
 			E_Float4,
 			Count
@@ -265,9 +265,9 @@ namespace SVGF {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DisocclusionBlurStrengthSrv() const;
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DisocclusionBlurStrengthUav() const;
 
-		__forceinline GpuResource* TsppValueSquaredMeanRayHitDistance();
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TsppValueSquaredMeanRayHitDistanceSrv() const;
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TsppValueSquaredMeanRayHitDistanceUav() const;
+		__forceinline GpuResource* TsppSquaredMeanRayHitDistance();
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TsppSquaredMeanRayHitDistanceSrv() const;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE TsppSquaredMeanRayHitDistanceUav() const;
 
 	public:
 		BOOL Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height);
@@ -303,7 +303,8 @@ namespace SVGF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedValueSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_cachedRayHitDistance,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
-			UINT width, UINT height);
+			UINT width, UINT height,
+			Value::Type type);
 		void BlendWithCurrentFrame(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -367,11 +368,11 @@ namespace SVGF {
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDisocclusionBlurStrengthCpuUav;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDisocclusionBlurStrengthGpuUav;
 
-		std::unique_ptr<GpuResource> mTsppValueSquaredMeanRayHitDistance;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTsppValueSquaredMeanRayHitDistanceCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhTsppValueSquaredMeanRayHitDistanceGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTsppValueSquaredMeanRayHitDistanceCpuUav;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhTsppValueSquaredMeanRayHitDistanceGpuUav;
+		std::unique_ptr<GpuResource> mTsppSquaredMeanRayHitDistance;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTsppSquaredMeanRayHitDistanceCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhTsppSquaredMeanRayHitDistanceGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTsppSquaredMeanRayHitDistanceCpuUav;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhTsppSquaredMeanRayHitDistanceGpuUav;
 
 		UINT mTemporalCurrentFrameResourceIndex = 0;
 		UINT mTemporalCurrentFrameTemporalCeofficientResourceIndex = 0;

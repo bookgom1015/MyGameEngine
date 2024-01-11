@@ -9,10 +9,10 @@ using namespace SVGF;
 using namespace DirectX;
 
 namespace {
-	std::string TsppReprojCS[SVGF::ValueType::Count] = { "TsppReprojCS", "TsppReprojCS_F4" };
-	std::string TsppBlendCS[SVGF::ValueType::Count] = { "TsppBlendCS", "TsppBlendCS_F4" };
+	std::string TsppReprojCS[SVGF::Value::Count] = { "TsppReprojCS", "TsppReprojCS_F4" };
+	std::string TsppBlendCS[SVGF::Value::Count] = { "TsppBlendCS", "TsppBlendCS_F4" };
 	std::string PartialDerivativeCS = "PartialDerivativeCS";
-	std::string CalcLocalMeanVarianceCS[SVGF::ValueType::Count] = { "CalcLocalMeanVarianceCS", "CalcLocalMeanVarianceCS_F4" };
+	std::string CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CalcLocalMeanVarianceCS", "CalcLocalMeanVarianceCS_F4" };
 	std::string FillInCheckerboardCS = "FillInCheckerboardCS";
 	std::string EdgeStoppingFilter_Gaussian3x3CS = "EdgeStoppingFilter_Gaussian3x3CS";
 	std::string DisocclusionBlur3x3CS = "DisocclusionBlur3x3CS";
@@ -28,7 +28,7 @@ SVGFClass::SVGFClass() {
 
 	mDepthPartialDerivative = std::make_unique<GpuResource>();
 	mDisocclusionBlurStrength = std::make_unique<GpuResource>();
-	mTsppValueSquaredMeanRayHitDistance = std::make_unique<GpuResource>();
+	mTsppSquaredMeanRayHitDistance = std::make_unique<GpuResource>();
 }
 
 BOOL SVGFClass::Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height) {
@@ -47,22 +47,22 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 		const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS.hlsl";		
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[ValueType::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Float1]));
 		}
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[ValueType::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Float4]));
 		}
 	}
 	{
 		const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS.hlsl";
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[ValueType::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Float1]));
 		}
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[ValueType::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Float4]));
 		}
 	}
 	{
@@ -74,11 +74,11 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 		const auto path = filePath + L"CalculateLocalMeanVarianceCS.hlsl";
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[ValueType::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Float1]));
 		}
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[ValueType::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Float4]));
 		}
 	}
 	{
@@ -132,7 +132,7 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedRayHitDistance].InitAsDescriptorTable(1, &texTables[8]);
 		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedTspp].InitAsDescriptorTable(1, &texTables[9]);
 		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedValue].InitAsDescriptorTable(1, &texTables[10]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppCoefficientSquaredMeanRayHitDistacne].InitAsDescriptorTable(1, &texTables[11]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppSquaredMeanRayHitDistacne].InitAsDescriptorTable(1, &texTables[11]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -163,7 +163,7 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_LocalMeanVaraince].InitAsDescriptorTable(1, &texTables[1]);
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_RayHitDistance].InitAsDescriptorTable(1, &texTables[2]);
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_CachedValue].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppCoefficientSquaredMeanRayHitDistance].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppSquaredMeanRayHitDistance].InitAsDescriptorTable(1, &texTables[4]);
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_TemporalAOCoefficient].InitAsDescriptorTable(1, &texTables[5]);
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_Tspp].InitAsDescriptorTable(1, &texTables[6]);
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_CoefficientSquaredMean].InitAsDescriptorTable(1, &texTables[7]);
@@ -298,13 +298,13 @@ BOOL SVGFClass::BuildPSO() {
 		tsppReprojPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[ValueType::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Float1]);
 			tsppReprojPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F1])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[ValueType::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Float4]);
 			tsppReprojPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F4])));
@@ -316,13 +316,13 @@ BOOL SVGFClass::BuildPSO() {
 		tsppBlendPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[ValueType::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Float1]);
 			tsppBlendPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_F1])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[ValueType::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Float4]);
 			tsppBlendPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_F4])));
@@ -346,13 +346,13 @@ BOOL SVGFClass::BuildPSO() {
 		calcLocalMeanVariancePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[ValueType::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Float1]);
 			calcLocalMeanVariancePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_F1])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[ValueType::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Float4]);
 			calcLocalMeanVariancePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_F4])));
@@ -423,10 +423,10 @@ void SVGFClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 	mhDisocclusionBlurStrengthCpuUav = hCpu.Offset(1, descSize);
 	mhDisocclusionBlurStrengthGpuUav = hGpu.Offset(1, descSize);
 
-	mhTsppValueSquaredMeanRayHitDistanceCpuSrv = hCpu.Offset(1, descSize);
-	mhTsppValueSquaredMeanRayHitDistanceGpuSrv = hGpu.Offset(1, descSize);
-	mhTsppValueSquaredMeanRayHitDistanceCpuUav = hCpu.Offset(1, descSize);
-	mhTsppValueSquaredMeanRayHitDistanceGpuUav = hGpu.Offset(1, descSize);
+	mhTsppSquaredMeanRayHitDistanceCpuSrv = hCpu.Offset(1, descSize);
+	mhTsppSquaredMeanRayHitDistanceGpuSrv = hGpu.Offset(1, descSize);
+	mhTsppSquaredMeanRayHitDistanceCpuUav = hCpu.Offset(1, descSize);
+	mhTsppSquaredMeanRayHitDistanceGpuUav = hGpu.Offset(1, descSize);
 
 	BuildDescriptors();
 }
@@ -531,12 +531,14 @@ void SVGFClass::ReverseReprojectPreviousFrame(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedValueSquaredMean,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_cachedRayHitDistance,
 		D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
-		UINT width, UINT height) {
-	cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F1].Get());
+		UINT width, UINT height,
+		Value::Type type) {
+	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F1].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F4].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_TemporalSupersamplingReverseReproject].Get());
 
 	const auto cachedValue = mCachedValues[Resource::Cached::E_F1].get();
-	const auto tsppValueSquaredMeanRayHitDistance = mTsppValueSquaredMeanRayHitDistance.get();
+	const auto tsppValueSquaredMeanRayHitDistance = mTsppSquaredMeanRayHitDistance.get();
 
 	cachedValue->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	tsppValueSquaredMeanRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -556,7 +558,7 @@ void SVGFClass::ReverseReprojectPreviousFrame(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedRayHitDistance, si_cachedRayHitDistance);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedTspp, uo_cachedTspp);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedValue, mhCachedValueGpus[Descriptor::Cached::EU_F1]);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppCoefficientSquaredMeanRayHitDistacne, mhTsppValueSquaredMeanRayHitDistanceGpuUav);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppSquaredMeanRayHitDistacne, mhTsppSquaredMeanRayHitDistanceGpuUav);
 
 	{
 		UINT values[] = { width, height };
@@ -612,7 +614,7 @@ void SVGFClass::BlendWithCurrentFrame(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_LocalMeanVaraince, mhLocalMeanVarianceResourcesGpus[SVGF::Descriptor::LocalMeanVariance::ES_Raw]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_RayHitDistance, si_rayHitDistance);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_CachedValue, mhCachedValueGpus[SVGF::Descriptor::Cached::ES_F1]);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppCoefficientSquaredMeanRayHitDistance, mhTsppValueSquaredMeanRayHitDistanceGpuSrv);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppSquaredMeanRayHitDistance, mhTsppSquaredMeanRayHitDistanceGpuSrv);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_TemporalAOCoefficient, uio_temporalValue);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_Tspp, uio_tspp);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_CoefficientSquaredMean, uio_valueSquaredMean);
@@ -759,11 +761,11 @@ void SVGFClass::BuildDescriptors() {
 		md3dDevice->CreateUnorderedAccessView(mDisocclusionBlurStrength->Resource(), nullptr, &uavDesc, mhDisocclusionBlurStrengthCpuUav);
 	}
 	{
-		srvDesc.Format = TsppValueSquaredMeanRayHitDistanceFormat;
-		uavDesc.Format = TsppValueSquaredMeanRayHitDistanceFormat;
+		srvDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
+		uavDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
 
-		md3dDevice->CreateShaderResourceView(mTsppValueSquaredMeanRayHitDistance->Resource(), &srvDesc, mhTsppValueSquaredMeanRayHitDistanceCpuSrv);
-		md3dDevice->CreateUnorderedAccessView(mTsppValueSquaredMeanRayHitDistance->Resource(), nullptr, &uavDesc, mhTsppValueSquaredMeanRayHitDistanceCpuUav);
+		md3dDevice->CreateShaderResourceView(mTsppSquaredMeanRayHitDistance->Resource(), &srvDesc, mhTsppSquaredMeanRayHitDistanceCpuSrv);
+		md3dDevice->CreateUnorderedAccessView(mTsppSquaredMeanRayHitDistance->Resource(), nullptr, &uavDesc, mhTsppSquaredMeanRayHitDistanceCpuUav);
 	}
 }
 
@@ -878,16 +880,16 @@ BOOL SVGFClass::BuildResources(UINT width, UINT height) {
 		));
 	}
 	{
-		texDesc.Format = TsppValueSquaredMeanRayHitDistanceFormat;
+		texDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
 
-		CheckReturn(mTsppValueSquaredMeanRayHitDistance->Initialize(
+		CheckReturn(mTsppSquaredMeanRayHitDistance->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"TsppValueSquaredMeanRayHitDistanceMap"
+			L"TsppSquaredMeanRayHitDistanceMap"
 		));
 	}
 
