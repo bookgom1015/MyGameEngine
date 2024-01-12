@@ -20,7 +20,7 @@ cbuffer cbRootConstants : register(b0) {
 Texture2D<GBuffer::DepthMapFormat>					gi_Depth		: register(t0);
 Texture2D<SVGF::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
 
-RWTexture2D<SVGF::F1ValueMapFormat>					gio_Value		: register(u0);
+RWTexture2D<SVGF::ValueMapFormat_F1>				gio_Value		: register(u0);
 
 // Group shared memory cache for the row aggregated results.
 static const uint NumValuesToLoadPerRowOrColumn = SVGF::Default::ThreadGroup::Width	+ (FilterKernel::Width - 1);

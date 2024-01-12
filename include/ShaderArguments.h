@@ -202,30 +202,30 @@ namespace GaussianFilter {
 
 namespace SVGF {
 #ifdef HLSL
-	typedef float	F1ValueMapFormat;
-	typedef float4	F4ValueMapFormat;
+	typedef float	ValueMapFormat_F1;
+	typedef float4	ValueMapFormat_F4;
+	typedef float	ValueSquaredMeanMapFormat_F1;
+	typedef float4	ValueSquaredMeanMapFormat_F4;
 
-	typedef float	ValueSquaredMeanMapFormat;
 	typedef uint4	TsppSquaredMeanRayHitDistanceFormat;
-
 	typedef float2	DepthPartialDerivativeMapFormat;
 	typedef float2	LocalMeanVarianceMapFormat;
-	typedef uint	TsppMapFormat;
 	typedef float	VarianceMapFormat;
 	typedef float	RayHitDistanceFormat;
+	typedef uint	TsppMapFormat;
 	typedef float	DisocclusionBlurStrengthMapFormat;
 #else
-	const DXGI_FORMAT F1ValueMapFormat						= DXGI_FORMAT_R16_FLOAT;
-	const DXGI_FORMAT F4ValueMapFormat						= DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT ValueMapFormat_F1						= DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT ValueMapFormat_F4						= DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT ValueSquaredMeanMapFormat_F1			= DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT ValueSquaredMeanMapFormat_F4			= DXGI_FORMAT_R8G8B8A8_UNORM;
 
-	const DXGI_FORMAT ValueSquaredMeanMapFormat				= DXGI_FORMAT_R16_FLOAT;
 	const DXGI_FORMAT TsppSquaredMeanRayHitDistanceFormat	= DXGI_FORMAT_R16G16B16A16_UINT;
-
 	const DXGI_FORMAT DepthPartialDerivativeMapFormat		= DXGI_FORMAT_R16G16_FLOAT;
-	const DXGI_FORMAT LocalMeanVarianceMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
-	const DXGI_FORMAT TsppMapFormat							= DXGI_FORMAT_R8_UINT;
+	const DXGI_FORMAT LocalMeanVarianceMapFormat			= DXGI_FORMAT_R32G32_FLOAT;
 	const DXGI_FORMAT VarianceMapFormat						= DXGI_FORMAT_R16_FLOAT;
 	const DXGI_FORMAT RayHitDistanceFormat					= DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT TsppMapFormat							= DXGI_FORMAT_R8_UINT;
 	const DXGI_FORMAT DisocclusionBlurStrengthMapFormat		= DXGI_FORMAT_R8_UNORM;
 #endif
 	namespace Default {
@@ -272,10 +272,10 @@ namespace RaytracedReflection {
 	typedef uint	TsppMapFormat;
 	typedef float	CoefficientSquaredMeanMapFormat;
 #else
-	const DXGI_FORMAT ReflectionMapFormat			= HDR_FORMAT;
-	const DXGI_FORMAT RayHitDistanceFormat			= DXGI_FORMAT_R16_FLOAT;
-	const DXGI_FORMAT TsppMapFormat					= DXGI_FORMAT_R8_UINT;
-	const DXGI_FORMAT ReflectionSquaredMeanMapFormat = DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT ReflectionMapFormat				= HDR_FORMAT;
+	const DXGI_FORMAT RayHitDistanceFormat				= DXGI_FORMAT_R16_FLOAT;
+	const DXGI_FORMAT TsppMapFormat						= DXGI_FORMAT_R8_UINT;
+	const DXGI_FORMAT ReflectionSquaredMeanMapFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
 #endif
 
 	namespace Ray {

@@ -12,14 +12,14 @@
 
 ConstantBuffer<AtrousWaveletTransformFilterConstantBuffer> cbAtrous : register(b0);
 
-Texture2D<SVGF::F1ValueMapFormat>					gi_Value					: register(t0);
+Texture2D<SVGF::ValueMapFormat_F1>					gi_Value					: register(t0);
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_NormalDepth				: register(t1);
 Texture2D<SVGF::VarianceMapFormat>					gi_Variance					: register(t2);
 Texture2D<SVGF::RayHitDistanceFormat>				gi_HitDistance				: register(t3);
 Texture2D<SVGF::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t4);
 Texture2D<SVGF::TsppMapFormat>						gi_Tspp						: register(t5);
 
-RWTexture2D<SVGF::F1ValueMapFormat>			go_FilteredValue			: register(u0);
+RWTexture2D<SVGF::ValueMapFormat_F1>				go_FilteredValue			: register(u0);
 
 float DepthThreshold(float depth, float2 ddxy, float2 pixelOffset) {
 	float depthThreshold;

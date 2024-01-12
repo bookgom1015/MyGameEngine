@@ -50,6 +50,7 @@ namespace SVGF {
 				ESI_CachedRayHitDistance,
 				EUO_CachedTspp,
 				EUO_CachedValue,
+				EUO_CachedSquaredMean,
 				EUO_TsppSquaredMeanRayHitDistacne,
 				Count
 			};
@@ -72,6 +73,7 @@ namespace SVGF {
 				ESI_LocalMeanVaraince,
 				ESI_RayHitDistance,
 				ESI_CachedValue,
+				ESI_CachedSquaredMean,
 				ESI_TsppSquaredMeanRayHitDistance,
 				EUIO_TemporalAOCoefficient,
 				EUIO_Tspp,
@@ -184,7 +186,15 @@ namespace SVGF {
 			};
 		}
 
-		namespace Cached {
+		namespace CachedValue {
+			enum {
+				E_F1 = 0,
+				E_F4,
+				Count
+			};
+		}
+
+		namespace CachedSquaredMean {
 			enum {
 				E_F1 = 0,
 				E_F4,
@@ -214,7 +224,17 @@ namespace SVGF {
 			};
 		}
 
-		namespace Cached {
+		namespace CachedValue {
+			enum {
+				ES_F1 = 0,
+				EU_F1,
+				ES_F4,
+				EU_F4,
+				Count
+			};
+		}
+
+		namespace CachedSquaredMean {
 			enum {
 				ES_F1 = 0,
 				EU_F1,
@@ -241,9 +261,13 @@ namespace SVGF {
 	using VarianceResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::Variance::Count>;
 	using VarianceResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::Variance::Count>;
 
-	using CachedValueResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::Cached::Count>;
-	using CachedValueResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::Cached::Count>;
-	using CachedValueResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::Cached::Count>;
+	using CachedValueResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::CachedValue::Count>;
+	using CachedValueResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::CachedValue::Count>;
+	using CachedValueResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::CachedValue::Count>;
+
+	using CachedSquaredMeanResourcesType = std::array<std::unique_ptr<GpuResource>, Resource::CachedSquaredMean::Count>;
+	using CachedSquaredMeanResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptor::CachedSquaredMean::Count>;
+	using CachedSquaredMeanResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptor::CachedSquaredMean::Count>;
 
 	class SVGFClass {
 	public:
@@ -314,7 +338,8 @@ namespace SVGF {
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_tspp,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_valueSquaredMean,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
-			UINT width, UINT height);
+			UINT width, UINT height,
+			Value::Type type);
 		void ApplyAtrousWaveletTransformFilter(
 			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -355,6 +380,10 @@ namespace SVGF {
 		SVGF::CachedValueResourcesType mCachedValues;
 		SVGF::CachedValueResourcesCpuDescriptors mhCachedValueCpus;
 		SVGF::CachedValueResourcesGpuDescriptors mhCachedValueGpus;
+
+		CachedSquaredMeanResourcesType mCachedSquaredMeans;
+		CachedSquaredMeanResourcesCpuDescriptors mhCachedSquaredMeanCpus;
+		CachedSquaredMeanResourcesGpuDescriptors mhCachedSquaredMeanGpus;
 
 		std::unique_ptr<GpuResource> mDepthPartialDerivative;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDepthPartialDerivativeCpuSrv;

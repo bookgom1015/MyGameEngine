@@ -860,5 +860,8 @@
     <None Include="..\..\include\RaytracedReflection.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
+    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli">
+      <Filter>Shader Files\HLSL\DXR\RaytracedReflection</Filter>
+    </None>
   </ItemGroup>
 </Project>

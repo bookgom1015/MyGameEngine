@@ -332,6 +332,7 @@
     <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli" />
     <None Include="..\..\include\Actor.inl" />

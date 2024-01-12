@@ -149,6 +149,8 @@ namespace RaytracedReflection {
 		__forceinline constexpr UINT TemporalCurrentFrameResourceIndex() const;
 		__forceinline constexpr UINT TemporalCurrentFrameTemporalReflectionResourceIndex() const;
 
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolvedReflectionSrv() const;
+
 	public:
 		BOOL Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);

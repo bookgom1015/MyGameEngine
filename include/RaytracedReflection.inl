@@ -37,4 +37,8 @@ constexpr UINT RaytracedReflection::RaytracedReflectionClass::TemporalCurrentFra
 	return mTemporalCurrentFrameTemporalReflectionResourceIndex;
 }
 
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RaytracedReflection::RaytracedReflectionClass::ResolvedReflectionSrv() const {
+	return mhTemporalReflectionMapGpus[mTemporalCurrentFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv];
+}
+
 #endif // __RaytracedReflection_INL__

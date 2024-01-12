@@ -21,14 +21,19 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Rtao.hlsli"
+#include "RaytracedReflection.hlsli"
 
 ConstantBuffer<CalcLocalMeanVarianceConstants> cb : register(b0);
 
-Texture2D<float>	gi_Value				: register(t0);
-RWTexture2D<float2>	go_LocalMeanVariance	: register(u0);
+#ifdef VT_FLOAT4
+Texture2D<SVGF::ValueMapFormat_F4>				gi_Value				: register(t0);
+#else
+Texture2D<SVGF::ValueMapFormat_F1>				gi_Value				: register(t0);
+#endif
+RWTexture2D<SVGF::LocalMeanVarianceMapFormat>	go_LocalMeanVariance	: register(u0);
 
 // Group shared memory cache for the row aggregated results.
-groupshared uint PackedRowResultCache[16][8];	// 16bit float valueSum, squared valueSum
+groupshared uint2 PackedRowResultCache[16][8];	// 16bit float valueSum, squared valueSum
 groupshared uint NumValuesCache[16][8];
 
 // Adjust an index to a pixel that had a valid value generated for it.
@@ -62,7 +67,11 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 		// Load all the contributing columns for each row.
 		int2 pixel = GetActivePixelIndex(KernelBasePixel + GTid4x16 * int2(1, cb.PixelStepY));
+#ifdef VT_FLOAT4
+		float4 value = 0;
+#else
 		float value = Rtao::InvalidAOCoefficientValue;
+#endif
 
 		// The lane is out of bounds of the GroupDim * kernel, but could be within bounds of the input texture, so don't read it form the texture.
 		// However, we need to keep it as an active lane for a below split sum.
@@ -72,8 +81,13 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 		// Filter the values for the first GroupDim columns.
 		{
 			// Accumulate for the whole kernel width.
+#ifdef VT_FLOAT4
+			float4 valueSum = 0;
+			float4 squaredValueSum = 0;
+#else
 			float valueSum = 0;
 			float squaredValueSum = 0;
+#endif
 			uint numValues = 0;
 
 			// Since a row uses 16 lanes, but we only need to calculate the aggregate for the first half (8) lanes,
@@ -81,11 +95,19 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Initialize the first 8 lanes to the first cell contribution of the kernel.
 			// This covers the remainder of 1 in cb.KernelWidth / 2 used in the loop below.
+#ifdef VT_FLOAT4
+			if (GTid4x16.x < GroupDim.x && value.a != RaytracedReflection::InvalidReflectionAlphaValue) {
+				valueSum = value;
+				squaredValueSum = value * value;
+				++numValues;
+			}
+#else
 			if (GTid4x16.x < GroupDim.x && value != Rtao::InvalidAOCoefficientValue) {
 				valueSum = value;
 				squaredValueSum = value * value;
 				++numValues;
 			}
+#endif
 
 			// Get the lane index that has the first value for a kernel in this lane.
 			uint RowKernelStartLaneIndex = RowBaseWaveLaneIndex + 1 // Skip over the already accumulated firt cell of kernel.
@@ -93,12 +115,23 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			for (uint c = 0; c < cb.KernelRadius; ++c) {
 				uint laneToReadFrom = RowKernelStartLaneIndex + c;
+#ifdef VT_FLOAT4
+				float4 cValue = WaveReadLaneAt(value, laneToReadFrom);
+
+				if (cValue.a != RaytracedReflection::InvalidReflectionAlphaValue) {
+					valueSum += cValue;
+					squaredValueSum += cValue * cValue;
+					++numValues;
+				}
+#else
 				float cValue = WaveReadLaneAt(value, laneToReadFrom);
+
 				if (cValue != Rtao::InvalidAOCoefficientValue) {
 					valueSum += cValue;
 					squaredValueSum += cValue * cValue;
 					++numValues;
 				}
+#endif
 			}
 
 			// Combine the sub-results.
@@ -109,7 +142,11 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Store only the valid results, i.e. first GroupDim columns.
 			if (GTid4x16.x < GroupDim.x) {
-				PackedRowResultCache[GTid4x16.y][GTid4x16.x] = Float2ToHalf(float2(valueSum, squaredValueSum));
+#ifdef VT_FLOAT4
+				PackedRowResultCache[GTid4x16.y][GTid4x16.x] = uint2(Float4ToUint(valueSum), Float4ToUint(squaredValueSum));
+#else
+				PackedRowResultCache[GTid4x16.y][GTid4x16.x] = float2(valueSum, squaredValueSum);
+#endif
 				NumValuesCache[GTid4x16.y][GTid4x16.x] = numValues;
 			}
 		}
@@ -117,8 +154,13 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 }
 
 void FilterVertically(uint2 DTid, uint2 GTid) {
+#ifdef VT_FLOAT4
+	float4 valueSum = 0;
+	float4 squaredValueSum = 0;
+#else
 	float valueSum = 0;
 	float squaredValueSum = 0;
+#endif
 	uint numValues = 0;
 
 	uint2 pixel = GetActivePixelIndex(int2(DTid.x, DTid.y * cb.PixelStepY));
@@ -130,9 +172,15 @@ void FilterVertically(uint2 DTid, uint2 GTid) {
 		uint rNumValues = NumValuesCache[rowID][GTid.x];
 
 		if (rNumValues > 0) {
-			float2 unpackedRowSum = HalfToFloat2(PackedRowResultCache[rowID][GTid.x]);
+#ifdef VT_FLOAT4
+			uint2 unpackedRowSum = PackedRowResultCache[rowID][GTid.x];
+			float4 rValueSum = UintToFloat4(unpackedRowSum.x);
+			float4 rSquaredValueSum = UintToFloat4(unpackedRowSum.y);
+#else
+			float2 unpackedRowSum = PackedRowResultCache[rowID][GTid.x];
 			float rValueSum = unpackedRowSum.x;
 			float rSquaredValueSum = unpackedRowSum.y;
+#endif
 
 			valueSum += rValueSum;
 			squaredValueSum += rSquaredValueSum;
@@ -142,16 +190,30 @@ void FilterVertically(uint2 DTid, uint2 GTid) {
 
 	// Calculate mean and variance.
 	float invN = 1.0 / max(numValues, 1);
+#ifdef VT_FLOAT4
+	float4 mean = invN * valueSum;
+#else
 	float mean = invN * valueSum;
+#endif 
 
 	// Apply Bessel's correction to the estimated variance, multiply by N/N-1,
 	// since the true population mean is not known; it is only estimated as the sample mean.
 	float besselCorrection = numValues / float(max(numValues, 2) - 1);
+#ifdef VT_FLOAT4
+	float3 diff = (squaredValueSum - mean * mean).rgb;
+	float variance = besselCorrection * (invN * sqrt(dot(diff, diff)) * 0.577350269189);
+#else
 	float variance = besselCorrection * (invN * squaredValueSum - mean * mean);
+#endif
 
 	variance = max(0, variance); // Ensure variance doesn't go negative due to imprecision.
 
+#ifdef VT_FLOAT4
+	uint packed = Float4ToUint(mean);
+	go_LocalMeanVariance[pixel] = numValues > 0 ? float2(packed, variance) : RaytracedReflection::InvalidReflectionAlphaValue;
+#else
 	go_LocalMeanVariance[pixel] = numValues > 0 ? float2(mean, variance) : Rtao::InvalidAOCoefficientValue;
+#endif
 }
 
 [numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]

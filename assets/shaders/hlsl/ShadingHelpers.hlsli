@@ -288,6 +288,24 @@ float2 HalfToFloat2(uint val) {
 	return result;
 }
 
+uint Float4ToUint(float4 val) {
+	uint result = 0;
+	result = asuint(val.x);
+	result |= asuint(val.y) << 8;
+	result |= asuint(val.z) << 16;
+	result |= asuint(val.w) << 24;
+	return result;
+}
+
+float4 UintToFloat4(uint val) {
+	float4 result = 0;
+	result.x = val;
+	result.y = val >> 8;
+	result.z = val >> 16;
+	result.w = val >> 24;
+	return result;
+}
+
 // Remap partial depth derivatives at z0 from [1,1] pixel offset to a new pixel offset.
 float2 RemapDdxy(float z0, float2 ddxy, float2 pixelOffset) {
 	// Perspective correction for non-linear depth interpolation.
