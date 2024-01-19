@@ -158,6 +158,8 @@ namespace Rtao {
 
 		UINT mTemporalCurrentFrameResourceIndex = 0;
 		UINT mTemporalCurrentFrameTemporalAOCeofficientResourceIndex = 0;
+
+		UINT mHitGroupShaderTableStrideInBytes = 0;
 	};
 }
 

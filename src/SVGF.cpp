@@ -14,7 +14,7 @@ namespace {
 	std::string PartialDerivativeCS = "PartialDerivativeCS";
 	std::string CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CalcLocalMeanVarianceCS", "CalcLocalMeanVarianceCS_F4" };
 	std::string FillInCheckerboardCS = "FillInCheckerboardCS";
-	std::string EdgeStoppingFilter_Gaussian3x3CS = "EdgeStoppingFilter_Gaussian3x3CS";
+	std::string EdgeStoppingFilter_Gaussian3x3CS[SVGF::Value::Count] = { "EdgeStoppingFilter_Gaussian3x3CS_F1", "EdgeStoppingFilter_Gaussian3x3CS_F4" };
 	std::string DisocclusionBlur3x3CS = "DisocclusionBlur3x3CS";
 }
 
@@ -90,8 +90,14 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 	}
 	{
 		const auto path = filePath + L"EdgeStoppingFilter_Gaussian3x3CS.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-		CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS));
+		{
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float1]));
+		}
+		{
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float4]));
+		}
 	}
 	{
 		const auto path = filePath + L"DisocclusionBlur3x3CS.hlsl";
@@ -379,13 +385,17 @@ BOOL SVGFClass::BuildPSO() {
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC atrousWaveletTransformFilterPsoDesc = {};
 		atrousWaveletTransformFilterPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get();
+		atrousWaveletTransformFilterPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
-			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS);
+			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float1]);
 			atrousWaveletTransformFilterPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		atrousWaveletTransformFilterPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(
-			&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_F1])));
+		{
+			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float4]);
+			atrousWaveletTransformFilterPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
+		}
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_F4])));
 	}
 	// Disocclusion blur
 	{
@@ -664,8 +674,10 @@ void SVGFClass::ApplyAtrousWaveletTransformFilter(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
 		D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalValue,
 		UINT width, UINT height,
+		Value::Type type,
 		bool useSmoothingVar) {
-	cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter].Get());
+	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_F1].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_F4].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get());
 
 	const auto si_variance = mhVarianceResourcesGpus[useSmoothingVar ? SVGF::Descriptor::Variance::ES_Smoothed : SVGF::Descriptor::Variance::ES_Raw];

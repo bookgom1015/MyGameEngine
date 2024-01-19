@@ -23,6 +23,7 @@
 #include "DxrShadingHelpers.hlsli"
 #include "RandGenerator.hlsli"
 #include "Samplers.hlsli"
+#include "RaytracedReflection.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
@@ -46,7 +47,8 @@ TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: reg
 Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t9);
 Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t10);
 
-RWTexture2D<float4>	go_Reflection	: register(u0);
+RWTexture2D<RaytracedReflection::ReflectionMapFormat>	go_Reflection	: register(u0);
+RWTexture2D<RaytracedReflection::RayHitDistanceFormat>	go_RayHitDist	: register(u1);
 
 ConstantBuffer<ObjectConstants>		lcb_Obj	: register(b0, space1);
 ConstantBuffer<MaterialConstants>	lcb_Mat	: register(b1, space1);
@@ -56,6 +58,7 @@ StructuredBuffer<uint>		lsb_Indices		: register(t1, space1);
 
 struct RayPayload {
 	float4	Irrad;
+	float	tHit;
 	bool	IsHit;
 };
 
@@ -68,7 +71,8 @@ void RadianceRayGen() {
 	float depth = gi_Depth[launchIndex];
 	
 	if (depth == GBuffer::InvalidNormDepthValue) {
-		go_Reflection[launchIndex] = 0;
+		go_Reflection[launchIndex] = (float4)RaytracedReflection::InvalidReflectionAlphaValue;
+		go_RayHitDist[launchIndex] = RaytracedReflection::RayHitDistanceOnMiss;
 		return;
 	}
 
@@ -91,7 +95,7 @@ void RadianceRayGen() {
 	ray.TMin = 0;
 	ray.TMax = gReflectionRadius;
 
-	RayPayload payload = { (float4)0, false };
+	RayPayload payload = { (float4)RaytracedReflection::InvalidReflectionAlphaValue, RaytracedReflection::RayHitDistanceOnMiss, false };
 
 	TraceRay(
 		gi_BVH,
@@ -104,7 +108,10 @@ void RadianceRayGen() {
 		payload
 	);
 
+	const float tHit = payload.tHit;
+
 	go_Reflection[launchIndex] = payload.Irrad;
+	go_RayHitDist[launchIndex] = RaytracedReflection::HasReflectionRayHitAnyGeometry(tHit) ? tHit : gReflectionRadius;
 }
 
 [shader("closesthit")]
@@ -193,6 +200,7 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	const float3 ambient = (kD * diffuseIrradiance + specRadiance) * aoCoeiff;
 
 	payload.Irrad = float4(radiance + ambient, 1);
+	payload.tHit = RayTCurrent();
 }
 
 [shader("miss")]

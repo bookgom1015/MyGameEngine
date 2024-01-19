@@ -3,6 +3,10 @@
 
 namespace RaytracedReflection {
 	static const float InvalidReflectionAlphaValue = 0;
+	static const float RayHitDistanceOnMiss = 0;
+	bool HasReflectionRayHitAnyGeometry(float tHit) {
+		return tHit != RayHitDistanceOnMiss;
+	}
 }
 
 #endif // __RAYTRACEDREFLECTION_HLSLI__

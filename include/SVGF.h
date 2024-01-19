@@ -163,7 +163,8 @@ namespace SVGF {
 			E_CalcLocalMeanVariance_F1,
 			E_CalcLocalMeanVariance_F4,
 			E_FillInCheckerboard,
-			E_AtrousWaveletTransformFilter,
+			E_AtrousWaveletTransformFilter_F1,
+			E_AtrousWaveletTransformFilter_F4,
 			E_DisocclusionBlur,
 			Count
 		};
@@ -349,6 +350,7 @@ namespace SVGF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalValue,
 			UINT width, UINT height,
+			Value::Type type,
 			bool useSmoothingVar);
 		void BlurDisocclusion(
 			ID3D12GraphicsCommandList4* const cmdList,

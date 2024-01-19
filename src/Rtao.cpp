@@ -14,6 +14,15 @@ using namespace Rtao;
 
 namespace {
 	std::string RtaoCS = "RtaoCS";
+
+	const wchar_t* RtaoRayGenName		= L"RtaoRayGen";
+	const wchar_t* RtaoClosestHitName	= L"RtaoClosestHit";
+	const wchar_t* RtaoMissName			= L"RtaoMiss";
+	const wchar_t* RtaoHitGroupName		= L"RtaoHitGroup";
+
+	const char* RayGenShaderTableName	= "RayGenShaderTable";
+	const char* MissShaderTableName		= "MissShaderTable";
+	const char* HitGroupShaderTableName	= "HitGroupShaderTable";
 }
 
 RtaoClass::RtaoClass() {
@@ -82,12 +91,12 @@ BOOL RtaoClass::BuildPSO() {
 	auto rtaoShader = mShaderManager->GetDxcShader(RtaoCS);
 	D3D12_SHADER_BYTECODE rtaoLibDxil = CD3DX12_SHADER_BYTECODE(rtaoShader->GetBufferPointer(), rtaoShader->GetBufferSize());
 	rtaoLib->SetDXILLibrary(&rtaoLibDxil);
-	LPCWSTR rtaoExports[] = { L"RtaoRayGen", L"RtaoClosestHit", L"RtaoMiss" };
+	LPCWSTR rtaoExports[] = { RtaoRayGenName, RtaoClosestHitName, RtaoMissName };
 	rtaoLib->DefineExports(rtaoExports);
 
 	auto rtaoHitGroup = rtaoDxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-	rtaoHitGroup->SetClosestHitShaderImport(L"RtaoClosestHit");
-	rtaoHitGroup->SetHitGroupExport(L"RtaoHitGroup");
+	rtaoHitGroup->SetClosestHitShaderImport(RtaoClosestHitName);
+	rtaoHitGroup->SetHitGroupExport(RtaoHitGroupName);
 	rtaoHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
 	auto shaderConfig = rtaoDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
@@ -109,30 +118,65 @@ BOOL RtaoClass::BuildPSO() {
 }
 
 BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
+#ifdef _DEBUG
+	// A shader name look-up table for shader table debug print out.
+	std::unordered_map<void*, std::wstring> shaderIdToStringMap;
+#endif
+
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
-	void* rtaoRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoRayGen");
-	void* rtaoMissShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoMiss");
-	void* rtaoHitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(L"RtaoHitGroup");
+	{
+		void* rayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RtaoRayGenName);
 
-	{
-		ShaderTable rtaoRayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
-		CheckReturn(rtaoRayGenShaderTable.Initialze());
-		rtaoRayGenShaderTable.push_back(ShaderRecord(rtaoRayGenShaderIdentifier, shaderIdentifierSize));
-		mShaderTables["rtaoRayGen"] = rtaoRayGenShaderTable.GetResource();
+		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(rayGenShaderTable.Initialze());
+		rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize));
+
+#ifdef _DEBUG
+		shaderIdToStringMap[rayGenShaderIdentifier] = RtaoRayGenName;
+
+		WLogln(L"RTAO - Ray Gen");
+		rayGenShaderTable.DebugPrint(shaderIdToStringMap);
+		WLogln(L"");
+#endif
+
+		mShaderTables[RayGenShaderTableName] = rayGenShaderTable.GetResource();
 	}
 	{
-		ShaderTable rtaoMissShaderTable(md3dDevice, 1, shaderIdentifierSize);
-		CheckReturn(rtaoMissShaderTable.Initialze());
-		rtaoMissShaderTable.push_back(ShaderRecord(rtaoMissShaderIdentifier, shaderIdentifierSize));
-		mShaderTables["rtaoMiss"] = rtaoMissShaderTable.GetResource();
+		void* missShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RtaoMissName);
+
+		ShaderTable missShaderTable(md3dDevice, 1, shaderIdentifierSize);
+		CheckReturn(missShaderTable.Initialze());
+		missShaderTable.push_back(ShaderRecord(missShaderIdentifier, shaderIdentifierSize));
+
+#ifdef _DEBUG
+		shaderIdToStringMap[missShaderIdentifier] = RtaoMissName;
+
+		WLogln(L"RTAO - Miss");
+		missShaderTable.DebugPrint(shaderIdToStringMap);
+		WLogln(L"");
+#endif
+
+		mShaderTables[MissShaderTableName] = missShaderTable.GetResource();
 	}
 	{
-		ShaderTable rtaoHitGroupTable(md3dDevice, numRitems, shaderIdentifierSize);
-		CheckReturn(rtaoHitGroupTable.Initialze());		
+		void* hitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RtaoHitGroupName);
+
+		ShaderTable hitGroupTable(md3dDevice, numRitems, shaderIdentifierSize);
+		CheckReturn(hitGroupTable.Initialze());		
 		for (UINT i = 0; i < numRitems; ++i)
-			rtaoHitGroupTable.push_back(ShaderRecord(rtaoHitGroupShaderIdentifier, shaderIdentifierSize));
-		mShaderTables["rtaoHitGroup"] = rtaoHitGroupTable.GetResource();
+			hitGroupTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize));
+
+#ifdef _DEBUG
+		shaderIdToStringMap[hitGroupShaderIdentifier] = RtaoHitGroupName;
+
+		WLogln(L"RTAO - Hit Group");
+		hitGroupTable.DebugPrint(shaderIdToStringMap);
+		WLogln(L"");
+#endif
+
+		mShaderTables[HitGroupShaderTableName] = hitGroupTable.GetResource();
+		mHitGroupShaderTableStrideInBytes = hitGroupTable.GetShaderRecordSize();
 	}
 
 	return TRUE;
@@ -191,9 +235,9 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_RayHitDistance, mhAOResourcesGpus[Rtao::Descriptor::AO::EU_RayHitDistance]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
-	const auto& rayGen = mShaderTables["rtaoRayGen"];
-	const auto& miss = mShaderTables["rtaoMiss"];
-	const auto& hitGroup = mShaderTables["rtaoHitGroup"];
+	const auto& rayGen = mShaderTables[RayGenShaderTableName];
+	const auto& miss = mShaderTables[MissShaderTableName];
+	const auto& hitGroup = mShaderTables[HitGroupShaderTableName];
 	dispatchDesc.RayGenerationShaderRecord.StartAddress = rayGen->GetGPUVirtualAddress();
 	dispatchDesc.RayGenerationShaderRecord.SizeInBytes = rayGen->GetDesc().Width;
 	dispatchDesc.MissShaderTable.StartAddress = miss->GetGPUVirtualAddress();
@@ -201,7 +245,7 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	dispatchDesc.MissShaderTable.StrideInBytes = dispatchDesc.MissShaderTable.SizeInBytes;
 	dispatchDesc.HitGroupTable.StartAddress = hitGroup->GetGPUVirtualAddress();
 	dispatchDesc.HitGroupTable.SizeInBytes = hitGroup->GetDesc().Width;
-	dispatchDesc.HitGroupTable.StrideInBytes = dispatchDesc.HitGroupTable.SizeInBytes;
+	dispatchDesc.HitGroupTable.StrideInBytes = mHitGroupShaderTableStrideInBytes;
 	dispatchDesc.Width = width;
 	dispatchDesc.Height = height;
 	dispatchDesc.Depth = 1;

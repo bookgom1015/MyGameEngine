@@ -3029,6 +3029,7 @@ BOOL DxRenderer::DrawRtao() {
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_Tspp],
 					temporalAOCoefficientsGpuDescriptors[outputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
 					mClientWidth, mClientHeight,
+					SVGF::Value::E_Float1,
 					ShaderArgs::Rtao::Denoiser::UseSmoothingVariance
 				);
 
@@ -3222,7 +3223,30 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		{
 			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
 			{
+				UINT temporalCurrentFrameResourceIndex = mRr->TemporalCurrentFrameResourceIndex();
+				UINT inputReflectionIndex = mRr->TemporalCurrentFrameTemporalReflectionResourceIndex();
+				UINT outputReflectionIndex = mRr->MoveToNextFrameTemporalReflection();
 
+				const auto outputReflection = temporalReflections[outputReflectionIndex].get();
+
+				outputReflection->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+				D3D12Util::UavBarrier(cmdList, outputReflection);
+
+				mSVGF->ApplyAtrousWaveletTransformFilter(
+					cmdList,
+					mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
+					temporalReflectionGpuDescriptors[inputReflectionIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
+					mGBuffer->NormalDepthMapSrv(),
+					temporalCacheGpuDescriptors[temporalCurrentFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
+					temporalCacheGpuDescriptors[temporalCurrentFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
+					temporalReflectionGpuDescriptors[outputReflectionIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Uav],
+					mClientWidth, mClientHeight,
+					SVGF::Value::E_Float4,
+					ShaderArgs::Rtao::Denoiser::UseSmoothingVariance
+				);
+
+				outputReflection->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				D3D12Util::UavBarrier(cmdList, outputReflection);
 			}
 			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
 			{

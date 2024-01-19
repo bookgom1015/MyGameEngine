@@ -482,4 +482,10 @@ void UnpackEncodedNormalDepth(uint packedEncodedNormalDepth, out float2 encodedN
 	depth = encodedNormalDepth.z;
 }
 
+float ColorVariance(float4 lval, float4 rval) {
+	float3 diff = (lval - rval).rgb;
+	float variance = sqrt(dot(diff, diff)) * 0.577350269189;
+	return variance;
+}
+
 #endif // __SHADINGHELPERS_HLSLI__

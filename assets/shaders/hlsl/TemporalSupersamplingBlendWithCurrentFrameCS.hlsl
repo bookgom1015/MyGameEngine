@@ -70,11 +70,11 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		const uint MaxTspp = 1 / cbBlend.MinSmoothingFactor;
 		tspp = IsValidValue ? min(tspp + 1, MaxTspp) : tspp;
 
-#ifdef VT_FLOAT4
+	#ifdef VT_FLOAT4
 		float4 cachedValue = gi_CachedValue[DTid];
-#else
+	#else
 		float cachedValue = gi_CachedValue[DTid];
-#endif
+	#endif
 
 		const float2 LocalMeanVariance = gi_CurrentFrameLocalMeanVariance[DTid];
 		const float LocalMean = LocalMeanVariance.x;
@@ -82,7 +82,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		if (cbBlend.ClampCachedValues) {
 			const float LocalStdDev = max(cbBlend.StdDevGamma * sqrt(LocalVariance), cbBlend.ClampingMinStdDevTolerance);
 			
-#ifdef VT_FLOAT4
+		#ifdef VT_FLOAT4
 			const float4 NonClampedCachedValue = cachedValue;
 
 			// Clamp value to mean +/- std.dev of local neighborhood to supress ghosting on value changing due to other occluder movements.
@@ -93,7 +93,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 			float3 diff = (cachedValue - NonClampedCachedValue).rgb;
 			float dist = abs(sqrt(dot(diff, diff)));				
 			float tsppScale = saturate(cbBlend.ClampDifferenceToTsppScale * dist);
-#else
+		#else
 			const float NonClampedCachedValue = cachedValue;
 
 			// Clamp value to mean +/- std.dev of local neighborhood to supress ghosting on value changing due to other occluder movements.
@@ -102,7 +102,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 			// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new smaples.
 			float tsppScale = saturate(cbBlend.ClampDifferenceToTsppScale * abs(cachedValue - NonClampedCachedValue));
-#endif
+		#endif
 
 			tspp = lerp(tspp, 0, tsppScale);
 		}
@@ -116,35 +116,42 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		// Ref: Koskela2019, Blockwise Multi-Order Feature Regression for Real-Time Path-Tracing Reconstruction
 
 		// Value.
-		value = IsValidValue ? lerp(cachedValue, value, a) : cachedValue;
-#ifdef VT_FLOAT4
-		if (IsValidValue) value.a = 1;
-#endif
+		{
+			value = IsValidValue ? lerp(cachedValue, value, a) : cachedValue;
+		#ifdef VT_FLOAT4
+			if (IsValidValue) value.a = 1;
+		#endif
+		}
 
 		// Value Squared Mean.
-#ifdef VT_FLOAT4
-		float4 cachedSquaredMeanValue = gi_CachedSquaredMean[DTid];
-		valueSquaredMean = IsValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
-#else
-		float cachedSquaredMeanValue = gi_CachedSquaredMean[DTid];
-		valueSquaredMean = IsValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
-#endif
+		{
+		#ifdef VT_FLOAT4
+			float4 cachedSquaredMeanValue = gi_CachedSquaredMean[DTid];
+			valueSquaredMean = IsValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
+		#else
+			float cachedSquaredMeanValue = gi_CachedSquaredMean[DTid];
+			valueSquaredMean = IsValidValue ? lerp(cachedSquaredMeanValue, valueSquaredMean, a) : cachedSquaredMeanValue;
+		#endif
+		}
 
 		// Variance.
-#ifdef VT_FLOAT4
-		float3 squaredDiff = (valueSquaredMean - value * value).rgb;
-		float temporalVariance = sqrt(dot(squaredDiff, squaredDiff)) * 0.577350269189;		
-#else
-		float temporalVariance = valueSquaredMean - value * value;
-#endif
-		temporalVariance = max(0, temporalVariance); // Ensure variance doesn't go negative due to imprecision.
-		variance = tspp >= cbBlend.MinTsppToUseTemporalVariance ? temporalVariance : LocalVariance;
-		variance = max(0.1, variance);
+		{
+		#ifdef VT_FLOAT4
+			float temporalVariance = ColorVariance(valueSquaredMean, value * value);
+		#else
+			float temporalVariance = valueSquaredMean - value * value;
+		#endif
+			temporalVariance = max(0, temporalVariance); // Ensure variance doesn't go negative due to imprecision.
+			variance = tspp >= cbBlend.MinTsppToUseTemporalVariance ? temporalVariance : LocalVariance;
+			variance = max(0.1, variance);
+		}
 
 		// RayHitDistance.
-		rayHitDistance = IsValidValue ? gi_CurrentFrameRayHitDistance[DTid] : 0;
-		float cachedRayHitDistance = CachedValues.y;
-		rayHitDistance = IsValidValue ? lerp(cachedRayHitDistance, rayHitDistance, a) : cachedRayHitDistance;
+		{
+			rayHitDistance = IsValidValue ? gi_CurrentFrameRayHitDistance[DTid] : 0;
+			float cachedRayHitDistance = CachedValues.y;
+			rayHitDistance = IsValidValue ? lerp(cachedRayHitDistance, rayHitDistance, a) : cachedRayHitDistance;
+		}
 	}
 	else if (IsValidValue) {
 		tspp = 1;

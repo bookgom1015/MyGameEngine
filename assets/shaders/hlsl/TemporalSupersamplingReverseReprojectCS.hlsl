@@ -200,7 +200,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		tspp = round(cachedTspp);
 
 		if (tspp > 0) {
-#ifdef VT_FLOAT4
+		#ifdef VT_FLOAT4
 			vCacheValues[0] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex					, 0);
 			vCacheValues[1] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, 0)	, 0);
 			vCacheValues[2] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(0, dy)	, 0);
@@ -209,7 +209,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 			{
 				[unroll]
 				for (int i = 0; i < 4; ++i)
-					cachedValue += nWeights[i] * vCacheValues[i];
+					cachedValue += nWeights[i] * float4(vCacheValues[i].rgb, 1);
 			}
 
 			float4 vCachedValueSquaredMeans[4];
@@ -221,15 +221,15 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 			{
 				[unroll]
 				for (int i = 0; i < 4; ++i)
-					cachedValueSquaredMean += nWeights[i] * vCachedValueSquaredMeans[i];
+					cachedValueSquaredMean += nWeights[i] * float4(vCachedValueSquaredMeans[i].rgb, 1);
 			}
-#else
+		#else
 			vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedValue = dot(nWeights, vCacheValues);
 
 			float4 vCachedValueSquaredMean = gi_CachedValueSquaredMean.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedValueSquaredMean = dot(nWeights, vCachedValueSquaredMean);
-#endif
+		#endif
 
 			float4 vCachedRayHitDist = gi_CachedRayHitDistance.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedRayHitDist = dot(nWeights, vCachedRayHitDist);

@@ -72,7 +72,7 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Global
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[11];
+		CD3DX12_DESCRIPTOR_RANGE texTables[12];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
@@ -84,6 +84,7 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);
 		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 10);
 		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[11].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
@@ -101,6 +102,7 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[8]);
 		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[9]);
 		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[10]);
+		slotRootParameter[RootSignature::Global::EUO_RayHitDist].InitAsDescriptorTable(1, &texTables[11]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -148,7 +150,7 @@ BOOL RaytracedReflectionClass::BuildPSO() {
 	}
 
 	auto shaderConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = sizeof(XMFLOAT4) + 4; // Color(float4) + IsHit(BOOL)
+	UINT payloadSize = sizeof(XMFLOAT4) + 4 + 4; // Color(float4) + tHit(float) + IsHit(BOOL)
 	UINT attribSize = sizeof(XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
@@ -175,18 +177,27 @@ BOOL RaytracedReflectionClass::BuildPSO() {
 BOOL RaytracedReflectionClass::BuildShaderTables(
 		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
-	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
-
 #ifdef _DEBUG
 	// A shader name look-up table for shader table debug print out.
 	std::unordered_map<void*, std::wstring> shaderIdToStringMap;
 #endif
+
+	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	{
 		void* radianceRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RadianceRayGenName);
 		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(rayGenShaderTable.Initialze());
 		rayGenShaderTable.push_back(ShaderRecord(radianceRayGenShaderIdentifier, shaderIdentifierSize));
+
+#ifdef _DEBUG
+		shaderIdToStringMap[radianceRayGenShaderIdentifier] = RadianceRayGenName;
+
+		WLogln(L"Raytraced Reflection - Ray Gen");
+		rayGenShaderTable.DebugPrint(shaderIdToStringMap);
+		WLogln(L"");
+#endif
+
 		mShaderTables[RayGenShaderTableName] = rayGenShaderTable.GetResource();
 	}
 	{
@@ -324,10 +335,15 @@ void RaytracedReflectionClass::CalcReflection(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_TexMaps, si_texMaps);
 
 	const auto reflection = mReflectionMaps[Resource::Reflection::E_Reflection].get();
+	const auto rayHitDist = mReflectionMaps[Resource::Reflection::E_RayHitDistance].get();
+	GpuResource* resources[] = { reflection, rayHitDist };
+
 	reflection->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12Util::UavBarrier(cmdList, reflection);
+	rayHitDist->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarriers(cmdList, resources, _countof(resources));
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Reflection, mhReflectionMapGpus[Descriptor::Reflection::EU_Reflection]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_RayHitDist, mhReflectionMapGpus[Descriptor::Reflection::EU_RayHitDistance]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	const auto& rayGen = mShaderTables[RayGenShaderTableName];
@@ -347,7 +363,8 @@ void RaytracedReflectionClass::CalcReflection(
 	cmdList->DispatchRays(&dispatchDesc);
 
 	reflection->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	D3D12Util::UavBarrier(cmdList, reflection);
+	rayHitDist->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarriers(cmdList, resources, _countof(resources));
 }
 
 UINT RaytracedReflectionClass::MoveToNextFrame() {

@@ -35,6 +35,7 @@ namespace RaytracedReflection {
 				ESI_BrdfLUT,
 				ESI_TexMaps,
 				EUO_Reflection,
+				EUO_RayHitDist,
 				Count
 			};
 			
