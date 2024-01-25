@@ -116,7 +116,7 @@ void RadianceRayGen() {
 
 [shader("closesthit")]
 void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
-	uint startIndex = PrimitiveIndex() * 3;
+	const uint startIndex = PrimitiveIndex() * 3;
 	const uint3 indices = { lsb_Indices[startIndex], lsb_Indices[startIndex + 1], lsb_Indices[startIndex + 2] };
 
 	Vertex vertices[3] = {
@@ -124,18 +124,18 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 		lsb_Vertices[indices[1]],
 		lsb_Vertices[indices[2]] };
 
-	float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
-	float3 normal = HitAttribute(normals, attr);
+	const float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
+	const float3 normal = HitAttribute(normals, attr);
 
-	float2 texCoords[3] = { vertices[0].TexCoord, vertices[1].TexCoord, vertices[2].TexCoord };
-	float2 texc = HitAttribute(texCoords, attr);
+	const float2 texCoords[3] = { vertices[0].TexCoord, vertices[1].TexCoord, vertices[2].TexCoord };
+	const float2 texc = HitAttribute(texCoords, attr);
 
-	float3 hitPosition = HitWorldPosition();
-	float3 origin = WorldRayOrigin();
+	const float3 hitPosition = HitWorldPosition();
+	const float3 origin = WorldRayOrigin();
 
-	uint2 launchIndex = DispatchRaysIndex().xy;
+	const uint2 launchIndex = DispatchRaysIndex().xy;
 
-	const float4 albedo = lcb_Mat.Albedo;
+	const float4 _albedo = lcb_Mat.Albedo;
 	const float roughness = lcb_Mat.Roughness;
 	const float metalic = lcb_Mat.Metalic;
 
@@ -167,6 +167,7 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	//
 	Texture2D tex2D = gi_TexMaps[lcb_Mat.DiffuseSrvIndex];
 	const float4 samp = tex2D.SampleLevel(gsamLinearClamp, texc, 0);
+	const float4 albedo = _albedo * samp;
 
 	const float shiness = 1 - roughness;
 	const float3 fresnelR0 = lerp((float3)0.08 * lcb_Mat.Specular, albedo.rgb, metalic);
@@ -179,15 +180,13 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normal, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
-
+		
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
 	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normal, viewW, shadowFactor), (float3)0);
 
 	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normal, 0).xyz;
 	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;
-
-	const float aoCoeiff = gi_AOCoeiff[launchIndex];
 
 	const float3 reflectedW = reflect(-viewW, normal);
 	const float NdotV = max(dot(normal, viewW), 0);
@@ -197,9 +196,9 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	const float2 envBRDF = gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);
 	const float3 specRadiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
 
-	const float3 ambient = (kD * diffuseIrradiance + specRadiance) * aoCoeiff;
+	const float3 ambient = kD * diffuseIrradiance + shiness * specRadiance;
 
-	payload.Irrad = float4(radiance + ambient, 1);
+	payload.Irrad = float4(radiance + ambient, samp.a);
 	payload.tHit = RayTCurrent();
 }
 

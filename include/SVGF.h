@@ -165,7 +165,8 @@ namespace SVGF {
 			E_FillInCheckerboard,
 			E_AtrousWaveletTransformFilter_F1,
 			E_AtrousWaveletTransformFilter_F4,
-			E_DisocclusionBlur,
+			E_DisocclusionBlur_F1,
+			E_DisocclusionBlur_F4,
 			Count
 		};
 	}
@@ -358,7 +359,8 @@ namespace SVGF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_value,
 			UINT width, UINT height,
-			UINT lowTsppBlurPasses);
+			UINT lowTsppBlurPasses,
+			Value::Type type);
 
 	private:
 		void BuildDescriptors();

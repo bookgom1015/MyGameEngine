@@ -14,6 +14,7 @@ ConstantBuffer<SsrConstants> cbSsr	: register(b0);
 Texture2D<SDR_FORMAT>						gi_BackBuffer	: register(t0);
 Texture2D<GBuffer::NormalMapFormat>			gi_Normal		: register(t1);
 Texture2D<DepthStencilBuffer::BufferFormat>	gi_Depth		: register(t2);
+Texture2D<GBuffer::RMSMapFormat>			gi_RMS			: register(t3);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -43,7 +44,6 @@ float4 PS(VertexOut pin) : SV_Target {
 	if (pz == DepthStencilBuffer::InvalidDepthValue) return 0;
 
 	pz = NdcDepthToViewDepth(pz, cbSsr.Proj);
-
 	//
 	// Reconstruct full view space position (x,y,z).
 	// Find t such that p = t*pin.PosV.
@@ -54,13 +54,13 @@ float4 PS(VertexOut pin) : SV_Target {
 	if (pv.z > cbSsr.MaxDistance) return (float4)0;
 
 	const float3 nw = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
-
 	const float3 nv = normalize(mul(nw, (float3x3)cbSsr.View));
-
 	// Vector from point being lit to eye. 
 	const float3 toEyeV = normalize(-pv);
-
 	const float3 r = reflect(-toEyeV, nv) * cbSsr.RayLength;
+
+	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamLinearClamp, pin.TexC).rgb;
+	const float shiness = 1 - roughnessMetalicSpecular.r;
 
 	[loop]
 	for (uint i = 0; i < cbSsr.NumSteps; ++i) {
@@ -98,8 +98,8 @@ float4 PS(VertexOut pin) : SV_Target {
 
 			tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
 
-			const float3 color = gi_BackBuffer.SampleLevel(gsamLinearClamp, tex, 0).rgb;
-			return float4(color, 1);
+			const float3 color = gi_BackBuffer.Sample(gsamLinearClamp, tex).rgb;
+			return float4(color, shiness);
 		}
 	}
 

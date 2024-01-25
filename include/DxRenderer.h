@@ -48,10 +48,13 @@ namespace DebugMapLayout {
 		E_Tspp,
 		E_RayHitDist,
 		E_TemporalRayHitDist,
-		E_LocalMeanVariance,
-		E_DiocclusionBlurStrength,
 
-		E_RaytracedReflection,
+		// Raytraced Reflection
+		E_RR_Reflection,
+		E_RR_TemporalReflection,
+		E_RR_Tspp,
+		E_RR_RayHitDist,
+		E_RR_TemporalRayHitDist,
 
 		Count
 	};

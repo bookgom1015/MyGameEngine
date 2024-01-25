@@ -704,19 +704,19 @@
     <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS.hlsli">
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_F4.hlsli">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_F4.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CalculatePartialDerivativeCS.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_F4.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
@@ -725,10 +725,10 @@
     <None Include="..\..\assets\shaders\hlsl\FillInCheckerboardCS.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_F4.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_F1.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
@@ -862,6 +862,21 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli">
       <Filter>Shader Files\HLSL\DXR\RaytracedReflection</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_F4.hlsl">
+      <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_F1.hlsl">
+      <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_F1.hlsl">
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_F1.hlsli">
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_F1.hlsl">
+      <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
     </None>
   </ItemGroup>
 </Project>

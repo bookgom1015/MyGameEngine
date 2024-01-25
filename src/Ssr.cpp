@@ -52,16 +52,18 @@ BOOL SsrClass::CompileShaders(const std::wstring& filePath) {
 BOOL SsrClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[4];
+	CD3DX12_DESCRIPTOR_RANGE texTables[5];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 	texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 
 	slotRootParameter[RootSignatureLayout::ECB_Ssr].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 	slotRootParameter[RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
 	slotRootParameter[RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
+	slotRootParameter[RootSignatureLayout::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -127,7 +129,8 @@ void SsrClass::Build(
 		GpuResource*const backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_depth) {
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rms) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 	
@@ -148,6 +151,7 @@ void SsrClass::Build(
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, si_backBuffer);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_RMS, si_rms);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

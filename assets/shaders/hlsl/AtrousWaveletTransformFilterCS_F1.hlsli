@@ -13,22 +13,14 @@
 
 ConstantBuffer<AtrousWaveletTransformFilterConstantBuffer> cbAtrous : register(b0);
 
-#ifdef VT_FLOAT4
-Texture2D<SVGF::ValueMapFormat_F4>					gi_Value					: register(t0);
-#else
 Texture2D<SVGF::ValueMapFormat_F1>					gi_Value					: register(t0);
-#endif
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_NormalDepth				: register(t1);
 Texture2D<SVGF::VarianceMapFormat>					gi_Variance					: register(t2);
 Texture2D<SVGF::RayHitDistanceFormat>				gi_HitDistance				: register(t3);
 Texture2D<SVGF::DepthPartialDerivativeMapFormat>	gi_DepthPartialDerivative	: register(t4);
 Texture2D<SVGF::TsppMapFormat>						gi_Tspp						: register(t5);
 
-#ifdef VT_FLOAT4
-RWTexture2D<SVGF::ValueMapFormat_F4>				go_FilteredValue			: register(u0);
-#else
 RWTexture2D<SVGF::ValueMapFormat_F1>				go_FilteredValue			: register(u0);
-#endif
 
 float DepthThreshold(float depth, float2 ddxy, float2 pixelOffset) {
 	float depthThreshold;
@@ -43,25 +35,17 @@ float DepthThreshold(float depth, float2 ddxy, float2 pixelOffset) {
 }
 
 void AddFilterContribution(
-#ifdef VT_FLOAT4
-		inout float4 weightedValueSum,
-#else
-		inout float weightedValueSum,
-#endif
-		inout float weightSum,
-#ifdef VT_FLOAT4
-		float4 value,
-#else
-		float value,
-#endif
-		float stdDeviation,
-		float depth,
-		float3 normal,
-		float2 ddxy,
-		uint row,
-		uint col,
-		uint2 kernelStep,
-		uint2 DTid) {
+	inout float weightedValueSum,
+	inout float weightSum,
+	float value,
+	float stdDeviation,
+	float depth,
+	float3 normal,
+	float2 ddxy,
+	uint row,
+	uint col,
+	uint2 kernelStep,
+	uint2 DTid) {
 	const float ValueSigma = cbAtrous.ValueSigma;
 	const float NormalSigma = cbAtrous.NormalSigma;
 	const float DepthSigma = cbAtrous.DepthSigma;
@@ -71,7 +55,7 @@ void AddFilterContribution(
 	float varianceScale = 1;
 
 	pixelOffset = int2(row - FilterKernel::Radius, col - FilterKernel::Radius) * kernelStep;
-	int2 id = int2(DTid) + pixelOffset;
+	int2 id = int2(DTid)+pixelOffset;
 
 	if (!IsWithinBounds(id, cbAtrous.TextureDim)) return;
 
@@ -79,15 +63,8 @@ void AddFilterContribution(
 	float3 iNormal;
 	DecodeNormalDepth(gi_NormalDepth[id], iNormal, iDepth);
 
-#ifdef VT_FLOAT4
-	float4 iValue = gi_Value[id];
-
-	bool isValidValue = iValue.a != RaytracedReflection::InvalidReflectionAlphaValue;
-#else
 	float iValue = gi_Value[id];
-
 	bool isValidValue = iValue != Rtao::InvalidAOCoefficientValue;
-#endif
 	if (!isValidValue || iDepth == GBuffer::InvalidNormDepthValue) return;
 
 	// Calculate a weight for the neighbor's contribution.
@@ -97,12 +74,7 @@ void AddFilterContribution(
 		// Lower value tolerance for the neighbors further apart. Prevents overbluring shapr value transition.
 		const float ErrorOffset = 0.005;
 		float valueSigmaDistCoef = 1.0 / length(pixelOffset);
-	#ifdef VT_FLOAT4
-		float variance = ColorVariance(value, iValue);
-		float e_x = -abs(variance) / (valueSigmaDistCoef * ValueSigma * stdDeviation + ErrorOffset);
-	#else
 		float e_x = -abs(value - iValue) / (valueSigmaDistCoef * ValueSigma * stdDeviation + ErrorOffset);
-	#endif
 		float w_x = exp(e_x);
 
 		// Normal based weight.
@@ -147,34 +119,21 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	if (!IsWithinBounds(DTid, cbAtrous.TextureDim)) return;
 
 	// Initialize values to the current pixel / center filter kernel value.
-#ifdef VT_FLOAT4
-	float4 value = gi_Value[DTid];
-#else
 	float value = gi_Value[DTid];
-#endif
 
 	float3 normal;
 	float depth;
 	DecodeNormalDepth(gi_NormalDepth[DTid], normal, depth);
 
-#ifdef VT_FLOAT4
-	bool isValidValue = value.a != RaytracedReflection::InvalidReflectionAlphaValue;
-	float4 filteredValue = value;
-#else
 	bool isValidValue = value != Rtao::InvalidAOCoefficientValue;
 	float filteredValue = value;
-#endif
 	float variance = gi_Variance[DTid];
 
 	if (depth != GBuffer::InvalidNormDepthValue) {
-		float2 ddxy = gi_DepthPartialDerivative[DTid];		
+		float2 ddxy = gi_DepthPartialDerivative[DTid];
 		float stdDeviation = 1;
 		float weightSum = 0;
-#ifdef VT_FLOAT4
-		float4 weightedValueSum = 0;
-#else
 		float weightedValueSum = 0;
-#endif
 
 		if (isValidValue) {
 			float w = FilterKernel::Kernel[FilterKernel::Radius][FilterKernel::Radius];
@@ -240,11 +199,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		float smallValue = 0.000001;
 		if (weightSum > smallValue) filteredValue = weightedValueSum / weightSum;
 		else {
-#ifdef VT_FLOAT4
-			filteredValue = (float4)RaytracedReflection::InvalidReflectionAlphaValue;
-#else
 			filteredValue = Rtao::InvalidAOCoefficientValue;
-#endif
 		}
 	}
 

@@ -9,6 +9,10 @@
 #define GAUSSIAN_KERNEL_3X3
 #endif 
 
-#include "AtrousWaveletTransformFilterCS.hlsli"
+#ifdef VT_FLOAT4
+#include "AtrousWaveletTransformFilterCS_F4.hlsli"
+#else
+#include "AtrousWaveletTransformFilterCS_F1.hlsli"
+#endif
 
 #endif // __EDGESTOPPINGFILTER_GAUSSIAN3X3_CS_HLSL

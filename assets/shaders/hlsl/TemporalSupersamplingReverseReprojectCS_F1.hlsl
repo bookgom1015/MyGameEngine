@@ -28,24 +28,14 @@ Texture2D<SVGF::DepthPartialDerivativeMapFormat>		gi_DepthPartialDerivative	: re
 Texture2D<GBuffer::NormalDepthMapFormat>				gi_ReprojectedNormalDepth	: register(t2);
 Texture2D<GBuffer::NormalDepthMapFormat>				gi_CachedNormalDepth		: register(t3);
 Texture2D<GBuffer::VelocityMapFormat>					gi_Velocity					: register(t4);
-#ifdef VT_FLOAT4
-Texture2D<SVGF::ValueMapFormat_F4>						gi_CachedValue				: register(t5);
-Texture2D<SVGF::ValueSquaredMeanMapFormat_F4>			gi_CachedValueSquaredMean	: register(t7);
-#else
 Texture2D<SVGF::ValueMapFormat_F1>						gi_CachedValue				: register(t5);
 Texture2D<SVGF::ValueSquaredMeanMapFormat_F1>			gi_CachedValueSquaredMean	: register(t7);
-#endif
 Texture2D<SVGF::TsppMapFormat>							gi_CachedTspp				: register(t6);
 Texture2D<SVGF::RayHitDistanceFormat>					gi_CachedRayHitDistance		: register(t8);
 
 RWTexture2D<SVGF::TsppMapFormat>						go_CachedTspp				: register(u0);
-#ifdef VT_FLOAT4
-RWTexture2D<SVGF::ValueMapFormat_F4>					go_CachedValue				: register(u1);
-RWTexture2D<SVGF::ValueSquaredMeanMapFormat_F4>			go_CachedSquaredMean		: register(u2);
-#else
 RWTexture2D<SVGF::ValueMapFormat_F1>					go_CachedValue				: register(u1);
 RWTexture2D<SVGF::ValueSquaredMeanMapFormat_F1>			go_CachedSquaredMean		: register(u2);
-#endif
 RWTexture2D<SVGF::TsppSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u3);
 
 float4 BilateralResampleWeights(
@@ -137,43 +127,13 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	float4 weights = BilateralResampleWeights(reprojDepth, reprojNormal, cacheDepths, cacheNormals, cachePixelOffset, DTid, cacheIndices, ddxy);
 
-#ifdef VT_FLOAT4
-	uint2 size;
-	gi_CachedValue.GetDimensions(size.x, size.y);
-
-	float dx = 1.0 / size.x;
-	float dy = 1.0 / size.y;
-#endif
-
-#ifdef VT_FLOAT4
-	// Invalidate weights for invalid values in the cache.
-	float4 vCacheValues[4];
-
-	vCacheValues[0] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex					, 0);
-	vCacheValues[1] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, 0)	, 0);
-	vCacheValues[2] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(0, dy)	, 0);
-	vCacheValues[3] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, dy)	, 0);
-
-	weights.x = vCacheValues[0].a != RaytracedReflection::InvalidReflectionAlphaValue ? weights.x : 0;
-	weights.y = vCacheValues[1].a != RaytracedReflection::InvalidReflectionAlphaValue ? weights.y : 0;
-	weights.z = vCacheValues[2].a != RaytracedReflection::InvalidReflectionAlphaValue ? weights.z : 0;
-	weights.w = vCacheValues[3].a != RaytracedReflection::InvalidReflectionAlphaValue ? weights.w : 0;
-
-	float weightSum = dot(1, weights);
-#else
 	// Invalidate weights for invalid values in the cache.
 	float4 vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 	weights = vCacheValues != Rtao::InvalidAOCoefficientValue ? weights : 0;
 	float weightSum = dot(1, weights);
-#endif
 
-#ifdef VT_FLOAT4
-	float4 cachedValue = 0;
-	float4 cachedValueSquaredMean = 0;
-#else
 	float cachedValue = Rtao::InvalidAOCoefficientValue;
 	float cachedValueSquaredMean = 0;
-#endif
 	float cachedRayHitDist = 0;
 
 	uint tspp;
@@ -200,36 +160,11 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		tspp = round(cachedTspp);
 
 		if (tspp > 0) {
-		#ifdef VT_FLOAT4
-			vCacheValues[0] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex					, 0);
-			vCacheValues[1] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, 0)	, 0);
-			vCacheValues[2] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(0, dy)	, 0);
-			vCacheValues[3] = gi_CachedValue.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, dy)	, 0);
-
-			{
-				[unroll]
-				for (int i = 0; i < 4; ++i)
-					cachedValue += nWeights[i] * float4(vCacheValues[i].rgb, 1);
-			}
-
-			float4 vCachedValueSquaredMeans[4];
-			vCachedValueSquaredMeans[0] = gi_CachedValueSquaredMean.SampleLevel(gsamPointClamp, adjustedCacheTex					, 0);
-			vCachedValueSquaredMeans[1] = gi_CachedValueSquaredMean.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, 0)	, 0);
-			vCachedValueSquaredMeans[2] = gi_CachedValueSquaredMean.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(0, dy)	, 0);
-			vCachedValueSquaredMeans[3] = gi_CachedValueSquaredMean.SampleLevel(gsamPointClamp, adjustedCacheTex + float2(dx, dy)	, 0);
-
-			{
-				[unroll]
-				for (int i = 0; i < 4; ++i)
-					cachedValueSquaredMean += nWeights[i] * float4(vCachedValueSquaredMeans[i].rgb, 1);
-			}
-		#else
 			vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedValue = dot(nWeights, vCacheValues);
 
 			float4 vCachedValueSquaredMean = gi_CachedValueSquaredMean.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedValueSquaredMean = dot(nWeights, vCachedValueSquaredMean);
-		#endif
 
 			float4 vCachedRayHitDist = gi_CachedRayHitDistance.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedRayHitDist = dot(nWeights, vCachedRayHitDist);

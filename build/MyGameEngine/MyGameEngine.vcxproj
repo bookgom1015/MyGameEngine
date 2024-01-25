@@ -321,7 +321,8 @@
     <None Include="..\..\assets\shaders\glsl\Default.vert" />
     <None Include="..\..\assets\shaders\glsl\Shadow.frag" />
     <None Include="..\..\assets\shaders\glsl\Shadow.vert" />
-    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_F4.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_F1.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli" />
@@ -457,13 +458,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_F4.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CalculatePartialDerivativeCS.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_F4.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
@@ -475,10 +476,10 @@
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_F4.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_F1.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -562,6 +563,26 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_F4.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_F1.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_F1.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_F1.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

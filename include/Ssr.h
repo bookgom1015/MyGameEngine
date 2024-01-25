@@ -17,6 +17,7 @@ namespace Ssr {
 			ESI_BackBuffer,
 			ESI_Normal,
 			ESI_Depth,
+			ESI_RMS,
 			Count
 		};
 	}
@@ -55,7 +56,8 @@ namespace Ssr {
 			GpuResource* const backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_rms);
 
 	private:
 		void BuildDescriptors();

@@ -15,7 +15,7 @@ namespace {
 	std::string CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CalcLocalMeanVarianceCS", "CalcLocalMeanVarianceCS_F4" };
 	std::string FillInCheckerboardCS = "FillInCheckerboardCS";
 	std::string EdgeStoppingFilter_Gaussian3x3CS[SVGF::Value::Count] = { "EdgeStoppingFilter_Gaussian3x3CS_F1", "EdgeStoppingFilter_Gaussian3x3CS_F4" };
-	std::string DisocclusionBlur3x3CS = "DisocclusionBlur3x3CS";
+	std::string DisocclusionBlur3x3CS[SVGF::Value::Count] = { "DisocclusionBlur3x3CS_F1", "DisocclusionBlur3x3CS_F4" };
 }
 
 SVGFClass::SVGFClass() {
@@ -43,27 +43,27 @@ BOOL SVGFClass::Initialize(ID3D12Device5* const device, ShaderManager* const man
 }
 
 BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
-	DxcDefine defines[] = { { L"VT_FLOAT4", L"1" } };
-
 	{
-		const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS.hlsl";		
 		{
+			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_F1.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Float1]));
 		}
 		{
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
+			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_F4.hlsl";
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Float4]));
 		}
 	}
 	{
-		const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS.hlsl";
 		{
+			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_F1.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Float1]));
 		}
 		{
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
+			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_F4.hlsl";
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Float4]));
 		}
 	}
@@ -73,13 +73,14 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, PartialDerivativeCS));
 	}
 	{
-		const auto path = filePath + L"CalculateLocalMeanVarianceCS.hlsl";
 		{
+			const auto path = filePath + L"CalculateLocalMeanVarianceCS_F1.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Float1]));
 		}
 		{
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
+			const auto path = filePath + L"CalculateLocalMeanVarianceCS_F4.hlsl";
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Float4]));
 		}
 	}
@@ -95,14 +96,22 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float1]));
 		}
 		{
+			DxcDefine defines[] = { { L"VT_FLOAT4", L"1" } };
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float4]));
 		}
 	}
 	{
-		const auto path = filePath + L"DisocclusionBlur3x3CS.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-		CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS));
+		{
+			const auto path = filePath + L"DisocclusionBlur3x3CS_F1.hlsl";
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Float1]));
+		}
+		{
+			const auto path = filePath + L"DisocclusionBlur3x3CS_F4.hlsl";
+			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Float4]));
+		}
 	}
 
 	return TRUE;
@@ -401,13 +410,17 @@ BOOL SVGFClass::BuildPSO() {
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC disocclusionBlurPsoDesc = {};
 		disocclusionBlurPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DisocclusionBlur].Get();
+		disocclusionBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
-			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS);
+			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Float1]);
 			disocclusionBlurPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		disocclusionBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(
-			&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_F1])));
+		{
+			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Float4]);
+			disocclusionBlurPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
+		}
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_F4])));
 	}
 
 	return TRUE;
@@ -640,7 +653,7 @@ void SVGFClass::BlendWithCurrentFrame(
 	D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
 	const auto hCachedValue = mhCachedValueGpus[type == Value::E_Float1 ? SVGF::Descriptor::CachedValue::ES_F1 : SVGF::Descriptor::CachedValue::ES_F4];
-	const auto hCachedSquaredMean = mhCachedValueGpus[type == Value::E_Float1 ? SVGF::Descriptor::CachedValue::ES_F1 :SVGF::Descriptor::CachedValue::ES_F4];
+	const auto hCachedSquaredMean = mhCachedSquaredMeanGpus[type == Value::E_Float1 ? Descriptor::CachedSquaredMean::ES_F1 : Descriptor::CachedSquaredMean::ES_F4];
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ECB_TsspBlendWithCurrentFrame, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_AOCoefficient, si_value);
@@ -702,8 +715,10 @@ void SVGFClass::BlurDisocclusion(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_value,
 		UINT width, UINT height,
-		UINT lowTsppBlurPasses) {
-	cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur].Get());
+		UINT lowTsppBlurPasses,
+		Value::Type type) {
+	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur_F1].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur_F4].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_DisocclusionBlur].Get());
 
 	UINT values[2] = { width, height };

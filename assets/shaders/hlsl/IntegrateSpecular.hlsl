@@ -71,7 +71,6 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float NdotV = max(dot(normalW, viewW), 0);
 
 	const float4 reflection = gi_Reflection.Sample(gsamLinearClamp, pin.TexC);
-	const float alpha = reflection.a;
 
 	const float shiness = 1 - roughness;
 	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
@@ -83,14 +82,17 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 kD = 1 - kS;
 
 	const float2 envBRDF = gi_BrdfLUT.Sample(gsamLinearClamp, float2(NdotV, roughness));
-	const float3 specRadiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
+	const float3 specBias = (kS * envBRDF.x + envBRDF.y);
+	const float3 specRadiance = prefilteredColor;
+	const float3 reflectionRadiance = reflection.rgb;
+	const float specAlpha = reflection.a;
 
-	const float3 reflectionRadiance = shiness * (kS * envBRDF.x + envBRDF.y) * reflection.rgb;
+	float3 integratedSpecRadiance = (1 - specAlpha) * specRadiance + specAlpha * reflectionRadiance;
+	integratedSpecRadiance *= specBias;
 
-	const float3 integratedSpecRadiance = (1 - alpha) * specRadiance + alpha * reflectionRadiance;
 	const float aoCoeff = gi_AOCoeiff.Sample(gsamLinearClamp, pin.TexC);
 
-	return float4(radiance + aoCoeff * shiness * integratedSpecRadiance, 1);
+	return float4(radiance + aoCoeff * integratedSpecRadiance, 1);
 }
 
 #endif // __INTEGRATESPECULAR_HLSL__
