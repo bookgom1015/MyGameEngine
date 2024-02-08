@@ -2,7 +2,7 @@
 #define __RAYTRACEDREFLECTION_HLSLI__
 
 namespace RaytracedReflection {
-	static const float InvalidReflectionAlphaValue = 0;
+	static const float InvalidReflectionAlphaValue = -1;
 	static const float RayHitDistanceOnMiss = 0;
 	bool HasReflectionRayHitAnyGeometry(float tHit) {
 		return tHit != RayHitDistanceOnMiss;

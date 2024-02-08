@@ -16,15 +16,15 @@
 
 ConstantBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> cbBlend : register(b0);
 
-Texture2D<SVGF::ValueMapFormat_F1>						gi_CurrentFrameValue						: register(t0);
+Texture2D<SVGF::ValueMapFormat_Contrast>				gi_CurrentFrameValue						: register(t0);
 Texture2D<SVGF::LocalMeanVarianceMapFormat>				gi_CurrentFrameLocalMeanVariance			: register(t1);
 Texture2D<SVGF::RayHitDistanceFormat>					gi_CurrentFrameRayHitDistance				: register(t2);
-Texture2D<SVGF::ValueMapFormat_F1>						gi_CachedValue								: register(t3);
-Texture2D<SVGF::ValueSquaredMeanMapFormat_F1>			gi_CachedSquaredMean						: register(t4);
+Texture2D<SVGF::ValueMapFormat_Contrast>				gi_CachedValue								: register(t3);
+Texture2D<SVGF::ValueSquaredMeanMapFormat_Contrast>		gi_CachedSquaredMean						: register(t4);
 Texture2D<SVGF::TsppSquaredMeanRayHitDistanceFormat>	gi_ReprojTsppValueSquaredMeanRayHitDist		: register(t5);
 
-RWTexture2D<SVGF::ValueMapFormat_F1>					gio_Value				: register(u0);
-RWTexture2D<SVGF::ValueSquaredMeanMapFormat_F1>			gio_ValueSquaredMean	: register(u2);
+RWTexture2D<SVGF::ValueMapFormat_Contrast>				gio_Value				: register(u0);
+RWTexture2D<SVGF::ValueSquaredMeanMapFormat_Contrast>	gio_ValueSquaredMean	: register(u2);
 RWTexture2D<SVGF::TsppMapFormat>						gio_Tspp				: register(u1);
 RWTexture2D<SVGF::RayHitDistanceFormat>					gio_RayHitDistance		: register(u3);
 RWTexture2D<SVGF::VarianceMapFormat>					go_Variance				: register(u4);
@@ -45,8 +45,8 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	float value = isCurrentFrameValueActive ? gi_CurrentFrameValue[DTid] : Rtao::InvalidAOCoefficientValue;
 	const bool IsValidValue = value != Rtao::InvalidAOCoefficientValue;
 	float valueSquaredMean = IsValidValue ? value * value : Rtao::InvalidAOCoefficientValue;
-	float rayHitDistance = Rtao::InvalidAOCoefficientValue;
-	float variance = Rtao::InvalidAOCoefficientValue;
+	float rayHitDistance = 0;
+	float variance = 0;
 
 	if (tspp > 0) {
 		const uint MaxTspp = 1 / cbBlend.MinSmoothingFactor;

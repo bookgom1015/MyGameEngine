@@ -70,7 +70,7 @@ void RadianceRayGen() {
 	float3 normal = gi_Normal[launchIndex].xyz;
 	float depth = gi_Depth[launchIndex];
 	
-	if (depth == GBuffer::InvalidNormDepthValue) {
+	if (depth == GBuffer::InvalidDepthValue) {
 		go_Reflection[launchIndex] = (float4)RaytracedReflection::InvalidReflectionAlphaValue;
 		go_RayHitDist[launchIndex] = RaytracedReflection::RayHitDistanceOnMiss;
 		return;
@@ -126,6 +126,7 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 
 	const float3 normals[3] = { vertices[0].Normal, vertices[1].Normal, vertices[2].Normal };
 	const float3 normal = HitAttribute(normals, attr);
+	const float3 normalW = mul(normal, (float3x3)lcb_Obj.World);
 
 	const float2 texCoords[3] = { vertices[0].TexCoord, vertices[1].TexCoord, vertices[2].TexCoord };
 	const float2 texc = HitAttribute(texCoords, attr);
@@ -143,7 +144,7 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	// Trace shadow rays
 	//
 	RayDesc ray;
-	ray.Origin = hitPosition + 0.1 * normal;
+	ray.Origin = hitPosition + 0.1 * normalW;
 	ray.Direction = -cb_Pass.Lights[0].Direction;
 	ray.TMin = 0;
 	ray.TMax = 1000;
@@ -173,30 +174,27 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 	const float3 fresnelR0 = lerp((float3)0.08 * lcb_Mat.Specular, albedo.rgb, metalic);
 
 	const float3 fromEye = normalize(hitPosition - origin);
-	const float3 toLight = reflect(fromEye, normal);
-
 	const float3 viewW = -fromEye;
-	const float3 halfW = normalize(viewW + toLight);
 
-	const float3 kS = FresnelSchlickRoughness(saturate(dot(normal, viewW)), fresnelR0, roughness);
+	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
 		
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
-	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normal, viewW, shadowFactor), (float3)0);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normalW, viewW, shadowFactor), (float3)0);
 
-	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normal, 0).xyz;
+	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).xyz;
 	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;
 
-	const float3 reflectedW = reflect(-viewW, normal);
-	const float NdotV = max(dot(normal, viewW), 0);
+	const float3 reflectedW = reflect(fromEye, normalW);
+	const float NdotV = max(dot(normalW, viewW), 0);
 	const float MaxMipLevel = 5;
 
 	const float3 prefilteredColor = gi_Prefiltered.SampleLevel(gsamLinearClamp, reflectedW, roughness * MaxMipLevel).rgb;
 	const float2 envBRDF = gi_BrdfLUT.SampleLevel(gsamLinearClamp, float2(NdotV, roughness), 0);
 	const float3 specRadiance = prefilteredColor * (kS * envBRDF.x + envBRDF.y);
 
-	const float3 ambient = kD * diffuseIrradiance + shiness * specRadiance;
+	const float3 ambient = kD * diffuseIrradiance + specRadiance;
 
 	payload.Irrad = float4(radiance + ambient, samp.a);
 	payload.tHit = RayTCurrent();

@@ -28,14 +28,14 @@ Texture2D<SVGF::DepthPartialDerivativeMapFormat>		gi_DepthPartialDerivative	: re
 Texture2D<GBuffer::NormalDepthMapFormat>				gi_ReprojectedNormalDepth	: register(t2);
 Texture2D<GBuffer::NormalDepthMapFormat>				gi_CachedNormalDepth		: register(t3);
 Texture2D<GBuffer::VelocityMapFormat>					gi_Velocity					: register(t4);
-Texture2D<SVGF::ValueMapFormat_F1>						gi_CachedValue				: register(t5);
-Texture2D<SVGF::ValueSquaredMeanMapFormat_F1>			gi_CachedValueSquaredMean	: register(t7);
+Texture2D<SVGF::ValueMapFormat_Contrast>				gi_CachedValue				: register(t5);
+Texture2D<SVGF::ValueSquaredMeanMapFormat_Contrast>		gi_CachedValueSquaredMean	: register(t7);
 Texture2D<SVGF::TsppMapFormat>							gi_CachedTspp				: register(t6);
 Texture2D<SVGF::RayHitDistanceFormat>					gi_CachedRayHitDistance		: register(t8);
 
 RWTexture2D<SVGF::TsppMapFormat>						go_CachedTspp				: register(u0);
-RWTexture2D<SVGF::ValueMapFormat_F1>					go_CachedValue				: register(u1);
-RWTexture2D<SVGF::ValueSquaredMeanMapFormat_F1>			go_CachedSquaredMean		: register(u2);
+RWTexture2D<SVGF::ValueMapFormat_Contrast>				go_CachedValue				: register(u1);
+RWTexture2D<SVGF::ValueSquaredMeanMapFormat_Contrast>	go_CachedSquaredMean		: register(u2);
 RWTexture2D<SVGF::TsppSquaredMeanRayHitDistanceFormat>	go_ReprojectedCachedValues	: register(u3);
 
 float4 BilateralResampleWeights(
@@ -160,7 +160,6 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		tspp = round(cachedTspp);
 
 		if (tspp > 0) {
-			vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
 			cachedValue = dot(nWeights, vCacheValues);
 
 			float4 vCachedValueSquaredMean = gi_CachedValueSquaredMean.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;

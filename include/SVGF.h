@@ -155,18 +155,18 @@ namespace SVGF {
 
 	namespace PipelineState {
 		enum Type {
-			E_TemporalSupersamplingReverseReproject_F1 = 0,
-			E_TemporalSupersamplingReverseReproject_F4,
-			E_TemporalSupersamplingBlendWithCurrentFrame_F1,
-			E_TemporalSupersamplingBlendWithCurrentFrame_F4,
+			E_TemporalSupersamplingReverseReproject_Contrast = 0,
+			E_TemporalSupersamplingReverseReproject_HDR,
+			E_TemporalSupersamplingBlendWithCurrentFrame_Contrast,
+			E_TemporalSupersamplingBlendWithCurrentFrame_HDR,
 			E_CalcDepthPartialDerivative,
-			E_CalcLocalMeanVariance_F1,
-			E_CalcLocalMeanVariance_F4,
+			E_CalcLocalMeanVariance_Contrast,
+			E_CalcLocalMeanVariance_HDR,
 			E_FillInCheckerboard,
-			E_AtrousWaveletTransformFilter_F1,
-			E_AtrousWaveletTransformFilter_F4,
-			E_DisocclusionBlur_F1,
-			E_DisocclusionBlur_F4,
+			E_AtrousWaveletTransformFilter_Contrast,
+			E_AtrousWaveletTransformFilter_HDR,
+			E_DisocclusionBlur_Contrast,
+			E_DisocclusionBlur_HDR,
 			Count
 		};
 	}
@@ -190,16 +190,16 @@ namespace SVGF {
 
 		namespace CachedValue {
 			enum {
-				E_F1 = 0,
-				E_F4,
+				E_Contrast = 0,
+				E_Color_HDR,
 				Count
 			};
 		}
 
 		namespace CachedSquaredMean {
 			enum {
-				E_F1 = 0,
-				E_F4,
+				E_Contrast = 0,
+				E_Color_HDR,
 				Count
 			};
 		}
@@ -228,20 +228,20 @@ namespace SVGF {
 
 		namespace CachedValue {
 			enum {
-				ES_F1 = 0,
-				EU_F1,
-				ES_F4,
-				EU_F4,
+				ES_Contrast = 0,
+				EU_Contrast,
+				ES_Color_HDR,
+				EU_Color_HDR,
 				Count
 			};
 		}
 
 		namespace CachedSquaredMean {
 			enum {
-				ES_F1 = 0,
-				EU_F1,
-				ES_F4,
-				EU_F4,
+				ES_Contrast = 0,
+				EU_Contrast,
+				ES_Color_HDR,
+				EU_Color_HDR,
 				Count
 			};
 		}
@@ -249,8 +249,8 @@ namespace SVGF {
 
 	namespace Value {
 		enum Type {
-			E_Float1 = 0,
-			E_Float4,
+			E_Contrast = 0,
+			E_Color_HDR,
 			Count
 		};
 	}

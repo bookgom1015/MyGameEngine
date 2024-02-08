@@ -21,14 +21,14 @@ cbuffer cbRootConstants : register(b0) {
 Texture2D<GBuffer::DepthMapFormat>					gi_Depth		: register(t0);
 Texture2D<SVGF::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
 
-RWTexture2D<SVGF::ValueMapFormat_F1>				gio_Value		: register(u0);
+RWTexture2D<SVGF::ValueMapFormat_HDR>				gio_Value		: register(u0);
 
 // Group shared memory cache for the row aggregated results.
-static const uint NumValuesToLoadPerRowOrColumn = SVGF::Default::ThreadGroup::Width + (FilterKernel::Width - 1);
+static const uint NumValuesToLoadPerRowOrColumn = SVGF::Default::ThreadGroup::Width	+ (FilterKernel::Width - 1);
 groupshared float PackedDepthCache[NumValuesToLoadPerRowOrColumn][8];
 // 32bit float filtered value.
-groupshared float FilteredResultCache[NumValuesToLoadPerRowOrColumn][8];
-groupshared float PackedValueCache[NumValuesToLoadPerRowOrColumn][8];
+groupshared float4 FilteredResultCache[NumValuesToLoadPerRowOrColumn][8];
+groupshared float4 PackedValueCache[NumValuesToLoadPerRowOrColumn][8];
 
 // Find a dispatchThreadID with steps in between the group threads and groups interleaved to cover all pixels.
 uint2 GetPixelIndex(uint2 Gid, uint2 GTid) {
@@ -59,7 +59,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 		// Load all the contributing columns for each row.
 		int2 pixel = GroupKernelBasePixel + GTid4x16 * gStep;
-		float value = Rtao::InvalidAOCoefficientValue;
+		float4 value = (float4)RaytracedReflection::InvalidReflectionAlphaValue;
 		float depth = 0;
 
 		// The lane is out of bounds of the GroupDim + kernel, but could be within bounds of the input texture,
@@ -81,8 +81,8 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 		// Filter the values for the first GroupDim columns.
 		{
 			// Accumulate for the whole kernel width.
-			float weightedValueSum = 0;
-			float gaussianWeightedValueSum = 0;
+			float4 weightedValueSum = 0;
+			float4 gaussianWeightedValueSum = 0;
 			float weightSum = 0;
 			float gaussianWeightedSum = 0;
 
@@ -96,13 +96,13 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Get values for the kernel center.
 			uint kcLaneIndex = RowKernelStartLaneIndex + FilterKernel::Radius;
-			float kcValue = WaveReadLaneAt(value, kcLaneIndex);
+			float4 kcValue = WaveReadLaneAt(value, kcLaneIndex);
 			float kcDepth = WaveReadLaneAt(depth, kcLaneIndex);
 
 			// Initialize the first 8 lanes to the center cell contribution of the kernel.
 			// This covers the remainder of 1 in FilterKernel::Width / 2 used in the loop below.
 			{
-				if (GTid4x16.x < GroupDim.x && kcValue != Rtao::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue) {
+				if (GTid4x16.x < GroupDim.x && kcValue.a != RaytracedReflection::InvalidReflectionAlphaValue && kcDepth != GBuffer::InvalidNormDepthValue) {
 					float w_h = FilterKernel::Kernel1D[FilterKernel::Radius];
 					gaussianWeightedValueSum = w_h * kcValue;
 					gaussianWeightedSum = w_h;
@@ -120,10 +120,10 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 				uint kernelCellIndex = KernelCellIndexOffset + c;
 
 				uint laneToReadFrom = RowKernelStartLaneIndex + kernelCellIndex;
-				float cValue = WaveReadLaneAt(value, laneToReadFrom);
+				float4 cValue = WaveReadLaneAt(value, laneToReadFrom);
 				float cDepth = WaveReadLaneAt(depth, laneToReadFrom);
 
-				if (cValue != Rtao::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue && cDepth != GBuffer::InvalidNormDepthValue) {
+				if (cValue.a != RaytracedReflection::InvalidReflectionAlphaValue && kcDepth != GBuffer::InvalidNormDepthValue && cDepth != GBuffer::InvalidNormDepthValue) {
 					float w_h = FilterKernel::Kernel1D[kernelCellIndex];
 
 					// Simple depth test with tolerance growing as the kernel radius increases.
@@ -149,8 +149,9 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Store only the valid results, i.e. first GroupDim columns.
 			if (GTid4x16.x < GroupDim.x) {
-				float gaussianFilteredValue = gaussianWeightedSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightedSum : Rtao::InvalidAOCoefficientValue;
-				float filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
+				float mag = sqrt(dot(gaussianWeightedSum, gaussianWeightedSum));
+				float4 gaussianFilteredValue = mag > 1e-6 ? gaussianWeightedValueSum / gaussianWeightedSum : (float4)RaytracedReflection::InvalidReflectionAlphaValue;
+				float4 filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
 
 				FilteredResultCache[GTid4x16.y][GTid4x16.x] = filteredValue;
 			}
@@ -160,13 +161,13 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 	// Kernel center values.
-	float kcValue = PackedValueCache[GTid.y + FilterKernel::Radius][GTid.x];
-	float filteredValue = kcValue;
+	float4 kcValue = PackedValueCache[GTid.y + FilterKernel::Radius][GTid.x];
+	float4 filteredValue = kcValue;
 	float kcDepth = PackedDepthCache[GTid.y + FilterKernel::Radius][GTid.x];
 
 	if (blurStrength >= 0.01 && kcDepth != GBuffer::InvalidNormDepthValue) {
-		float weightedValueSum = 0;
-		float gaussianWeightedValueSum = 0;
+		float4 weightedValueSum = 0;
+		float4 gaussianWeightedValueSum = 0;
 		float weightSum = 0;
 		float gaussianWeightSum = 0;
 
@@ -176,9 +177,9 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 			uint rowID = GTid.y + r;
 
 			float rDepth = PackedDepthCache[rowID][GTid.x];
-			float rFilteredValue = FilteredResultCache[rowID][GTid.x];
+			float4 rFilteredValue = FilteredResultCache[rowID][GTid.x];
 
-			if (rDepth != GBuffer::InvalidNormDepthValue && rFilteredValue != Rtao::InvalidAOCoefficientValue) {
+			if (rDepth != GBuffer::InvalidNormDepthValue && rFilteredValue.a != RaytracedReflection::InvalidReflectionAlphaValue) {
 				float w_h = FilterKernel::Kernel1D[r];
 
 				// Simple depth test with tolerance growing as the kernel radius increases.
@@ -195,9 +196,12 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 			}
 		}
 
-		float gaussianFilteredValue = gaussianWeightSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightSum : Rtao::InvalidAOCoefficientValue;
+		float mag = sqrt(dot(gaussianWeightSum, gaussianWeightSum));
+		float4 gaussianFilteredValue = mag > 1e-6 ? gaussianWeightedValueSum / gaussianWeightSum : (float4)RaytracedReflection::InvalidReflectionAlphaValue;
+
+		mag = sqrt(dot(weightSum, weightSum));
 		filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
-		filteredValue = filteredValue != Rtao::InvalidAOCoefficientValue ? lerp(kcValue, filteredValue, blurStrength) : filteredValue;
+		filteredValue = filteredValue.a != RaytracedReflection::InvalidReflectionAlphaValue ? lerp(kcValue, filteredValue, blurStrength) : filteredValue;
 	}
 
 	gio_Value[DTid] = filteredValue;
@@ -220,7 +224,7 @@ void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_Grou
 
 		GroupMemoryBarrierWithGroupSync();
 
-		if (FilteredResultCache[0][0] == 0) return;
+		if (FilteredResultCache[0][0].a == 0) return;
 	}
 
 	FilterHorizontally(Gid, GI);

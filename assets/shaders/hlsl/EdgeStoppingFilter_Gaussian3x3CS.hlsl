@@ -10,9 +10,9 @@
 #endif 
 
 #ifdef VT_FLOAT4
-#include "AtrousWaveletTransformFilterCS_F4.hlsli"
+#include "AtrousWaveletTransformFilterCS_Color.hlsli"
 #else
-#include "AtrousWaveletTransformFilterCS_F1.hlsli"
+#include "AtrousWaveletTransformFilterCS_Contrast.hlsli"
 #endif
 
 #endif // __EDGESTOPPINGFILTER_GAUSSIAN3X3_CS_HLSL

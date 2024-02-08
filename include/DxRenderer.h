@@ -113,6 +113,7 @@ private:
 	BOOL UpdateObjectCBs(FLOAT delta);
 	BOOL UpdateMaterialCBs(FLOAT delta);
 	BOOL UpdateConvEquirectToCubeCB(FLOAT delta);
+	BOOL UpdateCB_SVGF(FLOAT delta);
 	BOOL UpdateRtaoCB(FLOAT delta);
 	BOOL UpdateRrCB(FLOAT delta);
 	BOOL UpdateDebugMapCB(FLOAT delta);

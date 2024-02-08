@@ -176,6 +176,7 @@ BOOL RaytracedReflectionClass::BuildPSO() {
 
 BOOL RaytracedReflectionClass::BuildShaderTables(
 		const std::vector<RenderItem*>& ritems,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
 #ifdef _DEBUG
 	// A shader name look-up table for shader table debug print out.
@@ -234,6 +235,7 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 		ShaderTable hitGroupTable(md3dDevice, ritemsSize * Ray::Count, shaderRecordSize);
 		CheckReturn(hitGroupTable.Initialze());
 
+		UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 		UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 		
 		mShadowRayOffset = ritemsSize;
@@ -241,6 +243,7 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 		for (auto shaderId : hitGroupShaderIds) {
 			for (const auto ritem : ritems) {
 				RootSignature::Local::RootArguments rootArgs;
+				rootArgs.CB_Object = cb_obj + ritem->ObjCBIndex * objCBByteSize;
 				rootArgs.CB_Material = cb_mat + ritem->Material->MatCBIndex * matCBByteSize;
 				rootArgs.SB_Vertices = ritem->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
 				rootArgs.AB_Indices = ritem->Geometry->IndexBufferGPU->GetGPUVirtualAddress();

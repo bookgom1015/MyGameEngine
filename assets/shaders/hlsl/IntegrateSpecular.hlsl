@@ -75,9 +75,6 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float shiness = 1 - roughness;
 	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
 
-	const float3 lightW = reflect(-viewW, normalW);
-	const float3 halfW = normalize(viewW + lightW);
-
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
 

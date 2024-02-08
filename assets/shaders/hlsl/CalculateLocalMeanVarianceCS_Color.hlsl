@@ -25,7 +25,7 @@
 
 ConstantBuffer<CalcLocalMeanVarianceConstants> cb : register(b0);
 
-Texture2D<SVGF::ValueMapFormat_F4>				gi_Value				: register(t0);
+Texture2D<SVGF::ValueMapFormat_HDR>				gi_Value				: register(t0);
 RWTexture2D<SVGF::LocalMeanVarianceMapFormat>	go_LocalMeanVariance	: register(u0);
 
 // Group shared memory cache for the row aggregated results.

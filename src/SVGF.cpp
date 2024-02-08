@@ -9,13 +9,13 @@ using namespace SVGF;
 using namespace DirectX;
 
 namespace {
-	std::string TsppReprojCS[SVGF::Value::Count] = { "TsppReprojCS", "TsppReprojCS_F4" };
-	std::string TsppBlendCS[SVGF::Value::Count] = { "TsppBlendCS", "TsppBlendCS_F4" };
+	std::string TsppReprojCS[SVGF::Value::Count] = { "TsppReprojCS", "TsppReprojCS_HDR" };
+	std::string TsppBlendCS[SVGF::Value::Count] = { "TsppBlendCS", "TsppBlendCS_HDR" };
 	std::string PartialDerivativeCS = "PartialDerivativeCS";
-	std::string CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CalcLocalMeanVarianceCS", "CalcLocalMeanVarianceCS_F4" };
+	std::string CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CalcLocalMeanVarianceCS_Contrast", "CalcLocalMeanVarianceCS_HDR" };
 	std::string FillInCheckerboardCS = "FillInCheckerboardCS";
-	std::string EdgeStoppingFilter_Gaussian3x3CS[SVGF::Value::Count] = { "EdgeStoppingFilter_Gaussian3x3CS_F1", "EdgeStoppingFilter_Gaussian3x3CS_F4" };
-	std::string DisocclusionBlur3x3CS[SVGF::Value::Count] = { "DisocclusionBlur3x3CS_F1", "DisocclusionBlur3x3CS_F4" };
+	std::string EdgeStoppingFilter_Gaussian3x3CS[SVGF::Value::Count] = { "EdgeStoppingFilter_Gaussian3x3CS_Contrast", "EdgeStoppingFilter_Gaussian3x3CS_HDR" };
+	std::string DisocclusionBlur3x3CS[SVGF::Value::Count] = { "DisocclusionBlur3x3CS_Contrast", "DisocclusionBlur3x3CS_HDR" };
 }
 
 SVGFClass::SVGFClass() {
@@ -45,26 +45,26 @@ BOOL SVGFClass::Initialize(ID3D12Device5* const device, ShaderManager* const man
 BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 	{
 		{
-			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_F1.hlsl";
+			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_Contrast.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Contrast]));
 		}
 		{
-			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_F4.hlsl";
+			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_Color.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Color_HDR]));
 		}
 	}
 	{
 		{
-			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_F1.hlsl";
+			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_Contrast.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Contrast]));
 		}
 		{
-			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_F4.hlsl";
+			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_Color.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Color_HDR]));
 		}
 	}
 	{
@@ -74,14 +74,14 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 	}
 	{
 		{
-			const auto path = filePath + L"CalculateLocalMeanVarianceCS_F1.hlsl";
+			const auto path = filePath + L"CalculateLocalMeanVarianceCS_Contrast.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Contrast]));
 		}
 		{
-			const auto path = filePath + L"CalculateLocalMeanVarianceCS_F4.hlsl";
+			const auto path = filePath + L"CalculateLocalMeanVarianceCS_Color.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Color_HDR]));
 		}
 	}
 	{
@@ -93,24 +93,24 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 		const auto path = filePath + L"EdgeStoppingFilter_Gaussian3x3CS.hlsl";
 		{
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Contrast]));
 		}
 		{
 			DxcDefine defines[] = { { L"VT_FLOAT4", L"1" } };
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Color_HDR]));
 		}
 	}
 	{
 		{
-			const auto path = filePath + L"DisocclusionBlur3x3CS_F1.hlsl";
+			const auto path = filePath + L"DisocclusionBlur3x3CS_Contrast.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Float1]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Contrast]));
 		}
 		{
-			const auto path = filePath + L"DisocclusionBlur3x3CS_F4.hlsl";
+			const auto path = filePath + L"DisocclusionBlur3x3CS_Color.hlsl";
 			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
-			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Float4]));
+			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Color_HDR]));
 		}
 	}
 
@@ -319,16 +319,16 @@ BOOL SVGFClass::BuildPSO() {
 		tsppReprojPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Contrast]);
 			tsppReprojPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F1])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_Contrast])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Color_HDR]);
 			tsppReprojPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F4])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_HDR])));
 	}
 	// Temporal supersampling blend with current frame
 	{
@@ -337,16 +337,16 @@ BOOL SVGFClass::BuildPSO() {
 		tsppBlendPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Contrast]);
 			tsppBlendPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_F1])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_Contrast])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Color_HDR]);
 			tsppBlendPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_F4])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_HDR])));
 	}
 	// CalculateDepthPartialDerivative
 	{
@@ -367,16 +367,16 @@ BOOL SVGFClass::BuildPSO() {
 		calcLocalMeanVariancePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Contrast]);
 			calcLocalMeanVariancePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_F1])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_Contrast])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Color_HDR]);
 			calcLocalMeanVariancePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_F4])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_HDR])));
 	}
 	// FillInCheckerboard
 	{
@@ -396,15 +396,15 @@ BOOL SVGFClass::BuildPSO() {
 		atrousWaveletTransformFilterPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get();
 		atrousWaveletTransformFilterPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
-			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Contrast]);
 			atrousWaveletTransformFilterPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_F1])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_Contrast])));
 		{
-			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Color_HDR]);
 			atrousWaveletTransformFilterPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_F4])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_HDR])));
 	}
 	// Disocclusion blur
 	{
@@ -412,15 +412,15 @@ BOOL SVGFClass::BuildPSO() {
 		disocclusionBlurPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DisocclusionBlur].Get();
 		disocclusionBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
-			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Float1]);
+			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Contrast]);
 			disocclusionBlurPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_F1])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_Contrast])));
 		{
-			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Float4]);
+			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Color_HDR]);
 			disocclusionBlurPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_F4])));
+		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_HDR])));
 	}
 
 	return TRUE;
@@ -507,7 +507,7 @@ void SVGFClass::RunCalculatingLocalMeanVariance(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_value,
 		UINT width, UINT height,
 		BOOL checkerboardSamplingEnabled) {
-	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcLocalMeanVariance_F1].Get());
+	cmdList->SetPipelineState(mPsos[PipelineState::E_CalcLocalMeanVariance_Contrast].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcLocalMeanVariance].Get());
 
 	const auto rawLocalMeanVariance = mLocalMeanVarianceResources[SVGF::Resource::LocalMeanVariance::E_Raw].get();
@@ -567,12 +567,27 @@ void SVGFClass::ReverseReprojectPreviousFrame(
 		D3D12_GPU_DESCRIPTOR_HANDLE uo_cachedTspp,
 		UINT width, UINT height,
 		Value::Type type) {
-	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F1].Get());
-	else cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_F4].Get());
+	if (type == Value::E_Contrast) cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_Contrast].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_HDR].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_TemporalSupersamplingReverseReproject].Get());
 
-	const auto cachedValue = mCachedValues[type == Value::E_Float1 ? Resource::CachedValue::E_F1 : Resource::CachedValue::E_F4].get();
-	const auto cachedSquaredMean = mCachedSquaredMeans[type == Value::E_Float1 ? Resource::CachedSquaredMean::E_F1 : Resource::CachedSquaredMean::E_F4].get();
+	GpuResource* cachedValue;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE hCachedValue;
+	GpuResource* cachedSquaredMean;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE hCachedSquaredMean;
+	if (type == Value::E_Contrast) {
+		cachedValue = mCachedValues[Resource::CachedValue::E_Contrast].get();
+		hCachedValue = mhCachedValueGpus[Descriptor::CachedValue::EU_Contrast];
+		cachedSquaredMean = mCachedSquaredMeans[Resource::CachedSquaredMean::E_Contrast].get();
+		hCachedSquaredMean = mhCachedSquaredMeanGpus[Descriptor::CachedSquaredMean::EU_Contrast];
+	}
+	else {
+		cachedValue = mCachedValues[Resource::CachedValue::E_Color_HDR].get();
+		hCachedValue = mhCachedValueGpus[Descriptor::CachedValue::EU_Color_HDR];
+		cachedSquaredMean = mCachedSquaredMeans[Resource::CachedSquaredMean::E_Color_HDR].get();
+		hCachedSquaredMean = mhCachedSquaredMeanGpus[Descriptor::CachedSquaredMean::EU_Color_HDR];
+	}
+
 	const auto tsppValueSquaredMeanRayHitDistance = mTsppSquaredMeanRayHitDistance.get();
 
 	cachedValue->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -582,8 +597,6 @@ void SVGFClass::ReverseReprojectPreviousFrame(
 	GpuResource* resources[] = { cachedValue, cachedSquaredMean, tsppValueSquaredMeanRayHitDistance };
 	D3D12Util::UavBarriers(cmdList, resources, _countof(resources));
 
-	const auto hCachedValue = mhCachedValueGpus[type == Value::E_Float1 ? Descriptor::CachedValue::EU_F1 : Descriptor::CachedValue::EU_F4];
-	const auto hCachedSquaredMean = mhCachedSquaredMeanGpus[type == Value::E_Float1 ? Descriptor::CachedSquaredMean::EU_F1 : Descriptor::CachedSquaredMean::EU_F4];
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::TemporalSupersamplingReverseReproject::ECB_CrossBilateralFilter, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingReverseReproject::ESI_NormalDepth, si_normalDepth);
@@ -639,8 +652,8 @@ void SVGFClass::BlendWithCurrentFrame(
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_rayHitDistance,
 		UINT width, UINT height,
 		Value::Type type) {
-	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_F1].Get());
-	else cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_F4].Get());
+	if (type == Value::E_Contrast) cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_Contrast].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_HDR].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_TemporalSupersamplingBlendWithCurrentFrame].Get());
 
 	const auto rawVariance = mVarianceResources[SVGF::Resource::Variance::E_Raw].get();
@@ -652,8 +665,16 @@ void SVGFClass::BlendWithCurrentFrame(
 	disocclusionBlurStrength->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 
-	const auto hCachedValue = mhCachedValueGpus[type == Value::E_Float1 ? SVGF::Descriptor::CachedValue::ES_F1 : SVGF::Descriptor::CachedValue::ES_F4];
-	const auto hCachedSquaredMean = mhCachedSquaredMeanGpus[type == Value::E_Float1 ? Descriptor::CachedSquaredMean::ES_F1 : Descriptor::CachedSquaredMean::ES_F4];
+	CD3DX12_GPU_DESCRIPTOR_HANDLE hCachedValue;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE hCachedSquaredMean;
+	if (type == Value::E_Contrast) {
+		hCachedValue = mhCachedValueGpus[SVGF::Descriptor::CachedValue::ES_Contrast];
+		hCachedSquaredMean = mhCachedSquaredMeanGpus[Descriptor::CachedSquaredMean::ES_Contrast];
+	}
+	else {
+		hCachedValue = mhCachedValueGpus[SVGF::Descriptor::CachedValue::ES_Color_HDR];
+		hCachedSquaredMean = mhCachedSquaredMeanGpus[Descriptor::CachedSquaredMean::ES_Color_HDR];
+	}
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ECB_TsspBlendWithCurrentFrame, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_AOCoefficient, si_value);
@@ -689,8 +710,8 @@ void SVGFClass::ApplyAtrousWaveletTransformFilter(
 		UINT width, UINT height,
 		Value::Type type,
 		bool useSmoothingVar) {
-	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_F1].Get());
-	else cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_F4].Get());
+	if (type == Value::E_Contrast) cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_Contrast].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_HDR].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get());
 
 	const auto si_variance = mhVarianceResourcesGpus[useSmoothingVar ? SVGF::Descriptor::Variance::ES_Smoothed : SVGF::Descriptor::Variance::ES_Raw];
@@ -717,8 +738,8 @@ void SVGFClass::BlurDisocclusion(
 		UINT width, UINT height,
 		UINT lowTsppBlurPasses,
 		Value::Type type) {
-	if (type == Value::E_Float1) cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur_F1].Get());
-	else cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur_F4].Get());
+	if (type == Value::E_Contrast) cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur_Contrast].Get());
+	else cmdList->SetPipelineState(mPsos[PipelineState::E_DisocclusionBlur_HDR].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_DisocclusionBlur].Get());
 
 	UINT values[2] = { width, height };
@@ -782,36 +803,36 @@ void SVGFClass::BuildDescriptors() {
 		md3dDevice->CreateUnorderedAccessView(smoothedResource, nullptr, &uavDesc, mhVarianceResourcesCpus[Descriptor::Variance::EU_Smoothed]);
 	}
 	{
-		srvDesc.Format = ValueMapFormat_F1;
-		uavDesc.Format = ValueMapFormat_F1;
+		srvDesc.Format = ValueMapFormat_Contrast;
+		uavDesc.Format = ValueMapFormat_Contrast;
 
-		auto f1ValueResource = mCachedValues[Resource::CachedValue::E_F1]->Resource();
-		md3dDevice->CreateShaderResourceView(f1ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_F1]);
-		md3dDevice->CreateUnorderedAccessView(f1ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_F1]);
+		auto f1ValueResource = mCachedValues[Resource::CachedValue::E_Contrast]->Resource();
+		md3dDevice->CreateShaderResourceView(f1ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_Contrast]);
+		md3dDevice->CreateUnorderedAccessView(f1ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_Contrast]);
 	}
 	{
-		srvDesc.Format = ValueMapFormat_F4;
-		uavDesc.Format = ValueMapFormat_F4;
+		srvDesc.Format = ValueMapFormat_HDR;
+		uavDesc.Format = ValueMapFormat_HDR;
 
-		auto f4ValueResource = mCachedValues[Resource::CachedValue::E_F4]->Resource();
-		md3dDevice->CreateShaderResourceView(f4ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_F4]);
-		md3dDevice->CreateUnorderedAccessView(f4ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_F4]);
+		auto f4ValueResource = mCachedValues[Resource::CachedValue::E_Color_HDR]->Resource();
+		md3dDevice->CreateShaderResourceView(f4ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_Color_HDR]);
+		md3dDevice->CreateUnorderedAccessView(f4ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_Color_HDR]);
 	}
 	{
-		srvDesc.Format = ValueSquaredMeanMapFormat_F1;
-		uavDesc.Format = ValueSquaredMeanMapFormat_F1;
+		srvDesc.Format = ValueSquaredMeanMapFormat_Contrast;
+		uavDesc.Format = ValueSquaredMeanMapFormat_Contrast;
 
-		auto squaredMeanResource_F1 = mCachedSquaredMeans[Resource::CachedSquaredMean::E_F1]->Resource();
-		md3dDevice->CreateShaderResourceView(squaredMeanResource_F1, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_F1]);
-		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F1, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_F1]);
+		auto squaredMeanResource_F1 = mCachedSquaredMeans[Resource::CachedSquaredMean::E_Contrast]->Resource();
+		md3dDevice->CreateShaderResourceView(squaredMeanResource_F1, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_Contrast]);
+		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F1, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_Contrast]);
 	}
 	{
-		srvDesc.Format = ValueSquaredMeanMapFormat_F4;
-		uavDesc.Format = ValueSquaredMeanMapFormat_F4;
+		srvDesc.Format = ValueSquaredMeanMapFormat_HDR;
+		uavDesc.Format = ValueSquaredMeanMapFormat_HDR;
 
-		auto squaredMeanResource_F4 = mCachedSquaredMeans[Resource::CachedValue::E_F4]->Resource();
-		md3dDevice->CreateShaderResourceView(squaredMeanResource_F4, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_F4]);
-		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F4, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_F4]);
+		auto squaredMeanResource_F4 = mCachedSquaredMeans[Resource::CachedValue::E_Color_HDR]->Resource();
+		md3dDevice->CreateShaderResourceView(squaredMeanResource_F4, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_Color_HDR]);
+		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F4, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_Color_HDR]);
 	}
 	{
 		srvDesc.Format = DepthPartialDerivativeMapFormat;
@@ -895,55 +916,55 @@ BOOL SVGFClass::BuildResources(UINT width, UINT height) {
 		));
 	}
 	{
-		texDesc.Format = ValueMapFormat_F1;
+		texDesc.Format = ValueMapFormat_Contrast;
 
-		CheckReturn(mCachedValues[Resource::CachedValue::E_F1]->Initialize(
+		CheckReturn(mCachedValues[Resource::CachedValue::E_Contrast]->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"CachedValueMap_F1"
+			L"CachedValueMap_Contrast"
 		));
 	}
 	{
-		texDesc.Format = ValueMapFormat_F4;
+		texDesc.Format = ValueMapFormat_HDR;
 
-		CheckReturn(mCachedValues[Resource::CachedValue::E_F4]->Initialize(
+		CheckReturn(mCachedValues[Resource::CachedValue::E_Color_HDR]->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"CachedValueMap_F4"
+			L"CachedValueMap_HDR"
 		));
 	}
 	{
-		texDesc.Format = ValueSquaredMeanMapFormat_F1;
+		texDesc.Format = ValueSquaredMeanMapFormat_Contrast;
 
-		CheckReturn(mCachedSquaredMeans[Resource::CachedSquaredMean::E_F1]->Initialize(
+		CheckReturn(mCachedSquaredMeans[Resource::CachedSquaredMean::E_Contrast]->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"CachedValueSquaredMeanMap_F1"
+			L"CachedValueSquaredMeanMap_Contrast"
 		));
 	}
 	{
-		texDesc.Format = ValueSquaredMeanMapFormat_F4;
+		texDesc.Format = ValueSquaredMeanMapFormat_HDR;
 
-		CheckReturn(mCachedSquaredMeans[Resource::CachedSquaredMean::E_F4]->Initialize(
+		CheckReturn(mCachedSquaredMeans[Resource::CachedSquaredMean::E_Color_HDR]->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"CachedValueSquaredMeanMap_F4"
+			L"CachedValueSquaredMeanMap_HDR"
 		));
 	}
 	{
