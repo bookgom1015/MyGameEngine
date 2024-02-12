@@ -224,7 +224,7 @@
     <ClInclude Include="..\..\include\Sharpen.h" />
     <ClInclude Include="..\..\include\SphereActor.h" />
     <ClInclude Include="..\..\include\Ssao.h" />
-    <ClInclude Include="..\..\include\Ssr.h" />
+    <ClInclude Include="..\..\include\SSR.h" />
     <ClInclude Include="..\..\include\SVGF.h" />
     <ClInclude Include="..\..\include\SwapChainBuffer.h" />
     <ClInclude Include="..\..\include\TemporalAA.h" />
@@ -299,7 +299,7 @@
     <ClCompile Include="..\..\src\Sharpen.cpp" />
     <ClCompile Include="..\..\src\SphereActor.cpp" />
     <ClCompile Include="..\..\src\Ssao.cpp" />
-    <ClCompile Include="..\..\src\Ssr.cpp" />
+    <ClCompile Include="..\..\src\SSR.cpp" />
     <ClCompile Include="..\..\src\SVGF.cpp" />
     <ClCompile Include="..\..\src\SwapChainBuffer.cpp" />
     <ClCompile Include="..\..\src\TemporalAA.cpp" />
@@ -346,7 +346,7 @@
     <None Include="..\..\include\Rtao.inl" />
     <None Include="..\..\include\ShadowMap.inl" />
     <None Include="..\..\include\Ssao.inl" />
-    <None Include="..\..\include\Ssr.inl" />
+    <None Include="..\..\include\SSR.inl" />
     <None Include="..\..\include\SVGF.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
     <None Include="..\..\include\UploadBuffer.inl" />
@@ -403,7 +403,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CoC.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -423,7 +423,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -438,7 +438,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BuildingSSR.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

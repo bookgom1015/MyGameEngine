@@ -7,10 +7,23 @@
 
 using namespace DepthOfField;
 
+namespace {
+	const CHAR* CoC_VS = "CoC_VS";
+	const CHAR* CoC_PS = "CoC_PS";
+
+	const CHAR* DoF_VS = "DoF_VS";
+	const CHAR* DoF_PS = "DoF_PS";
+
+	const CHAR* DoFBlur_VS = "DoFBlur_VS";
+	const CHAR* DoFBlur_PS = "DoFBlur_PS";
+
+	const CHAR* FD_VS = "FD_VS";
+	const CHAR* FD_PS = "FD_PS";
+}
+
 DepthOfFieldClass::DepthOfFieldClass() {
-	mCocMap = std::make_unique<GpuResource>();
-	mDofTempMap = std::make_unique<GpuResource>();
-	mDofBlurTempMap = std::make_unique<GpuResource>();
+	mCoCMap = std::make_unique<GpuResource>();
+	mCopiedBackBuffer = std::make_unique<GpuResource>();
 	mFocalDistanceBuffer = std::make_unique<GpuResource>();
 }
 
@@ -29,32 +42,32 @@ BOOL DepthOfFieldClass::Initialize(
 
 BOOL DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 	{
-		const std::wstring actualPath = filePath + L"Coc.hlsl";
+		const std::wstring actualPath = filePath + L"CoC.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, "CocVS"));
-		CheckReturn(mShaderManager->CompileShader(psInfo, "CocPS"));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, CoC_VS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, CoC_PS));
 	}
 	{
 		const std::wstring actualPath = filePath + L"DepthOfField.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, "DofVS"));
-		CheckReturn(mShaderManager->CompileShader(psInfo, "DofPS"));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, DoF_VS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, DoF_PS));
 	}
 	{
-		const std::wstring actualPath = filePath + L"DofBlur.hlsl";
+		const std::wstring actualPath = filePath + L"DoFBlur.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, "DofBlurVS"));
-		CheckReturn(mShaderManager->CompileShader(psInfo, "DofBlurPS"));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, DoFBlur_VS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, DoFBlur_PS));
 	}
 	{
 		const std::wstring actualPath = filePath + L"FocalDistance.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, "FdVS"));
-		CheckReturn(mShaderManager->CompileShader(psInfo, "FdPS"));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, FD_VS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, FD_PS));
 	}
 
 	return true;
@@ -63,15 +76,15 @@ BOOL DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	// Circle of confusion
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[CircleOfConfusion::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CircleOfConfusion::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[2];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		slotRootParameter[CircleOfConfusion::RootSignatureLayout::ECB_Dof].InitAsConstantBufferView(0);
-		slotRootParameter[CircleOfConfusion::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[CircleOfConfusion::RootSignatureLayout::EUI_FocalDist].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::CircleOfConfusion::ECB_DoF].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::CircleOfConfusion::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::CircleOfConfusion::EUI_FocalDist].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -79,37 +92,19 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["coc"]));
-	}
-	// Bokeh
-	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[Bokeh::RootSignatureLayout::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[1];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-
-		slotRootParameter[Bokeh::RootSignatureLayout::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[Bokeh::RootSignatureLayout::EC_Consts].InitAsConstants(Bokeh::RootConstantsLayout::Count, 0);
-
-		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-			_countof(slotRootParameter), slotRootParameter,
-			static_cast<UINT>(samplers.size()), samplers.data(),
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-		);
-
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["bokeh"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_CoC]));
 	}
 	// Depth of field
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[ApplyingDof::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyingDoF::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[2];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
-		slotRootParameter[ApplyingDof::RootSignatureLayout::EC_Consts].InitAsConstants(ApplyingDof::RootConstantLayout::Count, 0);
-		slotRootParameter[ApplyingDof::RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[ApplyingDof::RootSignatureLayout::ESI_Coc].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::ApplyingDoF::EC_Consts].InitAsConstants(RootSignature::ApplyingDoF::RootConstant::Count, 0);
+		slotRootParameter[RootSignature::ApplyingDoF::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::ApplyingDoF::ESI_CoC].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -117,20 +112,20 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["dof"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_DoF]));
 	}
-	// DOF blur
+	// DoF blur
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[DofBlur::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::BlurringDoF::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[2];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
-		slotRootParameter[DofBlur::RootSignatureLayout::ECB_Blur].InitAsConstantBufferView(0);
-		slotRootParameter[DofBlur::RootSignatureLayout::EC_Consts].InitAsConstants(DofBlur::RootConstantLayout::Count, 1);
-		slotRootParameter[DofBlur::RootSignatureLayout::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[DofBlur::RootSignatureLayout::ESI_Coc].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::BlurringDoF::ECB_Blur].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::BlurringDoF::EC_Consts].InitAsConstants(RootSignature::BlurringDoF::RootConstant::Count, 1);
+		slotRootParameter[RootSignature::BlurringDoF::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::BlurringDoF::ESI_CoC].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -138,19 +133,19 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["dofBlur"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_DoFBlur]));
 	}
 	// Focal distance
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[FocalDistance::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::FocalDistance::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[2];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		slotRootParameter[FocalDistance::RootSignatureLayout::ECB_Dof].InitAsConstantBufferView(0);
-		slotRootParameter[FocalDistance::RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[FocalDistance::RootSignatureLayout::EUO_FocalDist].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::FocalDistance::ECB_DoF].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::FocalDistance::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::FocalDistance::EUO_FocalDist].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -158,7 +153,7 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures["fd"]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_FD]));
 	}
 
 	return true;
@@ -169,44 +164,44 @@ BOOL DepthOfFieldClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC cocPsoDesc = quadPsoDesc;
-	cocPsoDesc.pRootSignature = mRootSignatures["coc"].Get();
+	cocPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_CoC].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("CocVS");
-		auto ps = mShaderManager->GetDxcShader("CocPS");
+		auto vs = mShaderManager->GetDxcShader(CoC_VS);
+		auto ps = mShaderManager->GetDxcShader(CoC_PS);
 		cocPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		cocPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	cocPsoDesc.RTVFormats[0] = CocMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&cocPsoDesc, IID_PPV_ARGS(&mPSOs["coc"])));
+	cocPsoDesc.RTVFormats[0] = CoCMapFormat;
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&cocPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_CoC])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC dofPsoDesc = quadPsoDesc;
-	dofPsoDesc.pRootSignature = mRootSignatures["dof"].Get();
+	dofPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DoF].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("DofVS");
-		auto ps = mShaderManager->GetDxcShader("DofPS");
+		auto vs = mShaderManager->GetDxcShader(DoF_VS);
+		auto ps = mShaderManager->GetDxcShader(DoF_PS);
 		dofPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		dofPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	dofPsoDesc.RTVFormats[0] = DofMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&dofPsoDesc, IID_PPV_ARGS(&mPSOs["dof"])));
+	dofPsoDesc.RTVFormats[0] = HDR_FORMAT;
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&dofPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DoF])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC dofBlurPsoDesc = dofPsoDesc;
-	dofBlurPsoDesc.pRootSignature = mRootSignatures["dofBlur"].Get();
+	dofBlurPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DoFBlur].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("DofBlurVS");
-		auto ps = mShaderManager->GetDxcShader("DofBlurPS");
+		auto vs = mShaderManager->GetDxcShader(DoFBlur_VS);
+		auto ps = mShaderManager->GetDxcShader(DoFBlur_PS);
 		dofBlurPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		dofBlurPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	dofPsoDesc.RTVFormats[0] = DofMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&dofBlurPsoDesc, IID_PPV_ARGS(&mPSOs["dofBlur"])));
+	dofPsoDesc.RTVFormats[0] = HDR_FORMAT;
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&dofBlurPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DoFBlur])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC fdPsoDesc = defaultPsoDesc;
 	fdPsoDesc.InputLayout = { nullptr, 0 };
-	fdPsoDesc.pRootSignature = mRootSignatures["fd"].Get();
+	fdPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_FD].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("FdVS");
-		auto ps = mShaderManager->GetDxcShader("FdPS");
+		auto vs = mShaderManager->GetDxcShader(FD_VS);
+		auto ps = mShaderManager->GetDxcShader(FD_PS);
 		fdPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		fdPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -215,7 +210,7 @@ BOOL DepthOfFieldClass::BuildPso() {
 	fdPsoDesc.DepthStencilState.DepthEnable = false;
 	fdPsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	fdPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&fdPsoDesc, IID_PPV_ARGS(&mPSOs["fd"])));
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&fdPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_FD])));
 
 	return true;
 }
@@ -224,18 +219,18 @@ void DepthOfFieldClass::CalcFocalDist(
 		ID3D12GraphicsCommandList*const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_dof,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth) {
-	cmdList->SetPipelineState(mPSOs["fd"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["fd"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_FD].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_FD].Get());
 	
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
-	cmdList->SetGraphicsRootConstantBufferView(FocalDistance::RootSignatureLayout::ECB_Dof, cbAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::FocalDistance::ECB_DoF, cb_dof);
 
-	cmdList->SetGraphicsRootDescriptorTable(FocalDistance::RootSignatureLayout::ESI_Depth, si_depth);
-	cmdList->SetGraphicsRootDescriptorTable(FocalDistance::RootSignatureLayout::EUO_FocalDist, mhFocalDistanceGpuUav);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::FocalDistance::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::FocalDistance::EUO_FocalDist, mhFocalDistanceGpuUav);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -244,70 +239,68 @@ void DepthOfFieldClass::CalcFocalDist(
 	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer->Resource());
 }
 
-void DepthOfFieldClass::CalcCoc(
+void DepthOfFieldClass::CalcCoC(
 		ID3D12GraphicsCommandList*const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_dof,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth) {
-	cmdList->SetPipelineState(mPSOs["coc"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["coc"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_CoC].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_CoC].Get());
 
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
-	mCocMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	mCoCMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->ClearRenderTargetView(mhCocMapCpuRtv, CocMapClearValues, 0, nullptr);
-	cmdList->OMSetRenderTargets(1, &mhCocMapCpuRtv, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &mhCoCMapCpuRtv, true, nullptr);
 
-	cmdList->SetGraphicsRootConstantBufferView(CircleOfConfusion::RootSignatureLayout::ECB_Dof, cbAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::CircleOfConfusion::ECB_DoF, cb_dof);
 
-	cmdList->SetGraphicsRootDescriptorTable(CircleOfConfusion::RootSignatureLayout::ESI_Depth, si_depth);
-	cmdList->SetGraphicsRootDescriptorTable(CircleOfConfusion::RootSignatureLayout::EUI_FocalDist, mhFocalDistanceGpuUav);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CircleOfConfusion::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CircleOfConfusion::EUI_FocalDist, mhFocalDistanceGpuUav);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
-	mCocMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mCoCMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-void DepthOfFieldClass::ApplyDof(
+void DepthOfFieldClass::ApplyDoF(
 		ID3D12GraphicsCommandList*const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT bokehRadius,
-		FLOAT cocThreshold,
-		FLOAT cocDiffThreshold,
+		FLOAT cocMaxDevTolerance,
 		FLOAT highlightPower,
 		INT numSamples) {
-	cmdList->SetPipelineState(mPSOs["dof"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["dof"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_DoF].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_DoF].Get());
 	
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 	
-	const auto dofTempMap = mDofTempMap.get();
+	const auto copiedBackBuffer = mCopiedBackBuffer.get();
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	dofTempMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	copiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 
-	cmdList->CopyResource(dofTempMap->Resource(), backBuffer->Resource());
+	cmdList->CopyResource(copiedBackBuffer->Resource(), backBuffer->Resource());
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	dofTempMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	copiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 	
-	FLOAT dofConstValues[ApplyingDof::RootConstantLayout::Count] = { bokehRadius, cocThreshold, cocDiffThreshold, highlightPower, static_cast<FLOAT>(numSamples) };
-	cmdList->SetGraphicsRoot32BitConstants(ApplyingDof::RootSignatureLayout::EC_Consts, _countof(dofConstValues), dofConstValues, 0);
+	FLOAT dofConstValues[RootSignature::ApplyingDoF::RootConstant::Count] = { bokehRadius, cocMaxDevTolerance, highlightPower, static_cast<FLOAT>(numSamples) };
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::ApplyingDoF::EC_Consts, _countof(dofConstValues), dofConstValues, 0);
 	
-	cmdList->SetGraphicsRootDescriptorTable(ApplyingDof::RootSignatureLayout::ESI_BackBuffer, mhDofTempMapGpuSrv);
-	cmdList->SetGraphicsRootDescriptorTable(ApplyingDof::RootSignatureLayout::ESI_Coc, mhCocMapGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ApplyingDoF::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ApplyingDoF::ESI_CoC, mhCoCMapGpuSrv);
 	
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -317,37 +310,37 @@ void DepthOfFieldClass::ApplyDof(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void DepthOfFieldClass::BlurDof(
+void DepthOfFieldClass::BlurDoF(
 		ID3D12GraphicsCommandList*const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		UINT blurCount) {
-	cmdList->SetPipelineState(mPSOs["dofBlur"].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures["dofBlur"].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_DoFBlur].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_DoFBlur].Get());
 
 	cmdList->RSSetViewports(1, &viewport);
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
-	cmdList->SetGraphicsRootConstantBufferView(DofBlur::RootSignatureLayout::ECB_Blur, cbAddress);
-	cmdList->SetGraphicsRootDescriptorTable(DofBlur::RootSignatureLayout::ESI_Coc, mhCocMapGpuSrv);
-
-	auto dofBlurTemp = mDofBlurTempMap.get();
+	const auto copiedBackBuffer = mCopiedBackBuffer.get();
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	dofBlurTemp->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	copiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 
-	cmdList->CopyResource(dofBlurTemp->Resource(), backBuffer->Resource());
+	cmdList->CopyResource(copiedBackBuffer->Resource(), backBuffer->Resource());
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	dofBlurTemp->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	copiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(DofBlur::RootSignatureLayout::ESI_Input, mhDofBlurTempMapGpuSrv);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::BlurringDoF::ECB_Blur, cb_blur);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::BlurringDoF::ESI_CoC, mhCoCMapGpuSrv);
+
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::BlurringDoF::ESI_Input, mhCopiedBackBufferGpuSrv);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -362,15 +355,12 @@ void DepthOfFieldClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhCocMapCpuSrv = hCpu.Offset(1, descSize);
-	mhCocMapGpuSrv = hGpu.Offset(1, descSize);
-	mhCocMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
+	mhCoCMapCpuSrv = hCpu.Offset(1, descSize);
+	mhCoCMapGpuSrv = hGpu.Offset(1, descSize);
+	mhCoCMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
-	mhDofTempMapCpuSrv = hCpu.Offset(1, descSize);
-	mhDofTempMapGpuSrv = hGpu.Offset(1, descSize);
-
-	mhDofBlurTempMapCpuSrv = hCpu.Offset(1, descSize);
-	mhDofBlurTempMapGpuSrv = hGpu.Offset(1, descSize);
+	mhCopiedBackBufferCpuSrv = hCpu.Offset(1, descSize);
+	mhCopiedBackBufferGpuSrv = hGpu.Offset(1, descSize);
 
 	mhFocalDistanceCpuUav = hCpu.Offset(1, descSize);
 	mhFocalDistanceGpuUav = hGpu.Offset(1, descSize);
@@ -389,7 +379,7 @@ void DepthOfFieldClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = CocMapFormat;
+	srvDesc.Format = CoCMapFormat;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.MipLevels = 1;
@@ -404,16 +394,15 @@ void DepthOfFieldClass::BuildDescriptors() {
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = CocMapFormat;
+	rtvDesc.Format = CoCMapFormat;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	md3dDevice->CreateShaderResourceView(mCocMap->Resource(), &srvDesc, mhCocMapCpuSrv);
-	md3dDevice->CreateRenderTargetView(mCocMap->Resource(), &rtvDesc, mhCocMapCpuRtv);
+	md3dDevice->CreateShaderResourceView(mCoCMap->Resource(), &srvDesc, mhCoCMapCpuSrv);
+	md3dDevice->CreateRenderTargetView(mCoCMap->Resource(), &rtvDesc, mhCoCMapCpuRtv);
 
-	srvDesc.Format = DofMapFormat;
-	md3dDevice->CreateShaderResourceView(mDofTempMap->Resource(), &srvDesc, mhDofTempMapCpuSrv);
-	md3dDevice->CreateShaderResourceView(mDofBlurTempMap->Resource(), &srvDesc, mhDofBlurTempMapCpuSrv);
+	srvDesc.Format = HDR_FORMAT;
+	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 
 	md3dDevice->CreateUnorderedAccessView(mFocalDistanceBuffer->Resource(), nullptr, &uavDesc, mhFocalDistanceCpuUav);
 }
@@ -430,44 +419,36 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT 
 	rscDesc.SampleDesc.Quality = 0;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 
+	// Circle of confusion
 	{
-		CD3DX12_CLEAR_VALUE optClear(CocMapFormat, CocMapClearValues);
-
-		rscDesc.Format = CocMapFormat;
+		rscDesc.Format = CoCMapFormat;
 		rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-		CheckReturn(mCocMap->Initialize(
+		CheckReturn(mCoCMap->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			&optClear,
-			L"CircleOfConfusionMap"
+			nullptr,
+			L"DoF_CoCMap"
 		));
 	}
+	// Copied back buffer
 	{
-		rscDesc.Format = DofMapFormat;
+		rscDesc.Format = HDR_FORMAT;
 		rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 		
-		CheckReturn(mDofTempMap->Initialize(
+		CheckReturn(mCopiedBackBuffer->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"DofTempMap"
-		));
-		CheckReturn(mDofBlurTempMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&rscDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			nullptr,
-			L"DofBlurTempMap"
+			L"DoF_CopiedBackBuffer"
 		));
 	}
+	// Focal distance
 	{
 		CheckReturn(mFocalDistanceBuffer->Initialize(
 			md3dDevice,
@@ -476,7 +457,7 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT 
 			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(FLOAT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
-			L"FocalDistanceMap"
+			L"DoF_FocalDistanceMap"
 		));
 	}
 

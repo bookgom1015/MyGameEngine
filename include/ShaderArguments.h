@@ -121,11 +121,11 @@ namespace Ssao {
 #endif
 }
 
-namespace Ssr {
+namespace SSR {
 #ifdef HLSL
-	typedef HDR_FORMAT SsrMapFormat;
+	typedef HDR_FORMAT SSRMapFormat;
 #else
-	static const DXGI_FORMAT SsrMapFormat = HDR_FORMAT;
+	static const DXGI_FORMAT SSRMapFormat = HDR_FORMAT;
 #endif
 }
 
@@ -139,11 +139,10 @@ namespace Bloom {
 
 namespace DepthOfField {
 #ifdef HLSL
-	typedef HDR_FORMAT	DofMapFormat;
-	typedef float		CocMapFormat;
+	typedef float	CoCMapFormat;
+	typedef float	FocalDistanceBufferFormat;
 #else
-	static const DXGI_FORMAT DofMapFormat = HDR_FORMAT;
-	static const DXGI_FORMAT CocMapFormat = DXGI_FORMAT_R16_FLOAT;
+	static const DXGI_FORMAT CoCMapFormat = DXGI_FORMAT_R16_FLOAT;
 #endif
 }
 

@@ -9,29 +9,25 @@
 class ShaderManager;
 
 namespace MotionBlur {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
-			ESI_Input = 0,
+			ESI_BackBuffer = 0,
 			ESI_Depth,
 			ESI_Velocity,
 			EC_Consts,
 			Count
 		};
+
+		namespace RootConstant {
+			enum {
+				E_Intensity = 0,
+				E_Limit,
+				E_DepthBias,
+				E_SampleCount,
+				Count
+			};
+		}
 	}
-
-	namespace RootConstantsLayout {
-		enum {
-			EIntensity = 0,
-			ELimit,
-			EDepthBias,
-			ESampleCount,
-			Count
-		};
-	}
-
-	const UINT NumRenderTargets = 1;
-
-	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class MotionBlurClass {
 	public:
@@ -39,17 +35,15 @@ namespace MotionBlur {
 		virtual ~MotionBlurClass() = default;
 
 	public:
-		__forceinline GpuResource* MotionVectorMapResource();
-
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE MotionVectorMapRtv() const;
-
-	public:
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPso();
 
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv, UINT rtvDescSize);
+		void BuildDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
+			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
+			UINT descSize);
 		BOOL OnResize(UINT width, UINT height);
 
 		void Run(
@@ -57,6 +51,7 @@ namespace MotionBlur {
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
 			GpuResource* const backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
@@ -76,16 +71,9 @@ namespace MotionBlur {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-		std::unique_ptr<GpuResource> mMotionVectorMap;
+		std::unique_ptr<GpuResource> mCopiedBackBuffer;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhMotionVectorMapCpuRtv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferGpuSrv;
 	};
-}
-
-GpuResource* MotionBlur::MotionBlurClass::MotionVectorMapResource() {
-	return mMotionVectorMap.get();
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE MotionBlur::MotionBlurClass::MotionVectorMapRtv() const {
-	return mhMotionVectorMapCpuRtv;
 }

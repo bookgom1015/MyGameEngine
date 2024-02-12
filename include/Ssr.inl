@@ -1,16 +1,16 @@
 #ifndef __SSR_INL__
 #define __SSR_INL__
 
-GpuResource* Ssr::SsrClass::SsrMapResource(UINT index) {
-	return mSsrMaps[index].get();
+GpuResource* SSR::SSRClass::SSRMapResource(UINT index) {
+	return mSSRMaps[index].get();
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapSrv(UINT index) const {
-	return mhSsrMapGpuSrvs[index];
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SSR::SSRClass::SSRMapSrv(UINT index) const {
+	return mhSSRMapGpuSrvs[index];
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Ssr::SsrClass::SsrMapRtv(UINT index) const {
-	return mhSsrMapCpuRtvs[index];
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SSR::SSRClass::SSRMapRtv(UINT index) const {
+	return mhSSRMapCpuRtvs[index];
 }
 
 #endif // __SSR_INL__

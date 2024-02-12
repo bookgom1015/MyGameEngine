@@ -104,19 +104,19 @@ private:
 	void BuildRenderItems();
 
 	BOOL UpdateShadingObjects(FLOAT delta);
-	BOOL UpdateShadowPassCB(FLOAT delta);
-	BOOL UpdateMainPassCB(FLOAT delta);
-	BOOL UpdateSsaoPassCB(FLOAT delta);
-	BOOL UpdateBlurPassCB(FLOAT delta);
-	BOOL UpdateDofCB(FLOAT delta);
-	BOOL UpdateSsrCB(FLOAT delta);
-	BOOL UpdateObjectCBs(FLOAT delta);
-	BOOL UpdateMaterialCBs(FLOAT delta);
-	BOOL UpdateConvEquirectToCubeCB(FLOAT delta);
+	BOOL UpdateCB_Shadow(FLOAT delta);
+	BOOL UpdateCB_Main(FLOAT delta);
+	BOOL UpdateCB_SSAO(FLOAT delta);
+	BOOL UpdateCB_Blur(FLOAT delta);
+	BOOL UpdateCB_DoF(FLOAT delta);
+	BOOL UpdateCB_SSR(FLOAT delta);
+	BOOL UpdateCB_Objects(FLOAT delta);
+	BOOL UpdateCB_Materials(FLOAT delta);
+	BOOL UpdateCB_ConvEquirectToCube(FLOAT delta);
 	BOOL UpdateCB_SVGF(FLOAT delta);
-	BOOL UpdateRtaoCB(FLOAT delta);
-	BOOL UpdateRrCB(FLOAT delta);
-	BOOL UpdateDebugMapCB(FLOAT delta);
+	BOOL UpdateCB_RTAO(FLOAT delta);
+	BOOL UpdateCB_RR(FLOAT delta);
+	BOOL UpdateCB_DebugMap(FLOAT delta);
 
 	BOOL AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
 	BOOL BuildTLAS(ID3D12GraphicsCommandList4* const cmdList);
@@ -187,7 +187,7 @@ private:
 	std::unique_ptr<Ssao::SsaoClass> mSsao;
 	std::unique_ptr<BlurFilter::BlurFilterClass> mBlurFilter;
 	std::unique_ptr<Bloom::BloomClass> mBloom;
-	std::unique_ptr<Ssr::SsrClass> mSsr;
+	std::unique_ptr<SSR::SSRClass> mSSR;
 	std::unique_ptr<DepthOfField::DepthOfFieldClass> mDof;
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
 	std::unique_ptr<TemporalAA::TemporalAAClass> mTaa;

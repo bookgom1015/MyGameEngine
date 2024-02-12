@@ -10,10 +10,10 @@
 class ShaderManager;
 class GpuResource;
 
-namespace Ssr {
-	namespace RootSignatureLayout {
+namespace SSR {
+	namespace RootSignature {
 		enum {
-			ECB_Ssr = 0,
+			ECB_SSR = 0,
 			ESI_BackBuffer,
 			ESI_Normal,
 			ESI_Depth,
@@ -22,24 +22,32 @@ namespace Ssr {
 		};
 	}
 
+	namespace Resolution {
+		enum Type {
+			E_Fullscreen = 0,
+			E_Quarter,
+			Count
+		};
+	}
+
 	static const UINT NumRenderTargets = 2;
 	
 	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	class SsrClass {
+	class SSRClass {
 	public:
-		SsrClass();
-		virtual ~SsrClass() = default;
+		SSRClass();
+		virtual ~SSRClass() = default;
 
 	public:
-		__forceinline GpuResource* SsrMapResource(UINT index);
+		__forceinline GpuResource* SSRMapResource(UINT index);
 
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SsrMapSrv(UINT index) const;
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SsrMapRtv(UINT index) const;
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE SSRMapSrv(UINT index) const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SSRMapRtv(UINT index) const;
 
 	public:
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager,
-			UINT width, UINT height, UINT divider);
+			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPso();
@@ -61,7 +69,7 @@ namespace Ssr {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -70,22 +78,16 @@ namespace Ssr {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-		UINT mWidth;
-		UINT mHeight;
-
-		UINT mReducedWidth;
-		UINT mReducedHeight;
-
-		UINT mDivider;
+		Resolution::Type mResolutionType;
 
 		D3D12_VIEWPORT mViewport;
 		D3D12_RECT mScissorRect;
 
-		std::array<std::unique_ptr<GpuResource>, 2> mSsrMaps;
-		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuSrvs;
-		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhSsrMapGpuSrvs;
-		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSsrMapCpuRtvs;
+		std::array<std::unique_ptr<GpuResource>, 2> mSSRMaps;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSSRMapCpuSrvs;
+		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhSSRMapGpuSrvs;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhSSRMapCpuRtvs;
 	};
 }
 
-#include "Ssr.inl"
+#include "SSR.inl"

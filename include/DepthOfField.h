@@ -10,90 +10,82 @@
 class ShaderManager;
 
 namespace DepthOfField {
-	namespace CircleOfConfusion {
-		namespace RootSignatureLayout {
+	namespace PipelineState {
+		enum Type {
+			E_CoC = 0,
+			E_DoF,
+			E_DoFBlur,
+			E_FD,
+			Count
+		};
+	}
+
+	namespace RootSignature {
+		enum Type {
+			E_CoC = 0,
+			E_DoF,
+			E_DoFBlur,
+			E_FD,
+			Count
+		};
+
+		namespace CircleOfConfusion {
 			enum {
-				ECB_Dof = 0,
+				ECB_DoF = 0,
 				ESI_Depth,
 				EUI_FocalDist,
 				Count
 			};
 		}
-	}
 
-	namespace Bokeh {
-		namespace RootSignatureLayout {
+		namespace FocalDistance {
 			enum {
-				ESI_Input = 0,
-				EC_Consts,
-				Count
-			};
-		}
-
-		namespace RootConstantsLayout {
-			enum {
-				EBokehRadius = 0,
-				Count
-			};
-		}
-	}
-
-	namespace FocalDistance {
-		namespace RootSignatureLayout {
-			enum {
-				ECB_Dof = 0,
+				ECB_DoF = 0,
 				ESI_Depth,
 				EUO_FocalDist,
 				Count
 			};
 		}
-	}
 
-	namespace ApplyingDof {
-		namespace RootSignatureLayout {
+		namespace ApplyingDoF {
 			enum {
 				EC_Consts = 0,
 				ESI_BackBuffer,
-				ESI_Coc,
+				ESI_CoC,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_BokehRadius = 0,
+					E_MaxDevTolerance,
+					E_HighlightPower,
+					E_SampleCount,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantLayout {
-			enum {
-				EBokehRadius = 0,
-				ECocThreshold,
-				ECocDiffThreshold,
-				EHighlightPower,
-				ENumSamples,
-				Count
-			};
-		}
-	}
-
-	namespace DofBlur {
-		namespace RootSignatureLayout {
+		namespace BlurringDoF {
 			enum {
 				ECB_Blur = 0,
 				EC_Consts,
 				ESI_Input,
-				ESI_Coc,
+				ESI_CoC,
 				Count
 			};
-		}
 
-		namespace RootConstantLayout {
-			enum {
-				EHorizontalBlur = 0,
-				Count
-			};
+			namespace RootConstant {
+				enum {
+					E_Horz = 0,
+					Count
+				};
+			}
 		}
 	}
 
 
 	const UINT NumRenderTargets = 1;
-
-	const FLOAT CocMapClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class DepthOfFieldClass {
 	public:
@@ -101,9 +93,9 @@ namespace DepthOfField {
 		virtual ~DepthOfFieldClass() = default;
 
 	public:		
-		__forceinline GpuResource* CocMapResource();
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CocMapSrv() const;
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CocMapRtv() const;
+		__forceinline GpuResource* CoCMapResource();
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE CoCMapSrv() const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE CoCMapRtv() const;
 
 		__forceinline GpuResource* FocalDistanceBufferResource();
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocalDistanceBufferUav() const;
@@ -119,30 +111,29 @@ namespace DepthOfField {
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_dof,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
-		void CalcCoc(
+		void CalcCoC(
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_dof,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
-		void ApplyDof(
+		void ApplyDoF(
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			FLOAT bokehRadius,
-			FLOAT cocThreshold,
-			FLOAT cocDiffThreshold,
+			FLOAT cocMaxDevTolerance,
 			FLOAT highlightPower,
 			INT numSamples);
-		void BlurDof(
+		void BlurDoF(
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
@@ -163,21 +154,17 @@ namespace DepthOfField {
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
-		std::unique_ptr<GpuResource> mCocMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCocMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCocMapCpuRtv;
+		std::unique_ptr<GpuResource> mCoCMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCoCMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCoCMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCoCMapCpuRtv;
 
-		std::unique_ptr<GpuResource> mDofTempMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofTempMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDofTempMapGpuSrv;
-
-		std::unique_ptr<GpuResource> mDofBlurTempMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDofBlurTempMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDofBlurTempMapGpuSrv;
+		std::unique_ptr<GpuResource> mCopiedBackBuffer;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferGpuSrv;
 
 		std::unique_ptr<GpuResource> mFocalDistanceBuffer;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFocalDistanceCpuUav;

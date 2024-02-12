@@ -1,16 +1,16 @@
 #ifndef __DEPTHOFFIELD_INL__
 #define __DEPTHOFFIELD_INL__
 
-GpuResource* DepthOfField::DepthOfFieldClass::CocMapResource() {
-	return mCocMap.get();
+GpuResource* DepthOfField::DepthOfFieldClass::CoCMapResource() {
+	return mCoCMap.get();
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::DepthOfFieldClass::CocMapSrv() const {
-	return mhCocMapGpuSrv;
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE DepthOfField::DepthOfFieldClass::CoCMapSrv() const {
+	return mhCoCMapGpuSrv;
 }
 
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::DepthOfFieldClass::CocMapRtv() const {
-	return mhCocMapCpuRtv;
+constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthOfField::DepthOfFieldClass::CoCMapRtv() const {
+	return mhCoCMapCpuRtv;
 }
 
 GpuResource* DepthOfField::DepthOfFieldClass::FocalDistanceBufferResource() {

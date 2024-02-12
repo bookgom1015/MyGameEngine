@@ -13,7 +13,7 @@
 #include "MotionBlur.h"
 #include "DepthOfField.h"
 #include "Bloom.h"
-#include "Ssr.h"
+#include "SSR.h"
 #include "BRDF.h"
 #include "Samplers.h"
 #include "BlurFilter.h"
@@ -59,8 +59,7 @@ namespace ShaderArgs {
 		FLOAT FocusRange = 8.0f;
 		FLOAT FocusingSpeed = 8.0f;
 		FLOAT BokehRadius = 2.0f;
-		FLOAT CocThreshold = 0.3f;
-		FLOAT CocDiffThreshold = 0.8f;
+		FLOAT CoCMaxDevTolerance = 0.8f;
 		FLOAT HighlightPower = 4.0f;
 		INT SampleCount = 4;
 		INT BlurCount = 1;
@@ -222,7 +221,7 @@ DxRenderer::DxRenderer() {
 	mSsao = std::make_unique<Ssao::SsaoClass>();
 	mBlurFilter = std::make_unique<BlurFilter::BlurFilterClass>();
 	mBloom = std::make_unique<Bloom::BloomClass>();
-	mSsr = std::make_unique<Ssr::SsrClass>();
+	mSSR = std::make_unique<SSR::SSRClass>();
 	mDof = std::make_unique<DepthOfField::DepthOfFieldClass>();
 	mMotionBlur = std::make_unique<MotionBlur::MotionBlurClass>();
 	mTaa = std::make_unique<TemporalAA::TemporalAAClass>();
@@ -300,7 +299,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4));
-	CheckReturn(mSsr->Initialize(device, shaderManager, width, height, 2));
+	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
 	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
 	CheckReturn(mTaa->Initialize(device, shaderManager, width, height));
@@ -378,23 +377,23 @@ BOOL DxRenderer::Update(FLOAT delta) {
 		CloseHandle(eventHandle);
 	}
 
-	CheckReturn(UpdateShadowPassCB(delta));
-	CheckReturn(UpdateMainPassCB(delta));
-	CheckReturn(UpdateBlurPassCB(delta));
-	CheckReturn(UpdateDofCB(delta));
-	CheckReturn(UpdateObjectCBs(delta));
-	CheckReturn(UpdateMaterialCBs(delta));
-	CheckReturn(UpdateConvEquirectToCubeCB(delta));
-	CheckReturn(UpdateDebugMapCB(delta));
+	CheckReturn(UpdateCB_Shadow(delta));
+	CheckReturn(UpdateCB_Main(delta));
+	CheckReturn(UpdateCB_Blur(delta));
+	CheckReturn(UpdateCB_DoF(delta));
+	CheckReturn(UpdateCB_Objects(delta));
+	CheckReturn(UpdateCB_Materials(delta));
+	CheckReturn(UpdateCB_ConvEquirectToCube(delta));
+	CheckReturn(UpdateCB_DebugMap(delta));
 
 	if (bRaytracing) {
 		CheckReturn(UpdateCB_SVGF(delta));
-		CheckReturn(UpdateRtaoCB(delta));
-		CheckReturn(UpdateRrCB(delta));
+		CheckReturn(UpdateCB_RTAO(delta));
+		CheckReturn(UpdateCB_RR(delta));
 	}
 	else {
-		CheckReturn(UpdateSsaoPassCB(delta));
-		CheckReturn(UpdateSsrCB(delta));
+		CheckReturn(UpdateCB_SSAO(delta));
+		CheckReturn(UpdateCB_SSR(delta));
 	}
 	
 	CheckReturn(UpdateShadingObjects(delta));
@@ -480,6 +479,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		CheckReturn(mToneMapping->OnResize(width, height));
 		CheckReturn(mPixelation->OnResize(width, height));
 		CheckReturn(mSharpen->OnResize(width, height));
+		CheckReturn(mSSR->OnResize(width, height));
 
 		CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
 		CheckReturn(mRtao->OnResize(width, height));
@@ -488,7 +488,6 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 	}
 	CheckReturn(mSsao->OnResize(width, height));
 	CheckReturn(mBloom->OnResize(width, height));
-	CheckReturn(mSsr->OnResize(width, height));
 
 
 	CheckHRESULT(cmdList->Close());
@@ -605,10 +604,9 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 		SwapChainBufferCount
 		+ GBuffer::NumRenderTargets
 		+ Ssao::NumRenderTargets
-		+ MotionBlur::NumRenderTargets
 		+ DepthOfField::NumRenderTargets
 		+ Bloom::NumRenderTargets
-		+ Ssr::NumRenderTargets
+		+ SSR::NumRenderTargets
 		+ ToneMapping::NumRenderTargets
 		+ IrradianceMap::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -643,7 +641,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mSsao->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilter->CompileShaders(ShaderFilePath));
 	CheckReturn(mBloom->CompileShaders(ShaderFilePath));
-	CheckReturn(mSsr->CompileShaders(ShaderFilePath));
+	CheckReturn(mSSR->CompileShaders(ShaderFilePath));
 	CheckReturn(mDof->CompileShaders(ShaderFilePath));
 	CheckReturn(mMotionBlur->CompileShaders(ShaderFilePath));
 	CheckReturn(mTaa->CompileShaders(ShaderFilePath));
@@ -826,9 +824,9 @@ void DxRenderer::BuildDescriptors() {
 	mShadowMap->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
 	mSsao->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mSsr->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mDof->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mMotionBlur->BuildDescriptors(hCpuRtv, rtvDescSize);
+	mMotionBlur->BuildDescriptors(hCpu, hGpu, descSize);
 	mTaa->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -857,7 +855,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mSsao->BuildRootSignature(staticSamplers));
 	CheckReturn(mBlurFilter->BuildRootSignature(staticSamplers));
 	CheckReturn(mBloom->BuildRootSignature(staticSamplers));
-	CheckReturn(mSsr->BuildRootSignature(staticSamplers));
+	CheckReturn(mSSR->BuildRootSignature(staticSamplers));
 	CheckReturn(mDof->BuildRootSignature(staticSamplers));
 	CheckReturn(mMotionBlur->BuildRootSignature(staticSamplers));
 	CheckReturn(mTaa->BuildRootSignature(staticSamplers));
@@ -895,7 +893,7 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mSsao->BuildPso());
 	CheckReturn(mBloom->BuildPso());
 	CheckReturn(mBlurFilter->BuildPso());
-	CheckReturn(mSsr->BuildPso());
+	CheckReturn(mSSR->BuildPso());
 	CheckReturn(mDof->BuildPso());
 	CheckReturn(mMotionBlur->BuildPso());
 	CheckReturn(mTaa->BuildPso());
@@ -1172,7 +1170,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateShadowPassCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
 	XMVECTOR lightDir = XMLoadFloat3(&mLightDir);
 	XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
 	XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
@@ -1223,7 +1221,7 @@ BOOL DxRenderer::UpdateShadowPassCB(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateMainPassCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	XMMATRIX view = XMLoadFloat4x4(&mCamera->GetView());
 	XMMATRIX proj = XMLoadFloat4x4(&mCamera->GetProj());
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
@@ -1268,7 +1266,7 @@ BOOL DxRenderer::UpdateMainPassCB(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateSsaoPassCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	SsaoConstants ssaoCB;
 	ssaoCB.View = mMainPassCB->View;
 	ssaoCB.Proj = mMainPassCB->Proj;
@@ -1300,7 +1298,7 @@ BOOL DxRenderer::UpdateSsaoPassCB(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateBlurPassCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_Blur(FLOAT delta) {
 	BlurConstants blurCB;
 	blurCB.Proj = mMainPassCB->Proj;
 	blurCB.BlurWeights[0] = mBlurWeights[0];
@@ -1314,7 +1312,7 @@ BOOL DxRenderer::UpdateBlurPassCB(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateDofCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
 	DofConstants dofCB;
 	dofCB.Proj = mMainPassCB->Proj;
 	dofCB.InvProj = mMainPassCB->InvProj;
@@ -1328,7 +1326,7 @@ BOOL DxRenderer::UpdateDofCB(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateSsrCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
 	SsrConstants ssrCB;
 	ssrCB.View = mMainPassCB->View;
 	ssrCB.InvView = mMainPassCB->InvView;
@@ -1348,7 +1346,7 @@ BOOL DxRenderer::UpdateSsrCB(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateObjectCBs(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
 	auto& currObjectCB = mCurrFrameResource->ObjectCB;
 	for (auto& e : mRitems) {
 		// Only update the cbuffer data if the constants have changed.  
@@ -1377,7 +1375,7 @@ BOOL DxRenderer::UpdateObjectCBs(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateMaterialCBs(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
 	auto& currMaterialCB = mCurrFrameResource->MaterialCB;
 	for (auto& e : mMaterials) {
 		// Only update the cbuffer data if the constants have changed.  If the cbuffer
@@ -1405,7 +1403,7 @@ BOOL DxRenderer::UpdateMaterialCBs(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateConvEquirectToCubeCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	ConvertEquirectangularToCubeConstantBuffer cubeCB;
 		
 	XMStoreFloat4x4(&cubeCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
@@ -1563,7 +1561,7 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 	return true;
 }
 
-BOOL DxRenderer::UpdateRtaoCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_RTAO(FLOAT delta) {
 	static UINT count = 0;
 	static auto prev = mMainPassCB->View;
 
@@ -1590,7 +1588,7 @@ BOOL DxRenderer::UpdateRtaoCB(FLOAT delta) {
 	return TRUE;
 }
 
-BOOL DxRenderer::UpdateRrCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_RR(FLOAT delta) {
 	RaytracedReflectionConstantBuffer rrCB;
 
 	rrCB.View = mMainPassCB->View;
@@ -1610,7 +1608,7 @@ BOOL DxRenderer::UpdateRrCB(FLOAT delta) {
 	return TRUE;
 }
 
-BOOL DxRenderer::UpdateDebugMapCB(FLOAT delta) {
+BOOL DxRenderer::UpdateCB_DebugMap(FLOAT delta) {
 	DebugMapConstantBuffer debugMapCB;
 
 	for (UINT i = 0; i < DebugMap::MapSize; ++i) {
@@ -1912,7 +1910,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	auto aoCoeffDesc = bRaytracing ? mRtao->ResolvedAOCoefficientSrv() : mSsao->AOCoefficientMapSrv(0);
-	auto reflectionDesc = bRaytracing ? mRr->ResolvedReflectionSrv() : mSsr->SsrMapSrv(0);
+	auto reflectionDesc = bRaytracing ? mRr->ResolvedReflectionSrv() : mSSR->SSRMapSrv(0);
 
 	mBRDF->IntegrateSpecularIrrad(
 		cmdList,
@@ -2037,8 +2035,8 @@ BOOL DxRenderer::BuildSsr() {
 	auto pDescHeap = mCbvSrvUavHeap.Get();
 	UINT descSize = GetCbvSrvUavDescriptorSize();
 
-	const auto ssrMap0 = mSsr->SsrMapResource(0);
-	const auto ssrMap1 = mSsr->SsrMapResource(1);
+	const auto ssrMap0 = mSSR->SSRMapResource(0);
+	const auto ssrMap1 = mSSR->SSRMapResource(1);
 
 	auto ssrCBAddress = mCurrFrameResource->SsrCB.Resource()->GetGPUVirtualAddress();
 
@@ -2053,7 +2051,7 @@ BOOL DxRenderer::BuildSsr() {
 		ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
 		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-		mSsr->Build(
+		mSSR->Build(
 			cmdList,
 			ssrCBAddress,
 			backBuffer,
@@ -2069,10 +2067,10 @@ BOOL DxRenderer::BuildSsr() {
 			blurPassCBAddress,
 			ssrMap0,
 			ssrMap1,
-			mSsr->SsrMapRtv(0),
-			mSsr->SsrMapSrv(0),
-			mSsr->SsrMapRtv(1),
-			mSsr->SsrMapSrv(1),
+			mSSR->SSRMapRtv(0),
+			mSSR->SSRMapSrv(0),
+			mSSR->SSRMapRtv(1),
+			mSSR->SSRMapSrv(1),
 			BlurFilter::FilterType::R16G16B16A16,
 			ShaderArgs::Ssr::BlurCount
 		);
@@ -2084,11 +2082,7 @@ BOOL DxRenderer::BuildSsr() {
 		if (!bSsrMapCleanedUp) {
 			CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-			ssrMap0->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-			cmdList->ClearRenderTargetView(mSsr->SsrMapRtv(0), Ssr::ClearValues, 0, nullptr);
-
-			ssrMap0->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			cmdList->ClearRenderTargetView(mSSR->SSRMapRtv(0), SSR::ClearValues, 0, nullptr);
 
 			CheckHRESULT(cmdList->Close());
 			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
@@ -2181,7 +2175,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		mGBuffer->DepthMapSrv()
 	);
 
-	mDof->CalcCoc(
+	mDof->CalcCoC(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2189,21 +2183,20 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		mGBuffer->DepthMapSrv()
 	);
 
-	mDof->ApplyDof(
+	mDof->ApplyDoF(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
 		backBuffer,
 		backBufferRtv,
 		ShaderArgs::DepthOfField::BokehRadius,
-		ShaderArgs::DepthOfField::CocThreshold,
-		ShaderArgs::DepthOfField::CocDiffThreshold,
+		ShaderArgs::DepthOfField::CoCMaxDevTolerance,
 		ShaderArgs::DepthOfField::HighlightPower,
 		ShaderArgs::DepthOfField::SampleCount
 	);
 
 	const auto blurCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
-	mDof->BlurDof(
+	mDof->BlurDoF(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2235,6 +2228,7 @@ BOOL DxRenderer::ApplyMotionBlur() {
 		mScreenViewport,
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
+		mSwapChainBuffer->CurrentBackBufferRtv(),
 		mSwapChainBuffer->CurrentBackBufferSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->VelocityMapSrv(),
@@ -2517,7 +2511,7 @@ BOOL DxRenderer::DrawImGui() {
 					if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_SSR],
-							mSsr->SsrMapSrv(0),
+							mSSR->SSRMapSrv(0),
 							DebugMap::SampleMask::RGB);
 					}
 
@@ -2761,8 +2755,7 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::SliderFloat("Focus Range", &ShaderArgs::DepthOfField::FocusRange, 0.1f, 100.0f);
 				ImGui::SliderFloat("Focusing Speed", &ShaderArgs::DepthOfField::FocusingSpeed, 1.0f, 10.0f);
 				ImGui::SliderFloat("Bokeh Radius", &ShaderArgs::DepthOfField::BokehRadius, 1.0f, 8.0f);
-				ImGui::SliderFloat("CoC Threshold", &ShaderArgs::DepthOfField::CocThreshold, 0.01f, 0.9f);
-				ImGui::SliderFloat("CoC Diff Threshold", &ShaderArgs::DepthOfField::CocDiffThreshold, 0.1f, 0.9f);
+				ImGui::SliderFloat("CoC Max Deviation Tolerance", &ShaderArgs::DepthOfField::CoCMaxDevTolerance, 0.1f, 0.9f);
 				ImGui::SliderFloat("Highlight Power", &ShaderArgs::DepthOfField::HighlightPower, 1.0f, 32.0f);
 				ImGui::SliderInt("Sample Count", &ShaderArgs::DepthOfField::SampleCount, 1, 8);
 				ImGui::SliderInt("Blur Count", &ShaderArgs::DepthOfField::BlurCount, 0, 8);

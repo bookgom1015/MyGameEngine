@@ -22,7 +22,7 @@ Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t5);
 Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
 TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered	: register(t7);
 Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT		: register(t8);
-Texture2D<Ssr::SsrMapFormat>							gi_Reflection	: register(t9);
+Texture2D<SSR::SSRMapFormat>							gi_Reflection	: register(t9);
 
 #include "CoordinatesFittedToScreen.hlsli"
 

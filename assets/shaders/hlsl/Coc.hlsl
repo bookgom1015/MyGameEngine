@@ -9,7 +9,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-cbuffer cbDof : register(b0) {
+cbuffer cbDoF : register(b0) {
 	float4x4	gProj;
 	float4x4	gInvProj;
 	float		gFocusRange;
@@ -20,7 +20,7 @@ cbuffer cbDof : register(b0) {
 
 Texture2D<GBuffer::DepthMapFormat> gi_Depth : register(t0);
 
-RWBuffer<float> ui_FocalDistance : register(u0);
+RWBuffer<DepthOfField::FocalDistanceBufferFormat> ui_FocalDistance : register(u0);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -35,17 +35,15 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 	vout.TexC = gTexCoords[vid];
 
-	// Quad covering screen in NDC space.
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
-	// Transform quad corners to view space near plane.
 	float4 ph = mul(vout.PosH, gInvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
 }
 
-DepthOfField::CocMapFormat PS(VertexOut pin) : SV_Target {
+DepthOfField::CoCMapFormat PS(VertexOut pin) : SV_Target {
 	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
 	depth = NdcDepthToViewDepth(depth, gProj);

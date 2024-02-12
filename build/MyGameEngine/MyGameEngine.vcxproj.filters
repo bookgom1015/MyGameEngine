@@ -246,7 +246,7 @@
     <ClInclude Include="..\..\include\Bloom.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Ssr.h">
+    <ClInclude Include="..\..\include\SSR.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\BRDF.h">
@@ -482,7 +482,7 @@
     <ClCompile Include="..\..\src\Bloom.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Ssr.cpp">
+    <ClCompile Include="..\..\src\SSR.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\BRDF.cpp">
@@ -746,16 +746,16 @@
     <None Include="..\..\include\Rtao.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
-    <None Include="..\..\include\Ssr.inl">
+    <None Include="..\..\include\SSR.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
       <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Coc.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CoC.hlsl">
       <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DofBlur.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
       <Filter>Shader Files\HLSL\Filter\DOF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
@@ -836,7 +836,7 @@
     <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
       <Filter>Shader Files\HLSL\DXR\Shadow</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\BuildingSsr.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BuildingSSR.hlsl">
       <Filter>Shader Files\HLSL\GI</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">

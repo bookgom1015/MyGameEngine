@@ -6,7 +6,7 @@ namespace ShadowMap { class ShadowMapClass; }
 namespace Ssao { class SsaoClass; }
 namespace BlurFilter { class BlurFilterClass; }
 namespace Bloom { class BloomClass; }
-namespace Ssr { class SsrClass; }
+namespace SSR { class SSRClass; }
 namespace DepthOfField { class DepthOfFieldClass; }
 namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }

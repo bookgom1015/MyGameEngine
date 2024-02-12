@@ -11,8 +11,8 @@
 using namespace GBuffer;
 
 namespace {
-	const std::string GBufferVS = "GBufferVS";
-	const std::string GBufferPS = "GBufferPS";
+	const std::string GBuffer_VS = "GBufferVS";
+	const std::string GBuffer_PS = "GBufferPS";
 }
 
 GBufferClass::GBufferClass() {
@@ -43,8 +43,8 @@ BOOL GBufferClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"GBuffer.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, GBufferVS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, GBufferPS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, GBuffer_VS));
+	CheckReturn(mShaderManager->CompileShader(psInfo, GBuffer_PS));
 
 	return true;
 }
@@ -77,8 +77,8 @@ BOOL GBufferClass::BuildPso() {
 	psoDesc.InputLayout = Vertex::InputLayoutDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(GBufferVS);
-		auto ps = mShaderManager->GetDxcShader(GBufferPS);
+		auto vs = mShaderManager->GetDxcShader(GBuffer_VS);
+		auto ps = mShaderManager->GetDxcShader(GBuffer_PS);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -296,7 +296,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				&rscDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
-				L"AlbedoMap"
+				L"GBuffer_AlbedoMap"
 			));
 		}
 		{
@@ -311,7 +311,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				&rscDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
-				L"NormalMap"
+				L"GBuffer_NormalMap"
 			));
 		}
 		{
@@ -327,7 +327,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 					&rscDesc,
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					&optClear,
-					L"NormalDepthMap"
+					L"GBuffer_NormalDepthMap"
 				));
 			}
 			{
@@ -340,7 +340,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 					&rscDesc,
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					&optClear,
-					L"ReprojNormalDepthMap"
+					L"GBuffer_ReprojNormalDepthMap"
 				));
 			}
 		}
@@ -356,7 +356,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				&rscDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
-				L"RoughnessMetalicSpecularMap"
+				L"GBuffer_RoughnessMetalicSpecularMap"
 			));
 		}
 		{
@@ -371,7 +371,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				&rscDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
-				L"VelocityMap"
+				L"GBuffer_VelocityMap"
 			));
 		}
 		{
@@ -386,7 +386,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				&rscDesc,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				&optClear,
-				L"PositionMap"
+				L"GBuffer_PositionMap"
 			));
 		}
 	}
@@ -401,7 +401,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"PrevNormalDepthMap"
+			L"GBuffer_PrevNormalDepthMap"
 		));
 	}
 
