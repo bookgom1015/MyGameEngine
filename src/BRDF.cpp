@@ -26,8 +26,6 @@ namespace {
 
 BRDFClass::BRDFClass() {
 	mCopiedBackBuffer = std::make_unique<GpuResource>();
-
-	ModelType = Model::E_CookTorrance;
 }
 
 BOOL BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {

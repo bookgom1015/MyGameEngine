@@ -1,5 +1,5 @@
-#ifndef __BUILDINGSSR_HLSL__
-#define __BUILDINGSSR_HLSL__
+#ifndef __SSR_VIEW_HLSL__
+#define __SSR_VIEW_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -9,19 +9,20 @@
 #include "Samplers.hlsli"
 #include "ShadingHelpers.hlsli"
 
-ConstantBuffer<SsrConstants> cb_SSR	: register(b0);
+ConstantBuffer<ConstantBuffer_SSR> cb_SSR	: register(b0);
 
 Texture2D<SDR_FORMAT>						gi_BackBuffer	: register(t0);
-Texture2D<GBuffer::NormalMapFormat>			gi_Normal		: register(t1);
-Texture2D<DepthStencilBuffer::BufferFormat>	gi_Depth		: register(t2);
-Texture2D<GBuffer::RMSMapFormat>			gi_RMS			: register(t3);
+Texture2D<GBuffer::PositionMapFormat>		gi_Position		: register(t1);
+Texture2D<GBuffer::NormalMapFormat>			gi_Normal		: register(t2);
+Texture2D<DepthStencilBuffer::BufferFormat>	gi_Depth		: register(t3);
+Texture2D<GBuffer::RMSMapFormat>			gi_RMS			: register(t4);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
 struct VertexOut {
-	float4 PosH		: SV_POSITION;
-	float3 PosV		: POSITION;
-	float2 TexC		: TEXCOORD;
+	float4 PosH : SV_POSITION;
+	float3 PosV : POSITION;
+	float2 TexC : TEXCOORD;
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
@@ -29,10 +30,8 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 	vout.TexC = gTexCoords[vid];
 
-	// Quad covering screen in NDC space.
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
-	// Transform quad corners to view space near plane.
 	float4 ph = mul(vout.PosH, cb_SSR.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
@@ -40,35 +39,32 @@ VertexOut VS(uint vid : SV_VertexID) {
 }
 
 SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
-	float pz = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0);
-	if (pz == DepthStencilBuffer::InvalidDepthValue) return 0;
 
-	pz = NdcDepthToViewDepth(pz, cb_SSR.Proj);
-	//
-	// Reconstruct full view space position (x,y,z).
-	// Find t such that p = t*pin.PosV.
-	// p.z = t*pin.PosV.z
-	// t = p.z / pin.PosV.z
-	//
-	const float3 pv = (pz / pin.PosV.z) * pin.PosV;
-	if (pv.z > cb_SSR.MaxDistance) return (float4)0;
+	float depth = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0);
+	if (GBuffer::IsInvalidDepth(depth)) return 0;
 
-	const float3 nw = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
-	const float3 nv = normalize(mul(nw, (float3x3)cb_SSR.View));
-	// Vector from point being lit to eye. 
-	const float3 toEyeV = normalize(-pv);
-	const float3 r = reflect(-toEyeV, nv) * cb_SSR.RayLength;
+	depth = NdcDepthToViewDepth(depth, cb_SSR.Proj);
+
+	const float3 posV = (depth / pin.PosV.z) * pin.PosV;
+	if (posV.z > cb_SSR.MaxDistance) return 0;
+
+	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
+	const float3 normalV = normalize(mul(normalW, (float3x3)cb_SSR.View));
+
+	const float3 toEyeV = normalize(-posV);
+	const float3 toLightV = reflect(-toEyeV, normalV);
+	const float3 lightPosV = posV + toLightV * cb_SSR.RayLength;
 
 	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamLinearClamp, pin.TexC).rgb;
 	const float shiness = 1 - roughnessMetalicSpecular.r;
 
 	[loop]
-	for (uint i = 0; i < cb_SSR.NumSteps; ++i) {
-		float3 dpv = pv + r * (i + 1);
+	for (uint i = 0; i < cb_SSR.StepCount; ++i) {
+		float3 dpv = posV + toLightV * (i + 1);
 		float4 ph = mul(float4(dpv, 1), cb_SSR.Proj);
 		ph /= ph.w;
 		if (abs(ph.y) > 1) return (float4)0;
-		
+
 		float2 tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
 		float d = gi_Depth.SampleLevel(gsamDepthMap, tex, 0);
 		float dv = NdcDepthToViewDepth(d, cb_SSR.Proj);
@@ -76,10 +72,10 @@ SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
 		const float noise = rand_1_05(tex) * cb_SSR.NoiseIntensity;
 
 		if (ph.z > d) {
-			float3 half_r = r;
+			float3 half_r = toLightV;
 
 			[loop]
-			for (uint j = 0; j < cb_SSR.NumBackSteps; ++j) {
+			for (uint j = 0; j < cb_SSR.BackStepCount; ++j) {
 				half_r *= 0.5;
 				dpv -= half_r;
 				ph = mul(float4(dpv, 1), cb_SSR.Proj);
@@ -106,4 +102,4 @@ SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
 	return (float4)0;
 }
 
-#endif // __BUILDINGSSR_HLSL__
+#endif // __SSR_VIEW_HLSL__

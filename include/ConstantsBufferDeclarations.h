@@ -96,7 +96,7 @@ struct DofConstants {
 	FLOAT				ConstantPad0;
 };
 
-struct SsrConstants {
+struct ConstantBuffer_SSR {
 	DirectX::XMFLOAT4X4	View;
 	DirectX::XMFLOAT4X4	InvView;
 	DirectX::XMFLOAT4X4	Proj;
@@ -107,13 +107,13 @@ struct SsrConstants {
 
 	FLOAT				RayLength;
 	FLOAT				NoiseIntensity;
-	INT					NumSteps;
-	INT					NumBackSteps;
+	INT					StepCount;
+	INT					BackStepCount;
 
 	FLOAT				DepthThreshold;
+	FLOAT				Thickness;
+	FLOAT				Resolution;
 	FLOAT				ConstantPad0;
-	FLOAT				ConstantPad1;
-	FLOAT				ConstantPad2;
 };
 
 struct ConvertEquirectangularToCubeConstantBuffer {

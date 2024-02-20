@@ -31,7 +31,7 @@ public:
 	UploadBuffer<SsaoConstants> SsaoCB;
 	UploadBuffer<BlurConstants> BlurCB;
 	UploadBuffer<DofConstants> DofCB;
-	UploadBuffer<SsrConstants> SsrCB;
+	UploadBuffer<ConstantBuffer_SSR> CB_SSR;
 	UploadBuffer<ConvertEquirectangularToCubeConstantBuffer> ConvEquirectToCubeCB;
 	UploadBuffer<RtaoConstants> RtaoCB;
 	UploadBuffer<CrossBilateralFilterConstants> CrossBilateralFilterCB;

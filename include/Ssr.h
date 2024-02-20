@@ -15,9 +15,18 @@ namespace SSR {
 		enum {
 			ECB_SSR = 0,
 			ESI_BackBuffer,
+			ESI_Position,
 			ESI_Normal,
 			ESI_Depth,
 			ESI_RMS,
+			Count
+		};
+	}
+
+	namespace PipelineState {
+		enum Type {
+			E_ViewSpace = 0,
+			E_ScreenSpace,
 			Count
 		};
 	}
@@ -58,11 +67,12 @@ namespace SSR {
 			UINT descSize, UINT rtvDescSize);
 		BOOL OnResize(UINT width, UINT height);
 
-		void Build(
+		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			GpuResource* const backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_position,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rms);
@@ -71,12 +81,15 @@ namespace SSR {
 		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
+	public:
+		PipelineState::Type StateType = PipelineState::E_ScreenSpace;
+
 	private:
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
+		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
 		Resolution::Type mResolutionType;
 

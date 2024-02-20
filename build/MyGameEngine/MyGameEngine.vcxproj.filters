@@ -139,9 +139,6 @@
     <Filter Include="Shader Files\HLSL\DXR\Shadow">
       <UniqueIdentifier>{ed5feb19-fd56-464c-83ea-1f5c594b442e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader Files\HLSL\GI">
-      <UniqueIdentifier>{6dda2034-d419-4aa2-8cb2-769793891e1d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shader Files\HLSL\AA">
       <UniqueIdentifier>{77ed25e0-a7ee-4615-acc0-1c4a8667420b}</UniqueIdentifier>
     </Filter>
@@ -156,6 +153,9 @@
     </Filter>
     <Filter Include="Shader Files\HLSL\DXR\Denoising\Temporal">
       <UniqueIdentifier>{d10a3c5b-843e-457f-b4c1-57eb2b26201f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\HLSL\SSR">
+      <UniqueIdentifier>{6dda2034-d419-4aa2-8cb2-769793891e1d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -836,12 +836,6 @@
     <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
       <Filter>Shader Files\HLSL\DXR\Shadow</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\BuildingSSR.hlsl">
-      <Filter>Shader Files\HLSL\GI</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">
-      <Filter>Shader Files\HLSL\GI</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
       <Filter>Shader Files\HLSL\AA</Filter>
     </None>
@@ -877,6 +871,18 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_Contrast.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Filtering</Filter>
+    </None>
+    <None Include="..\..\include\ShaderArguments.inl">
+      <Filter>Header Files\Render\DirectX</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSR_Screen.hlsl">
+      <Filter>Shader Files\HLSL\SSR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSR_View.hlsl">
+      <Filter>Shader Files\HLSL\SSR</Filter>
     </None>
   </ItemGroup>
 </Project>

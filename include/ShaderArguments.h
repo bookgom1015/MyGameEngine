@@ -45,6 +45,7 @@
 namespace GBuffer {
 	static const FLOAT InvalidDepthValue = 1.0f;
 	static const FLOAT InvalidNormDepthValue = 0.0f;
+	static const FLOAT InvalidVelocityValue = 1000.0f;	
 
 #ifdef HLSL
 	typedef float4								AlbedoMapFormat;
@@ -58,6 +59,15 @@ namespace GBuffer {
 
 	static const float InvalidPositionValueW	= -1;
 	static const float InvalidNormalValueW		= -1;
+
+	bool IsInvalidDepth(float val);
+	bool IsValidDepth(float val);
+
+	bool IsInvalidVelocity(float2 val);
+	bool IsValidVelocity(float2 val);
+
+	bool IsInvalidPosition(float4 val);
+	bool IsValidPosition(float4 val);
 #else 
 	static const DXGI_FORMAT AlbedoMapFormat			= DXGI_FORMAT_R8G8B8A8_UNORM;
 	static const DXGI_FORMAT NormalMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -71,7 +81,7 @@ namespace GBuffer {
 	const FLOAT NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, -1.0f };
 	const FLOAT NormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
 	const FLOAT RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
-	const FLOAT VelocityMapClearValues[2]			= { 1000.0f, 1000.0f };
+	const FLOAT VelocityMapClearValues[2]			= { InvalidVelocityValue, InvalidVelocityValue };
 	const FLOAT ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
 	const FLOAT PositionMapClearValues[4]			= { 0.0f, 0.0f, 0.0f, -1.0f };
 #endif 
@@ -332,3 +342,5 @@ namespace MipmapGenerator {
 		};
 	}
 }
+
+#include "ShaderArguments.inl"

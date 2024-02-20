@@ -66,13 +66,21 @@ namespace ShaderArgs {
 	}
 
 	namespace Ssr {
-		FLOAT MaxDistance = 20.0f;
-		FLOAT RayLength = 0.5f;
-		FLOAT NoiseIntensity = 0.01f;
-		INT StepCount = 16;
-		INT BackStepCount = 8;
+		FLOAT MaxDistance = 32.0f;
 		INT BlurCount = 3;
-		FLOAT DepthThreshold = 1.0f;
+
+		namespace View {
+			FLOAT RayLength = 0.5f;
+			FLOAT NoiseIntensity = 0.01f;
+			INT StepCount = 16;
+			INT BackStepCount = 8;
+			FLOAT DepthThreshold = 1.0f;
+		}
+		
+		namespace Screen {
+			FLOAT Resolution = 0.25f;
+			FLOAT Thickness = 0.5f;
+		}
 	}
 
 	namespace MotionBlur {
@@ -1327,21 +1335,23 @@ BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
-	SsrConstants ssrCB;
-	ssrCB.View = mMainPassCB->View;
-	ssrCB.InvView = mMainPassCB->InvView;
-	ssrCB.Proj = mMainPassCB->Proj;
-	ssrCB.InvProj = mMainPassCB->InvProj;
-	XMStoreFloat3(&ssrCB.EyePosW, mCamera->GetPosition());
-	ssrCB.MaxDistance = ShaderArgs::Ssr::MaxDistance;
-	ssrCB.RayLength = ShaderArgs::Ssr::RayLength;
-	ssrCB.NoiseIntensity = ShaderArgs::Ssr::NoiseIntensity;
-	ssrCB.NumSteps = ShaderArgs::Ssr::StepCount;
-	ssrCB.NumBackSteps = ShaderArgs::Ssr::BackStepCount;
-	ssrCB.DepthThreshold = ShaderArgs::Ssr::DepthThreshold;
+	ConstantBuffer_SSR cb;
+	cb.View = mMainPassCB->View;
+	cb.InvView = mMainPassCB->InvView;
+	cb.Proj = mMainPassCB->Proj;
+	cb.InvProj = mMainPassCB->InvProj;
+	XMStoreFloat3(&cb.EyePosW, mCamera->GetPosition());
+	cb.MaxDistance = ShaderArgs::Ssr::MaxDistance;
+	cb.RayLength = ShaderArgs::Ssr::View::RayLength;
+	cb.NoiseIntensity = ShaderArgs::Ssr::View::NoiseIntensity;
+	cb.StepCount = ShaderArgs::Ssr::View::StepCount;
+	cb.BackStepCount = ShaderArgs::Ssr::View::BackStepCount;
+	cb.DepthThreshold = ShaderArgs::Ssr::View::DepthThreshold;
+	cb.Thickness = ShaderArgs::Ssr::Screen::Thickness;
+	cb.Resolution = ShaderArgs::Ssr::Screen::Resolution;
 
-	auto& currSsrCB = mCurrFrameResource->SsrCB;
-	currSsrCB.CopyData(0, ssrCB);
+	auto& currCB = mCurrFrameResource->CB_SSR;
+	currCB.CopyData(0, cb);
 
 	return true;
 }
@@ -2032,30 +2042,22 @@ BOOL DxRenderer::ApplyTAA() {
 BOOL DxRenderer::BuildSsr() {
 	const auto cmdList = mCommandList.Get();
 
-	auto pDescHeap = mCbvSrvUavHeap.Get();
-	UINT descSize = GetCbvSrvUavDescriptorSize();
-
-	const auto ssrMap0 = mSSR->SSRMapResource(0);
-	const auto ssrMap1 = mSSR->SSRMapResource(1);
-
-	auto ssrCBAddress = mCurrFrameResource->SsrCB.Resource()->GetGPUVirtualAddress();
-
-	const auto backBuffer = mToneMapping->InterMediateMapResource();
-	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
-
 	if (bSsrEnabled) {
 		bSsrMapCleanedUp = false;
 
 		CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-		ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
-		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		const auto descHeap = mCbvSrvUavHeap.Get();
+		cmdList->SetDescriptorHeaps(1, &descHeap);
 
-		mSSR->Build(
+		auto cbAddress = mCurrFrameResource->CB_SSR.Resource()->GetGPUVirtualAddress();
+
+		mSSR->Run(
 			cmdList,
-			ssrCBAddress,
-			backBuffer,
-			backBufferSrv,
+			cbAddress,
+			mToneMapping->InterMediateMapResource(),
+			mToneMapping->InterMediateMapSrv(),
+			mGBuffer->PositionMapSrv(),
 			mGBuffer->NormalMapSrv(),
 			mGBuffer->DepthMapSrv(),
 			mGBuffer->RMSMapSrv()
@@ -2065,8 +2067,8 @@ BOOL DxRenderer::BuildSsr() {
 		mBlurFilter->Run(
 			cmdList,
 			blurPassCBAddress,
-			ssrMap0,
-			ssrMap1,
+			mSSR->SSRMapResource(0),
+			mSSR->SSRMapResource(1),
 			mSSR->SSRMapRtv(0),
 			mSSR->SSRMapSrv(0),
 			mSSR->SSRMapRtv(1),
@@ -2076,7 +2078,7 @@ BOOL DxRenderer::BuildSsr() {
 		);
 
 		CheckHRESULT(cmdList->Close());
-		mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
+		mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList*const*>(&cmdList));
 	}
 	else {
 		if (!bSsrMapCleanedUp) {
@@ -2085,13 +2087,13 @@ BOOL DxRenderer::BuildSsr() {
 			cmdList->ClearRenderTargetView(mSSR->SSRMapRtv(0), SSR::ClearValues, 0, nullptr);
 
 			CheckHRESULT(cmdList->Close());
-			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
+			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList*const*>(&cmdList));
 
-			bSsrMapCleanedUp = true;
+			bSsrMapCleanedUp = TRUE;
 		};
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplyBloom() {
@@ -2769,13 +2771,22 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("SSR")) {
+				ImGui::RadioButton("Screen Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ScreenSpace); ImGui::SameLine();
+				ImGui::RadioButton("View Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ViewSpace);
+
 				ImGui::SliderFloat("Max Distance", &ShaderArgs::Ssr::MaxDistance, 1.0f, 100.0f);
-				ImGui::SliderFloat("Ray Length", &ShaderArgs::Ssr::RayLength, 0.1f, 2.0f);
-				ImGui::SliderFloat("Noise Intensity", &ShaderArgs::Ssr::NoiseIntensity, 0.1f, 0.001f);
-				ImGui::SliderInt("Step Count", &ShaderArgs::Ssr::StepCount, 1, 32);
-				ImGui::SliderInt("Back Step Count", &ShaderArgs::Ssr::BackStepCount, 1, 16);
 				ImGui::SliderInt("Blur Count", &ShaderArgs::Ssr::BlurCount, 0, 8);
-				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::Ssr::DepthThreshold, 0.1f, 10.0f);
+
+				ImGui::Text("View");
+				ImGui::SliderFloat("Ray Length", &ShaderArgs::Ssr::View::RayLength, 1.0f, 64.0f);
+				ImGui::SliderFloat("Noise Intensity", &ShaderArgs::Ssr::View::NoiseIntensity, 0.1f, 0.001f);
+				ImGui::SliderInt("Step Count", &ShaderArgs::Ssr::View::StepCount, 1, 32);
+				ImGui::SliderInt("Back Step Count", &ShaderArgs::Ssr::View::BackStepCount, 1, 16);
+				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::Ssr::View::DepthThreshold, 0.1f, 10.0f);
+
+				ImGui::Text("Screen");
+				ImGui::SliderFloat("Thickness", &ShaderArgs::Ssr::Screen::Thickness, 0.01f, 1.0f);
+				ImGui::SliderFloat("Resolution", &ShaderArgs::Ssr::Screen::Resolution, 0.0f, 1.0f);
 
 				ImGui::TreePop();
 			}

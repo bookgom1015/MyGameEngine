@@ -21,7 +21,7 @@ BOOL FrameResource::Initialize() {
 	CheckReturn(SsaoCB.Initialize(Device, 1, true));
 	CheckReturn(BlurCB.Initialize(Device, 1, true));
 	CheckReturn(DofCB.Initialize(Device, 1, true));
-	CheckReturn(SsrCB.Initialize(Device, 1, true));
+	CheckReturn(CB_SSR.Initialize(Device, 1, true));
 	CheckReturn(ConvEquirectToCubeCB.Initialize(Device, 1, true))
 	CheckReturn(RtaoCB.Initialize(Device, 1, true));
 	CheckReturn(CrossBilateralFilterCB.Initialize(Device, 1, true));

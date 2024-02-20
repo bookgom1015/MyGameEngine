@@ -127,7 +127,7 @@ namespace BRDF {
 		BOOL BuildResources(UINT width, UINT height);
 
 	public:
-		Model::Type ModelType;
+		Model::Type ModelType = Model::E_CookTorrance;
 
 	private:
 		ID3D12Device* md3dDevice;

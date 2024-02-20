@@ -344,6 +344,7 @@
     <None Include="..\..\include\RaytracedReflection.inl" />
     <None Include="..\..\include\Renderer.inl" />
     <None Include="..\..\include\Rtao.inl" />
+    <None Include="..\..\include\ShaderArguments.inl" />
     <None Include="..\..\include\ShadowMap.inl" />
     <None Include="..\..\include\Ssao.inl" />
     <None Include="..\..\include\SSR.inl" />
@@ -438,7 +439,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\BuildingSSR.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\SSR_Screen.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -583,6 +584,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_Contrast.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\SSR_View.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

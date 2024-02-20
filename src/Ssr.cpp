@@ -8,8 +8,11 @@
 using namespace SSR;
 
 namespace {
-	const std::string BuildingSSR_VS = "BuildingSSR_VS";
-	const std::string BuildingSSR_PS = "BuildingSSR_PS";
+	const std::string SSR_Screen_VS = "SSR_Screen_VS";
+	const std::string SSR_Screen_PS = "SSR_Screen_PS";
+
+	const std::string SSR_View_VS = "SSR_View_VS";
+	const std::string SSR_View_PS = "SSR_View_PS";
 }
 
 SSRClass::SSRClass() {
@@ -31,11 +34,20 @@ BOOL SSRClass::Initialize(
 }
 
 BOOL SSRClass::CompileShaders(const std::wstring& filePath) {
-	const std::wstring actualPath = filePath + L"BuildingSSR.hlsl";
-	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, BuildingSSR_VS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, BuildingSSR_PS));
+	{
+		const std::wstring actualPath = filePath + L"SSR_Screen.hlsl";
+		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		CheckReturn(mShaderManager->CompileShader(vsInfo, SSR_Screen_VS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, SSR_Screen_PS));
+	}
+	{
+		const std::wstring actualPath = filePath + L"SSR_View.hlsl";
+		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		CheckReturn(mShaderManager->CompileShader(vsInfo, SSR_View_VS));
+		CheckReturn(mShaderManager->CompileShader(psInfo, SSR_View_PS));
+	}
 
 	return true;
 }
@@ -52,9 +64,10 @@ BOOL SSRClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	slotRootParameter[RootSignature::ECB_SSR].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[RootSignature::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
-	slotRootParameter[RootSignature::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-	slotRootParameter[RootSignature::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
+	slotRootParameter[RootSignature::ESI_Position].InitAsDescriptorTable(1, &texTables[1]);
+	slotRootParameter[RootSignature::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
+	slotRootParameter[RootSignature::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
+	slotRootParameter[RootSignature::ESI_RMS].InitAsDescriptorTable(1, &texTables[4]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -70,14 +83,23 @@ BOOL SSRClass::BuildRootSignature(const StaticSamplers& samplers) {
 BOOL SSRClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
+	psoDesc.RTVFormats[0] = SSRMapFormat;
+	
 	{
-		auto vs = mShaderManager->GetDxcShader(BuildingSSR_VS);
-		auto ps = mShaderManager->GetDxcShader(BuildingSSR_PS);
+		auto vs = mShaderManager->GetDxcShader(SSR_Screen_VS);
+		auto ps = mShaderManager->GetDxcShader(SSR_Screen_PS);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
-	psoDesc.RTVFormats[0] = SSRMapFormat;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ScreenSpace])));
+
+	{
+		auto vs = mShaderManager->GetDxcShader(SSR_View_VS);
+		auto ps = mShaderManager->GetDxcShader(SSR_View_PS);
+		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
+	}
+	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ViewSpace])));
 
 	return true;
 }
@@ -103,15 +125,16 @@ BOOL SSRClass::OnResize(UINT width, UINT height) {
 	return true;
 }
 
-void SSRClass::Build(
+void SSRClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 		GpuResource*const backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_position,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rms) {
-	cmdList->SetPipelineState(mPSO.Get());
+	cmdList->SetPipelineState(mPSOs[StateType].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 	
 	cmdList->RSSetViewports(1, &mViewport);
@@ -129,6 +152,7 @@ void SSRClass::Build(
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_SSR, cbAddress);
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_BackBuffer, si_backBuffer);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Position, si_position);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Normal, si_normal);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Depth, si_depth);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_RMS, si_rms);
