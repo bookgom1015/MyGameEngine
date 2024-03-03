@@ -14,7 +14,7 @@ struct ShadowHitInfo {
 	bool IsHit;
 };
 
-ConstantBuffer<PassConstants> cb_Pass		: register(b0);
+ConstantBuffer<ConstantBuffer_Pass> cb_Pass		: register(b0);
 
 RaytracingAccelerationStructure				gi_BVH		: register(t0);
 Texture2D<GBuffer::PositionMapFormat>		gi_Position	: register(t1);

@@ -8,45 +8,44 @@
 using namespace MipmapGenerator;
 
 namespace {
-	const std::string VS = "VS";
-	const std::string GenerateMipmapPS = "GenerateMipmapPS";
-	const std::string JustCopyPS = "JustCopyPS";
+	const CHAR*const VS_GenerateMipmap = "VS_GenerateMipmap";
+	const CHAR*const PS_GenerateMipmap = "PS_GenerateMipmap";
+	const CHAR*const PS_JustCopy = "PS_JustCopy";
 }
 
 BOOL MipmapGeneratorClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	return true;
+	return TRUE;
 }
 
 BOOL MipmapGeneratorClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"GenerateMipmap.hlsl";
 
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, VS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GenerateMipmap));
 	{
 		
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"GenerateMipmapPS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(psInfo, GenerateMipmapPS));
+		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS_GenerateMipmap", L"ps_6_3");
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_GenerateMipmap));
 	}
 	{
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"JustCopyPS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(psInfo, JustCopyPS));
+		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS_JustCopy", L"ps_6_3");
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_JustCopy));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL MipmapGeneratorClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[MipmapGenerator::RootSignatureLayout::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[MipmapGenerator::RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	slotRootParameter[MipmapGenerator::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-	slotRootParameter[MipmapGenerator::RootSignatureLayout::EC_Consts].InitAsConstants(MipmapGenerator::RootConstantsLayout::Count, 1);
-	slotRootParameter[MipmapGenerator::RootSignatureLayout::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[MipmapGenerator::RootSignature::EC_Consts].InitAsConstants(MipmapGenerator::RootSignature::RootConstant::Count, 0);
+	slotRootParameter[MipmapGenerator::RootSignature::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -56,38 +55,37 @@ BOOL MipmapGeneratorClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL MipmapGeneratorClass::BuildPso() {
+BOOL MipmapGeneratorClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.RTVFormats[0] = HDR_FORMAT;
 	{
-		auto vs = mShaderManager->GetDxcShader(VS);
+		auto vs = mShaderManager->GetDxcShader(VS_GenerateMipmap);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 	}
 
 	{		
-		auto ps = mShaderManager->GetDxcShader(GenerateMipmapPS);
+		auto ps = mShaderManager->GetDxcShader(PS_GenerateMipmap);
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_GenerateMipmap])));
 
 	{
-		auto ps = mShaderManager->GetDxcShader(JustCopyPS);
+		auto ps = mShaderManager->GetDxcShader(PS_JustCopy);
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_JustCopy])));
 
-	return true;
+	return TRUE;
 }
 
 BOOL MipmapGeneratorClass::GenerateMipmap(
 		ID3D12GraphicsCommandList* const cmdList,
 		GpuResource* output,
-		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_input,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_outputs[],
 		UINT width, UINT height,
@@ -107,15 +105,14 @@ BOOL MipmapGeneratorClass::GenerateMipmap(
 
 	cmdList->OMSetRenderTargets(1, &ro_outputs[0], TRUE, nullptr);
 
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input, si_input);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Input, si_input);
 
 	{
 		FLOAT invW = static_cast<FLOAT>(1 / width);
 		FLOAT invH = static_cast<FLOAT>(1 / height);
 
-		FLOAT values[RootConstantsLayout::Count] = { invW, invH, 0.0f, 0.0f };
-		cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+		FLOAT values[RootSignature::RootConstant::Count] = { invW, invH, 0.0f, 0.0f };
+		cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
 	}
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
@@ -141,8 +138,8 @@ BOOL MipmapGeneratorClass::GenerateMipmap(
 		FLOAT invMW = static_cast<FLOAT>(1 / mw);
 		FLOAT invMH = static_cast<FLOAT>(1 / mh);	
 
-		FLOAT values[RootConstantsLayout::Count] = { invW, invH, invMW, invMH };
-		cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+		FLOAT values[RootSignature::RootConstant::Count] = { invW, invH, invMW, invMH };
+		cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
 	
 		cmdList->IASetVertexBuffers(0, 0, nullptr);
 		cmdList->IASetIndexBuffer(nullptr);
@@ -152,5 +149,5 @@ BOOL MipmapGeneratorClass::GenerateMipmap(
 
 	output->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	return true;
+	return TRUE;
 }

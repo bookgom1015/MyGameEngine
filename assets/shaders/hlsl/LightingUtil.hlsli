@@ -106,29 +106,31 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 #endif
 }
 
-float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye,	float3 shadowFactor) {
+float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye,	float3 shadowFactor,
+		uint numDirLights, uint numPointLights, uint numSpotLights) {
 	float3 result = 0;
 
-	int i = 0;
+	uint i = 0;
+	uint cnt = 0;
 
-#if (NUM_DIR_LIGHTS > 0)
-	for (i = 0; i < NUM_DIR_LIGHTS; ++i) {
+	cnt += numDirLights;
+	[loop]
+	for (; i < cnt; ++i) {
 		float factor = shadowFactor[i];
 		result += factor * ComputeDirectionalLight(gLights[i], mat, normal, toEye);
 	}
-#endif
 
-#if (NUM_POINT_LIGHTS > 0)
-	for (i = NUM_DIR_LIGHTS; i < NUM_DIR_LIGHTS + NUM_POINT_LIGHTS; ++i) {
+	cnt += numPointLights;
+	[loop]
+	for (; i < cnt; ++i) {
 		result += ComputePointLight(gLights[i], mat, pos, normal, toEye);
 	}
-#endif
 
-#if (NUM_SPOT_LIGHTS > 0)
-	for (i = NUM_DIR_LIGHTS + NUM_POINT_LIGHTS; i < NUM_DIR_LIGHTS + NUM_POINT_LIGHTS + NUM_SPOT_LIGHTS; ++i) {
+	cnt += numSpotLights;
+	[loop]
+	for (; i < cnt; ++i) {
 		result += ComputeSpotLight(gLights[i], mat, pos, normal, toEye);
 	}
-#endif 
 
 	return result;
 }

@@ -8,11 +8,11 @@
 using namespace SSR;
 
 namespace {
-	const std::string SSR_Screen_VS = "SSR_Screen_VS";
-	const std::string SSR_Screen_PS = "SSR_Screen_PS";
+	const CHAR* const VS_SSR_Screen = "VS_SSR_Screen";
+	const CHAR* const PS_SSR_Screen = "PS_SSR_Screen";
 
-	const std::string SSR_View_VS = "SSR_View_VS";
-	const std::string SSR_View_PS = "SSR_View_PS";
+	const CHAR* const VS_SSR_View = "VS_SSR_View";
+	const CHAR* const PS_SSR_View = "PS_SSR_View";
 }
 
 SSRClass::SSRClass() {
@@ -30,7 +30,7 @@ BOOL SSRClass::Initialize(
 
 	CheckReturn(BuildResources(width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL SSRClass::CompileShaders(const std::wstring& filePath) {
@@ -38,18 +38,18 @@ BOOL SSRClass::CompileShaders(const std::wstring& filePath) {
 		const std::wstring actualPath = filePath + L"SSR_Screen.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, SSR_Screen_VS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, SSR_Screen_PS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_SSR_Screen));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_SSR_Screen));
 	}
 	{
 		const std::wstring actualPath = filePath + L"SSR_View.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, SSR_View_VS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, SSR_View_PS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_SSR_View));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_SSR_View));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL SSRClass::BuildRootSignature(const StaticSamplers& samplers) {
@@ -77,31 +77,31 @@ BOOL SSRClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));	
 
-	return true;
+	return TRUE;
 }
 
-BOOL SSRClass::BuildPso() {
+BOOL SSRClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.RTVFormats[0] = SSRMapFormat;
 	
 	{
-		auto vs = mShaderManager->GetDxcShader(SSR_Screen_VS);
-		auto ps = mShaderManager->GetDxcShader(SSR_Screen_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_SSR_Screen);
+		auto ps = mShaderManager->GetDxcShader(PS_SSR_Screen);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ScreenSpace])));
 
 	{
-		auto vs = mShaderManager->GetDxcShader(SSR_View_VS);
-		auto ps = mShaderManager->GetDxcShader(SSR_View_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_SSR_View);
+		auto ps = mShaderManager->GetDxcShader(PS_SSR_View);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ViewSpace])));
 
-	return true;
+	return TRUE;
 }
 
 void SSRClass::BuildDescriptors(
@@ -122,7 +122,7 @@ BOOL SSRClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void SSRClass::Run(
@@ -234,5 +234,5 @@ BOOL SSRClass::BuildResources(UINT width, UINT height) {
 		}
 	}
 
-	return true;
+	return TRUE;
 }

@@ -9,8 +9,8 @@
 #include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<PassConstants>	cbPass	: register(b0);
-ConstantBuffer<ObjectConstants> cbObj	: register(b1);
+ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
+ConstantBuffer<ObjectConstants>		cb_Obj	: register(b1);
 
 cbuffer cbRootConstants : register(b2) {
 	float gMipLevel;
@@ -33,9 +33,9 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 
 	vout.PosL = vin.PosL;
 
-	float4 posW = mul(float4(vin.PosL, 1.0f), cbObj.World);
+	float4 posW = mul(float4(vin.PosL, 1.0f), cb_Obj.World);
 
-	vout.PosH = mul(posW, cbPass.ViewProj);
+	vout.PosH = mul(posW, cb_Pass.ViewProj);
 
 	return vout;
 }

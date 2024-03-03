@@ -10,7 +10,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<PassConstants>		cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
 ConstantBuffer<ObjectConstants>		cb_Obj	: register(b1);
 ConstantBuffer<MaterialConstants>	cb_Mat	: register(b2);
 

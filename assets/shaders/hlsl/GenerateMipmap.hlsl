@@ -9,14 +9,12 @@
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 
-ConstantBuffer<PassConstants> cbPass : register(b0);
-
-cbuffer cbRootConstants : register(b1) {
+cbuffer cbRootConstants : register(b0) {
 	float2 gInvTexSize;
 	float2 gInvMipmapTexSize;
 }
 
-Texture2D<float4>	gi_Input	: register(t0);
+Texture2D<float4> gi_Input : register(t0);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -36,7 +34,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float4 GenerateMipmapPS(VertexOut pin) : SV_Target {
+float4 PS_GenerateMipmap(VertexOut pin) : SV_Target {
 	float2 texc0 = pin.TexC;
 	float2 texc1 = pin.TexC + float2(gInvTexSize.x, 0);
 	float2 texc2 = pin.TexC + float2(0, gInvTexSize.y);
@@ -52,7 +50,7 @@ float4 GenerateMipmapPS(VertexOut pin) : SV_Target {
 	return finalColor;
 }
 
-float4 JustCopyPS(VertexOut pin) : SV_Target{
+float4 PS_JustCopy(VertexOut pin) : SV_Target{
 	float4 color = gi_Input.SampleLevel(gsamPointClamp, pin.TexC, 0);
 	
 	return color;

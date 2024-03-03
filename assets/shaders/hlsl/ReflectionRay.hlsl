@@ -33,7 +33,7 @@ cbuffer cbRootConstants : register(b0) {
 	float	gReflectionRadius;
 }
 
-ConstantBuffer<PassConstants> cb_Pass : register(b1);
+ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b1);
 
 RaytracingAccelerationStructure							gi_BVH							: register(t0);
 Texture2D<HDR_FORMAT>									gi_BackBuffer					: register(t1);
@@ -181,7 +181,8 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 		
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
-	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normalW, viewW, shadowFactor), (float3)0);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normalW, viewW, shadowFactor,
+		cb_Pass.DirectionalLightCount, cb_Pass.PointLightCount, cb_Pass.SpotLightCount), (float3)0);
 
 	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).xyz;
 	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;

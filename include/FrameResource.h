@@ -25,7 +25,7 @@ public:
 public:
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CmdListAlloc;
 
-	UploadBuffer<PassConstants> PassCB;
+	UploadBuffer<ConstantBuffer_Pass> CB_Pass;
 	UploadBuffer<ObjectConstants> ObjectCB;
 	UploadBuffer<MaterialConstants> MaterialCB;
 	UploadBuffer<SsaoConstants> SsaoCB;

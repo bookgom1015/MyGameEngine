@@ -18,20 +18,20 @@ BOOL ShaderManager::Initialize() {
 	CheckHRESULT(mDxcDllHelper.Initialize());
 	DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&mUtils));
 	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&mCompiler));
-	return true;
+	return TRUE;
 }
 
 void ShaderManager::CleanUp() {
 	mDxcDllHelper.Cleanup();
-	bIsCleanedUp = true;
+	bIsCleanedUp = TRUE;
 }
 
 BOOL ShaderManager::CompileShader(
-	const std::wstring& inFilePath,
-	const D3D_SHADER_MACRO* inDefines,
-	const std::string& inEntryPoint,
-	const std::string& inTarget,
-	const std::string& inName) {
+		const std::wstring& filePath,
+		const D3D_SHADER_MACRO* defines,
+		const std::string& entryPoint,
+		const std::string& target,
+		const CHAR* name) {
 #if defined(_DEBUG)  
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
@@ -42,30 +42,39 @@ BOOL ShaderManager::CompileShader(
 
 	ComPtr<ID3DBlob> byteCode = nullptr;
 	ComPtr<ID3DBlob> errors;
-	hr = D3DCompileFromFile(inFilePath.c_str(), inDefines, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		inEntryPoint.c_str(), inTarget.c_str(), compileFlags, 0, &mShaders[inName], &errors);
+	hr = D3DCompileFromFile(filePath.c_str(), defines, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		entryPoint.c_str(), target.c_str(), compileFlags, 0, &mShaders[name], &errors);
 
 	std::wstringstream wsstream;
 	if (errors != nullptr)
-		wsstream << reinterpret_cast<char*>(errors->GetBufferPointer());
+		wsstream << reinterpret_cast<CHAR*>(errors->GetBufferPointer());
 
 	if (FAILED(hr)) {
 		ReturnFalse(wsstream.str());
 	}
 
-	return true;
+	return TRUE;
 }
 
-BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name) {
+BOOL ShaderManager::CompileShader(
+		const std::wstring& filePath,
+		const D3D_SHADER_MACRO* defines,
+		const std::string& entryPoint,
+		const std::string& target,
+		const std::string& name) {
+	return CompileShader(filePath, defines, entryPoint, target, name.c_str());
+}
+
+BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const CHAR* name) {
 	std::ifstream fin(shaderInfo.FileName, std::ios::ate | std::ios::binary);
 	if (!fin.is_open()) {
 		std::wstring msg(L"Failed to open shader file: ");
 		msg.append(shaderInfo.FileName);
 		ReturnFalse(msg);
 	}
-	
+
 	size_t fileSize = static_cast<size_t>(fin.tellg());
-	std::vector<char> data(fileSize);
+	std::vector<CHAR> data(fileSize);
 
 	fin.seekg(0);
 	fin.read(data.data(), fileSize);
@@ -73,15 +82,15 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 
 	ComPtr<IDxcBlobEncoding> shaderText;
 	CheckHRESULT(mUtils->CreateBlob(data.data(), static_cast<UINT32>(fileSize), 0, &shaderText));
-	
+
 	ComPtr<IDxcIncludeHandler> includeHandler;
 	CheckHRESULT(mUtils->CreateDefaultIncludeHandler(&includeHandler));
-		
+
 	DxcBuffer sourceBuffer;
 	sourceBuffer.Ptr = shaderText->GetBufferPointer();
 	sourceBuffer.Size = shaderText->GetBufferSize();
 	sourceBuffer.Encoding = 0;
-	
+
 	std::vector<LPCWSTR> arguments;
 
 #ifdef _DEBUG
@@ -112,7 +121,7 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 		static_cast<UINT32>(compilerArgs->GetCount()),
 		includeHandler.Get(),
 		IID_PPV_ARGS(&result)));
-	
+
 	HRESULT hr;
 	CheckHRESULT(result->GetStatus(&hr));
 	if (FAILED(hr)) {
@@ -120,7 +129,7 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 		CheckHRESULT(result->GetErrorBuffer(&error));
 
 		auto bufferSize = error->GetBufferSize();
-		std::vector<char> infoLog(bufferSize + 1);
+		std::vector<CHAR> infoLog(bufferSize + 1);
 		std::memcpy(infoLog.data(), error->GetBufferPointer(), bufferSize);
 		infoLog[bufferSize] = 0;
 
@@ -146,11 +155,11 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 		//fileNameWithExtW.append(shaderInfo.EntryPoint);
 		fileNameWithExtW.append(L".pdb");
 		auto delimIdx = fileNameWithExtW.rfind(L'\\');
-		
+
 		{
 			std::wstring filePathW = fileNameWithExtW.substr(0, delimIdx);
 			filePathW.append(L"\\debug");
-			
+
 			std::filesystem::path debugDir(filePathW);
 			if (!std::filesystem::exists(debugDir)) std::filesystem::create_directory(debugDir);
 		}
@@ -159,7 +168,7 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 
 		std::string fileName;
 		for (auto ch : fileNameWithExtW)
-			fileName.push_back(static_cast<char>(ch));
+			fileName.push_back(static_cast<CHAR>(ch));
 
 		auto nameIdx = mExportedPDBs.find(fileName);
 		if (nameIdx == mExportedPDBs.end()) {
@@ -173,7 +182,7 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 				ReturnFalse(msg);
 			}
 
-			fout.write(reinterpret_cast<const char*>(pdbBlob->GetBufferPointer()), pdbBlob->GetBufferSize());
+			fout.write(reinterpret_cast<const CHAR*>(pdbBlob->GetBufferPointer()), pdbBlob->GetBufferSize());
 			fout.close();
 		}
 	}
@@ -181,13 +190,25 @@ BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::
 
 	CheckHRESULT(result->GetResult(&mDxcShaders[name]));
 
-	return true;
+	return TRUE;
 }
 
-ID3DBlob* ShaderManager::GetShader(const std::string& inName) {
-	return mShaders[inName].Get();
+BOOL ShaderManager::CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name) {
+	return CompileShader(shaderInfo, name.c_str());
 }
 
-IDxcBlob* ShaderManager::GetDxcShader(const std::string& inName) {
-	return mDxcShaders[inName].Get();
+ID3DBlob* ShaderManager::GetShader(const CHAR* name) {
+	return mShaders[name].Get();
+}
+
+ID3DBlob* ShaderManager::GetShader(const std::string& name) {
+	return GetShader(name.c_str());
+}
+
+IDxcBlob* ShaderManager::GetDxcShader(const CHAR* name) {
+	return mDxcShaders[name].Get();
+}
+
+IDxcBlob* ShaderManager::GetDxcShader(const std::string& name) {
+	return GetDxcShader(name.c_str());
 }

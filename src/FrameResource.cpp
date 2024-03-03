@@ -15,7 +15,7 @@ BOOL FrameResource::Initialize() {
 		IID_PPV_ARGS(CmdListAlloc.GetAddressOf())
 	));
 
-	CheckReturn(PassCB.Initialize(Device, PassCount, true));
+	CheckReturn(CB_Pass.Initialize(Device, PassCount, true));
 	CheckReturn(ObjectCB.Initialize(Device, ObjectCount, true));
 	CheckReturn(MaterialCB.Initialize(Device, MaterialCount, true));
 	CheckReturn(SsaoCB.Initialize(Device, 1, true));

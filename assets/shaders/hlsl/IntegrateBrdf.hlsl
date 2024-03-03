@@ -9,7 +9,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<PassConstants> cbPass : register(b0);
+ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b0);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -25,12 +25,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
-
-	// Quad covering screen in NDC space.
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
-	// Transform quad corners to view space near plane.
-	float4 ph = mul(vout.PosH, cbPass.InvProj);
+	float4 ph = mul(vout.PosH, cb_Pass.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;

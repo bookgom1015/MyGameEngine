@@ -43,16 +43,25 @@ public:
 	void CleanUp();
 
 	BOOL CompileShader(
-		const std::wstring& inFilePath,
-		const D3D_SHADER_MACRO* inDefines,
-		const std::string& inEntryPoint,
-		const std::string& inTarget,
-		const std::string& inName);
+		const std::wstring& filePath,
+		const D3D_SHADER_MACRO* defines,
+		const std::string& entryPoint,
+		const std::string& target,
+		const CHAR* name);
+	BOOL CompileShader(
+		const std::wstring& filePath,
+		const D3D_SHADER_MACRO* defines,
+		const std::string& entryPoint,
+		const std::string& target,
+		const std::string& name);
 
-	BOOL CompileShader(const D3D12ShaderInfo& inShaderInfo, const std::string& inName);
+	BOOL CompileShader(const D3D12ShaderInfo& shaderInfo, const CHAR* name);
+	BOOL CompileShader(const D3D12ShaderInfo& shaderInfo, const std::string& name);
 
-	ID3DBlob* GetShader(const std::string& inName);
-	IDxcBlob* GetDxcShader(const std::string& inName);
+	ID3DBlob* GetShader(const CHAR* name);
+	ID3DBlob* GetShader(const std::string& name);
+	IDxcBlob* GetDxcShader(const CHAR* name);
+	IDxcBlob* GetDxcShader(const std::string& name);
 
 private:
 	BOOL bIsCleanedUp = false;
@@ -61,8 +70,8 @@ private:
 	Microsoft::WRL::ComPtr<IDxcUtils> mUtils;
 	Microsoft::WRL::ComPtr<IDxcCompiler3> mCompiler;
 
-	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> mShaders;
-	std::unordered_map<std::string, Microsoft::WRL::ComPtr<IDxcBlob>> mDxcShaders;
+	std::unordered_map<const CHAR*, Microsoft::WRL::ComPtr<ID3DBlob>> mShaders;
+	std::unordered_map<const CHAR*, Microsoft::WRL::ComPtr<IDxcBlob>> mDxcShaders;
 
 	std::set<std::string> mExportedPDBs;
 };

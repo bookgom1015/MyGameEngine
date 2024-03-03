@@ -19,29 +19,29 @@ using namespace DirectX;
 using namespace IrradianceMap;
 
 namespace {
-	const std::string ConvRectToCubeVS = "ConvRectToCubeVS";
-	const std::string ConvRectToCubePS = "ConvRectToCubePS";
+	const CHAR* const VS_ConvRectToCube = "VS_ConvRectToCube";
+	const CHAR* const PS_ConvRectToCube = "PS_ConvRectToCube";
 
-	const std::string DrawCubeVS = "DrawCubeVS";
-	const std::string DrawCubePS = "DrawCubePS";
+	const CHAR* const VS_DrawCube = "VS_DrawCube";
+	const CHAR* const PS_DrawCube = "PS_DrawCube";
 
-	const std::string DrawEquirectangularVS = "DrawEquirectangularVS";
-	const std::string DrawEquirectangularPS = "DrawEquirectangularPS";
+	const CHAR* const VS_DrawEquirectangular = "VS_DrawEquirectangular";
+	const CHAR* const PS_DrawEquirectangular = "PS_DrawEquirectangular";
 
-	const std::string ConvoluteDiffuseIrradianceVS = "ConvoluteDiffuseIrradianceVS";
-	const std::string ConvoluteDiffuseIrradiancePS = "ConvoluteDiffuseIrradiancePS";
+	const CHAR* const VS_ConvoluteDiffuseIrradiance = "VS_ConvoluteDiffuseIrradiance";
+	const CHAR* const PS_ConvoluteDiffuseIrradiance = "PS_ConvoluteDiffuseIrradiance";
 
-	const std::string ConvoluteSpecularIrradianceVS = "ConvoluteSpecularIrradianceVS";
-	const std::string ConvoluteSpecularIrradiancePS = "ConvoluteSpecularIrradiancePS";
+	const CHAR* const VS_ConvoluteSpecularIrradiance = "VS_ConvoluteSpecularIrradiance";
+	const CHAR* const PS_ConvoluteSpecularIrradiance = "PS_ConvoluteSpecularIrradiance";
 
-	const std::string IntegrateBrdfVS = "IntegrateBrdfVS";
-	const std::string IntegrateBrdfPS = "IntegrateBrdfPS";
+	const CHAR* const VS_IntegrateBRDF = "VS_IntegrateBRDF";
+	const CHAR* const PS_IntegrateBRDF = "PS_IntegrateBRDF";
 
-	const std::string SkySphereVS = "SkySphereVS";
-	const std::string SkySpherePS = "SkySpherePS";
+	const CHAR* const VS_SkySphere = "VS_SkySphere";
+	const CHAR* const PS_SkySphere = "PS_SkySphere";
 
-	const std::string ConvCubeToRectVS = "ConvCubeToRectVS";
-	const std::string ConvCubeToRectPS = "ConvCubeToRectPS";
+	const CHAR* const VS_ConvCubeToRect = "VS_ConvCubeToRect";
+	const CHAR* const PS_ConvCubeToRect = "PS_ConvCubeToRect";
 
 	const std::wstring GenDiffuseIrradianceCubeMap = L"./../../assets/textures/gen_diffuse_irradiance_cubemap.dds";
 	const std::wstring GenPrefilteredEnvironmentCubeMaps[5] = {
@@ -97,7 +97,7 @@ BOOL IrradianceMapClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandL
 
 	BuildResources(cmdList);
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
@@ -105,15 +105,15 @@ BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 		const std::wstring actualPath = filePath + L"ConvertEquirectangularToCubeMap.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, ConvRectToCubeVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, ConvRectToCubePS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvRectToCube));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvRectToCube));
 	}
 	{
 		const std::wstring actualPath = filePath + L"ConvertCubeMapToEquirectangular.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, ConvCubeToRectVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, ConvCubeToRectPS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvCubeToRect));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvCubeToRect));
 	}
 	{
 		const std::wstring actualPath = filePath + L"DrawCubeMap.hlsl";
@@ -124,59 +124,60 @@ BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 
 			auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(vsInfo, DrawEquirectangularVS));
-			CheckReturn(mShaderManager->CompileShader(psInfo, DrawEquirectangularPS));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DrawEquirectangular));
+			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DrawEquirectangular));
 		}
 		{
 			auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 			auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-			CheckReturn(mShaderManager->CompileShader(vsInfo, DrawCubeVS));
-			CheckReturn(mShaderManager->CompileShader(psInfo, DrawCubePS));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DrawCube));
+			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DrawCube));
 		}
 	}
 	{
 		const std::wstring actualPath = filePath + L"ConvoluteDiffuseIrradiance.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, ConvoluteDiffuseIrradianceVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, ConvoluteDiffuseIrradiancePS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvoluteDiffuseIrradiance));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvoluteDiffuseIrradiance));
 	}
 	{
 		const std::wstring actualPath = filePath + L"ConvoluteSpecularIrradiance.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, ConvoluteSpecularIrradianceVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, ConvoluteSpecularIrradiancePS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvoluteSpecularIrradiance));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvoluteSpecularIrradiance));
 	}
 	{
 		const std::wstring actualPath = filePath + L"IntegrateBrdf.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, IntegrateBrdfVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, IntegrateBrdfPS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_IntegrateBRDF));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_IntegrateBRDF));
 	}
 	{
 		const std::wstring actualPath = filePath + L"SkySphere.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, SkySphereVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, SkySpherePS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_SkySphere));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_SkySphere));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+	// ConvEquirectToCube
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[ConvEquirectToCube::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ConvEquirectToCube::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[1];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-		slotRootParameter[ConvEquirectToCube::RootSignatureLayout::ECB_ConvEquirectToCube].InitAsConstantBufferView(0);
-		slotRootParameter[ConvEquirectToCube::RootSignatureLayout::EC_Consts].InitAsConstants(
-			ConvEquirectToCube::RootConstantsLayout::Count,1);
-		slotRootParameter[ConvEquirectToCube::RootSignatureLayout::ESI_Equirectangular].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::ConvEquirectToCube::ECB_ConvEquirectToCube].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::ConvEquirectToCube::EC_Consts].InitAsConstants(
+			RootSignature::ConvEquirectToCube::RootConstant::Count,1);
+		slotRootParameter[RootSignature::ConvEquirectToCube::ESI_Equirectangular].InitAsDescriptorTable(1, &texTables[0]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -186,15 +187,16 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ConvEquirectToCube]));
 	}
+	// ConvCubeToEquirect
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[ConvCubeToEquirect::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ConvCubeToEquirect::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[1];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-		slotRootParameter[ConvCubeToEquirect::RootSignatureLayout::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[ConvCubeToEquirect::RootSignatureLayout::EC_Consts].InitAsConstants(
-			ConvCubeToEquirect::RootConstantsLayout::Count, 0);
+		slotRootParameter[RootSignature::ConvCubeToEquirect::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::ConvCubeToEquirect::EC_Consts].InitAsConstants(
+			RootSignature::ConvCubeToEquirect::RootConstant::Count, 0);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -204,18 +206,19 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ConvCubeToEquirect]));
 	}
+	// DrawCube
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[DrawCube::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DrawCube::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[2];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
-		slotRootParameter[DrawCube::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[DrawCube::RootSignatureLayout::ECB_Obj].InitAsConstantBufferView(1);
-		slotRootParameter[DrawCube::RootSignatureLayout::EC_Consts].InitAsConstants(DrawCube::RootConstantsLayout::Count, 2);
-		slotRootParameter[DrawCube::RootSignatureLayout::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[DrawCube::RootSignatureLayout::ESI_Equirectangular].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::DrawCube::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::DrawCube::ECB_Obj].InitAsConstantBufferView(1);
+		slotRootParameter[RootSignature::DrawCube::EC_Consts].InitAsConstants(RootSignature::DrawCube::RootConstant::Count, 2);
+		slotRootParameter[RootSignature::DrawCube::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::DrawCube::ESI_Equirectangular].InitAsDescriptorTable(1, &texTables[1]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -225,16 +228,17 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_DrawCube]));
 	}
+	// ConvoluteDiffuseIrradiance
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[ConvoluteDiffuseIrradiance::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ConvoluteDiffuseIrradiance::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[1];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-		slotRootParameter[ConvoluteDiffuseIrradiance::RootSignatureLayout::ECB_ConvEquirectToConv].InitAsConstantBufferView(0);
-		slotRootParameter[ConvoluteDiffuseIrradiance::RootSignatureLayout::EC_Consts].InitAsConstants(
-			ConvoluteDiffuseIrradiance::RootConstantsLayout::Count, 1);
-		slotRootParameter[ConvoluteDiffuseIrradiance::RootSignatureLayout::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::ConvoluteDiffuseIrradiance::ECB_ConvEquirectToConv].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::ConvoluteDiffuseIrradiance::EC_Consts].InitAsConstants(
+			RootSignature::ConvoluteDiffuseIrradiance::RootConstant::Count, 1);
+		slotRootParameter[RootSignature::ConvoluteDiffuseIrradiance::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -244,16 +248,17 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ConvoluteDiffuseIrradiance]));
 	}
+	// ConvoluteSpecularIrradiance
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[ConvoluteSpecularIrradiance::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ConvoluteSpecularIrradiance::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[1];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-		slotRootParameter[ConvoluteSpecularIrradiance::RootSignatureLayout::ECB_ConvEquirectToConv].InitAsConstantBufferView(0);
-		slotRootParameter[ConvoluteSpecularIrradiance::RootSignatureLayout::EC_Consts].InitAsConstants(
-			ConvoluteSpecularIrradiance::RootConstantsLayout::Count, 1);
-		slotRootParameter[ConvoluteSpecularIrradiance::RootSignatureLayout::ESI_Environment].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::ConvoluteSpecularIrradiance::ECB_ConvEquirectToConv].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::ConvoluteSpecularIrradiance::EC_Consts].InitAsConstants(
+			RootSignature::ConvoluteSpecularIrradiance::RootConstant::Count, 1);
+		slotRootParameter[RootSignature::ConvoluteSpecularIrradiance::ESI_Environment].InitAsDescriptorTable(1, &texTables[0]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -263,10 +268,11 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ConvolutePrefilteredIrradiance]));
 	}
+	// IntegrateBRDF
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[IntegrateBrdf::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::IntegrateBRDF::Count];
 
-		slotRootParameter[IntegrateBrdf::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::IntegrateBRDF::ECB_Pass].InitAsConstantBufferView(0);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -274,17 +280,18 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_IntegrateBrdf]));
+		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_IntegrateBRDF]));
 	}
+	// DrawSkySphere
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[DrawSkySphere::RootSignatureLayout::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DrawSkySphere::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[1];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-		slotRootParameter[DrawSkySphere::RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[DrawSkySphere::RootSignatureLayout::ECB_Obj].InitAsConstantBufferView(1);
-		slotRootParameter[DrawSkySphere::RootSignatureLayout::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::DrawSkySphere::ECB_Pass].InitAsConstantBufferView(0);
+		slotRootParameter[RootSignature::DrawSkySphere::ECB_Obj].InitAsConstantBufferView(1);
+		slotRootParameter[RootSignature::DrawSkySphere::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -295,17 +302,17 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_DrawSkySphere]));
 	}
 
-	return true;
+	return TRUE;
 }
 
-BOOL IrradianceMapClass::BuildPso() {
+BOOL IrradianceMapClass::BuildPSO() {
 	auto inputLayoutDesc = Vertex::InputLayoutDesc();
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvEquirectToCube].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(ConvRectToCubeVS);
-			auto ps = mShaderManager->GetDxcShader(ConvRectToCubePS);
+			auto vs = mShaderManager->GetDxcShader(VS_ConvRectToCube);
+			auto ps = mShaderManager->GetDxcShader(PS_ConvRectToCube);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -319,8 +326,8 @@ BOOL IrradianceMapClass::BuildPso() {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvCubeToEquirect].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(ConvCubeToRectVS);
-			auto ps = mShaderManager->GetDxcShader(ConvCubeToRectPS);
+			auto vs = mShaderManager->GetDxcShader(VS_ConvCubeToRect);
+			auto ps = mShaderManager->GetDxcShader(PS_ConvCubeToRect);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -336,16 +343,16 @@ BOOL IrradianceMapClass::BuildPso() {
 		psoDesc.DepthStencilState.DepthEnable = FALSE;
 
 		{
-			auto vs = mShaderManager->GetDxcShader(DrawCubeVS);
-			auto ps = mShaderManager->GetDxcShader(DrawCubePS);
+			auto vs = mShaderManager->GetDxcShader(VS_DrawCube);
+			auto ps = mShaderManager->GetDxcShader(PS_DrawCube);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DrawCube])));
 
 		{
-			auto vs = mShaderManager->GetDxcShader(DrawEquirectangularVS);
-			auto ps = mShaderManager->GetDxcShader(DrawEquirectangularPS);
+			auto vs = mShaderManager->GetDxcShader(VS_DrawEquirectangular);
+			auto ps = mShaderManager->GetDxcShader(PS_DrawEquirectangular);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -355,8 +362,8 @@ BOOL IrradianceMapClass::BuildPso() {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvoluteDiffuseIrradiance].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(ConvoluteDiffuseIrradianceVS);
-			auto ps = mShaderManager->GetDxcShader(ConvoluteDiffuseIrradiancePS);
+			auto vs = mShaderManager->GetDxcShader(VS_ConvoluteDiffuseIrradiance);
+			auto ps = mShaderManager->GetDxcShader(PS_ConvoluteDiffuseIrradiance);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -368,8 +375,8 @@ BOOL IrradianceMapClass::BuildPso() {
 
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvolutePrefilteredIrradiance].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(ConvoluteSpecularIrradianceVS);
-			auto ps = mShaderManager->GetDxcShader(ConvoluteSpecularIrradiancePS);
+			auto vs = mShaderManager->GetDxcShader(VS_ConvoluteSpecularIrradiance);
+			auto ps = mShaderManager->GetDxcShader(PS_ConvoluteSpecularIrradiance);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -377,23 +384,23 @@ BOOL IrradianceMapClass::BuildPso() {
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_IntegrateBrdf].Get();
+		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_IntegrateBRDF].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(IntegrateBrdfVS);
-			auto ps = mShaderManager->GetDxcShader(IntegrateBrdfPS);
+			auto vs = mShaderManager->GetDxcShader(VS_IntegrateBRDF);
+			auto ps = mShaderManager->GetDxcShader(PS_IntegrateBRDF);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = IntegratedBrdfMapFormat;
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_IntegrateBrdf])));
+		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_IntegrateBRDF])));
 	}
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DepthStencilBuffer::BufferFormat);
 		skyPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DrawSkySphere].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(SkySphereVS);
-			auto ps = mShaderManager->GetDxcShader(SkySpherePS);
+			auto vs = mShaderManager->GetDxcShader(VS_SkySphere);
+			auto ps = mShaderManager->GetDxcShader(PS_SkySphere);
 			skyPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			skyPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -407,7 +414,7 @@ BOOL IrradianceMapClass::BuildPso() {
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&skyPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DrawSkySphere])));
 	}
 
-	return true;
+	return TRUE;
 }
 
 void IrradianceMapClass::BuildDescriptors(
@@ -495,7 +502,7 @@ BOOL IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, 
 		std::wstringstream wsstream;
 		wsstream << "Returned " << std::hex << status << "; when creating texture:  " << filename;
 		WLogln(wsstream.str());
-		return false;
+		return FALSE;
 	}
 
 	mTemporaryEquirectangularMap->Swap(tex->Resource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -514,10 +521,10 @@ BOOL IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, 
 		srvDesc.Format = desc.Format;
 		md3dDevice->CreateShaderResourceView(mTemporaryEquirectangularMap->Resource(), &srvDesc, mhTemporaryEquirectangularMapCpuSrv);
 	}
-	bNeedToUpdate = true;
+	bNeedToUpdate = TRUE;
 
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::Update(
@@ -535,10 +542,10 @@ BOOL IrradianceMapClass::Update(
 
 		WLogln(L"Saved diffuse irradiance cubemap.");
 	}
-	if (mNeedToSave & Save::E_IntegratedBrdf) {
+	if (mNeedToSave & Save::E_IntegratedBRDF) {
 		Save(queue, mIntegratedBrdfMap.get(), GenIntegratedBrdfMap);
 
-		mNeedToSave = static_cast<Save::Type>(mNeedToSave & ~Save::E_IntegratedBrdf);
+		mNeedToSave = static_cast<Save::Type>(mNeedToSave & ~Save::E_IntegratedBRDF);
 
 		WLogln(L"Saved integrated BRDF map.");
 	}
@@ -553,7 +560,7 @@ BOOL IrradianceMapClass::Update(
 		}
 	}
 
-	if (!bNeedToUpdate) return true;
+	if (!bNeedToUpdate) return TRUE;
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -561,8 +568,7 @@ BOOL IrradianceMapClass::Update(
 	{
 		generator->GenerateMipmap(
 			cmdList, 
-			mEquirectangularMap.get(), 
-			cbPass, 
+			mEquirectangularMap.get(),
 			mhTemporaryEquirectangularMapGpuSrv,
 			mhEquirectangularMapCpuRtvs, 
 			EquirectangularMapWidth, 
@@ -649,7 +655,7 @@ BOOL IrradianceMapClass::Update(
 				cbPass
 			);
 
-			mNeedToSave = static_cast<Save::Type>(mNeedToSave | Save::E_IntegratedBrdf);
+			mNeedToSave = static_cast<Save::Type>(mNeedToSave | Save::E_IntegratedBRDF);
 		}
 	}
 	{
@@ -723,9 +729,9 @@ BOOL IrradianceMapClass::Update(
 
 	WLogln(L"");
 
-	bNeedToUpdate = false;
+	bNeedToUpdate = FALSE;
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::DrawCubeMap(
@@ -750,27 +756,27 @@ BOOL IrradianceMapClass::DrawCubeMap(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	cmdList->SetGraphicsRootConstantBufferView(DrawCube::RootSignatureLayout::ECB_Pass, cbPassAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::DrawCube::ECB_Pass, cbPassAddress);
 
-	FLOAT values[DrawCube::RootConstantsLayout::Count] = { mipLevel };
-	cmdList->SetGraphicsRoot32BitConstants(DrawCube::RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+	FLOAT values[RootSignature::DrawCube::RootConstant::Count] = { mipLevel };
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::DrawCube::EC_Consts, _countof(values), values, 0);
 
 	switch (DrawCubeType) {
 	case DrawCube::E_EnvironmentCube:
-		cmdList->SetGraphicsRootDescriptorTable(DrawCube::RootSignatureLayout::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DrawCube::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
 		break;
 	case DrawCube::E_Equirectangular:
-		cmdList->SetGraphicsRootDescriptorTable(DrawCube::RootSignatureLayout::ESI_Equirectangular, mhEquirectangularMapGpuSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DrawCube::ESI_Equirectangular, mhEquirectangularMapGpuSrv);
 		break;
 	case DrawCube::E_DiffuseIrradianceCube:
-		cmdList->SetGraphicsRootDescriptorTable(DrawCube::RootSignatureLayout::ESI_Cube, mhDiffuseIrradianceCubeMapGpuSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DrawCube::ESI_Cube, mhDiffuseIrradianceCubeMapGpuSrv);
 		break;
 	case DrawCube::E_PrefilteredIrradianceCube:
-		cmdList->SetGraphicsRootDescriptorTable(DrawCube::RootSignatureLayout::ESI_Cube, mhPrefilteredEnvironmentCubeMapGpuSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DrawCube::ESI_Cube, mhPrefilteredEnvironmentCubeMapGpuSrv);
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS boxObjCBAddress = cbObjAddress + box->ObjCBIndex * objCBByteSize;
-	cmdList->SetGraphicsRootConstantBufferView(DrawCube::RootSignatureLayout::ECB_Obj, boxObjCBAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::DrawCube::ECB_Obj, boxObjCBAddress);
 
 	cmdList->IASetVertexBuffers(0, 1, &box->Geometry->VertexBufferView());
 	cmdList->IASetIndexBuffer(&box->Geometry->IndexBufferView());
@@ -778,7 +784,7 @@ BOOL IrradianceMapClass::DrawCubeMap(
 
 	cmdList->DrawIndexedInstanced(box->IndexCount, 1, box->StartIndexLocation, box->BaseVertexLocation, 0);
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::DrawSkySphere(
@@ -802,21 +808,21 @@ BOOL IrradianceMapClass::DrawSkySphere(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
 
-	cmdList->SetGraphicsRootConstantBufferView(DrawSkySphere::RootSignatureLayout::ECB_Pass, cbPassAddress);
-	cmdList->SetGraphicsRootDescriptorTable(DrawSkySphere::RootSignatureLayout::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::DrawSkySphere::ECB_Pass, cbPassAddress);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::DrawSkySphere::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
 
 	cmdList->IASetVertexBuffers(0, 1, &sphere->Geometry->VertexBufferView());
 	cmdList->IASetIndexBuffer(&sphere->Geometry->IndexBufferView());
 	cmdList->IASetPrimitiveTopology(sphere->PrimitiveType);
 
 	D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cbObjAddress + sphere->ObjCBIndex * objCBByteSize;
-	cmdList->SetGraphicsRootConstantBufferView(DrawSkySphere::RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::DrawSkySphere::ECB_Obj, currRitemObjCBAddress);
 
 	cmdList->DrawIndexedInstanced(sphere->IndexCount, 1, sphere->StartIndexLocation, sphere->BaseVertexLocation, 0);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
-	return true;
+	return TRUE;
 }
 
 
@@ -988,7 +994,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"DiffuseIrradianceEquirectMap"
+			L"DiffuseIrradianceEquirectangularMap"
 		));
 
 		texDesc.MipLevels = MaxMipLevel;
@@ -1008,7 +1014,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 		texDesc.DepthOrArraySize = 1;
 		texDesc.MipLevels = 1;
 
-		wchar_t name[] = L"PrefilteredEnvironmentEquirectMap_";
+		wchar_t name[] = L"PrefilteredEnvironmentEquirectangularMap_";
 		for (UINT i = 0; i < MaxMipLevel; ++i) {
 			double denom = 1 / std::pow(2, i);
 			texDesc.Width = static_cast<UINT>(EquirectangularMapWidth * denom);
@@ -1042,25 +1048,25 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"IntegratedBrdfMap"
+			L"IntegratedBRDFMap"
 		));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::Check(const std::wstring& filepath) {
 	std::string filePath;
-	for (wchar_t ch : filepath)
-		filePath.push_back(static_cast<char>(ch));
+	for (WCHAR ch : filepath)
+		filePath.push_back(static_cast<CHAR>(ch));
 
 	FILE* file;
 	fopen_s(&file, filePath.c_str(), "r");
-	if (file == NULL) return false;
+	if (file == NULL) return FALSE;
 
 	fclose(file);
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::Load(
@@ -1089,7 +1095,7 @@ BOOL IrradianceMapClass::Load(
 		std::wstringstream wsstream;
 		wsstream << "Returned " << std::hex << status << "; when creating texture:  " << filepath;
 		WLogln(wsstream.str());
-		return false;
+		return FALSE;
 	}
 
 	auto& resource = tex->Resource;
@@ -1107,7 +1113,7 @@ BOOL IrradianceMapClass::Load(
 
 	md3dDevice->CreateShaderResourceView(dst->Resource(), &srvDesc, hDesc);
 
-	return true;
+	return TRUE;
 }
 
 BOOL IrradianceMapClass::Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath) {
@@ -1119,7 +1125,7 @@ BOOL IrradianceMapClass::Save(ID3D12CommandQueue* const queue, GpuResource* reso
 		resource->State()
 	));
 
-	return true;
+	return TRUE;
 }
 
 void IrradianceMapClass::ConvertEquirectangularToCube(
@@ -1139,13 +1145,13 @@ void IrradianceMapClass::ConvertEquirectangularToCube(
 
 	resource->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->SetGraphicsRootConstantBufferView(ConvEquirectToCube::RootSignatureLayout::ECB_ConvEquirectToCube, cbConvEquirectToCube);
-	cmdList->SetGraphicsRootDescriptorTable(ConvEquirectToCube::RootSignatureLayout::ESI_Equirectangular, si_equirectangular);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ConvEquirectToCube::ECB_ConvEquirectToCube, cbConvEquirectToCube);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ConvEquirectToCube::ESI_Equirectangular, si_equirectangular);
 
 	for (UINT i = 0; i < CubeMapFace::Count; ++i) {
 		cmdList->OMSetRenderTargets(1, &ro_outputs[i], TRUE, nullptr);
 
-		cmdList->SetGraphicsRoot32BitConstant(ConvEquirectToCube::RootSignatureLayout::EC_Consts, i, 0);
+		cmdList->SetGraphicsRoot32BitConstant(RootSignature::ConvEquirectToCube::EC_Consts, i, 0);
 
 		cmdList->IASetVertexBuffers(0, 1, &box->Geometry->VertexBufferView());
 		cmdList->IASetIndexBuffer(&box->Geometry->IndexBufferView());
@@ -1171,8 +1177,8 @@ void IrradianceMapClass::ConvertEquirectangularToCube(
 
 	resource->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->SetGraphicsRootConstantBufferView(ConvEquirectToCube::RootSignatureLayout::ECB_ConvEquirectToCube, cbConvEquirectToCube);
-	cmdList->SetGraphicsRootDescriptorTable(ConvEquirectToCube::RootSignatureLayout::ESI_Equirectangular, si_equirectangular);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ConvEquirectToCube::ECB_ConvEquirectToCube, cbConvEquirectToCube);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ConvEquirectToCube::ESI_Equirectangular, si_equirectangular);
 
 	for (UINT mipLevel = 0; mipLevel < maxMipLevel; ++mipLevel) {
 		UINT mw = static_cast<UINT>(width / std::pow(2, mipLevel));
@@ -1187,7 +1193,7 @@ void IrradianceMapClass::ConvertEquirectangularToCube(
 		for (UINT face = 0; face < CubeMapFace::Count; ++face) {
 			cmdList->OMSetRenderTargets(1, &ro_outputs[mipLevel][face], TRUE, nullptr);
 
-			cmdList->SetGraphicsRoot32BitConstant(ConvEquirectToCube::RootSignatureLayout::EC_Consts, face, 0);
+			cmdList->SetGraphicsRoot32BitConstant(RootSignature::ConvEquirectToCube::EC_Consts, face, 0);
 
 			cmdList->IASetVertexBuffers(0, 1, &box->Geometry->VertexBufferView());
 			cmdList->IASetIndexBuffer(&box->Geometry->IndexBufferView());
@@ -1216,11 +1222,11 @@ void IrradianceMapClass::ConvertCubeToEquirectangular(
 
 	equirectResource->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &equirectRtv, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &equirectRtv, TRUE, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(ConvCubeToEquirect::RootSignatureLayout::ESI_Cube, cubeSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ConvCubeToEquirect::ESI_Cube, cubeSrv);
 	cmdList->SetGraphicsRoot32BitConstant(
-		ConvCubeToEquirect::RootSignatureLayout::EC_Consts, mipLevel, ConvCubeToEquirect::RootConstantsLayout::E_MipLevel);
+		RootSignature::ConvCubeToEquirect::EC_Consts, mipLevel, RootSignature::ConvCubeToEquirect::RootConstant::E_MipLevel);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -1242,23 +1248,23 @@ void IrradianceMapClass::GenerateDiffuseIrradiance(
 
 	mDiffuseIrradianceCubeMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->SetGraphicsRootConstantBufferView(ConvoluteDiffuseIrradiance::RootSignatureLayout::ECB_ConvEquirectToConv, cbConvEquirectToCube);
-	cmdList->SetGraphicsRootDescriptorTable(ConvoluteDiffuseIrradiance::RootSignatureLayout::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ConvoluteDiffuseIrradiance::ECB_ConvEquirectToConv, cbConvEquirectToCube);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ConvoluteDiffuseIrradiance::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
 
 	FLOAT values[1] = { 0.025f };
 	cmdList->SetGraphicsRoot32BitConstants(
-		ConvoluteDiffuseIrradiance::RootSignatureLayout::EC_Consts,
+		RootSignature::ConvoluteDiffuseIrradiance::EC_Consts,
 		_countof(values), values, 
-		ConvoluteDiffuseIrradiance::RootConstantsLayout::E_SampDelta
+		RootSignature::ConvoluteDiffuseIrradiance::RootConstant::E_SampDelta
 	);
 
 	for (UINT i = 0; i < CubeMapFace::Count; ++i) {
-		cmdList->OMSetRenderTargets(1, &mhDiffuseIrradianceCubeMapCpuRtvs[i], true, nullptr);
+		cmdList->OMSetRenderTargets(1, &mhDiffuseIrradianceCubeMapCpuRtvs[i], TRUE, nullptr);
 	
 		cmdList->SetGraphicsRoot32BitConstant(
-			ConvoluteDiffuseIrradiance::RootSignatureLayout::EC_Consts,
+			RootSignature::ConvoluteDiffuseIrradiance::EC_Consts,
 			i, 
-			ConvoluteDiffuseIrradiance::RootConstantsLayout::E_FaceID
+			RootSignature::ConvoluteDiffuseIrradiance::RootConstant::E_FaceID
 		);
 	
 		cmdList->IASetVertexBuffers(0, 1, &box->Geometry->VertexBufferView());
@@ -1279,9 +1285,9 @@ void IrradianceMapClass::GeneratePrefilteredEnvironment(
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ConvolutePrefilteredIrradiance].Get());
 
 	cmdList->SetGraphicsRootConstantBufferView(
-		ConvoluteSpecularIrradiance::RootSignatureLayout::ECB_ConvEquirectToConv, cbConvEquirectToCube);
+		RootSignature::ConvoluteSpecularIrradiance::ECB_ConvEquirectToConv, cbConvEquirectToCube);
 	cmdList->SetGraphicsRootDescriptorTable(
-		ConvoluteSpecularIrradiance::RootSignatureLayout::ESI_Environment, mhEnvironmentCubeMapGpuSrv);
+		RootSignature::ConvoluteSpecularIrradiance::ESI_Environment, mhEnvironmentCubeMapGpuSrv);
 	
 	mPrefilteredEnvironmentCubeMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -1295,26 +1301,26 @@ void IrradianceMapClass::GeneratePrefilteredEnvironment(
 		cmdList->RSSetScissorRects(1, &rect);
 
 		cmdList->SetGraphicsRoot32BitConstant(
-			ConvoluteSpecularIrradiance::RootSignatureLayout::EC_Consts,
+			RootSignature::ConvoluteSpecularIrradiance::EC_Consts,
 			mipLevel,
-			ConvoluteSpecularIrradiance::RootConstantsLayout::E_MipLevel
+			RootSignature::ConvoluteSpecularIrradiance::RootConstant::E_MipLevel
 		);
 
 		FLOAT values[1] = { static_cast<FLOAT>(0.16667f * mipLevel) };
 		cmdList->SetGraphicsRoot32BitConstants(
-			ConvoluteSpecularIrradiance::RootSignatureLayout::EC_Consts,
+			RootSignature::ConvoluteSpecularIrradiance::EC_Consts,
 			_countof(values),
 			values,
-			ConvoluteSpecularIrradiance::RootConstantsLayout::E_Roughness
+			RootSignature::ConvoluteSpecularIrradiance::RootConstant::E_Roughness
 		);
 
 		for (UINT faceID = 0; faceID < CubeMapFace::Count; ++faceID) {
-			cmdList->OMSetRenderTargets(1, &mhPrefilteredEnvironmentCubeMapCpuRtvs[mipLevel][faceID], true, nullptr);
+			cmdList->OMSetRenderTargets(1, &mhPrefilteredEnvironmentCubeMapCpuRtvs[mipLevel][faceID], TRUE, nullptr);
 
 			cmdList->SetGraphicsRoot32BitConstant(
-				ConvoluteSpecularIrradiance::RootSignatureLayout::EC_Consts,
+				RootSignature::ConvoluteSpecularIrradiance::EC_Consts,
 				faceID,
-				ConvoluteSpecularIrradiance::RootConstantsLayout::E_FaceID
+				RootSignature::ConvoluteSpecularIrradiance::RootConstant::E_FaceID
 			);
 
 			cmdList->IASetVertexBuffers(0, 1, &box->Geometry->VertexBufferView());
@@ -1331,18 +1337,18 @@ void IrradianceMapClass::GeneratePrefilteredEnvironment(
 void IrradianceMapClass::GenerateIntegratedBrdf(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cbPass) {
-	cmdList->SetPipelineState(mPSOs[PipelineState::E_IntegrateBrdf].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_IntegrateBrdf].Get());
+	cmdList->SetPipelineState(mPSOs[PipelineState::E_IntegrateBRDF].Get());
+	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_IntegrateBRDF].Get());
 
 	cmdList->RSSetViewports(1, &mCubeMapViewport);
 	cmdList->RSSetScissorRects(1, &mCubeMapScissorRect);
 
 	mIntegratedBrdfMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &mhIntegratedBrdfMapCpuRtv, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &mhIntegratedBrdfMapCpuRtv, TRUE, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(
-		IntegrateBrdf::RootSignatureLayout::ECB_Pass, cbPass);
+		RootSignature::IntegrateBRDF::ECB_Pass, cbPass);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

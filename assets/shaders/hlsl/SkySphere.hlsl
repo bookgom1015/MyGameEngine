@@ -9,8 +9,8 @@
 #include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<PassConstants>	cbPass	: register(b0);
-ConstantBuffer<ObjectConstants> cbObj	: register(b1);
+ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
+ConstantBuffer<ObjectConstants> cb_Obj	: register(b1);
 
 TextureCube gi_Cube : register(t0);
 
@@ -28,13 +28,12 @@ VertexOut VS(VertexIn vin) {
 	vout.PosL = vin.PosL;
 
 	// Transform to world space.
-	float4 posW = mul(float4(vin.PosL, 1.0f), cbObj.World);
-
+	float4 posW = mul(float4(vin.PosL, 1.0f), cb_Obj.World);
 	// Always center sky about camera.
-	posW.xyz += cbPass.EyePosW;
+	posW.xyz += cb_Pass.EyePosW;
 
 	// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
-	vout.PosH = mul(posW, cbPass.ViewProj).xyww;
+	vout.PosH = mul(posW, cb_Pass.ViewProj).xyww;
 
 	return vout;
 }

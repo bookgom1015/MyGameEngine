@@ -211,8 +211,8 @@ namespace ShaderArgs {
 DxRenderer::DxRenderer() {
 	bIsCleanedUp = false;
 
-	mMainPassCB = std::make_unique<PassConstants>();
-	mShadowPassCB = std::make_unique<PassConstants>();
+	mMainPassCB = std::make_unique<ConstantBuffer_Pass>();
+	mShadowPassCB = std::make_unique<ConstantBuffer_Pass>();
 
 	mShaderManager = std::make_unique<ShaderManager>();
 
@@ -901,7 +901,7 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mSsao->BuildPso());
 	CheckReturn(mBloom->BuildPso());
 	CheckReturn(mBlurFilter->BuildPso());
-	CheckReturn(mSSR->BuildPso());
+	CheckReturn(mSSR->BuildPSO());
 	CheckReturn(mDof->BuildPso());
 	CheckReturn(mMotionBlur->BuildPso());
 	CheckReturn(mTaa->BuildPso());
@@ -909,8 +909,8 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mDebugCollision->BuildPso());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
-	CheckReturn(mIrradianceMap->BuildPso());
-	CheckReturn(mMipmapGenerator->BuildPso());
+	CheckReturn(mIrradianceMap->BuildPSO());
+	CheckReturn(mMipmapGenerator->BuildPSO());
 	CheckReturn(mPixelation->BuildPso());
 	CheckReturn(mSharpen->BuildPso());
 	CheckReturn(mGaussianFilter->BuildPso());
@@ -1152,7 +1152,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 		mCommandQueue.Get(),
 		mCbvSrvUavHeap.Get(),
 		cmdList,
-		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(),
 		mMipmapGenerator.get(),
 		mIrradianceCubeMap
@@ -1223,7 +1223,7 @@ BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
 	XMStoreFloat4x4(&mShadowPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
 	XMStoreFloat3(&mShadowPassCB->EyePosW, lightPos);
 
-	auto& currPassCB = mCurrFrameResource->PassCB;
+	auto& currPassCB = mCurrFrameResource->CB_Pass;
 	currPassCB.CopyData(1, *mShadowPassCB);
 
 	return true;
@@ -1263,13 +1263,17 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	const auto ambient = ShaderArgs::Light::AmbientLight;
 	mMainPassCB->AmbientLight = XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
 
+	mMainPassCB->DirectionalLightCount = 0;
+	mMainPassCB->PointLightCount = 0;
+	mMainPassCB->SpotLightCount = 0;
+
 	XMVECTOR strength = XMLoadFloat3(&XMFLOAT3(ShaderArgs::Light::DirectionalLight::Strength));
 	strength = XMVectorScale(strength, ShaderArgs::Light::DirectionalLight::Multiplier);
 	XMStoreFloat3(&mMainPassCB->Lights[0].Strength, strength);
 	mMainPassCB->Lights[0].Direction = mLightDir;
 
-	auto& currPassCB = mCurrFrameResource->PassCB;
-	currPassCB.CopyData(0, *mMainPassCB);
+	auto& currCB = mCurrFrameResource->CB_Pass;
+	currCB.CopyData(0, *mMainPassCB);
 
 	return true;
 }
@@ -1744,22 +1748,19 @@ BOOL DxRenderer::DrawShadowMap() {
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	auto passCB = mCurrFrameResource->PassCB.Resource();
-	auto passCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(PassConstants));
-	auto passCBAddress = passCB->GetGPUVirtualAddress() + 1 * passCBByteSize;
+	const auto cbPass = mCurrFrameResource->CB_Pass.Resource();
+	const auto cbPassByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass));
+	const auto cbPassAddr = cbPass->GetGPUVirtualAddress() + 1 * cbPassByteSize;
 
-	auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
-	auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
+	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
+	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
 
 	mShadowMap->Run(
 		cmdList,
-		passCBAddress,
+		cbPassAddr,
 		objCBAddress,
 		matCBAddress,
 		mhGpuDescForTexMaps,
@@ -1796,7 +1797,6 @@ BOOL DxRenderer::DrawGBuffer() {
 		prevNd->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
-	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
 
@@ -1804,7 +1804,7 @@ BOOL DxRenderer::DrawGBuffer() {
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
-		passCBAddress,
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		objCBAddress,
 		matCBAddress,
 		mhGpuDescForTexMaps,
@@ -1843,10 +1843,7 @@ BOOL DxRenderer::DrawSsao() {
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	auto ssaoCBAddress = mCurrFrameResource->SsaoCB.Resource()->GetGPUVirtualAddress();
@@ -1883,8 +1880,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mBRDF->CalcReflectanceWithoutSpecIrrad(
@@ -1892,7 +1888,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
@@ -1915,8 +1911,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	auto aoCoeffDesc = bRaytracing ? mRtao->ResolvedAOCoefficientSrv() : mSsao->AOCoefficientMapSrv(0);
@@ -1927,7 +1922,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
@@ -1950,15 +1945,8 @@ BOOL DxRenderer::DrawSkySphere() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
-	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
-	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 	
 	mIrradianceMap->DrawSkySphere(
 		cmdList,
@@ -1967,9 +1955,9 @@ BOOL DxRenderer::DrawSkySphere() {
 		mToneMapping->InterMediateMapResource(),
 		mToneMapping->InterMediateMapRtv(),
 		DepthStencilView(),
-		passCBAddress,
-		objCBAddress,
-		objCBByteSize,
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress(),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants)),
 		mSkySphere
 	);
 
@@ -1982,14 +1970,10 @@ BOOL DxRenderer::DrawSkySphere() {
 BOOL DxRenderer::DrawEquirectangulaToCube() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
-	
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+		
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
-	const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
@@ -1999,7 +1983,7 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
-		passCBAddress,
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		objCBAddress,
 		objCBByteSize,
 		mIrradianceCubeMap,
@@ -2016,10 +2000,7 @@ BOOL DxRenderer::ApplyTAA() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mTaa->Run(
@@ -2100,10 +2081,7 @@ BOOL DxRenderer::ApplyBloom() {
 	const auto cmdList= mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	auto pDescHeap = mCbvSrvUavHeap.Get();
-	UINT descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	const auto backBuffer = mToneMapping->InterMediateMapResource();
@@ -2158,10 +2136,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	const auto backBuffer = mToneMapping->InterMediateMapResource();
@@ -2361,10 +2336,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	mDebugMap->Run(
@@ -2384,7 +2356,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 			mScissorRect,
 			mSwapChainBuffer->CurrentBackBuffer(),
 			mSwapChainBuffer->CurrentBackBufferRtv(),
-			mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 			mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress(),
 			mRitemRefs[RenderType::E_Opaque]
 		);
@@ -2853,14 +2825,13 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 	const auto cmdList = mCommandList.Get();	
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	const auto pDescHeap = mCbvSrvUavHeap.Get();	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 	mDxrShadowMap->Run(
 		cmdList,
 		mTLAS->Result->GetGPUVirtualAddress(),
-		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mGBuffer->PositionMapSrv(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
@@ -2902,7 +2873,7 @@ BOOL DxRenderer::DrawDxrBackBuffer() {
 		mScreenViewport,
 		mScissorRect,
 		mToneMapping->InterMediateMapResource(),
-		mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mToneMapping->InterMediateMapRtv(),
 		mGBuffer->AlbedoMapSrv(),
 		mGBuffer->NormalMapSrv(),
@@ -3163,13 +3134,12 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 
 	// Calculate raytraced reflection.
 	{
-		const auto passCBAddress = mCurrFrameResource->PassCB.Resource()->GetGPUVirtualAddress();
 		const auto rrCBAddress = mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress();
 		const auto tlasVAddress = mTLAS->Result->GetGPUVirtualAddress();
 
 		mRr->CalcReflection(
 			cmdList,
-			passCBAddress,
+			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 			rrCBAddress,
 			tlasVAddress,
 			mToneMapping->InterMediateMapSrv(),

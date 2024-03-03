@@ -11,7 +11,7 @@
 
 #include "BRDF.hlsli"
 
-ConstantBuffer<PassConstants> cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Pass> cb_Pass	: register(b0);
 
 Texture2D<ToneMapping::IntermediateMapFormat>			gi_BackBuffer	: register(t0);
 Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t1);

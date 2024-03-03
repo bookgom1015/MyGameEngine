@@ -662,9 +662,6 @@
     <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\assets\shaders\glsl\Debug.frag">
       <Filter>Shader Files\GLSL</Filter>
     </None>
@@ -733,12 +730,6 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
-      <Filter>Header Files\Render\DirectX\Shading</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\include\Renderer.inl">
       <Filter>Header Files\Render</Filter>
@@ -883,6 +874,15 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\SSR_View.hlsl">
       <Filter>Shader Files\HLSL\SSR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
+      <Filter>Shader Files\HLSL\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
+      <Filter>Shader Files\HLSL\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
+      <Filter>Shader Files\HLSL</Filter>
     </None>
   </ItemGroup>
 </Project>

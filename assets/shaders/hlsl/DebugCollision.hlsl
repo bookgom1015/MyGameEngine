@@ -7,8 +7,8 @@
 
 #include "./../../../include/HlslCompaction.h"
 
-ConstantBuffer<PassConstants>	cbPass	: register(b0);
-ConstantBuffer<ObjectConstants>	cbObj	: register(b1);
+ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
+ConstantBuffer<ObjectConstants>		cb_Obj	: register(b1);
 
 struct GeoOut {
 	float4 PosH    : SV_POSITION;
@@ -21,8 +21,8 @@ void VS(uint vid : SV_VertexID) {}
 
 [maxvertexcount(NUM)]
 void GS(inout TriangleStream<GeoOut> triStream) {	
-	float3 center = cbObj.Center.xyz;
-	float3 extents = cbObj.Extents.xyz;
+	float3 center = cb_Obj.Center.xyz;
+	float3 extents = cb_Obj.Extents.xyz;
 
 	const float3 V0 = extents;
 	const float3 V1 = float3(-extents.x, extents.yz);
@@ -38,9 +38,9 @@ void GS(inout TriangleStream<GeoOut> triStream) {
 	GeoOut gout = (GeoOut)0;
 	for (int i = 0; i < NUM; ++i) {
 		float3 posL = center + offsets[i];
-		float4 posW = mul(float4(posL, 1), cbObj.World);
+		float4 posW = mul(float4(posL, 1), cb_Obj.World);
 	
-		gout.PosH = mul(posW, cbPass.ViewProj);
+		gout.PosH = mul(posW, cb_Pass.ViewProj);
 	
 		triStream.Append(gout);
 	}

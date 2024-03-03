@@ -1,18 +1,6 @@
 #ifndef __BRDF_HLSL__
 #define __BRDF_HLSL__
 
-#ifndef NUM_DIR_LIGHTS
-#define NUM_DIR_LIGHTS 1
-#endif
-
-#ifndef NUM_POINT_LIGHTS
-#define NUM_POINT_LIGHTS 0
-#endif
-
-#ifndef NUM_SPOT_LIGHTS
-#define NUM_SPOT_LIGHTS 0
-#endif
-
 #ifndef HLSL
 #define HLSL
 #endif
@@ -23,7 +11,7 @@
 
 #include "BRDF.hlsli"
 
-ConstantBuffer<PassConstants> cbPass	: register(b0);
+ConstantBuffer<ConstantBuffer_Pass> cb_Pass	: register(b0);
 
 Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t0);
 Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t1);
@@ -49,7 +37,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
-	float4 ph = mul(vout.PosH, cbPass.InvProj);
+	float4 ph = mul(vout.PosH, cb_Pass.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -58,7 +46,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 float4 PS(VertexOut pin) : SV_Target {	
 	const float4 posW = gi_Position.Sample(gsamLinearClamp, pin.TexC);
 
-	float4 ssaoPosH = mul(posW, cbPass.ViewProjTex);
+	float4 ssaoPosH = mul(posW, cb_Pass.ViewProjTex);
 	ssaoPosH /= ssaoPosH.w;
 	
 	const float4 albedo = gi_Albedo.Sample(gsamLinearClamp, pin.TexC);
@@ -77,14 +65,15 @@ float4 PS(VertexOut pin) : SV_Target {
 #ifdef DXR
 	shadowFactor[0] = gi_Shadow.Sample(gsamLinearClamp, pin.TexC);
 #else
-	const float4 shadowPosH = mul(posW, cbPass.ShadowTransform);
+	const float4 shadowPosH = mul(posW, cb_Pass.ShadowTransform);
 	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
 #endif
 
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 
-	const float3 viewW = normalize(cbPass.EyePosW - posW.xyz);
-	const float3 radiance = max(ComputeBRDF(cbPass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor), (float3)0);
+	const float3 viewW = normalize(cb_Pass.EyePosW - posW.xyz);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor, 
+		cb_Pass.DirectionalLightCount, cb_Pass.PointLightCount, cb_Pass.SpotLightCount), (float3)0);
 
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;

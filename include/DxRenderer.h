@@ -11,7 +11,6 @@ const INT gNumFrameResources = 3;
 #include "DxMesh.h"
 
 struct FrameResource;
-struct PassConstants;
 
 class ShaderManager;
 class ImGuiManager; 
@@ -171,8 +170,8 @@ private:
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDescForTexMaps;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuDescForTexMaps;
 
-	std::unique_ptr<PassConstants> mMainPassCB;
-	std::unique_ptr<PassConstants> mShadowPassCB;
+	std::unique_ptr<ConstantBuffer_Pass> mMainPassCB;
+	std::unique_ptr<ConstantBuffer_Pass> mShadowPassCB;
 	
 	std::unique_ptr<ShaderManager> mShaderManager;
 

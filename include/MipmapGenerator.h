@@ -10,23 +10,22 @@ class ShaderManager;
 class GpuResource;
 
 namespace MipmapGenerator {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
-			ECB_Pass = 0,
-			EC_Consts,
+			EC_Consts = 0,
 			ESI_Input,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			E_InvTexSizeW = 0,
-			E_InvTexSizeH,
-			E_InvMipmapTexSizeW,
-			E_InvMipmapTexSizeH,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_InvTexSizeW = 0,
+				E_InvTexSizeH,
+				E_InvMipmapTexSizeW,
+				E_InvMipmapTexSizeH,
+				Count
+			};
+		}
 	}
 
 	namespace PipelineState {
@@ -46,12 +45,11 @@ namespace MipmapGenerator {
 		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 
 		BOOL GenerateMipmap(
 			ID3D12GraphicsCommandList* const cmdList,
 			GpuResource* output,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_input,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_outputs[],
 			UINT width, UINT height,

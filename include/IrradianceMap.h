@@ -14,43 +14,50 @@ class GpuResource;
 struct RenderItem;
 
 namespace IrradianceMap {
-	namespace ConvEquirectToCube {
-		namespace RootSignatureLayout {
+	namespace RootSignature {
+		enum Type {
+			E_ConvEquirectToCube = 0,
+			E_ConvCubeToEquirect,
+			E_ConvoluteDiffuseIrradiance,
+			E_ConvolutePrefilteredIrradiance,
+			E_IntegrateBRDF,
+			E_DrawCube,
+			E_DrawSkySphere,
+			Count
+		};
+
+		namespace ConvEquirectToCube {
 			enum {
 				ECB_ConvEquirectToCube = 0,
 				EC_Consts,
 				ESI_Equirectangular,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_FaceID = 0,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				E_FaceID = 0,
-				Count
-			};
-		}
-	}
-
-	namespace ConvCubeToEquirect {
-		namespace RootSignatureLayout {
+		namespace ConvCubeToEquirect {
 			enum {
 				ESI_Cube = 0,
 				EC_Consts,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_MipLevel = 0,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				E_MipLevel = 0,
-				Count
-			};
-		}
-	}
-
-	namespace DrawCube {
-		namespace RootSignatureLayout {
+		namespace DrawCube {
 			enum {
 				ECB_Pass = 0,
 				ECB_Obj,
@@ -59,74 +66,58 @@ namespace IrradianceMap {
 				ESI_Equirectangular,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_MipLevel = 0,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				E_MipLevel = 0,
-				Count
-			};
-		}
-
-		enum Type {
-			E_Equirectangular = 0,
-			E_EnvironmentCube,
-			E_DiffuseIrradianceCube,
-			E_PrefilteredIrradianceCube,
-			Count
-		};
-	}
-
-	namespace ConvoluteDiffuseIrradiance {
-		namespace RootSignatureLayout {
+		namespace ConvoluteDiffuseIrradiance {
 			enum {
 				ECB_ConvEquirectToConv = 0,
 				EC_Consts,
 				ESI_Cube,
 				Count
 			};
-		}
-		
-		namespace RootConstantsLayout {
-			enum {
-				E_FaceID = 0,
-				E_SampDelta,
-				Count
-			};
-		}
-	}
 
-	namespace ConvoluteSpecularIrradiance {
-		namespace RootSignatureLayout {
+			namespace RootConstant {
+				enum {
+					E_FaceID = 0,
+					E_SampDelta,
+					Count
+				};
+			}
+		}
+
+		namespace ConvoluteSpecularIrradiance {
 			enum {
 				ECB_ConvEquirectToConv = 0,
 				EC_Consts,
 				ESI_Environment,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_FaceID = 0,
+					E_MipLevel,
+					E_Roughness,
+					Count
+				};
+			}
 		}
 
-		namespace RootConstantsLayout {
-			enum {
-				E_FaceID = 0,
-				E_MipLevel,
-				E_Roughness,
-				Count
-			};
-		}
-	}
-
-	namespace IntegrateBrdf {
-		namespace RootSignatureLayout {
+		namespace IntegrateBRDF {
 			enum {
 				ECB_Pass = 0,
 				Count
 			};
 		}
-	}
 
-	namespace DrawSkySphere {
-		namespace RootSignatureLayout {
+		namespace DrawSkySphere {
 			enum {
 				ECB_Pass = 0,
 				ECB_Obj,
@@ -142,7 +133,7 @@ namespace IrradianceMap {
 			E_ConvCubeToEquirect,
 			E_ConvoluteDiffuseIrradiance,
 			E_ConvolutePrefilteredIrradiance,
-			E_IntegrateBrdf,
+			E_IntegrateBRDF,
 			E_DrawCube,
 			E_DrawEquirectangular,
 			E_DrawSkySphere,
@@ -150,15 +141,12 @@ namespace IrradianceMap {
 		};
 	}
 
-	namespace RootSignature {
+	namespace DrawCube {
 		enum Type {
-			E_ConvEquirectToCube = 0,
-			E_ConvCubeToEquirect,
-			E_ConvoluteDiffuseIrradiance,
-			E_ConvolutePrefilteredIrradiance,
-			E_IntegrateBrdf,
-			E_DrawCube,
-			E_DrawSkySphere,
+			E_Equirectangular = 0,
+			E_EnvironmentCube,
+			E_DiffuseIrradianceCube,
+			E_PrefilteredIrradianceCube,
 			Count
 		};
 	}
@@ -179,7 +167,7 @@ namespace IrradianceMap {
 		enum Type : std::uint8_t {
 			E_None				= 1 << 0,
 			E_DiffuseIrradiance	= 1 << 1,
-			E_IntegratedBrdf	= 1 << 2,
+			E_IntegratedBRDF	= 1 << 2,
 			E_PrefilteredL0		= 1 << 3,
 			E_PrefilteredL1		= 1 << 4,
 			E_PrefilteredL2		= 1 << 5,
@@ -218,7 +206,7 @@ namespace IrradianceMap {
 		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,

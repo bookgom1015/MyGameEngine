@@ -59,7 +59,7 @@ namespace SSR {
 			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,

@@ -21,7 +21,7 @@ struct Light {
 	FLOAT SpotPower;				// spot light only
 };
 
-struct PassConstants {
+struct ConstantBuffer_Pass {
 	DirectX::XMFLOAT4X4	View;
 	DirectX::XMFLOAT4X4	InvView;
 	DirectX::XMFLOAT4X4	Proj;
@@ -40,6 +40,11 @@ struct PassConstants {
 	FLOAT				PassConstantsPad2;
 
 	DirectX::XMFLOAT4	AmbientLight;
+
+	UINT				DirectionalLightCount;
+	UINT				PointLightCount;
+	UINT				SpotLightCount;
+	UINT				ConstantPad0;
 
 	Light				Lights[MaxLights];
 };
