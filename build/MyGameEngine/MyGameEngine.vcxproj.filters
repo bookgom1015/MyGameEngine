@@ -285,9 +285,6 @@
     <ClInclude Include="..\..\include\Logger.h">
       <Filter>Header Files\Helper</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Light.h">
-      <Filter>Header Files\Render</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\HlslCompaction.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
@@ -389,6 +386,9 @@
     </ClInclude>
     <ClInclude Include="..\..\include\SVGF.h">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Light.h">
+      <Filter>Header Files\Render</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

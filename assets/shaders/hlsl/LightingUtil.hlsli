@@ -23,7 +23,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
-	float3 lightStrength = L.Strength;
+	float3 lightStrength = L.LightColor * L.Intensity;
 
 #if defined(BLINN_PHONG)
 	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
@@ -53,7 +53,7 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
-	float3 lightStrength = L.Strength;
+	float3 lightStrength = L.LightColor * L.Intensity;
 
 	// Attenuate light by distance.
 	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
@@ -87,7 +87,7 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
-	float3 lightStrength = L.Strength;
+	float3 lightStrength = L.LightColor * L.Intensity;
 
 	// Attenuate light by distance.
 	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
@@ -106,30 +106,21 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 #endif
 }
 
-float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye,	float3 shadowFactor,
-		uint numDirLights, uint numPointLights, uint numSpotLights) {
+float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye,	float3 shadowFactor, uint lightCount) {
 	float3 result = 0;
 
-	uint i = 0;
-	uint cnt = 0;
-
-	cnt += numDirLights;
 	[loop]
-	for (; i < cnt; ++i) {
-		float factor = shadowFactor[i];
-		result += factor * ComputeDirectionalLight(gLights[i], mat, normal, toEye);
-	}
-
-	cnt += numPointLights;
-	[loop]
-	for (; i < cnt; ++i) {
-		result += ComputePointLight(gLights[i], mat, pos, normal, toEye);
-	}
-
-	cnt += numSpotLights;
-	[loop]
-	for (; i < cnt; ++i) {
-		result += ComputeSpotLight(gLights[i], mat, pos, normal, toEye);
+	for (uint i = 0; i < lightCount; ++i) {
+		if (gLights[i].Type == LightType::E_Directional) {
+			float factor = shadowFactor[i];
+			result += factor * ComputeDirectionalLight(gLights[i], mat, normal, toEye);
+		}
+		else if (gLights[i].Type == LightType::E_Point) {
+			result += ComputePointLight(gLights[i], mat, pos, normal, toEye);
+		}
+		else if (gLights[i].Type == LightType::E_Spot) {
+			result += ComputeSpotLight(gLights[i], mat, pos, normal, toEye);
+		}
 	}
 
 	return result;

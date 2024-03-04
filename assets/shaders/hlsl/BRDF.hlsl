@@ -72,8 +72,7 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 
 	const float3 viewW = normalize(cb_Pass.EyePosW - posW.xyz);
-	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor, 
-		cb_Pass.DirectionalLightCount, cb_Pass.PointLightCount, cb_Pass.SpotLightCount), (float3)0);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor, cb_Pass.LightCount), (float3)0);
 
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;

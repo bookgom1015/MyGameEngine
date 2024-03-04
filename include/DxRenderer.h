@@ -234,4 +234,7 @@ private:
 	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
 	std::unique_ptr<BlurFilterCS::BlurFilterCSClass> mBlurFilterCS;
 	std::unique_ptr<Rtao::RtaoClass> mRtao;
+
+	Light mLights[MaxLights];
+	UINT mLightCount = 0;
 };

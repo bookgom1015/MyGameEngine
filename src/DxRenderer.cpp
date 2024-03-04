@@ -117,11 +117,6 @@ namespace ShaderArgs {
 
 	namespace Light {
 		FLOAT AmbientLight[3] = { 0.164f, 0.2f, 0.235f };
-
-		namespace DirectionalLight {
-			FLOAT Strength[3] = { 0.9568f, 0.9411f, 0.8941f };
-			FLOAT Multiplier = 2.885f;
-		}
 	}
 
 	namespace IrradianceMap {
@@ -255,7 +250,7 @@ DxRenderer::DxRenderer() {
 	mBlurWeights[1] = XMFLOAT4(&blurWeights[4]);
 	mBlurWeights[2] = XMFLOAT4(&blurWeights[8]);
 
-	bInitiatingTaa = true;
+	bInitiatingTaa = TRUE;
 
 	mHaltonSequence = {
 		XMFLOAT2(0.5f, 0.333333f),
@@ -352,12 +347,21 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.0f, ((offset.y - 0.5f) / height) * 2.0f);
 	}
 
-	bInitialized = true;
+	bInitialized = TRUE;
 #ifdef _DEBUG
 	WLogln(L"Succeeded to initialize d3d12 renderer \n");
 #endif
 
-	return true;
+	Light light;
+	light.Type = LightType::E_Directional;
+	light.Direction = mLightDir;
+	light.LightColor = { 0.9568f, 0.9411f, 0.8941f };
+	light.Intensity = 2.885f;
+
+	mLights[mLightCount] = light;
+	++mLightCount;
+
+	return TRUE;
 }
 
 void DxRenderer::CleanUp() {
@@ -406,7 +410,7 @@ BOOL DxRenderer::Update(FLOAT delta) {
 	
 	CheckReturn(UpdateShadingObjects(delta));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::Draw() {
@@ -457,7 +461,7 @@ BOOL DxRenderer::Draw() {
 	mCurrFrameResource->Fence = static_cast<UINT>(IncreaseFence());
 	mCommandQueue->Signal(mFence.Get(), GetCurrentFence());
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::OnResize(UINT width, UINT height) {
@@ -508,7 +512,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.0f, ((offset.y - 0.5f) / height) * 2.0f);
 	}
 	
-	return true;
+	return TRUE;
 }
 
 void* DxRenderer::AddModel(const std::string& file, const Transform& trans, RenderType::Type type) {
@@ -558,13 +562,13 @@ void DxRenderer::SetModelPickable(void* model, BOOL pickable) {
 
 BOOL DxRenderer::SetCubeMap(const std::string& file) {
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::SetEquirectangularMap(const std::string& file) {	
 	mIrradianceMap->SetEquirectangularMap(mCommandQueue.Get(), file);
 
-	return true;
+	return TRUE;
 }
 
 void DxRenderer::Pick(FLOAT x, FLOAT y) {
@@ -635,7 +639,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mCbvSrvUavHeap)));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::CompileShaders() {
@@ -673,7 +677,7 @@ BOOL DxRenderer::CompileShaders() {
 	WLogln(L"Finished compiling shaders \n");
 #endif 
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildGeometries() {
@@ -793,7 +797,7 @@ BOOL DxRenderer::BuildGeometries() {
 
 	mGeometries[geo->Name] = std::move(geo);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildFrameResources() {
@@ -802,7 +806,7 @@ BOOL DxRenderer::BuildFrameResources() {
 		CheckReturn(mFrameResources.back()->Initialize());
 	}
 
-	return true;
+	return TRUE;
 }
 
 void DxRenderer::BuildDescriptors() {
@@ -887,7 +891,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	WLogln(L"Finished building root-signatures \n");
 #endif
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildPSOs() {
@@ -925,7 +929,7 @@ BOOL DxRenderer::BuildPSOs() {
 	WLogln(L"Finished building pipeline state objects \n");
 #endif
 
-	return true;
+	return TRUE;
 }
 
 void DxRenderer::BuildRenderItems() {
@@ -1038,7 +1042,7 @@ BOOL DxRenderer::AddGeometry(const std::string& file) {
 
 	if (mMaterials.count(file) == 0) CheckReturn(AddMaterial(file, mat));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::AddMaterial(const std::string& file, const Material& material) {
@@ -1055,7 +1059,7 @@ BOOL DxRenderer::AddMaterial(const std::string& file, const Material& material) 
 
 	mMaterials[file] = std::move(matData);
 
-	return true;
+	return TRUE;
 }
 
 void* DxRenderer::AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type) {
@@ -1175,7 +1179,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 	CheckReturn(FlushCommandQueue());
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
@@ -1226,7 +1230,7 @@ BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
 	auto& currPassCB = mCurrFrameResource->CB_Pass;
 	currPassCB.CopyData(1, *mShadowPassCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
@@ -1263,19 +1267,14 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	const auto ambient = ShaderArgs::Light::AmbientLight;
 	mMainPassCB->AmbientLight = XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
 
-	mMainPassCB->DirectionalLightCount = 0;
-	mMainPassCB->PointLightCount = 0;
-	mMainPassCB->SpotLightCount = 0;
-
-	XMVECTOR strength = XMLoadFloat3(&XMFLOAT3(ShaderArgs::Light::DirectionalLight::Strength));
-	strength = XMVectorScale(strength, ShaderArgs::Light::DirectionalLight::Multiplier);
-	XMStoreFloat3(&mMainPassCB->Lights[0].Strength, strength);
-	mMainPassCB->Lights[0].Direction = mLightDir;
+	mMainPassCB->LightCount = mLightCount;
+	for (UINT i = 0; i < mLightCount; ++i)
+		mMainPassCB->Lights[i] = mLights[i];
 
 	auto& currCB = mCurrFrameResource->CB_Pass;
 	currCB.CopyData(0, *mMainPassCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
@@ -1307,7 +1306,7 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	auto& currSsaoCB = mCurrFrameResource->SsaoCB;
 	currSsaoCB.CopyData(0, ssaoCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Blur(FLOAT delta) {
@@ -1321,7 +1320,7 @@ BOOL DxRenderer::UpdateCB_Blur(FLOAT delta) {
 	auto& currBlurCB = mCurrFrameResource->BlurCB;
 	currBlurCB.CopyData(0, blurCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
@@ -1335,7 +1334,7 @@ BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
 	auto& currDofCB = mCurrFrameResource->DofCB;
 	currDofCB.CopyData(0, dofCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
@@ -1357,7 +1356,7 @@ BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
 	auto& currCB = mCurrFrameResource->CB_SSR;
 	currCB.CopyData(0, cb);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
@@ -1386,7 +1385,7 @@ BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
 		}
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
@@ -1414,7 +1413,7 @@ BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
 		}
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
@@ -1480,7 +1479,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	auto& currCubeCB = mCurrFrameResource->ConvEquirectToCubeCB;
 	currCubeCB.CopyData(0, cubeCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
@@ -1572,7 +1571,7 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 		currAtrousFilterCB.CopyData(0, atrousFilterCB);
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_RTAO(FLOAT delta) {
@@ -1633,7 +1632,7 @@ BOOL DxRenderer::UpdateCB_DebugMap(FLOAT delta) {
 	auto& currDebugMapCB = mCurrFrameResource->DebugMapCB;
 	currDebugMapCB.CopyData(0, debugMapCB);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo) {
@@ -1647,7 +1646,7 @@ BOOL DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	bNeedToRebuildTLAS = true;
 	bNeedToRebuildShaderTables = true;
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
@@ -1676,7 +1675,7 @@ BOOL DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 
 	CheckReturn(mTLAS->BuildTLAS(md3dDevice.Get(), cmdList, instanceDescs));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
@@ -1705,7 +1704,7 @@ BOOL DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 
 	mTLAS->UpdateTLAS(cmdList, instanceDescs);
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildShaderTables() {
@@ -1718,7 +1717,7 @@ BOOL DxRenderer::BuildShaderTables() {
 	CheckReturn(mRtao->BuildShaderTables(numRitems));
 	CheckReturn(mRr->BuildShaderTables(opaques, objCBAddress, matCBAddress));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawShadowMap() {
@@ -2641,14 +2640,6 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::TreePop();
 			}
 		}
-		if (ImGui::CollapsingHeader("Lights")) {
-			if (ImGui::TreeNode("Directional Lights")) {
-				ImGui::ColorPicker3("Strength", ShaderArgs::Light::DirectionalLight::Strength);
-				ImGui::SliderFloat("Multiplier", &ShaderArgs::Light::DirectionalLight::Multiplier, 0, 100.0f);
-
-				ImGui::TreePop();
-			}
-		}
 		if (ImGui::CollapsingHeader("BRDF")) {
 			ImGui::RadioButton("Blinn-Phong", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_BlinnPhong); ImGui::SameLine();
 			ImGui::RadioButton("Cook-Torrance", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_CookTorrance);
@@ -2782,7 +2773,25 @@ BOOL DxRenderer::DrawImGui() {
 
 				ImGui::TreePop();
 			}
-			
+
+		}
+
+		ImGui::End();
+	}
+	{
+		ImGui::Begin("Light Panel");
+		ImGui::NewLine();
+
+		for (UINT i = 0; i < mLightCount; ++i) {
+			auto& light = mLights[i];
+			if (light.Type == LightType::E_Directional) {
+				if (ImGui::TreeNode("Directional Light")) {
+					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
 		}
 
 		ImGui::End();
@@ -2818,7 +2827,7 @@ BOOL DxRenderer::DrawImGui() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawDxrShadowMap() {
@@ -3121,7 +3130,7 @@ BOOL DxRenderer::DrawRtao() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildRaytracedReflection() {
@@ -3333,5 +3342,5 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }

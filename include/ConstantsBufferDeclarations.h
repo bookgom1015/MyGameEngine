@@ -1,6 +1,6 @@
 #pragma once
 
-#define MaxLights 16
+#include "Light.h"
 
 struct ObjectConstants {
 	DirectX::XMFLOAT4X4 World;
@@ -8,17 +8,6 @@ struct ObjectConstants {
 	DirectX::XMFLOAT4X4 TexTransform;
 	DirectX::XMFLOAT4	Center;
 	DirectX::XMFLOAT4	Extents;
-};
-
-struct Light {
-	DirectX::XMFLOAT3 Strength;
-	FLOAT FalloffStart;				// point/spot light only
-
-	DirectX::XMFLOAT3 Direction;	// directional/spot light only
-	FLOAT FalloffEnd;				// point/spot light only
-
-	DirectX::XMFLOAT3 Position;		// point/spot light only
-	FLOAT SpotPower;				// spot light only
 };
 
 struct ConstantBuffer_Pass {
@@ -41,10 +30,10 @@ struct ConstantBuffer_Pass {
 
 	DirectX::XMFLOAT4	AmbientLight;
 
-	UINT				DirectionalLightCount;
-	UINT				PointLightCount;
-	UINT				SpotLightCount;
+	UINT				LightCount;
 	UINT				ConstantPad0;
+	UINT				ConstantPad1;
+	UINT				ConstantPad2;
 
 	Light				Lights[MaxLights];
 };

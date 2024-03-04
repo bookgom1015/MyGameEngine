@@ -50,8 +50,8 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, IN
 }
 
 namespace {
-	const UINT InitClientWidth = 800;
-	const UINT InitClientHeight = 600;
+	const UINT InitClientWidth = 1280;
+	const UINT InitClientHeight = 720;
 
 	LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		// Forward hwnd on because we can get messages (e.g., WM_CREATE)

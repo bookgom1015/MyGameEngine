@@ -181,8 +181,7 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 		
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
-	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normalW, viewW, shadowFactor,
-		cb_Pass.DirectionalLightCount, cb_Pass.PointLightCount, cb_Pass.SpotLightCount), (float3)0);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, hitPosition, normalW, viewW, shadowFactor, cb_Pass.LightCount), (float3)0);
 
 	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).xyz;
 	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;
