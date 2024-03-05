@@ -2788,9 +2788,47 @@ BOOL DxRenderer::DrawImGui() {
 				if (ImGui::TreeNode("Directional Light")) {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat3("Direction", reinterpret_cast<float*>(&light.Direction), -1.0f, 1.0f);
 
 					ImGui::TreePop();
 				}
+			}
+			else if (light.Type == LightType::E_Point) {
+				if (ImGui::TreeNode("Point")) {
+					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<float*>(&light.Position), -100.0f, 100.0f);
+					ImGui::SliderFloat("Falloff Start", &light.FalloffStart, 0, 100.0f);
+					ImGui::SliderFloat("Falloff End", &light.FalloffEnd, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
+			else if (light.Type == LightType::E_Spot) {
+				if (ImGui::TreeNode("Spot")) {
+
+					ImGui::TreePop();
+				}
+			}
+		}
+
+		if (mLightCount < MaxLights) {
+			if (ImGui::Button("Directional")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Directional;
+				++mLightCount;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Point")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Point;
+				++mLightCount;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Spot")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Spot;
+				++mLightCount;
 			}
 		}
 

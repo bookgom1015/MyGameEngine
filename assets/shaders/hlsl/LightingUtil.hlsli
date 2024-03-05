@@ -19,7 +19,7 @@ float CalcAttenuation(float d, float falloffStart, float falloffEnd) {
 //---------------------------------------------------------------------------------------
 float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye) {
 	// The light vector aims opposite the direction the light rays travel.
-	float3 lightVec = -L.Direction;
+	float3 lightVec = normalize(-L.Direction);
 
 	// Scale light down by Lambert's cosine law.
 	float ndotl = max(dot(lightVec, normal), 0.0f);
