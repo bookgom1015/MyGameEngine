@@ -5,14 +5,14 @@
 	#include <DirectXMath.h>
 #endif
 
-#define MaxLights 16
+#define MaxLights 8
 
 namespace LightType {
 	enum {
-		E_None = 0,
-		E_Directional,
-		E_Point,
-		E_Spot
+		E_None			= 0,
+		E_Directional	= 1,
+		E_Point			= 2,
+		E_Spot			= 3
 	};
 }
 
@@ -28,5 +28,6 @@ struct Light {
 
 	UINT				Type;
 	FLOAT				Intensity;
-	UINT				ConstantPads[2];
+	FLOAT				ConstantPads0;
+	FLOAT				ConstantPads1;
 };

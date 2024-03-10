@@ -176,7 +176,6 @@ private:
 	std::unique_ptr<ShaderManager> mShaderManager;
 
 	DirectX::BoundingSphere mSceneBounds;
-	DirectX::XMFLOAT3 mLightDir;
 
 	std::unique_ptr<ImGuiManager> mImGui;
 

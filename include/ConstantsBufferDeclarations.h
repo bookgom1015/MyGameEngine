@@ -22,18 +22,13 @@ struct ConstantBuffer_Pass {
 	DirectX::XMFLOAT4X4 ShadowTransform;
 
 	DirectX::XMFLOAT3	EyePosW;
-	FLOAT				PassConstantsPad0;
+	UINT				LightCount;
 
 	DirectX::XMFLOAT2	JitteredOffset;
-	FLOAT				PassConstantsPad1;
-	FLOAT				PassConstantsPad2;
+	FLOAT				ConstantPad1;
+	FLOAT				ConstantPad2;
 
 	DirectX::XMFLOAT4	AmbientLight;
-
-	UINT				LightCount;
-	UINT				ConstantPad0;
-	UINT				ConstantPad1;
-	UINT				ConstantPad2;
 
 	Light				Lights[MaxLights];
 };

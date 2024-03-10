@@ -115,10 +115,6 @@ namespace ShaderArgs {
 		BOOL ShowCollisionBox = false;
 	}
 
-	namespace Light {
-		FLOAT AmbientLight[3] = { 0.164f, 0.2f, 0.235f };
-	}
-
 	namespace IrradianceMap {
 		BOOL ShowIrradianceCubeMap = false;
 		FLOAT MipLevel = 0.0f;
@@ -214,7 +210,6 @@ DxRenderer::DxRenderer() {
 	mSceneBounds.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	FLOAT widthSquared = 32.0f * 32.0f;
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
-	mLightDir = { 0.57735f, -0.57735f, 0.57735f };
 
 	mImGui = std::make_unique<ImGuiManager>();
 
@@ -277,6 +272,10 @@ DxRenderer::~DxRenderer() {
 }
 
 BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
+	Logln(std::to_string(sizeof(ConstantBuffer_Pass)));
+	Logln(std::to_string(D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass))));
+	Logln(std::to_string(sizeof(Light)));
+
 	mClientWidth = width;
 	mClientHeight = height;
 
@@ -352,14 +351,26 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	WLogln(L"Succeeded to initialize d3d12 renderer \n");
 #endif
 
-	Light light;
-	light.Type = LightType::E_Directional;
-	light.Direction = mLightDir;
-	light.LightColor = { 0.9568f, 0.9411f, 0.8941f };
-	light.Intensity = 2.885f;
+	{
+		Light light;
+		light.Type = LightType::E_Directional;
+		light.Direction = { 0.577f, -0.577f, 0.577f };
+		light.LightColor = { 240.0f / 255.0f, 235.0f / 255.0f, 223.0f / 255.0f };
+		light.Intensity = 3.153f;
 
-	mLights[mLightCount] = light;
-	++mLightCount;
+		mLights[mLightCount] = light;
+		++mLightCount;
+	}
+	{
+		Light light;
+		light.Type = LightType::E_Directional;
+		light.Direction = { 0.067f, -0.701f, -0.836f };
+		light.LightColor = { 149.0f / 255.0f, 142.0f/ 255.0f, 100.0f / 255.0f };
+		light.Intensity = 2.435;
+
+		mLights[mLightCount] = light;
+		++mLightCount;
+	}
 
 	return TRUE;
 }
@@ -1183,7 +1194,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
-	XMVECTOR lightDir = XMLoadFloat3(&mLightDir);
+	XMVECTOR lightDir = XMLoadFloat3(&mLights[0].Direction);
 	XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
 	XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
 	XMVECTOR lightUp = UnitVectors::UpVector;
@@ -1263,9 +1274,6 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	XMStoreFloat4x4(&mMainPassCB->ViewProjTex, XMMatrixTranspose(viewProjTex));
 	XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->GetPosition());
 	mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.0f, 0.0f);
-
-	const auto ambient = ShaderArgs::Light::AmbientLight;
-	mMainPassCB->AmbientLight = XMFLOAT4(ambient[0], ambient[1], ambient[2], ambient[3]);
 
 	mMainPassCB->LightCount = mLightCount;
 	for (UINT i = 0; i < mLightCount; ++i)
@@ -2785,16 +2793,20 @@ BOOL DxRenderer::DrawImGui() {
 		for (UINT i = 0; i < mLightCount; ++i) {
 			auto& light = mLights[i];
 			if (light.Type == LightType::E_Directional) {
-				if (ImGui::TreeNode("Directional Light")) {
+				if (ImGui::TreeNode((std::to_string(i) + " Directional Light").c_str())) {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					ImGui::SliderFloat3("Direction", reinterpret_cast<float*>(&light.Direction), -1.0f, 1.0f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<float*>(&light.Direction), -1.0f, 1.0f)) {
+						XMVECTOR dir = XMLoadFloat3(&light.Direction);
+						XMVECTOR normalized = XMVector3Normalize(dir);
+						XMStoreFloat3(&light.Direction, normalized);
+					}
 
 					ImGui::TreePop();
 				}
 			}
 			else if (light.Type == LightType::E_Point) {
-				if (ImGui::TreeNode("Point")) {
+				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<float*>(&light.Position), -100.0f, 100.0f);
@@ -2805,7 +2817,7 @@ BOOL DxRenderer::DrawImGui() {
 				}
 			}
 			else if (light.Type == LightType::E_Spot) {
-				if (ImGui::TreeNode("Spot")) {
+				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
 
 					ImGui::TreePop();
 				}
@@ -2816,12 +2828,20 @@ BOOL DxRenderer::DrawImGui() {
 			if (ImGui::Button("Directional")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Directional;
+				light.Intensity = 1.0f;
+				light.Direction = { 0.0f, -1.0f, 0.0f };
+				light.LightColor = { 1.0f, 1.0f, 1.0f };
 				++mLightCount;
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Point")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Point;
+				light.Intensity = 1.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.LightColor = { 1.0f, 1.0f, 1.0f };
+				light.FalloffStart = 5.0f;
+				light.FalloffEnd = 10.0f;
 				++mLightCount;
 			}
 			ImGui::SameLine();

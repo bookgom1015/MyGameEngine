@@ -61,7 +61,7 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
-	float3 shadowFactor = 0;
+	float3 shadowFactor = 1;
 #ifdef DXR
 	shadowFactor[0] = gi_Shadow.Sample(gsamLinearClamp, pin.TexC);
 #else
