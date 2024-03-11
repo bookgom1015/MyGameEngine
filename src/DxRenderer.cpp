@@ -5,7 +5,7 @@
 #include "MeshImporter.h"
 #include "GeometryGenerator.h"
 #include "ShaderManager.h"
-#include "ShadowMap.h"
+#include "Shadow.h"
 #include "GBuffer.h"
 #include "Ssao.h"
 #include "Blur.h"
@@ -19,7 +19,7 @@
 #include "BlurFilter.h"
 #include "DebugMap.h"
 #include "ImGuiManager.h"
-#include "DxrShadowMap.h"
+#include "DXR_Shadow.h"
 #include "DxrGeometryBuffer.h"
 #include "BlurFilterCS.h"
 #include "Rtao.h"
@@ -215,7 +215,7 @@ DxRenderer::DxRenderer() {
 
 	mBRDF = std::make_unique<BRDF::BRDFClass>();
 	mGBuffer = std::make_unique<GBuffer::GBufferClass>();
-	mShadowMap = std::make_unique<ShadowMap::ShadowMapClass>();
+	mShadow = std::make_unique<Shadow::ShadowClass>();
 	mSsao = std::make_unique<Ssao::SsaoClass>();
 	mBlurFilter = std::make_unique<BlurFilter::BlurFilterClass>();
 	mBloom = std::make_unique<Bloom::BloomClass>();
@@ -234,7 +234,7 @@ DxRenderer::DxRenderer() {
 	mGaussianFilter = std::make_unique<GaussianFilter::GaussianFilterClass>();
 
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
-	mDxrShadowMap = std::make_unique<DxrShadowMap::DxrShadowMapClass>();
+	mDxrShadow = std::make_unique<DXR_Shadow::DXR_ShadowClass>();
 	mBlurFilterCS = std::make_unique<BlurFilterCS::BlurFilterCSClass>();
 	mRtao = std::make_unique<Rtao::RtaoClass>();
 	mRr = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
@@ -297,7 +297,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #endif
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
-	CheckReturn(mShadowMap->Initialize(device, shaderManager, 2048, 2048));
+	CheckReturn(mShadow->Initialize(device, shaderManager, 2048, 2048));
 	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4));
@@ -316,7 +316,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mSharpen->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGaussianFilter->Initialize(device, shaderManager));
 
-	CheckReturn(mDxrShadowMap->Initialize(device, cmdList, shaderManager, width, height));
+	CheckReturn(mDxrShadow->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mRtao->Initialize(device, shaderManager, width, height));
 	CheckReturn(mRr->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
@@ -366,7 +366,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.067f, -0.701f, -0.836f };
 		light.LightColor = { 149.0f / 255.0f, 142.0f/ 255.0f, 100.0f / 255.0f };
-		light.Intensity = 2.435;
+		light.Intensity = 2.435f;
 
 		mLights[mLightCount] = light;
 		++mLightCount;
@@ -437,7 +437,7 @@ BOOL DxRenderer::Draw() {
 			CheckReturn(CalcDepthPartialDerivative());
 		}
 		else {
-			CheckReturn(DrawShadowMap());
+			CheckReturn(DrawShadow());
 			CheckReturn(DrawSsao());
 			CheckReturn(DrawBackBuffer());
 		}
@@ -504,7 +504,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		CheckReturn(mSharpen->OnResize(width, height));
 		CheckReturn(mSSR->OnResize(width, height));
 
-		CheckReturn(mDxrShadowMap->OnResize(cmdList, width, height));
+		CheckReturn(mDxrShadow->OnResize(cmdList, width, height));
 		CheckReturn(mRtao->OnResize(width, height));
 		CheckReturn(mRr->OnResize(cmdList, width, height));
 		CheckReturn(mSVGF->OnResize(width , height))
@@ -638,7 +638,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 1 + ShadowMap::NumDepthStenciles;
+	dsvHeapDesc.NumDescriptors = 1 + Shadow::NumDepthStenciles;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -660,7 +660,7 @@ BOOL DxRenderer::CompileShaders() {
 
 	CheckReturn(mBRDF->CompileShaders(ShaderFilePath));
 	CheckReturn(mGBuffer->CompileShaders(ShaderFilePath));
-	CheckReturn(mShadowMap->CompileShaders(ShaderFilePath));
+	CheckReturn(mShadow->CompileShaders(ShaderFilePath));
 	CheckReturn(mSsao->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilter->CompileShaders(ShaderFilePath));
 	CheckReturn(mBloom->CompileShaders(ShaderFilePath));
@@ -678,7 +678,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mSharpen->CompileShaders(ShaderFilePath));
 	CheckReturn(mGaussianFilter->CompileShaders(ShaderFilePath));
 
-	CheckReturn(mDxrShadowMap->CompileShaders(ShaderFilePath));
+	CheckReturn(mDxrShadow->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
 	CheckReturn(mRtao->CompileShaders(ShaderFilePath));
 	CheckReturn(mRr->CompileShaders(ShaderFilePath));
@@ -844,7 +844,7 @@ void DxRenderer::BuildDescriptors() {
 	mSwapChainBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
 	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mShadowMap->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
+	mShadow->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
 	mSsao->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -857,7 +857,7 @@ void DxRenderer::BuildDescriptors() {
 	mPixelation->BuildDescriptors(hCpu, hGpu, descSize);
 	mSharpen->BuildDescriptors(hCpu, hGpu, descSize);
 
-	mDxrShadowMap->BuildDescriptors(hCpu, hGpu, descSize);
+	mDxrShadow->BuildDescriptors(hCpu, hGpu, descSize);
 	mRtao->BuildDescriptors(hCpu, hGpu, descSize);
 	mRr->BuildDesscriptors(hCpu, hGpu, descSize);
 	mSVGF->BuildDescriptors(hCpu, hGpu, descSize);
@@ -874,7 +874,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	auto staticSamplers = Samplers::GetStaticSamplers();
 	CheckReturn(mBRDF->BuildRootSignature(staticSamplers));
 	CheckReturn(mGBuffer->BuildRootSignature(staticSamplers));
-	CheckReturn(mShadowMap->BuildRootSignature(staticSamplers));
+	CheckReturn(mShadow->BuildRootSignature(staticSamplers));
 	CheckReturn(mSsao->BuildRootSignature(staticSamplers));
 	CheckReturn(mBlurFilter->BuildRootSignature(staticSamplers));
 	CheckReturn(mBloom->BuildRootSignature(staticSamplers));
@@ -892,7 +892,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mSharpen->BuildRootSignature(staticSamplers));
 	CheckReturn(mGaussianFilter->BuildRootSignature(staticSamplers));
 
-	CheckReturn(mDxrShadowMap->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
+	CheckReturn(mDxrShadow->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
 	CheckReturn(mRtao->BuildRootSignatures(staticSamplers));
 	CheckReturn(mRr->BuildRootSignatures(staticSamplers));
@@ -912,7 +912,7 @@ BOOL DxRenderer::BuildPSOs() {
 
 	CheckReturn(mBRDF->BuildPso());
 	CheckReturn(mGBuffer->BuildPso());
-	CheckReturn(mShadowMap->BuildPso());
+	CheckReturn(mShadow->BuildPSO());
 	CheckReturn(mSsao->BuildPso());
 	CheckReturn(mBloom->BuildPso());
 	CheckReturn(mBlurFilter->BuildPso());
@@ -930,7 +930,7 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mSharpen->BuildPso());
 	CheckReturn(mGaussianFilter->BuildPso());
 	
-	CheckReturn(mDxrShadowMap->BuildPso());
+	CheckReturn(mDxrShadow->BuildPSO());
 	CheckReturn(mBlurFilterCS->BuildPso());
 	CheckReturn(mRtao->BuildPSO());
 	CheckReturn(mRr->BuildPSO());
@@ -1721,25 +1721,25 @@ BOOL DxRenderer::BuildShaderTables() {
 	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
 
 	UINT numRitems = static_cast<UINT>(opaques.size());
-	CheckReturn(mDxrShadowMap->BuildShaderTables(numRitems));
+	CheckReturn(mDxrShadow->BuildShaderTables(numRitems));
 	CheckReturn(mRtao->BuildShaderTables(numRitems));
 	CheckReturn(mRr->BuildShaderTables(opaques, objCBAddress, matCBAddress));
 
 	return TRUE;
 }
 
-BOOL DxRenderer::DrawShadowMap() {
+BOOL DxRenderer::DrawShadow() {
 	const auto cmdList = mCommandList.Get();
 
 	if (!bShadowEnabled) {
 		if (!bShadowMapCleanedUp) {
 			CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-			const auto shadow = mShadowMap->Resource();
+			const auto shadow = mShadow->Resource();
 
 			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-			cmdList->ClearDepthStencilView(mShadowMap->Dsv(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+			cmdList->ClearDepthStencilView(mShadow->Dsv(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 
@@ -1765,7 +1765,7 @@ BOOL DxRenderer::DrawShadowMap() {
 	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
 	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
 
-	mShadowMap->Run(
+	mShadow->Run(
 		cmdList,
 		cbPassAddr,
 		objCBAddress,
@@ -1902,7 +1902,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mGBuffer->PositionMapSrv(),
-		mShadowMap->Srv(),
+		mShadow->Srv(),
 		mSsao->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
 		BRDF::Render::E_Raster
@@ -2480,7 +2480,7 @@ BOOL DxRenderer::DrawImGui() {
 					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Shadow]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_Shadow],
-							mShadowMap->Srv(),
+							mShadow->Srv(),
 							DebugMap::SampleMask::RRR);
 					}
 					if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
@@ -2502,7 +2502,7 @@ BOOL DxRenderer::DrawImGui() {
 					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_DxrShadow],
-							mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
+							mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
 							DebugMap::SampleMask::RRR);
 					}
 					if (ImGui::TreeNode("RTAO")) {
@@ -2818,6 +2818,17 @@ BOOL DxRenderer::DrawImGui() {
 			}
 			else if (light.Type == LightType::E_Spot) {
 				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
+					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat("Spot Power", &light.SpotPower, 0, 10.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<float*>(&light.Position), -100.0f, 100.0f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<float*>(&light.Direction), -1.0f, 1.0f)) {
+						XMVECTOR dir = XMLoadFloat3(&light.Direction);
+						XMVECTOR normalized = XMVector3Normalize(dir);
+						XMStoreFloat3(&light.Direction, normalized);
+					}
+					ImGui::SliderFloat("Falloff Start", &light.FalloffStart, 0, 100.0f);
+					ImGui::SliderFloat("Falloff End", &light.FalloffEnd, 0, 100.0f);
 
 					ImGui::TreePop();
 				}
@@ -2848,6 +2859,13 @@ BOOL DxRenderer::DrawImGui() {
 			if (ImGui::Button("Spot")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Spot;
+				light.Intensity = 1.0f;
+				light.SpotPower = 1.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Direction = { 0.0f, -1.0f, 0.0f };
+				light.LightColor = { 1.0f, 1.0f, 1.0f };
+				light.FalloffStart = 5.0f;
+				light.FalloffEnd = 10.0f;
 				++mLightCount;
 			}
 		}
@@ -2895,7 +2913,7 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
-	mDxrShadowMap->Run(
+	mDxrShadow->Run(
 		cmdList,
 		mTLAS->Result->GetGPUVirtualAddress(),
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
@@ -2910,12 +2928,12 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 		mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
-		mDxrShadowMap->Resource(DxrShadowMap::Resources::EShadow0),
-		mDxrShadowMap->Resource(DxrShadowMap::Resources::EShadow1),
-		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
-		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::EU_Shadow0),
-		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow1),
-		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::EU_Shadow1),
+		mDxrShadow->Resource(DXR_Shadow::Resources::EShadow0),
+		mDxrShadow->Resource(DXR_Shadow::Resources::EShadow1),
+		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
+		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::EU_Shadow0),
+		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow1),
+		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::EU_Shadow1),
 		BlurFilterCS::Filter::R16,
 		mClientWidth, mClientHeight,
 		ShaderArgs::DxrShadowMap::BlurCount
@@ -2947,7 +2965,7 @@ BOOL DxRenderer::DrawDxrBackBuffer() {
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mGBuffer->PositionMapSrv(),
-		mDxrShadowMap->Descriptor(DxrShadowMap::Descriptors::ES_Shadow0),
+		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
 		mRtao->ResolvedAOCoefficientSrv(),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
 		BRDF::Render::E_Raytrace

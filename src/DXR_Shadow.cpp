@@ -1,4 +1,4 @@
-#include "DxrShadowMap.h"
+#include "DXR_Shadow.h"
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "D3D12Util.h"
@@ -6,27 +6,27 @@
 #include "MathHelper.h"
 #include "HlslCompaction.h"
 
-using namespace DxrShadowMap;
+using namespace DXR_Shadow;
 
 namespace {
-	const std::string ShadowRayCS	= "ShadowRayCS";
+	const CHAR* const CS_ShadowRay				= "CS_ShadowRay";
 
-	const wchar_t* ShadowRayGen		= L"ShadowRayGen"; 
-	const wchar_t* ShadowClosestHit	= L"ShadowClosestHit";
-	const wchar_t* ShadowMiss		= L"ShadowMiss";
-	const wchar_t* ShadowHitGroup	= L"ShadowHitGroup";
+	const WCHAR* const ShadowRayGen				= L"ShadowRayGen"; 
+	const WCHAR* const ShadowClosestHit			= L"ShadowClosestHit";
+	const WCHAR* const ShadowMiss				= L"ShadowMiss";
+	const WCHAR* const ShadowHitGroup			= L"ShadowHitGroup";
 
-	const char* ShadowRayGenShaderTable		= "ShadowRayGenShaderTalbe";
-	const char* ShadowMissShaderTable		= "ShadowMissShaderTalbe";
-	const char* ShadowHitGroupShaderTable	= "ShadowHitGroupShaderTalbe";
+	const CHAR* const ShadowRayGenShaderTable	= "ShadowRayGenShaderTalbe";
+	const CHAR* const ShadowMissShaderTable		= "ShadowMissShaderTalbe";
+	const CHAR* const ShadowHitGroupShaderTable	= "ShadowHitGroupShaderTalbe";
 }
 
-DxrShadowMapClass::DxrShadowMapClass() {
+DXR_ShadowClass::DXR_ShadowClass() {
 	mResources[Resources::EShadow0] = std::make_unique<GpuResource>();
 	mResources[Resources::EShadow1] = std::make_unique<GpuResource>();
 }
 
-BOOL DxrShadowMapClass::Initialize(
+BOOL DXR_ShadowClass::Initialize(
 		ID3D12Device5* const device, 
 		ID3D12GraphicsCommandList* const cmdList, 
 		ShaderManager* const manager, 
@@ -36,20 +36,20 @@ BOOL DxrShadowMapClass::Initialize(
 
 	CheckReturn(BuildResource(cmdList, width, height));
 
-	return true;
+	return TRUE;
 }
 
-BOOL DxrShadowMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL DXR_ShadowClass::CompileShaders(const std::wstring& filePath) {
 	const auto fullPath = filePath + L"ShadowRay.hlsl";
 	auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"", L"lib_6_3");
-	CheckReturn(mShaderManager->CompileShader(shaderInfo, ShadowRayCS));
+	CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_ShadowRay));
 
-	return true;
+	return TRUE;
 }
 
-BOOL DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount) {
+BOOL DXR_ShadowClass::BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount) {
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[DxrShadowMap::RootSignature::Global::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTables[4];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
@@ -72,10 +72,10 @@ BOOL DxrShadowMapClass::BuildRootSignatures(const StaticSamplers& samplers, UINT
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSignatureDesc, &mRootSignatures[RootSignature::E_Global]));
 	}
 
-	return true;
+	return TRUE;
 }
 
-BOOL DxrShadowMapClass::BuildPso() {
+BOOL DXR_ShadowClass::BuildPSO() {
 	// Subobjects need to be associated with DXIL exports (i.e. shaders) either by way of default or explicit associations.
 	// Default association applies to every exported shader entrypoint that doesn't have any of the same type of subobject associated with it.
 	// This simple sample utilizes default shader association except for local root signature subobject
@@ -83,7 +83,7 @@ BOOL DxrShadowMapClass::BuildPso() {
 	CD3DX12_STATE_OBJECT_DESC dxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	auto shadowRayLib = dxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-	auto shadowRayShader = mShaderManager->GetDxcShader(ShadowRayCS);
+	auto shadowRayShader = mShaderManager->GetDxcShader(CS_ShadowRay);
 	D3D12_SHADER_BYTECODE shadowRayLibDxil = CD3DX12_SHADER_BYTECODE(shadowRayShader->GetBufferPointer(), shadowRayShader->GetBufferSize());
 	shadowRayLib->SetDXILLibrary(&shadowRayLibDxil);
 	LPCWSTR shadowRayExports[] = { ShadowRayGen, ShadowClosestHit, ShadowMiss };
@@ -109,10 +109,10 @@ BOOL DxrShadowMapClass::BuildPso() {
 	CheckHRESULT(md3dDevice->CreateStateObject(dxrPso, IID_PPV_ARGS(&mPSO)));
 	CheckHRESULT(mPSO->QueryInterface(IID_PPV_ARGS(&mPSOProp)));
 
-	return true;
+	return TRUE;
 }
 
-BOOL DxrShadowMapClass::BuildShaderTables(UINT numRitems) {
+BOOL DXR_ShadowClass::BuildShaderTables(UINT numRitems) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	void* shadowRayGenShaderIdentifier = mPSOProp->GetShaderIdentifier(ShadowRayGen);
@@ -140,10 +140,10 @@ BOOL DxrShadowMapClass::BuildShaderTables(UINT numRitems) {
 		mShaderTables[ShadowHitGroupShaderTable] = hitGroupTable.GetResource();
 	}
 
-	return true;
+	return TRUE;
 }
 
-void DxrShadowMapClass::Run(
+void DXR_ShadowClass::Run(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
@@ -193,7 +193,7 @@ void DxrShadowMapClass::Run(
 }
 
 
-void DxrShadowMapClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void DXR_ShadowClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	mhCpuDescs[Descriptors::ES_Shadow0] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptors::ES_Shadow0] = hGpu.Offset(1, descSize);
 	mhCpuDescs[Descriptors::EU_Shadow0] = hCpu.Offset(1, descSize);
@@ -207,14 +207,14 @@ void DxrShadowMapClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD
 	BuildDescriptors();	
 }
 
-BOOL DxrShadowMapClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
+BOOL DXR_ShadowClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
 	CheckReturn(BuildResource(cmdList, width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
-void DxrShadowMapClass::BuildDescriptors() {
+void DXR_ShadowClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -228,16 +228,16 @@ void DxrShadowMapClass::BuildDescriptors() {
 	srvDesc.Format = ShadowMapFormat;
 	uavDesc.Format = ShadowMapFormat;
 
-	auto pRawResource = mResources[DxrShadowMap::Resources::EShadow0]->Resource();
+	auto pRawResource = mResources[Resources::EShadow0]->Resource();
 	md3dDevice->CreateShaderResourceView(pRawResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow0]);
 	md3dDevice->CreateUnorderedAccessView(pRawResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow0]);
 
-	auto pSmoothedResource = mResources[DxrShadowMap::Resources::EShadow1]->Resource();
+	auto pSmoothedResource = mResources[Resources::EShadow1]->Resource();
 	md3dDevice->CreateShaderResourceView(pSmoothedResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow1]);
 	md3dDevice->CreateUnorderedAccessView(pSmoothedResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow1]);
 }
 
-BOOL DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
+BOOL DXR_ShadowClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
 	D3D12_RESOURCE_DESC texDesc = {};
 	texDesc.DepthOrArraySize = 1;
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -252,9 +252,9 @@ BOOL DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, 
 
 	for (INT i = 0; i < 2; ++i) {
 		std::wstringstream wsstream;
-		wsstream << "DXR_ShadowMap" << i;
+		wsstream << "DXR_Shadow_ShadowMap" << i;
 
-		CheckReturn(mResources[DxrShadowMap::Resources::EShadow0 + i]->Initialize(
+		CheckReturn(mResources[Resources::EShadow0 + i]->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
@@ -265,5 +265,5 @@ BOOL DxrShadowMapClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, 
 		));
 	}
 
-	return true;
+	return TRUE;
 }

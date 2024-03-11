@@ -123,7 +123,7 @@ private:
 
 	BOOL BuildShaderTables();
 	
-	BOOL DrawShadowMap();
+	BOOL DrawShadow();
 	BOOL DrawGBuffer();
 	BOOL DrawSsao();
 	BOOL DrawBackBuffer();
@@ -181,7 +181,7 @@ private:
 
 	std::unique_ptr<BRDF::BRDFClass> mBRDF;
 	std::unique_ptr<GBuffer::GBufferClass> mGBuffer;
-	std::unique_ptr<ShadowMap::ShadowMapClass> mShadowMap;
+	std::unique_ptr<Shadow::ShadowClass> mShadow;
 	std::unique_ptr<Ssao::SsaoClass> mSsao;
 	std::unique_ptr<BlurFilter::BlurFilterClass> mBlurFilter;
 	std::unique_ptr<Bloom::BloomClass> mBloom;
@@ -230,7 +230,7 @@ private:
 	BOOL bNeedToRebuildTLAS = true;
 	BOOL bNeedToRebuildShaderTables = true;
 
-	std::unique_ptr<DxrShadowMap::DxrShadowMapClass> mDxrShadowMap;
+	std::unique_ptr<DXR_Shadow::DXR_ShadowClass> mDxrShadow;
 	std::unique_ptr<BlurFilterCS::BlurFilterCSClass> mBlurFilterCS;
 	std::unique_ptr<Rtao::RtaoClass> mRtao;
 

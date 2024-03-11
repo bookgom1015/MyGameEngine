@@ -185,7 +185,7 @@
     <ClInclude Include="..\..\include\DxMesh.h" />
     <ClInclude Include="..\..\include\DxRenderer.h" />
     <ClInclude Include="..\..\include\DxrGeometryBuffer.h" />
-    <ClInclude Include="..\..\include\DxrShadowMap.h" />
+    <ClInclude Include="..\..\include\DXR_Shadow.h" />
     <ClInclude Include="..\..\include\FreeLookActor.h" />
     <ClInclude Include="..\..\include\FrameResource.h" />
     <ClInclude Include="..\..\include\GameTimer.h" />
@@ -219,7 +219,7 @@
     <ClInclude Include="..\..\include\ShaderArguments.h" />
     <ClInclude Include="..\..\include\ShaderManager.h" />
     <ClInclude Include="..\..\include\ShaderTable.h" />
-    <ClInclude Include="..\..\include\ShadowMap.h" />
+    <ClInclude Include="..\..\include\Shadow.h" />
     <ClInclude Include="..\..\include\EnvironmentMap.h" />
     <ClInclude Include="..\..\include\Sharpen.h" />
     <ClInclude Include="..\..\include\SphereActor.h" />
@@ -265,7 +265,7 @@
     <ClCompile Include="..\..\src\DxLowRenderer.cpp" />
     <ClCompile Include="..\..\src\DxRenderer.cpp" />
     <ClCompile Include="..\..\src\DxrGeometryBuffer.cpp" />
-    <ClCompile Include="..\..\src\DxrShadowMap.cpp" />
+    <ClCompile Include="..\..\src\DXR_Shadow.cpp" />
     <ClCompile Include="..\..\src\FrameResource.cpp" />
     <ClCompile Include="..\..\src\FreeLookActor.cpp" />
     <ClCompile Include="..\..\src\GameTimer.cpp" />
@@ -294,7 +294,7 @@
     <ClCompile Include="..\..\src\Samplers.cpp" />
     <ClCompile Include="..\..\src\ShaderManager.cpp" />
     <ClCompile Include="..\..\src\ShaderTable.cpp" />
-    <ClCompile Include="..\..\src\ShadowMap.cpp" />
+    <ClCompile Include="..\..\src\Shadow.cpp" />
     <ClCompile Include="..\..\src\EnvironmentMap.cpp" />
     <ClCompile Include="..\..\src\Sharpen.cpp" />
     <ClCompile Include="..\..\src\SphereActor.cpp" />
@@ -339,13 +339,14 @@
     <None Include="..\..\include\Actor.inl" />
     <None Include="..\..\include\DepthOfField.inl" />
     <None Include="..\..\include\DxLowRenderer.inl" />
+    <None Include="..\..\include\DXR_Shadow.inl" />
     <None Include="..\..\include\GBuffer.inl" />
     <None Include="..\..\include\MathHelper.inl" />
     <None Include="..\..\include\RaytracedReflection.inl" />
     <None Include="..\..\include\Renderer.inl" />
     <None Include="..\..\include\Rtao.inl" />
     <None Include="..\..\include\ShaderArguments.inl" />
-    <None Include="..\..\include\ShadowMap.inl" />
+    <None Include="..\..\include\Shadow.inl" />
     <None Include="..\..\include\Ssao.inl" />
     <None Include="..\..\include\SSR.inl" />
     <None Include="..\..\include\SVGF.inl" />

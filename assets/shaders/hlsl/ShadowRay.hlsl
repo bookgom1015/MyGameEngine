@@ -20,7 +20,7 @@ RaytracingAccelerationStructure				gi_BVH		: register(t0);
 Texture2D<GBuffer::PositionMapFormat>		gi_Position	: register(t1);
 Texture2D<GBuffer::NormalMapFormat>			gi_Normal	: register(t2);
 Texture2D<GBuffer::DepthMapFormat>			gi_Depth	: register(t3);
-RWTexture2D<DxrShadowMap::ShadowMapFormat>	gi_Shadow	: register(u0);
+RWTexture2D<DXR_Shadow::ShadowMapFormat>	gi_Shadow	: register(u0);
 
 [shader("raygeneration")]
 void ShadowRayGen() {

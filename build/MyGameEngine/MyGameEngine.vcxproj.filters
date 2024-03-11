@@ -219,7 +219,7 @@
     <ClInclude Include="..\..\include\VkRenderer.h">
       <Filter>Header Files\Render\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ShadowMap.h">
+    <ClInclude Include="..\..\include\Shadow.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\GBuffer.h">
@@ -330,7 +330,7 @@
     <ClInclude Include="..\..\include\ShaderTable.h">
       <Filter>Header Files\Render\DirectX</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\DxrShadowMap.h">
+    <ClInclude Include="..\..\include\DXR_Shadow.h">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\DxrGeometryBuffer.h">
@@ -455,7 +455,7 @@
     <ClCompile Include="..\..\src\VkRenderer.cpp">
       <Filter>Source Files\Render\Vulkan</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ShadowMap.cpp">
+    <ClCompile Include="..\..\src\Shadow.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\GBuffer.cpp">
@@ -545,7 +545,7 @@
     <ClCompile Include="..\..\src\ShaderTable.cpp">
       <Filter>Source Files\Render\DirectX</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DxrShadowMap.cpp">
+    <ClCompile Include="..\..\src\DXR_Shadow.cpp">
       <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\DxrGeometryBuffer.cpp">
@@ -635,7 +635,7 @@
     <None Include="..\..\include\VkLowRenderer.inl">
       <Filter>Header Files\Render\Vulkan</Filter>
     </None>
-    <None Include="..\..\include\ShadowMap.inl">
+    <None Include="..\..\include\Shadow.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
     <None Include="..\..\assets\shaders\glsl\Default.vert">
@@ -883,6 +883,9 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
       <Filter>Shader Files\HLSL</Filter>
+    </None>
+    <None Include="..\..\include\DXR_Shadow.inl">
+      <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
   </ItemGroup>
 </Project>

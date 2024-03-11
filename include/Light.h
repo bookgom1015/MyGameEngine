@@ -24,10 +24,10 @@ struct Light {
 	FLOAT				FalloffEnd;		// point/spot light only
 
 	DirectX::XMFLOAT3	Position;		// point/spot light only
-	FLOAT				SpotPower;		// spot light only
+	FLOAT				Intensity;
 
 	UINT				Type;
-	FLOAT				Intensity;
-	FLOAT				ConstantPads0;
-	FLOAT				ConstantPads1;
+	FLOAT				SpotPower;		// spot light only
+	FLOAT				ConstantPad1;
+	FLOAT				ConstantPad2;
 };

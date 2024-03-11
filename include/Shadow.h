@@ -10,7 +10,7 @@ class ShaderManager;
 
 struct RenderItem;
 
-namespace ShadowMap {
+namespace Shadow {
 	namespace RootSignatureLayout {
 		enum {
 			ECB_Pass = 0,
@@ -23,10 +23,10 @@ namespace ShadowMap {
 
 	const UINT NumDepthStenciles = 1;
 
-	class ShadowMapClass {
+	class ShadowClass {
 	public:
-		ShadowMapClass();
-		virtual ~ShadowMapClass() = default;
+		ShadowClass();
+		virtual ~ShadowClass() = default;
 
 	public:
 		__forceinline constexpr UINT Width() const;
@@ -43,7 +43,7 @@ namespace ShadowMap {
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
@@ -86,4 +86,4 @@ namespace ShadowMap {
 	};
 };
 
-#include "ShadowMap.inl"
+#include "Shadow.inl"

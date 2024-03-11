@@ -9,7 +9,7 @@
 
 class ShaderManager;
 
-namespace DxrShadowMap {
+namespace DXR_Shadow {
 	namespace RootSignature {
 		enum Type {
 			E_Global = 0
@@ -50,10 +50,10 @@ namespace DxrShadowMap {
 	using ResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
 	using ResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
 
-	class DxrShadowMapClass {
+	class DXR_ShadowClass {
 	public:
-		DxrShadowMapClass();
-		virtual ~DxrShadowMapClass() = default;
+		DXR_ShadowClass();
+		virtual ~DXR_ShadowClass() = default;
 
 	public:
 		__forceinline GpuResource* Resource(Resources::Type type);
@@ -63,7 +63,7 @@ namespace DxrShadowMap {
 		BOOL Initialize(ID3D12Device5*const device, ID3D12GraphicsCommandList*const cmdList, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		BOOL BuildShaderTables(UINT numRitems);
 		void Run(
 			ID3D12GraphicsCommandList4*const cmdList,
@@ -93,16 +93,10 @@ namespace DxrShadowMap {
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
 		UINT mHitGroupShaderTableStrideInBytes;
 
-		DxrShadowMap::ResourcesType mResources;
-		DxrShadowMap::ResourcesCpuDescriptors mhCpuDescs;
-		DxrShadowMap::ResourcesGpuDescriptors mhGpuDescs;
+		DXR_Shadow::ResourcesType mResources;
+		DXR_Shadow::ResourcesCpuDescriptors mhCpuDescs;
+		DXR_Shadow::ResourcesGpuDescriptors mhGpuDescs;
 	};
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DxrShadowMap::DxrShadowMapClass::Descriptor(Descriptors::Type type) const {
-	return mhGpuDescs[type];
-}
-
-GpuResource* DxrShadowMap::DxrShadowMapClass::Resource(Resources::Type type) {
-	return mResources[type].get();
-}
+#include "DXR_Shadow.inl"

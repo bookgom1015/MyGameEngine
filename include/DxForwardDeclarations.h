@@ -2,7 +2,7 @@
 
 namespace BRDF { class BRDFClass; }
 namespace GBuffer { class GBufferClass; }
-namespace ShadowMap { class ShadowMapClass; }
+namespace Shadow { class ShadowClass; }
 namespace Ssao { class SsaoClass; }
 namespace BlurFilter { class BlurFilterClass; }
 namespace Bloom { class BloomClass; }
@@ -11,7 +11,7 @@ namespace DepthOfField { class DepthOfFieldClass; }
 namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }
 namespace DebugMap { class DebugMapClass; }
-namespace DxrShadowMap { class DxrShadowMapClass; }
+namespace DXR_Shadow { class DXR_ShadowClass; }
 namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
 namespace BlurFilterCS { class BlurFilterCSClass; }
 namespace Rtao { class RtaoClass; }

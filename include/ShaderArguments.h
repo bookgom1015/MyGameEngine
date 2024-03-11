@@ -87,7 +87,7 @@ namespace GBuffer {
 #endif 
 }
 
-namespace ShadowMap {
+namespace Shadow {
 #ifdef HLSL
 	typedef float ShadowMapFormat;
 #else 
@@ -95,7 +95,7 @@ namespace ShadowMap {
 #endif 
 }
 
-namespace DxrShadowMap {
+namespace DXR_Shadow {
 #ifdef HLSL
 	typedef float ShadowMapFormat;
 #else 

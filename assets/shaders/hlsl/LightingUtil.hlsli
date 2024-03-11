@@ -22,7 +22,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 	float3 lightVec = normalize(-L.Direction);
 
 	// Scale light down by Lambert's cosine law.
-	float ndotl = max(dot(lightVec, normal), 0.0f);
+	float ndotl = max(dot(lightVec, normal), 0);
 	float3 lightStrength = L.LightColor * L.Intensity;
 
 #if defined(BLINN_PHONG)
@@ -46,13 +46,13 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 
 	// Range test.
 	if (d > L.FalloffEnd)
-		return 0.0f;
+		return 0;
 
 	// Normalize the light vector.
 	lightVec /= d;
 
 	// Scale light down by Lambert's cosine law.
-	float ndotl = max(dot(lightVec, normal), 0.0f);
+	float ndotl = max(dot(lightVec, normal), 0);
 	float3 lightStrength = L.LightColor * L.Intensity;
 
 	// Attenuate light by distance.
@@ -80,13 +80,13 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 
 	// Range test.
 	if (d > L.FalloffEnd)
-		return 0.0f;
+		return 0;
 
 	// Normalize the light vector.
 	lightVec /= d;
 
 	// Scale light down by Lambert's cosine law.
-	float ndotl = max(dot(lightVec, normal), 0.0f);
+	float ndotl = max(dot(lightVec, normal), 0);
 	float3 lightStrength = L.LightColor * L.Intensity;
 
 	// Attenuate light by distance.
@@ -94,7 +94,7 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 	lightStrength *= att;
 
 	// Scale by spotlight
-	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0.0f), L.SpotPower);
+	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0), L.SpotPower);
 	lightStrength *= spotFactor;
 
 #if defined(BLINN_PHONG)

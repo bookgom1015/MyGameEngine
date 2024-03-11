@@ -1,4 +1,4 @@
-#include "ShadowMap.h"
+#include "Shadow.h"
 #include "Logger.h"
 #include "ShaderManager.h"
 #include "RenderItem.h"
@@ -8,13 +8,18 @@
 #include "D3D12Util.h"
 #include "Vertex.h"
 
-using namespace ShadowMap;
+using namespace Shadow;
 
-ShadowMapClass::ShadowMapClass() {
+namespace {
+	const CHAR* const VS_Shadow = "VS_Shadow";
+	const CHAR* const PS_Shadow = "PS_Shadow";
+}
+
+ShadowClass::ShadowClass() {
 	mShadowMap = std::make_unique<GpuResource>();
 }
 
-BOOL ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL ShadowClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -26,20 +31,20 @@ BOOL ShadowMapClass::Initialize(ID3D12Device* device, ShaderManager*const manage
 
 	CheckReturn(BuildResources());
 
-	return true;
+	return TRUE;
 }
 
-BOOL ShadowMapClass::CompileShaders(const std::wstring& filePath) {
+BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Shadow.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath .c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath .c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, "ShadowVS"));
-	CheckReturn(mShaderManager->CompileShader(psInfo, "ShadowPS"));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_Shadow));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_Shadow));
 
-	return true;
+	return TRUE;
 }
 
-BOOL ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
@@ -58,15 +63,15 @@ BOOL ShadowMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL ShadowMapClass::BuildPso() {
+BOOL ShadowClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::BufferFormat);
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("ShadowVS");
-		auto ps = mShaderManager->GetDxcShader("ShadowPS");
+		auto vs = mShaderManager->GetDxcShader(VS_Shadow);
+		auto ps = mShaderManager->GetDxcShader(PS_Shadow);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -77,10 +82,10 @@ BOOL ShadowMapClass::BuildPso() {
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
-void ShadowMapClass::Run(
+void ShadowClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
@@ -107,7 +112,7 @@ void ShadowMapClass::Run(
 	mShadowMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
-void ShadowMapClass::BuildDescriptors(
+void ShadowClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
@@ -119,7 +124,7 @@ void ShadowMapClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-void ShadowMapClass::BuildDescriptors() {
+void ShadowClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -138,7 +143,7 @@ void ShadowMapClass::BuildDescriptors() {
 	md3dDevice->CreateDepthStencilView(mShadowMap->Resource(), &dsvDesc, mhCpuDsv);
 }
 
-BOOL ShadowMapClass::BuildResources() {
+BOOL ShadowClass::BuildResources() {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -165,13 +170,13 @@ BOOL ShadowMapClass::BuildResources() {
 		&texDesc,
 		D3D12_RESOURCE_STATE_DEPTH_READ,
 		&optClear,
-		L"ShadowMap"
+		L"Shadow_ShadowMap"
 	));
 
-	return true;
+	return TRUE;
 }
 
-void ShadowMapClass::DrawRenderItems(
+void ShadowClass::DrawRenderItems(
 		ID3D12GraphicsCommandList* cmdList, 
 		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, 
