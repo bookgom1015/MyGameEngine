@@ -15,24 +15,24 @@ using namespace RaytracedReflection;
 using namespace DirectX;
 
 namespace {
-	const std::string ReflectionRayCS = "ReflectionRayCS";
+	const std::string CS_ReflectionRay			= "CS_ReflectionRay";
 
-	const wchar_t* RadianceRayGenName		= L"RadianceRayGen";
-	const wchar_t* RadianceClosestHitName	= L"RadianceClosestHit";
-	const wchar_t* RadianceMissName			= L"RadianceMiss";
-	const wchar_t* RadianceHitGroupName		= L"RadianceHitGroup";
+	const WCHAR* const RadianceRayGenName		= L"RadianceRayGen";
+	const WCHAR* const RadianceClosestHitName	= L"RadianceClosestHit";
+	const WCHAR* const RadianceMissName			= L"RadianceMiss";
+	const WCHAR* const RadianceHitGroupName		= L"RadianceHitGroup";
 
-	const wchar_t* ShadowClosestHitName = L"ShadowClosestHit";
-	const wchar_t* ShadowMissName		= L"ShadowMiss";
-	const wchar_t* ShadowHitGroupName	= L"ShadowHitGroup";
+	const WCHAR* const ShadowClosestHitName		= L"ShadowClosestHit";
+	const WCHAR* const ShadowMissName			= L"ShadowMiss";
+	const WCHAR* const ShadowHitGroupName		= L"ShadowHitGroup";
 
-	const wchar_t* MissNames[RaytracedReflection::Ray::Count] = { RadianceMissName, ShadowMissName };
-	const wchar_t* ClosestHitNames[RaytracedReflection::Ray::Count] = { RadianceClosestHitName, ShadowClosestHitName };
-	const wchar_t* HitGroupNames[RaytracedReflection::Ray::Count] = { RadianceHitGroupName, ShadowHitGroupName };
+	const WCHAR* const MissNames[RaytracedReflection::Ray::Count]		= { RadianceMissName, ShadowMissName };
+	const WCHAR* const ClosestHitNames[RaytracedReflection::Ray::Count]	= { RadianceClosestHitName, ShadowClosestHitName };
+	const WCHAR* HitGroupNames[RaytracedReflection::Ray::Count]			= { RadianceHitGroupName, ShadowHitGroupName };
 
-	const char* RayGenShaderTableName	= "RayGenShaderTable";
-	const char* MissShaderTableName		= "MissShaderTable";
-	const char* HitGroupShaderTableName = "HitGroupShaderTable";
+	const CHAR* const RayGenShaderTableName		= "RayGenShaderTable";
+	const CHAR* const MissShaderTableName		= "MissShaderTable";
+	const CHAR* const HitGroupShaderTableName	= "HitGroupShaderTable";
 }
 
 RaytracedReflectionClass::RaytracedReflectionClass() {
@@ -58,12 +58,12 @@ BOOL RaytracedReflectionClass::Initialize(
 BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 	{
 		DxcDefine defines[] = {
-				{ L"COOK_TORRANCE", L"1" }
+			{ L"COOK_TORRANCE", L"1" }
 		};
 
 		const auto path = filePath + L"ReflectionRay.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3", defines, _countof(defines));
-		CheckReturn(mShaderManager->CompileShader(shaderInfo, ReflectionRayCS));
+		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_ReflectionRay));
 	}
 
 	return TRUE;
@@ -72,7 +72,7 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Global
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[12];
+		CD3DX12_DESCRIPTOR_RANGE texTables[11];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
@@ -81,10 +81,9 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
 		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
 		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8);
-		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);
-		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 10);
-		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		texTables[11].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 9);
+		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
@@ -97,12 +96,11 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		slotRootParameter[RootSignature::Global::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
 		slotRootParameter[RootSignature::Global::ESI_Position].InitAsDescriptorTable(1, &texTables[4]);
 		slotRootParameter[RootSignature::Global::ESI_DiffIrrad].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::Global::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::Global::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[8]);
-		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[9]);
-		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[10]);
-		slotRootParameter[RootSignature::Global::EUO_RayHitDist].InitAsDescriptorTable(1, &texTables[11]);
+		slotRootParameter[RootSignature::Global::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[7]);
+		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[8]);
+		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[9]);
+		slotRootParameter[RootSignature::Global::EUO_RayHitDist].InitAsDescriptorTable(1, &texTables[10]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -136,7 +134,7 @@ BOOL RaytracedReflectionClass::BuildPSO() {
 	CD3DX12_STATE_OBJECT_DESC reflectionDxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	auto reflectionLib = reflectionDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-	auto reflectionShader = mShaderManager->GetDxcShader(ReflectionRayCS);
+	auto reflectionShader = mShaderManager->GetDxcShader(CS_ReflectionRay);
 	D3D12_SHADER_BYTECODE reflectionLibDxil = CD3DX12_SHADER_BYTECODE(reflectionShader->GetBufferPointer(), reflectionShader->GetBufferSize());
 	reflectionLib->SetDXILLibrary(&reflectionLibDxil);
 	LPCWSTR exports[] = { RadianceRayGenName, RadianceClosestHitName, RadianceMissName, ShadowClosestHitName, ShadowMissName };
@@ -306,7 +304,6 @@ void RaytracedReflectionClass::CalcReflection(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_diffIrrad,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_aocoeiff,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_prefiltered,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_brdf,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
@@ -332,7 +329,6 @@ void RaytracedReflectionClass::CalcReflection(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_RMS, si_rms);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Position, si_pos);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_DiffIrrad, si_diffIrrad);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_AOCoeiff, si_aocoeiff);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Prefiltered, si_prefiltered);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BrdfLUT, si_brdf);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_TexMaps, si_texMaps);

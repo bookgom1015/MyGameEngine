@@ -18,7 +18,7 @@ BOOL FrameResource::Initialize() {
 	CheckReturn(CB_Pass.Initialize(Device, PassCount, true));
 	CheckReturn(ObjectCB.Initialize(Device, ObjectCount, true));
 	CheckReturn(MaterialCB.Initialize(Device, MaterialCount, true));
-	CheckReturn(SsaoCB.Initialize(Device, 1, true));
+	CheckReturn(CB_SSAO.Initialize(Device, 1, true));
 	CheckReturn(BlurCB.Initialize(Device, 1, true));
 	CheckReturn(DofCB.Initialize(Device, 1, true));
 	CheckReturn(CB_SSR.Initialize(Device, 1, true));

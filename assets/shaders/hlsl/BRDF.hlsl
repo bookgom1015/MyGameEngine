@@ -19,11 +19,12 @@ Texture2D<GBuffer::DepthMapFormat>						gi_Depth		: register(t2);
 Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t3);
 Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t4);
 #ifdef DXR
-Texture2D<Shadow::ShadowMapFormat>						gi_Shadow		: register(t5);
-#else
 Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow		: register(t5);
+Texture2D<Rtao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
+#else
+Texture2D<Shadow::ShadowMapFormat>						gi_Shadow		: register(t5);
+Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
 #endif
-Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
 TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad	: register(t7);
 
 #include "CoordinatesFittedToScreen.hlsli"

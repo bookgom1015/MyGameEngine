@@ -125,13 +125,13 @@ private:
 	
 	BOOL DrawShadow();
 	BOOL DrawGBuffer();
-	BOOL DrawSsao();
+	BOOL DrawSSAO();
 	BOOL DrawBackBuffer();
 	BOOL IntegrateSpecIrrad();
 	BOOL DrawSkySphere();
 	BOOL DrawEquirectangulaToCube();
 	BOOL ApplyTAA();
-	BOOL BuildSsr();
+	BOOL ApplySSR();
 	BOOL ApplyBloom();
 	BOOL ApplyDepthOfField();
 	BOOL ApplyMotionBlur();
@@ -142,10 +142,10 @@ private:
 	BOOL DrawDebuggingInfo();
 	BOOL DrawImGui();
 
-	BOOL DrawDxrShadowMap();
-	BOOL DrawDxrBackBuffer();
+	BOOL DrawDXRShadow();
+	BOOL DrawDXRBackBuffer();
 	BOOL CalcDepthPartialDerivative();
-	BOOL DrawRtao();
+	BOOL DrawRTAO();
 	BOOL BuildRaytracedReflection();
 
 private:
@@ -182,7 +182,7 @@ private:
 	std::unique_ptr<BRDF::BRDFClass> mBRDF;
 	std::unique_ptr<GBuffer::GBufferClass> mGBuffer;
 	std::unique_ptr<Shadow::ShadowClass> mShadow;
-	std::unique_ptr<Ssao::SsaoClass> mSsao;
+	std::unique_ptr<SSAO::SSAOClass> mSSAO;
 	std::unique_ptr<BlurFilter::BlurFilterClass> mBlurFilter;
 	std::unique_ptr<Bloom::BloomClass> mBloom;
 	std::unique_ptr<SSR::SSRClass> mSSR;

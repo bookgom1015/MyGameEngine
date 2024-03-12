@@ -10,18 +10,18 @@
 using namespace BRDF;
 
 namespace {
-	const std::string BlinnPhongVS = "BlinnPhongVS";
-	const std::string BlinnPhongPS = "BlinnPhongPS";
-	const std::string DxrBlinnPhongVS = "DxrBlinnPhongVS";
-	const std::string DxrBlinnPhongPS = "DxrBlinnPhongPS";
+	const CHAR* const VS_BlinnPhong			= "VS_BlinnPhong";
+	const CHAR* const PS_BlinnPhong			= "PS_BlinnPhong";
+	const CHAR* const VS_DXR_BlinnPhong		= "VS_DXR_BlinnPhong";
+	const CHAR* const PS_DXR_BlinnPhong		= "PS_DXR_BlinnPhong";
 
-	const std::string CookTorranceVS = "CookTorranceVS";
-	const std::string CookTorrancePS = "CookTorrancePS";
-	const std::string DxrCookTorranceVS = "DxrCookTorranceVS";
-	const std::string DxrCookTorrancePS = "DxrCookTorrancePS";
+	const CHAR* const VS_CookTorrance		= "VS_CookTorrance";
+	const CHAR* const PS_CookTorrance		= "PS_CookTorrance";
+	const CHAR* const VS_DXR_CookTorrance	= "VS_DXR_rCookTorrance";
+	const CHAR* const PS_DXR_CookTorrance	= "PS_DXR_rCookTorrance";
 
-	const std::string IntegrateSpecularVS = "IntegrateSpecularVS";
-	const std::string IntegrateSpecularPS = "IntegrateSpecularPS";
+	const CHAR* const VS_IntegrateSpecular	= "VS_IntegrateSpecular";
+	const CHAR* const PS_IntegrateSpecular	= "PS_IntegrateSpecular";
 }
 
 BRDFClass::BRDFClass() {
@@ -34,7 +34,7 @@ BOOL BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UI
 
 	CheckReturn(BuildResources(width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
@@ -48,8 +48,8 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(vsInfo, BlinnPhongVS));
-			CheckReturn(mShaderManager->CompileShader(psInfo, BlinnPhongPS));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_BlinnPhong));
+			CheckReturn(mShaderManager->CompileShader(psInfo, PS_BlinnPhong));
 		}
 		{
 			DxcDefine defines[] = {
@@ -59,8 +59,8 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(vsInfo, DxrBlinnPhongVS));
-			CheckReturn(mShaderManager->CompileShader(psInfo, DxrBlinnPhongPS));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DXR_BlinnPhong));
+			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DXR_BlinnPhong));
 		}
 	}
 	{
@@ -73,8 +73,8 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(vsInfo, CookTorranceVS));
-			CheckReturn(mShaderManager->CompileShader(psInfo, CookTorrancePS));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_CookTorrance));
+			CheckReturn(mShaderManager->CompileShader(psInfo, PS_CookTorrance));
 		}
 		{
 			DxcDefine defines[] = {
@@ -84,22 +84,23 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 
 			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(vsInfo, DxrCookTorranceVS));
-			CheckReturn(mShaderManager->CompileShader(psInfo, DxrCookTorrancePS));
+			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DXR_CookTorrance));
+			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DXR_CookTorrance));
 		}
 	}
 	{
 		const auto fullPath = filePath + L"IntegrateSpecular.hlsl";
 		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, IntegrateSpecularVS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, IntegrateSpecularPS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_IntegrateSpecular));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_IntegrateSpecular));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
+	// Intetrate diffuse
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcReflectanceEquation::Count];
 
@@ -131,6 +132,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_CalcReflectanceEquation]));
 	}
+	// Integrate specular
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::IntegrateSpecular::Count];
 
@@ -167,18 +169,18 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_IntegrateSpecular]));
 	}
 
-	return true;
+	return TRUE;
 }
 
-BOOL BRDFClass::BuildPso() {
+BOOL BRDFClass::BuildPSO() {
 	const auto& diffuseRootSig = mRootSignatures[RootSignature::E_CalcReflectanceEquation].Get();
 	{
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(BlinnPhongVS);
-				auto ps = mShaderManager->GetDxcShader(BlinnPhongPS);
+				auto vs = mShaderManager->GetDxcShader(VS_BlinnPhong);
+				auto ps = mShaderManager->GetDxcShader(PS_BlinnPhong);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
@@ -194,8 +196,8 @@ BOOL BRDFClass::BuildPso() {
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(CookTorranceVS);
-				auto ps = mShaderManager->GetDxcShader(CookTorrancePS);
+				auto vs = mShaderManager->GetDxcShader(VS_CookTorrance);
+				auto ps = mShaderManager->GetDxcShader(PS_CookTorrance);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
@@ -213,8 +215,8 @@ BOOL BRDFClass::BuildPso() {
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(DxrBlinnPhongVS);
-				auto ps = mShaderManager->GetDxcShader(DxrBlinnPhongPS);
+				auto vs = mShaderManager->GetDxcShader(VS_DXR_BlinnPhong);
+				auto ps = mShaderManager->GetDxcShader(PS_DXR_BlinnPhong);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
@@ -230,8 +232,8 @@ BOOL BRDFClass::BuildPso() {
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(DxrCookTorranceVS);
-				auto ps = mShaderManager->GetDxcShader(DxrCookTorrancePS);
+				auto vs = mShaderManager->GetDxcShader(VS_DXR_CookTorrance);
+				auto ps = mShaderManager->GetDxcShader(PS_DXR_CookTorrance);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
@@ -248,8 +250,8 @@ BOOL BRDFClass::BuildPso() {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_IntegrateSpecular].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(IntegrateSpecularVS);
-			auto ps = mShaderManager->GetDxcShader(IntegrateSpecularPS);
+			auto vs = mShaderManager->GetDxcShader(VS_IntegrateSpecular);
+			auto ps = mShaderManager->GetDxcShader(PS_IntegrateSpecular);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -262,7 +264,7 @@ BOOL BRDFClass::BuildPso() {
 		);
 	}
 
-	return true;
+	return TRUE;
 }
 
 void BRDFClass::BuildDescriptors(
@@ -279,7 +281,7 @@ BOOL BRDFClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void BRDFClass::CalcReflectanceWithoutSpecIrrad(
@@ -410,5 +412,5 @@ BOOL BRDFClass::BuildResources(UINT width, UINT height) {
 		L"BRDF_CopiedBackBufferMap"
 	));
 
-	return true;
+	return TRUE;
 }

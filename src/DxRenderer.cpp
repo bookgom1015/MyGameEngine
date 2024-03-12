@@ -7,7 +7,7 @@
 #include "ShaderManager.h"
 #include "Shadow.h"
 #include "GBuffer.h"
-#include "Ssao.h"
+#include "SSAO.h"
 #include "Blur.h"
 #include "TemporalAA.h"
 #include "MotionBlur.h"
@@ -216,7 +216,7 @@ DxRenderer::DxRenderer() {
 	mBRDF = std::make_unique<BRDF::BRDFClass>();
 	mGBuffer = std::make_unique<GBuffer::GBufferClass>();
 	mShadow = std::make_unique<Shadow::ShadowClass>();
-	mSsao = std::make_unique<Ssao::SsaoClass>();
+	mSSAO = std::make_unique<SSAO::SSAOClass>();
 	mBlurFilter = std::make_unique<BlurFilter::BlurFilterClass>();
 	mBloom = std::make_unique<Bloom::BloomClass>();
 	mSSR = std::make_unique<SSR::SSRClass>();
@@ -298,7 +298,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
 	CheckReturn(mShadow->Initialize(device, shaderManager, 2048, 2048));
-	CheckReturn(mSsao->Initialize(device, cmdList, shaderManager, width, height, 1));
+	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4));
 	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
@@ -431,14 +431,14 @@ BOOL DxRenderer::Draw() {
 	{
 		CheckReturn(DrawGBuffer());
 		if (bRaytracing) {
-			CheckReturn(DrawDxrShadowMap());
-			CheckReturn(DrawRtao());
-			CheckReturn(DrawDxrBackBuffer());
+			CheckReturn(DrawDXRShadow());
+			CheckReturn(DrawRTAO());
+			CheckReturn(DrawDXRBackBuffer());
 			CheckReturn(CalcDepthPartialDerivative());
 		}
 		else {
 			CheckReturn(DrawShadow());
-			CheckReturn(DrawSsao());
+			CheckReturn(DrawSSAO());
 			CheckReturn(DrawBackBuffer());
 		}
 	}
@@ -447,7 +447,7 @@ BOOL DxRenderer::Draw() {
 		CheckReturn(DrawSkySphere());
 	
 		if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
-		else { CheckReturn(BuildSsr()); }
+		else { CheckReturn(ApplySSR()); }
 	
 		CheckReturn(IntegrateSpecIrrad());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
@@ -487,7 +487,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	std::array<ID3D12Resource*, SwapChainBufferCount> backBuffers;
-	for (INT i = 0; i < SwapChainBufferCount; ++i) {
+	for (UINT i = 0; i < SwapChainBufferCount; ++i) {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
@@ -509,7 +509,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		CheckReturn(mRr->OnResize(cmdList, width, height));
 		CheckReturn(mSVGF->OnResize(width , height))
 	}
-	CheckReturn(mSsao->OnResize(width, height));
+	CheckReturn(mSSAO->OnResize(width, height));
 	CheckReturn(mBloom->OnResize(width, height));
 
 
@@ -626,7 +626,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	rtvHeapDesc.NumDescriptors =
 		SwapChainBufferCount
 		+ GBuffer::NumRenderTargets
-		+ Ssao::NumRenderTargets
+		+ SSAO::NumRenderTargets
 		+ DepthOfField::NumRenderTargets
 		+ Bloom::NumRenderTargets
 		+ SSR::NumRenderTargets
@@ -661,7 +661,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mBRDF->CompileShaders(ShaderFilePath));
 	CheckReturn(mGBuffer->CompileShaders(ShaderFilePath));
 	CheckReturn(mShadow->CompileShaders(ShaderFilePath));
-	CheckReturn(mSsao->CompileShaders(ShaderFilePath));
+	CheckReturn(mSSAO->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilter->CompileShaders(ShaderFilePath));
 	CheckReturn(mBloom->CompileShaders(ShaderFilePath));
 	CheckReturn(mSSR->CompileShaders(ShaderFilePath));
@@ -845,7 +845,7 @@ void DxRenderer::BuildDescriptors() {
 	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
 	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mShadow->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
-	mSsao->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mSSAO->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mDof->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -875,7 +875,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mBRDF->BuildRootSignature(staticSamplers));
 	CheckReturn(mGBuffer->BuildRootSignature(staticSamplers));
 	CheckReturn(mShadow->BuildRootSignature(staticSamplers));
-	CheckReturn(mSsao->BuildRootSignature(staticSamplers));
+	CheckReturn(mSSAO->BuildRootSignature(staticSamplers));
 	CheckReturn(mBlurFilter->BuildRootSignature(staticSamplers));
 	CheckReturn(mBloom->BuildRootSignature(staticSamplers));
 	CheckReturn(mSSR->BuildRootSignature(staticSamplers));
@@ -910,10 +910,10 @@ BOOL DxRenderer::BuildPSOs() {
 	WLogln(L"Building pipeline state objects...");
 #endif
 
-	CheckReturn(mBRDF->BuildPso());
-	CheckReturn(mGBuffer->BuildPso());
+	CheckReturn(mBRDF->BuildPSO());
+	CheckReturn(mGBuffer->BuildPSO());
 	CheckReturn(mShadow->BuildPSO());
-	CheckReturn(mSsao->BuildPso());
+	CheckReturn(mSSAO->BuildPSO());
 	CheckReturn(mBloom->BuildPso());
 	CheckReturn(mBlurFilter->BuildPso());
 	CheckReturn(mSSR->BuildPSO());
@@ -1286,7 +1286,7 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
-	SsaoConstants ssaoCB;
+	ConstantBuffer_SSAO ssaoCB;
 	ssaoCB.View = mMainPassCB->View;
 	ssaoCB.Proj = mMainPassCB->Proj;
 	ssaoCB.InvProj = mMainPassCB->InvProj;
@@ -1301,7 +1301,7 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	);
 	XMStoreFloat4x4(&ssaoCB.ProjTex, XMMatrixTranspose(P * T));
 
-	mSsao->GetOffsetVectors(ssaoCB.OffsetVectors);
+	mSSAO->GetOffsetVectors(ssaoCB.OffsetVectors);
 
 	// Coordinates given in view space.
 	ssaoCB.OcclusionRadius = 0.5f;
@@ -1311,7 +1311,7 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 
 	ssaoCB.SampleCount = ShaderArgs::Ssao::SampleCount;
 
-	auto& currSsaoCB = mCurrFrameResource->SsaoCB;
+	auto& currSsaoCB = mCurrFrameResource->CB_SSAO;
 	currSsaoCB.CopyData(0, ssaoCB);
 
 	return TRUE;
@@ -1824,17 +1824,17 @@ BOOL DxRenderer::DrawGBuffer() {
 	return true;
 }
 
-BOOL DxRenderer::DrawSsao() {
+BOOL DxRenderer::DrawSSAO() {
 	const auto cmdList = mCommandList.Get();
 
 	if (!bSsaoEnabled) {
 		if (!bSsaoMapCleanedUp) {
 			CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-			const auto aoCoeffMap = mSsao->AOCoefficientMapResource(0);
+			const auto aoCoeffMap = mSSAO->AOCoefficientMapResource(0);
 			aoCoeffMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			cmdList->ClearRenderTargetView(mSsao->AOCoefficientMapRtv(0), Ssao::AOCoefficientMapClearValues, 0, nullptr);
+			cmdList->ClearRenderTargetView(mSSAO->AOCoefficientMapRtv(0), SSAO::AOCoefficientMapClearValues, 0, nullptr);
 
 			aoCoeffMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -1853,26 +1853,26 @@ BOOL DxRenderer::DrawSsao() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
-	auto ssaoCBAddress = mCurrFrameResource->SsaoCB.Resource()->GetGPUVirtualAddress();
-	mSsao->Run(
+	auto ssaoCBAddr = mCurrFrameResource->CB_SSAO.Resource()->GetGPUVirtualAddress();
+	mSSAO->Run(
 		cmdList,
-		ssaoCBAddress,
+		ssaoCBAddr,
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv()
 	);
 
-	const auto blurPassCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
+	const auto blurCBAddr = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
 	mBlurFilter->Run(
 		cmdList,
-		blurPassCBAddress,
+		blurCBAddr,
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
-		mSsao->AOCoefficientMapResource(0),
-		mSsao->AOCoefficientMapResource(1),
-		mSsao->AOCoefficientMapRtv(0),
-		mSsao->AOCoefficientMapSrv(0),
-		mSsao->AOCoefficientMapRtv(1),
-		mSsao->AOCoefficientMapSrv(1),
+		mSSAO->AOCoefficientMapResource(0),
+		mSSAO->AOCoefficientMapResource(1),
+		mSSAO->AOCoefficientMapRtv(0),
+		mSSAO->AOCoefficientMapSrv(0),
+		mSSAO->AOCoefficientMapRtv(1),
+		mSSAO->AOCoefficientMapSrv(1),
 		BlurFilter::FilterType::R16,
 		3
 	);	
@@ -1903,7 +1903,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 		mGBuffer->RMSMapSrv(),
 		mGBuffer->PositionMapSrv(),
 		mShadow->Srv(),
-		mSsao->AOCoefficientMapSrv(0),
+		mSSAO->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
 		BRDF::Render::E_Raster
 	);
@@ -1921,7 +1921,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	auto aoCoeffDesc = bRaytracing ? mRtao->ResolvedAOCoefficientSrv() : mSsao->AOCoefficientMapSrv(0);
+	auto aoCoeffDesc = bRaytracing ? mRtao->ResolvedAOCoefficientSrv() : mSSAO->AOCoefficientMapSrv(0);
 	auto reflectionDesc = bRaytracing ? mRr->ResolvedReflectionSrv() : mSSR->SSRMapSrv(0);
 
 	mBRDF->IntegrateSpecularIrrad(
@@ -2027,7 +2027,7 @@ BOOL DxRenderer::ApplyTAA() {
 	return true;
 }
 
-BOOL DxRenderer::BuildSsr() {
+BOOL DxRenderer::ApplySSR() {
 	const auto cmdList = mCommandList.Get();
 
 	if (bSsrEnabled) {
@@ -2038,11 +2038,11 @@ BOOL DxRenderer::BuildSsr() {
 		const auto descHeap = mCbvSrvUavHeap.Get();
 		cmdList->SetDescriptorHeaps(1, &descHeap);
 
-		auto cbAddress = mCurrFrameResource->CB_SSR.Resource()->GetGPUVirtualAddress();
+		auto ssrCBAddr = mCurrFrameResource->CB_SSR.Resource()->GetGPUVirtualAddress();
 
 		mSSR->Run(
 			cmdList,
-			cbAddress,
+			ssrCBAddr,
 			mToneMapping->InterMediateMapResource(),
 			mToneMapping->InterMediateMapSrv(),
 			mGBuffer->PositionMapSrv(),
@@ -2051,10 +2051,10 @@ BOOL DxRenderer::BuildSsr() {
 			mGBuffer->RMSMapSrv()
 		);
 
-		auto blurPassCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
+		auto blurCBAddr = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
 		mBlurFilter->Run(
 			cmdList,
-			blurPassCBAddress,
+			blurCBAddr,
 			mSSR->SSRMapResource(0),
 			mSSR->SSRMapResource(1),
 			mSSR->SSRMapRtv(0),
@@ -2486,7 +2486,7 @@ BOOL DxRenderer::DrawImGui() {
 					if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_SSAO],
-							mSsao->AOCoefficientMapSrv(0),
+							mSSAO->AOCoefficientMapSrv(0),
 							DebugMap::SampleMask::RRR);
 					}
 					if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
@@ -2794,9 +2794,9 @@ BOOL DxRenderer::DrawImGui() {
 			auto& light = mLights[i];
 			if (light.Type == LightType::E_Directional) {
 				if (ImGui::TreeNode((std::to_string(i) + " Directional Light").c_str())) {
-					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
+					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<float*>(&light.Direction), -1.0f, 1.0f)) {
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
 						XMVECTOR normalized = XMVector3Normalize(dir);
 						XMStoreFloat3(&light.Direction, normalized);
@@ -2807,9 +2807,9 @@ BOOL DxRenderer::DrawImGui() {
 			}
 			else if (light.Type == LightType::E_Point) {
 				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
-					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
+					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<float*>(&light.Position), -100.0f, 100.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
 					ImGui::SliderFloat("Falloff Start", &light.FalloffStart, 0, 100.0f);
 					ImGui::SliderFloat("Falloff End", &light.FalloffEnd, 0, 100.0f);
 
@@ -2818,11 +2818,11 @@ BOOL DxRenderer::DrawImGui() {
 			}
 			else if (light.Type == LightType::E_Spot) {
 				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
-					ImGui::ColorPicker3("Light Color", reinterpret_cast<float*>(&light.LightColor));
+					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					ImGui::SliderFloat("Spot Power", &light.SpotPower, 0, 10.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<float*>(&light.Position), -100.0f, 100.0f);
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<float*>(&light.Direction), -1.0f, 1.0f)) {
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
 						XMVECTOR normalized = XMVector3Normalize(dir);
 						XMStoreFloat3(&light.Direction, normalized);
@@ -2906,7 +2906,7 @@ BOOL DxRenderer::DrawImGui() {
 	return TRUE;
 }
 
-BOOL DxRenderer::DrawDxrShadowMap() {
+BOOL DxRenderer::DrawDXRShadow() {
 	const auto cmdList = mCommandList.Get();	
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -2942,15 +2942,14 @@ BOOL DxRenderer::DrawDxrShadowMap() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
-BOOL DxRenderer::DrawDxrBackBuffer() {
+BOOL DxRenderer::DrawDXRBackBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mBRDF->CalcReflectanceWithoutSpecIrrad(
@@ -2974,7 +2973,7 @@ BOOL DxRenderer::DrawDxrBackBuffer() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::CalcDepthPartialDerivative() {
@@ -2997,12 +2996,11 @@ BOOL DxRenderer::CalcDepthPartialDerivative() {
 	return TRUE;
 }
 
-BOOL DxRenderer::DrawRtao() {
+BOOL DxRenderer::DrawRTAO() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// Calculate ambient occlusion.
@@ -3213,8 +3211,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// Calculate raytraced reflection.
@@ -3233,7 +3230,6 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 			mGBuffer->RMSMapSrv(),
 			mGBuffer->PositionMapSrv(),
 			mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
-			mRtao->ResolvedAOCoefficientSrv(),
 			mIrradianceMap->PrefilteredEnvironmentCubeMapSrv(),
 			mIrradianceMap->IntegratedBrdfMapSrv(),
 			mhGpuDescForTexMaps,

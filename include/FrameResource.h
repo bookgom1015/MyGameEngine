@@ -28,7 +28,7 @@ public:
 	UploadBuffer<ConstantBuffer_Pass> CB_Pass;
 	UploadBuffer<ObjectConstants> ObjectCB;
 	UploadBuffer<MaterialConstants> MaterialCB;
-	UploadBuffer<SsaoConstants> SsaoCB;
+	UploadBuffer<ConstantBuffer_SSAO> CB_SSAO;
 	UploadBuffer<BlurConstants> BlurCB;
 	UploadBuffer<DofConstants> DofCB;
 	UploadBuffer<ConstantBuffer_SSR> CB_SSR;

@@ -225,7 +225,7 @@
     <ClInclude Include="..\..\include\GBuffer.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Ssao.h">
+    <ClInclude Include="..\..\include\SSAO.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\GeometryGenerator.h">
@@ -461,7 +461,7 @@
     <ClCompile Include="..\..\src\GBuffer.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Ssao.cpp">
+    <ClCompile Include="..\..\src\SSAO.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\GeometryGenerator.cpp">
@@ -680,7 +680,7 @@
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli">
       <Filter>Shader Files\HLSL</Filter>
     </None>
-    <None Include="..\..\include\Ssao.inl">
+    <None Include="..\..\include\SSAO.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli">
@@ -866,7 +866,7 @@
     <None Include="..\..\include\ShaderArguments.inl">
       <Filter>Header Files\Render\DirectX</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Ssao.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\SSAO.hlsl">
       <Filter>Shader Files\HLSL</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\SSR_Screen.hlsl">

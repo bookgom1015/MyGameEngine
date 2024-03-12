@@ -67,7 +67,7 @@ namespace GBuffer {
 			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,

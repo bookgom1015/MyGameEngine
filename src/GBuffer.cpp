@@ -11,8 +11,8 @@
 using namespace GBuffer;
 
 namespace {
-	const std::string GBuffer_VS = "GBufferVS";
-	const std::string GBuffer_PS = "GBufferPS";
+	const CHAR* const VS_GBuffer = "VS_GBuffer";
+	const CHAR* const PS_GBuffer = "PS_GBuffer";
 }
 
 GBufferClass::GBufferClass() {
@@ -36,17 +36,17 @@ BOOL GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height
 
 	CheckReturn(BuildResources(width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL GBufferClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"GBuffer.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, GBuffer_VS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, GBuffer_PS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GBuffer));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_GBuffer));
 
-	return true;
+	return TRUE;
 }
 
 BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
@@ -60,7 +60,6 @@ BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	slotRootParameter[RootSignatureLayout::ECB_Mat].InitAsConstantBufferView(2);
 	slotRootParameter[RootSignatureLayout::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[0]);
 
-	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
 		static_cast<UINT>(samplers.size()), samplers.data(),
@@ -69,16 +68,16 @@ BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL GBufferClass::BuildPso() {
+BOOL GBufferClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = Vertex::InputLayoutDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(GBuffer_VS);
-		auto ps = mShaderManager->GetDxcShader(GBuffer_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_GBuffer);
+		auto ps = mShaderManager->GetDxcShader(PS_GBuffer);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -101,7 +100,7 @@ BOOL GBufferClass::BuildPso() {
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
 void GBufferClass::Run(
@@ -206,7 +205,7 @@ BOOL GBufferClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void GBufferClass::BuildDescriptors() {
@@ -405,7 +404,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		));
 	}
 
-	return true;
+	return TRUE;
 }
 
 void GBufferClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,

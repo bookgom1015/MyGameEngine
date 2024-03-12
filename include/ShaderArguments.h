@@ -121,7 +121,7 @@ namespace ToneMapping {
 #endif
 }
 
-namespace Ssao {
+namespace SSAO {
 #ifdef HLSL
 	typedef float	AOCoefficientMapFormat;
 	typedef float3	RandomVectorMapFormat;

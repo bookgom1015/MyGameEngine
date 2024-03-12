@@ -9,7 +9,7 @@
 
 class ShaderManager;
 
-namespace Ssao {
+namespace SSAO {
 	namespace RootSignature {
 		enum {
 			ECB_Pass = 0,
@@ -20,19 +20,24 @@ namespace Ssao {
 		};
 	}
 
+	namespace Resolution {
+		enum Type {
+			E_Fullscreen = 0,
+			E_Quarter,
+			Count
+		};
+	}
+
 	const UINT NumRenderTargets = 2;
 
 	const FLOAT AOCoefficientMapClearValues[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	class SsaoClass {
+	class SSAOClass {
 	public:
-		SsaoClass();
-		virtual ~SsaoClass() = default;
+		SSAOClass();
+		virtual ~SSAOClass() = default;
 
 	public:
-		__forceinline constexpr UINT Width() const;
-		__forceinline constexpr UINT Height() const;
-
 		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
 		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
@@ -45,10 +50,10 @@ namespace Ssao {
 
 	public:
 		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
-			UINT width, UINT height, UINT divider);
+			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
@@ -66,7 +71,7 @@ namespace Ssao {
 
 	private:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 		void BuildOffsetVectors();
 		BOOL BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
@@ -78,11 +83,8 @@ namespace Ssao {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-		UINT mWidth;
-		UINT mHeight;
-
-		UINT mDivider;
-		
+		Resolution::Type mResolutionType;
+				
 		std::unique_ptr<GpuResource> mRandomVectorMap;
 		std::unique_ptr<GpuResource> mRandomVectorMapUploadBuffer;
 		std::array<std::unique_ptr<GpuResource>, 2> mAOCoefficientMaps;
@@ -102,4 +104,4 @@ namespace Ssao {
 	};
 }
 
-#include "Ssao.inl"
+#include "SSAO.inl"

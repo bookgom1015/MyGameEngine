@@ -9,47 +9,46 @@
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-using namespace Ssao;
+using namespace SSAO;
 
-SsaoClass::SsaoClass() {
+namespace {
+	const CHAR* const VS_SSAO = "VS_SSAO";
+	const CHAR* const PS_SSAO = "PS_SSAO";
+}
+
+SSAOClass::SSAOClass() {
 	mRandomVectorMap = std::make_unique<GpuResource>();
 	mRandomVectorMapUploadBuffer = std::make_unique<GpuResource>();
 	mAOCoefficientMaps[0] = std::make_unique<GpuResource>();
 	mAOCoefficientMaps[1] = std::make_unique<GpuResource>();
 }
 
-BOOL SsaoClass::Initialize(
+BOOL SSAOClass::Initialize(
 		ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
-		UINT width, UINT height, UINT divider) {
+		UINT width, UINT height, Resolution::Type type) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	mWidth = width / divider;
-	mHeight = height / divider;
+	mResolutionType = type;
 
-	mDivider = divider;
-
-	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(mWidth), static_cast<FLOAT>(mHeight), 0.0f, 1.0f };
-	mScissorRect = { 0, 0, static_cast<INT>(mWidth), static_cast<INT>(mHeight) };
-
-	CheckReturn(BuildResources());
+	CheckReturn(BuildResources(width, height));
 	BuildOffsetVectors();
 	CheckReturn(BuildRandomVectorTexture(cmdList));
 
-	return true;
+	return TRUE;
 }
 
-BOOL SsaoClass::CompileShaders(const std::wstring& filePath) {
-	const std::wstring actualPath = filePath + L"Ssao.hlsl";
+BOOL SSAOClass::CompileShaders(const std::wstring& filePath) {
+	const std::wstring actualPath = filePath + L"SSAO.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, "SsaoVS"));
-	CheckReturn(mShaderManager->CompileShader(psInfo, "SsaoPS"));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_SSAO));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_SSAO));
 
-	return true;
+	return TRUE;
 }
 
-BOOL SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
+BOOL SSAOClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[3];
@@ -62,7 +61,6 @@ BOOL SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
 	slotRootParameter[RootSignature::ESI_Depth].InitAsDescriptorTable(1, &texTables[1]);
 	slotRootParameter[RootSignature::ESI_RandomVector].InitAsDescriptorTable(1, &texTables[2]);
 
-	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
 		static_cast<UINT>(samplers.size()), samplers.data(),
@@ -71,15 +69,15 @@ BOOL SsaoClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL SsaoClass::BuildPso() {
+BOOL SSAOClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("SsaoVS");
-		auto ps = mShaderManager->GetDxcShader("SsaoPS");
+		auto vs = mShaderManager->GetDxcShader(VS_SSAO);
+		auto ps = mShaderManager->GetDxcShader(PS_SSAO);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -87,10 +85,10 @@ BOOL SsaoClass::BuildPso() {
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
-void SsaoClass::Run(
+void SSAOClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
@@ -124,11 +122,11 @@ void SsaoClass::Run(
 }
 
 
-void SsaoClass::GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]) {
+void SSAOClass::GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]) {
 	std::copy(&mOffsets[0], &mOffsets[14], &offsets[0]);
 }
 
-void SsaoClass::BuildDescriptors(
+void SSAOClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
@@ -145,24 +143,14 @@ void SsaoClass::BuildDescriptors(
 	BuildDescriptors();
 }
 
-BOOL SsaoClass::OnResize(UINT width, UINT height) {
-	width /= mDivider;
-	height /= mDivider;
-	if ((mWidth != width) || (mHeight != height)) {
-		mWidth = width;
-		mHeight = height;
+BOOL SSAOClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
 
-		mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(width), static_cast<FLOAT>(height), 0.0f, 1.0f };
-		mScissorRect = { 0, 0, static_cast<INT>(width), static_cast<INT>(height) };
-
-		CheckReturn(BuildResources());
-		BuildDescriptors();
-	}
-
-	return true;
+	return TRUE;
 }
 
-void SsaoClass::BuildDescriptors() {
+void SSAOClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -186,14 +174,27 @@ void SsaoClass::BuildDescriptors() {
 	}
 }
 
-BOOL SsaoClass::BuildResources() {
+BOOL SSAOClass::BuildResources(UINT width, UINT height) {
+	UINT actWidth;
+	UINT actHeight;
+	if (mResolutionType == Resolution::E_Fullscreen) {
+		actWidth = width;
+		actHeight = height;
+	}
+	else {
+		actWidth = static_cast<UINT>(width * 0.5f);
+		actHeight = static_cast<UINT>(height * 0.5f);
+	}
+
+	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(actWidth), static_cast<FLOAT>(actHeight), 0.0f, 1.0f };
+	mScissorRect = { 0, 0, static_cast<INT>(actWidth), static_cast<INT>(actHeight) };
+
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	texDesc.Alignment = 0;
-	// Ambient occlusion maps are at half resolution.
-	texDesc.Width = mWidth;
-	texDesc.Height = mHeight;
+	texDesc.Width = actWidth;
+	texDesc.Height = actHeight;
 	texDesc.DepthOrArraySize = 1;
 	texDesc.MipLevels = 1;
 	texDesc.Format = AOCoefficientMapFormat;
@@ -206,7 +207,7 @@ BOOL SsaoClass::BuildResources() {
 
 	for (INT i = 0; i < 2; ++i) {
 		std::wstringstream wsstream;
-		wsstream << L"AOCoefficientMap_" << i;
+		wsstream << L"SSAO_AOCoefficientMap_" << i;
 		CheckHRESULT(mAOCoefficientMaps[i]->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -218,10 +219,10 @@ BOOL SsaoClass::BuildResources() {
 		));
 	}
 
-	return true;
+	return TRUE;
 }
 
-void SsaoClass::BuildOffsetVectors() {
+void SSAOClass::BuildOffsetVectors() {
 	// Start with 14 uniformly distributed vectors.  We choose the 8 corners of the cube
 	// and the 6 center points along each cube face.  We always alternate the points on 
 	// opposites sides of the cubes.  This way we still get the vectors spread out even
@@ -260,7 +261,7 @@ void SsaoClass::BuildOffsetVectors() {
 	}
 }
 
-BOOL SsaoClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
+BOOL SSAOClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -282,7 +283,7 @@ BOOL SsaoClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 		&texDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
-		L"RandomVectorMap"
+		L"SSAO_RandomVectorMap"
 	));
 
 	//
@@ -335,5 +336,5 @@ BOOL SsaoClass::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList) {
 	);
 	mRandomVectorMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	return true;
+	return TRUE;
 }

@@ -19,7 +19,7 @@ Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t2);
 Texture2D<DepthStencilBuffer::BufferFormat>				gi_Depth		: register(t3);
 Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t4);
 Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t5);
-Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
+Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
 TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered	: register(t7);
 Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT		: register(t8);
 Texture2D<SSR::SSRMapFormat>							gi_Reflection	: register(t9);

@@ -195,8 +195,8 @@ BOOL SSRClass::BuildResources(UINT width, UINT height) {
 		actHeight = height;
 	}
 	else {
-		actWidth = static_cast<UINT>(width * 0.25f);
-		actHeight = static_cast<UINT>(height * 0.25f);
+		actWidth = static_cast<UINT>(width * 0.5f);
+		actHeight = static_cast<UINT>(height * 0.5f);
 	}
 
 	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(actWidth), static_cast<FLOAT>(actHeight), 0.0f, 1.0f };

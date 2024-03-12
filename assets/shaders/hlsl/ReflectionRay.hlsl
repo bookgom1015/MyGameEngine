@@ -42,10 +42,9 @@ Texture2D<GBuffer::DepthMapFormat>						gi_Depth						: register(t3);
 Texture2D<GBuffer::RMSMapFormat>						gi_RMS							: register(t4);
 Texture2D<GBuffer::PositionMapFormat>					gi_Position						: register(t5);
 TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad					: register(t6);
-Texture2D<Ssao::AOCoefficientMapFormat>					gi_AOCoeiff						: register(t7);
-TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: register(t8);
-Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t9);
-Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t10);
+TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: register(t7);
+Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t8);
+Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t9);
 
 RWTexture2D<RaytracedReflection::ReflectionMapFormat>	go_Reflection	: register(u0);
 RWTexture2D<RaytracedReflection::RayHitDistanceFormat>	go_RayHitDist	: register(u1);

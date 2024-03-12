@@ -49,7 +49,7 @@ struct MaterialConstants {
 	FLOAT				MatConstPad0;
 };
 
-struct SsaoConstants {
+struct ConstantBuffer_SSAO {
 	DirectX::XMFLOAT4X4	View;
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4X4	InvProj;

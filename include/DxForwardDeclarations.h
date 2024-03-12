@@ -3,7 +3,7 @@
 namespace BRDF { class BRDFClass; }
 namespace GBuffer { class GBufferClass; }
 namespace Shadow { class ShadowClass; }
-namespace Ssao { class SsaoClass; }
+namespace SSAO { class SSAOClass; }
 namespace BlurFilter { class BlurFilterClass; }
 namespace Bloom { class BloomClass; }
 namespace SSR { class SSRClass; }
