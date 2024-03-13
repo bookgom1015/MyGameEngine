@@ -11,7 +11,7 @@
 class ShaderManager;
 
 namespace BlurFilter {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			ECB_BlurPass = 0,
 			EC_Consts,
@@ -23,14 +23,14 @@ namespace BlurFilter {
 			ESI_Input_F1,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			EHorizontal = 0,
-			EBilateral,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_Horizontal = 0,
+				E_Bilateral,
+				Count
+			};
+		}
 	}
 
 	class BlurFilterClass {
@@ -42,38 +42,38 @@ namespace BlurFilter {
 		BOOL Initialize(ID3D12Device*const device, ShaderManager*const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 			GpuResource*const primary,
 			GpuResource*const secondary,
-			D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
-			D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
-			D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
-			D3D12_GPU_DESCRIPTOR_HANDLE secondarySrv,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_primary,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_primary,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_secondary,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_secondary,
 			FilterType type,
-			size_t blurCount = 3);
+			UINT blurCount = 3);
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-			D3D12_GPU_DESCRIPTOR_HANDLE normalSrv,
-			D3D12_GPU_DESCRIPTOR_HANDLE depthSrv,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			GpuResource* const primary,
 			GpuResource* const secondary,
-			D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
-			D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
-			D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
-			D3D12_GPU_DESCRIPTOR_HANDLE secondarySrv,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_primary,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_primary,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_secondary,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_secondary,
 			FilterType type,
-			size_t blurCount = 3);
+			UINT blurCount = 3);
 
 	private:
 		void Blur(
 			ID3D12GraphicsCommandList* cmdList,
 			GpuResource*const output,
-			D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
-			D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_output,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_input,
 			FilterType type,
 			BOOL horzBlur);
 

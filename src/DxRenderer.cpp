@@ -300,7 +300,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mShadow->Initialize(device, shaderManager, 2048, 2048));
 	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
-	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, 4));
+	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_Quarter));
 	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
 	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
@@ -914,14 +914,14 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mGBuffer->BuildPSO());
 	CheckReturn(mShadow->BuildPSO());
 	CheckReturn(mSSAO->BuildPSO());
-	CheckReturn(mBloom->BuildPso());
-	CheckReturn(mBlurFilter->BuildPso());
+	CheckReturn(mBloom->BuildPSO());
+	CheckReturn(mBlurFilter->BuildPSO());
 	CheckReturn(mSSR->BuildPSO());
-	CheckReturn(mDof->BuildPso());
-	CheckReturn(mMotionBlur->BuildPso());
-	CheckReturn(mTaa->BuildPso());
-	CheckReturn(mDebugMap->BuildPso());
-	CheckReturn(mDebugCollision->BuildPso());
+	CheckReturn(mDof->BuildPSO());
+	CheckReturn(mMotionBlur->BuildPSO());
+	CheckReturn(mTaa->BuildPSO());
+	CheckReturn(mDebugMap->BuildPSO());
+	CheckReturn(mDebugCollision->BuildPSO());
 	CheckReturn(mGammaCorrection->BuildPso());
 	CheckReturn(mToneMapping->BuildPso());
 	CheckReturn(mIrradianceMap->BuildPSO());
@@ -1238,8 +1238,8 @@ BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
 	XMStoreFloat4x4(&mShadowPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
 	XMStoreFloat3(&mShadowPassCB->EyePosW, lightPos);
 
-	auto& currPassCB = mCurrFrameResource->CB_Pass;
-	currPassCB.CopyData(1, *mShadowPassCB);
+	auto& currCB = mCurrFrameResource->CB_Pass;
+	currCB.CopyData(1, *mShadowPassCB);
 
 	return TRUE;
 }
@@ -1311,36 +1311,36 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 
 	ssaoCB.SampleCount = ShaderArgs::Ssao::SampleCount;
 
-	auto& currSsaoCB = mCurrFrameResource->CB_SSAO;
-	currSsaoCB.CopyData(0, ssaoCB);
+	auto& currCB = mCurrFrameResource->CB_SSAO;
+	currCB.CopyData(0, ssaoCB);
 
 	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Blur(FLOAT delta) {
-	BlurConstants blurCB;
+	ConstantBuffer_Blur blurCB;
 	blurCB.Proj = mMainPassCB->Proj;
 	blurCB.BlurWeights[0] = mBlurWeights[0];
 	blurCB.BlurWeights[1] = mBlurWeights[1];
 	blurCB.BlurWeights[2] = mBlurWeights[2];
 	blurCB.BlurRadius = 5;
 
-	auto& currBlurCB = mCurrFrameResource->BlurCB;
-	currBlurCB.CopyData(0, blurCB);
+	auto& currCB = mCurrFrameResource->CB_Blur;
+	currCB.CopyData(0, blurCB);
 
 	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
-	DofConstants dofCB;
+	ConstantBuffer_DoF dofCB;
 	dofCB.Proj = mMainPassCB->Proj;
 	dofCB.InvProj = mMainPassCB->InvProj;
 	dofCB.FocusRange = ShaderArgs::DepthOfField::FocusRange;
 	dofCB.FocusingSpeed = ShaderArgs::DepthOfField::FocusingSpeed;
 	dofCB.DeltaTime = delta;
 
-	auto& currDofCB = mCurrFrameResource->DofCB;
-	currDofCB.CopyData(0, dofCB);
+	auto& currCB = mCurrFrameResource->CB_DoF;
+	currCB.CopyData(0, dofCB);
 
 	return TRUE;
 }
@@ -1630,15 +1630,15 @@ BOOL DxRenderer::UpdateCB_RR(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_DebugMap(FLOAT delta) {
-	DebugMapConstantBuffer debugMapCB;
+	ConstantBuffer_DebugMap debugMapCB;
 
 	for (UINT i = 0; i < DebugMap::MapSize; ++i) {
 		auto desc = mDebugMap->SampleDesc(i);
 		debugMapCB.SampleDescs[i] = desc;
 	}
 
-	auto& currDebugMapCB = mCurrFrameResource->DebugMapCB;
-	currDebugMapCB.CopyData(0, debugMapCB);
+	auto& currCB = mCurrFrameResource->CB_DebugMap;
+	currCB.CopyData(0, debugMapCB);
 
 	return TRUE;
 }
@@ -1746,12 +1746,12 @@ BOOL DxRenderer::DrawShadow() {
 			CheckHRESULT(cmdList->Close());
 			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-			bShadowMapCleanedUp = true;
+			bShadowMapCleanedUp = TRUE;
 		}
 		
-		return true;
+		return TRUE;
 	}
-	bShadowMapCleanedUp = false;
+	bShadowMapCleanedUp = FALSE;
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -1777,7 +1777,7 @@ BOOL DxRenderer::DrawShadow() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawGBuffer() {
@@ -1821,7 +1821,7 @@ BOOL DxRenderer::DrawGBuffer() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawSSAO() {
@@ -1841,12 +1841,12 @@ BOOL DxRenderer::DrawSSAO() {
 			CheckHRESULT(cmdList->Close());
 			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-			bSsaoMapCleanedUp = true;
+			bSsaoMapCleanedUp = TRUE;
 		}
 
-		return true;
+		return TRUE;
 	}
-	bSsaoMapCleanedUp = false;
+	bSsaoMapCleanedUp = FALSE;
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
@@ -1861,7 +1861,7 @@ BOOL DxRenderer::DrawSSAO() {
 		mGBuffer->DepthMapSrv()
 	);
 
-	const auto blurCBAddr = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
+	const auto blurCBAddr = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
 	mBlurFilter->Run(
 		cmdList,
 		blurCBAddr,
@@ -1880,7 +1880,7 @@ BOOL DxRenderer::DrawSSAO() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawBackBuffer() {
@@ -1911,7 +1911,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::IntegrateSpecIrrad() {
@@ -1945,7 +1945,7 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawSkySphere() {
@@ -1971,7 +1971,7 @@ BOOL DxRenderer::DrawSkySphere() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawEquirectangulaToCube() {
@@ -2000,7 +2000,7 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplyTAA() {
@@ -2024,14 +2024,14 @@ BOOL DxRenderer::ApplyTAA() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList*const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplySSR() {
 	const auto cmdList = mCommandList.Get();
 
 	if (bSsrEnabled) {
-		bSsrMapCleanedUp = false;
+		bSsrMapCleanedUp = FALSE;
 
 		CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
@@ -2051,7 +2051,7 @@ BOOL DxRenderer::ApplySSR() {
 			mGBuffer->RMSMapSrv()
 		);
 
-		auto blurCBAddr = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
+		auto blurCBAddr = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
 		mBlurFilter->Run(
 			cmdList,
 			blurCBAddr,
@@ -2099,13 +2099,13 @@ BOOL DxRenderer::ApplyBloom() {
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	mBloom->ExtractHighlights(
+	mBloom->ExtractHighlight(
 		cmdList,
 		backBufferSrv,
 		ShaderArgs::Bloom::HighlightThreshold
 	);
 	
-	auto blurPassCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
+	auto blurPassCBAddress = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
 	mBlurFilter->Run(
 		cmdList,
 		blurPassCBAddress,
@@ -2119,24 +2119,18 @@ BOOL DxRenderer::ApplyBloom() {
 		ShaderArgs::Bloom::BlurCount
 	);
 	
-	mBloom->Bloom(
+	mBloom->ApplyBloom(
 		cmdList,
-		backBufferSrv
+		mScreenViewport,
+		mScissorRect,
+		mToneMapping->InterMediateMapResource(),
+		mToneMapping->InterMediateMapRtv()
 	);
-
-	auto resultMap = mBloom->ResultMapResource();
-	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-
-	mCommandList->CopyResource(backBuffer->Resource(), resultMap->Resource());
-
-	resultMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplyDepthOfField() {
@@ -2150,12 +2144,12 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	auto backBufferRtv = mToneMapping->InterMediateMapRtv();
 	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
 
-	const auto dofCBAddress = mCurrFrameResource->DofCB.Resource()->GetGPUVirtualAddress();
+	const auto dofCBAddr = mCurrFrameResource->CB_DoF.Resource()->GetGPUVirtualAddress();
 	mDof->CalcFocalDist(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
-		dofCBAddress,
+		dofCBAddr,
 		mGBuffer->DepthMapSrv()
 	);
 
@@ -2163,7 +2157,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
-		dofCBAddress,
+		dofCBAddr,
 		mGBuffer->DepthMapSrv()
 	);
 
@@ -2179,12 +2173,11 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		ShaderArgs::DepthOfField::SampleCount
 	);
 
-	const auto blurCBAddress = mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress();
 	mDof->BlurDoF(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
-		blurCBAddress,
+		mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress(),
 		backBuffer,
 		backBufferRtv,
 		backBufferSrv,
@@ -2194,7 +2187,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplyMotionBlur() {
@@ -2225,17 +2218,14 @@ BOOL DxRenderer::ApplyMotionBlur() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ResolveToneMapping() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	if (bToneMappingEnabled) {
@@ -2261,17 +2251,14 @@ BOOL DxRenderer::ResolveToneMapping() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplyGammaCorrection() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mGammaCorrection->Run(
@@ -2286,17 +2273,14 @@ BOOL DxRenderer::ApplyGammaCorrection() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplySharpen() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mSharpen->Run(
@@ -2311,17 +2295,14 @@ BOOL DxRenderer::ApplySharpen() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::ApplyPixelation() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mPixelation->Run(
@@ -2336,7 +2317,7 @@ BOOL DxRenderer::ApplyPixelation() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawDebuggingInfo() {
@@ -2351,7 +2332,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 		mScreenViewport,
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
-		mCurrFrameResource->DebugMapCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_DebugMap.Resource()->GetGPUVirtualAddress(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
 		DepthStencilView()
 	);
@@ -2372,7 +2353,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxRenderer::DrawImGui() {
@@ -2925,7 +2906,7 @@ BOOL DxRenderer::DrawDXRShadow() {
 	
 	mBlurFilterCS->Run(
 		cmdList,
-		mCurrFrameResource->BlurCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress(),
 		mGBuffer->NormalMapSrv(),
 		mGBuffer->DepthMapSrv(),
 		mDxrShadow->Resource(DXR_Shadow::Resources::EShadow0),

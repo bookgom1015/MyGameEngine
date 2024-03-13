@@ -9,14 +9,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-cbuffer cbBlur : register(b0) {
-	float4x4	gProj;
-	float4		gBlurWeights[3];
-	float		gBlurRadius;
-	float		gConstantPad0;
-	float		gConstantPad1;
-	float		gConstantPad2;
-}
+ConstantBuffer<ConstantBuffer_Blur> cb_Blur : register(b0);
 
 cbuffer cbRootConstants : register(b1) {
 	bool gHorizontal;
@@ -52,8 +45,6 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-
-	// Quad covering screen in NDC space.
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	return vout;
@@ -62,9 +53,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 PixelOut PS(VertexOut pin) : SV_Target {
 	// unpack into float array.
 	const float blurWeights[12] = {
-		gBlurWeights[0].x, gBlurWeights[0].y, gBlurWeights[0].z, gBlurWeights[0].w,
-		gBlurWeights[1].x, gBlurWeights[1].y, gBlurWeights[1].z, gBlurWeights[1].w,
-		gBlurWeights[2].x, gBlurWeights[2].y, gBlurWeights[2].z, gBlurWeights[2].w,
+		cb_Blur.BlurWeights[0].x, cb_Blur.BlurWeights[0].y, cb_Blur.BlurWeights[0].z, cb_Blur.BlurWeights[0].w,
+		cb_Blur.BlurWeights[1].x, cb_Blur.BlurWeights[1].y, cb_Blur.BlurWeights[1].z, cb_Blur.BlurWeights[1].w,
+		cb_Blur.BlurWeights[2].x, cb_Blur.BlurWeights[2].y, cb_Blur.BlurWeights[2].z, cb_Blur.BlurWeights[2].w,
 	};
 
 	uint2 size;
@@ -87,24 +78,25 @@ PixelOut PS(VertexOut pin) : SV_Target {
 
 	// The center value always contributes to the sum.
 #if FT_F4
-	float4 color = blurWeights[gBlurRadius] * gi_Input_F4.Sample(gsamLinearClamp, pin.TexC);
+	float4 color = blurWeights[cb_Blur.BlurRadius] * gi_Input_F4.Sample(gsamLinearClamp, pin.TexC);
 #elif FT_F3
-	float3 color = blurWeights[gBlurRadius] * gi_Input_F3.Sample(gsamLinearClamp, pin.TexC);
+	float3 color = blurWeights[cb_Blur.BlurRadius] * gi_Input_F3.Sample(gsamLinearClamp, pin.TexC);
 #elif FT_F2
-	float2 color = blurWeights[gBlurRadius] * gi_Input_F2.Sample(gsamLinearClamp, pin.TexC);
+	float2 color = blurWeights[cb_Blur.BlurRadius] * gi_Input_F2.Sample(gsamLinearClamp, pin.TexC);
 #else
-	float color = blurWeights[gBlurRadius] * gi_Input_F1.Sample(gsamLinearClamp, pin.TexC);
+	float color = blurWeights[cb_Blur.BlurRadius] * gi_Input_F1.Sample(gsamLinearClamp, pin.TexC);
 #endif
-	float totalWeight = blurWeights[gBlurRadius];
+	float totalWeight = blurWeights[cb_Blur.BlurRadius];
 
 	float3 centerNormal;
 	float centerDepth;
 	if (gBilateral) {		
 		centerNormal = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
-		centerDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, pin.TexC), gProj);
+		centerDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, pin.TexC), cb_Blur.Proj);
 	}
 
-	for (int i = -gBlurRadius; i <= gBlurRadius; ++i)	{
+	[loop]
+	for (int i = -cb_Blur.BlurRadius; i <= cb_Blur.BlurRadius; ++i)	{
 		// We already added in the center weight.
 		if (i == 0) continue;
 
@@ -112,7 +104,7 @@ PixelOut PS(VertexOut pin) : SV_Target {
 
 		if (gBilateral) {
 			const float3 neighborNormal = normalize(gi_Normal.Sample(gsamLinearClamp, tex).xyz);
-			const float neighborDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, tex), gProj);
+			const float neighborDepth = NdcDepthToViewDepth(gi_Depth.Sample(gsamDepthMap, tex), cb_Blur.Proj);
 
 			//
 			// If the center value and neighbor values differ too much (either in 
@@ -120,7 +112,7 @@ PixelOut PS(VertexOut pin) : SV_Target {
 			// We discard such samples from the blur.
 			//
 			if (dot(neighborNormal, centerNormal) >= 0.75 && abs(neighborDepth - centerDepth) <= 1) {
-				float weight = blurWeights[i + gBlurRadius];
+				float weight = blurWeights[i + cb_Blur.BlurRadius];
 
 				// Add neighbor pixel to blur.
 #if FT_F4
@@ -137,7 +129,7 @@ PixelOut PS(VertexOut pin) : SV_Target {
 			}
 		}
 		else {
-			const float weight = blurWeights[i + gBlurRadius];
+			const float weight = blurWeights[i + cb_Blur.BlurRadius];
 
 #if FT_F4
 			color += weight * gi_Input_F4.Sample(gsamLinearClamp, tex);

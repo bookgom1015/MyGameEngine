@@ -11,7 +11,7 @@ class ShaderManager;
 class GpuResource;
 
 namespace TemporalAA {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			ESI_Input = 0,
 			ESI_History,
@@ -35,7 +35,7 @@ namespace TemporalAA {
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,

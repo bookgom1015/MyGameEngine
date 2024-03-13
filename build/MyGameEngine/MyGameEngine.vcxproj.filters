@@ -791,7 +791,7 @@
     <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
       <Filter>Shader Files\HLSL\Filter\Bloom</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ExtractHighlights.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\HighlightExtraction.hlsl">
       <Filter>Shader Files\HLSL\Filter\Bloom</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
@@ -886,6 +886,12 @@
     </None>
     <None Include="..\..\include\DXR_Shadow.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
+    </None>
+    <None Include="..\..\include\Bloom.inl">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </None>
+    <None Include="..\..\include\DebugMap.inl">
+      <Filter>Header Files\Render\DirectX\Debug</Filter>
     </None>
   </ItemGroup>
 </Project>

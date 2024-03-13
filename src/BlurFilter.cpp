@@ -6,24 +6,24 @@
 using namespace BlurFilter;
 
 namespace {
-	const CHAR* GaussianBlurVS_F4 = "GaussianBlurVS_F4";
-	const CHAR* GaussianBlurPS_F4 = "GaussianBlurPS_F4";
+	const CHAR* VS_GaussianBlur_F4 = "VS_GaussianBlur_F4";
+	const CHAR* PS_GaussianBlur_F4 = "PS_GaussianBlur_F4";
 
-	const CHAR* GaussianBlurVS_F3 = "GaussianBlurVS_F3";
-	const CHAR* GaussianBlurPS_F3 = "GaussianBlurPS_F3";
+	const CHAR* VS_GaussianBlur_F3 = "VS_GaussianBlur_F3";
+	const CHAR* PS_GaussianBlur_F3 = "PS_GaussianBlur_F3";
 
-	const CHAR* GaussianBlurVS_F2 = "GaussianBlurVS_F2";
-	const CHAR* GaussianBlurPS_F2 = "GaussianBlurPS_F2";
+	const CHAR* VS_GaussianBlur_F2 = "VS_GaussianBlur_F2";
+	const CHAR* PS_GaussianBlur_F2 = "PS_GaussianBlur_F2";
 
-	const CHAR* GaussianBlurVS_F1 = "GaussianBlurVS_F1";
-	const CHAR* GaussianBlurPS_F1 = "GaussianBlurPS_F1";
+	const CHAR* VS_GaussianBlur_F1 = "VS_GaussianBlur_F1";
+	const CHAR* PS_GaussianBlur_F1 = "PS_GaussianBlur_F1";
 }
 
 BOOL BlurFilterClass::Initialize(ID3D12Device*const device, ShaderManager*const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	return true;
+	return TRUE;
 }
 
 BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
@@ -35,8 +35,8 @@ BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 		};
 		auto vsInfo = D3D12ShaderInfo(path.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 		auto psInfo = D3D12ShaderInfo(path.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-		CheckReturn(mShaderManager->CompileShader(vsInfo, GaussianBlurVS_F4));
-		CheckReturn(mShaderManager->CompileShader(psInfo, GaussianBlurPS_F4));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GaussianBlur_F4));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_GaussianBlur_F4));
 	}
 	{
 		DxcDefine defines[] = {
@@ -44,8 +44,8 @@ BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 		};
 		auto vsInfo = D3D12ShaderInfo(path.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 		auto psInfo = D3D12ShaderInfo(path.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-		CheckReturn(mShaderManager->CompileShader(vsInfo, GaussianBlurVS_F3));
-		CheckReturn(mShaderManager->CompileShader(psInfo, GaussianBlurPS_F3));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GaussianBlur_F3));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_GaussianBlur_F3));
 	}
 	{
 		DxcDefine defines[] = {
@@ -53,8 +53,8 @@ BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 		};
 		auto vsInfo = D3D12ShaderInfo(path.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 		auto psInfo = D3D12ShaderInfo(path.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-		CheckReturn(mShaderManager->CompileShader(vsInfo, GaussianBlurVS_F2));
-		CheckReturn(mShaderManager->CompileShader(psInfo, GaussianBlurPS_F2));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GaussianBlur_F2));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_GaussianBlur_F2));
 	}
 	{
 		DxcDefine defines[] = {
@@ -62,16 +62,15 @@ BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 		};
 		auto vsInfo = D3D12ShaderInfo(path.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
 		auto psInfo = D3D12ShaderInfo(path.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-		CheckReturn(mShaderManager->CompileShader(vsInfo, GaussianBlurVS_F1));
-		CheckReturn(mShaderManager->CompileShader(psInfo, GaussianBlurPS_F1));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GaussianBlur_F1));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_GaussianBlur_F1));
 	}
 	
-	return true;
+	return TRUE;
 }
 
 BOOL BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
-	// For blur
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[6];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
@@ -81,16 +80,15 @@ BOOL BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 	texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
 
-	slotRootParameter[RootSignatureLayout::ECB_BlurPass].InitAsConstantBufferView(0);
-	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(3, 1);
-	slotRootParameter[RootSignatureLayout::ESI_Normal].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[RootSignatureLayout::ESI_Depth].InitAsDescriptorTable(1, &texTables[1]);
-	slotRootParameter[RootSignatureLayout::ESI_Input_F4].InitAsDescriptorTable(1, &texTables[2]);
-	slotRootParameter[RootSignatureLayout::ESI_Input_F3].InitAsDescriptorTable(1, &texTables[3]);
-	slotRootParameter[RootSignatureLayout::ESI_Input_F2].InitAsDescriptorTable(1, &texTables[4]);
-	slotRootParameter[RootSignatureLayout::ESI_Input_F1].InitAsDescriptorTable(1, &texTables[5]);
+	slotRootParameter[RootSignature::ECB_BlurPass].InitAsConstantBufferView(0);
+	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(3, 1);
+	slotRootParameter[RootSignature::ESI_Normal].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignature::ESI_Depth].InitAsDescriptorTable(1, &texTables[1]);
+	slotRootParameter[RootSignature::ESI_Input_F4].InitAsDescriptorTable(1, &texTables[2]);
+	slotRootParameter[RootSignature::ESI_Input_F3].InitAsDescriptorTable(1, &texTables[3]);
+	slotRootParameter[RootSignature::ESI_Input_F2].InitAsDescriptorTable(1, &texTables[4]);
+	slotRootParameter[RootSignature::ESI_Input_F1].InitAsDescriptorTable(1, &texTables[5]);
 
-	// A root signature is an array of root parameters.
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
 		static_cast<UINT>(samplers.size()), samplers.data(),
@@ -99,10 +97,10 @@ BOOL BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL BlurFilterClass::BuildPso() {
+BOOL BlurFilterClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc;
 	ZeroMemory(&quadPsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	quadPsoDesc.InputLayout = { nullptr, 0 };
@@ -123,8 +121,8 @@ BOOL BlurFilterClass::BuildPso() {
 		switch (i) {
 		case FilterType::R8G8B8A8:
 		{
-			auto vs = mShaderManager->GetDxcShader(GaussianBlurVS_F4);
-			auto ps = mShaderManager->GetDxcShader(GaussianBlurPS_F4);
+			auto vs = mShaderManager->GetDxcShader(VS_GaussianBlur_F4);
+			auto ps = mShaderManager->GetDxcShader(PS_GaussianBlur_F4);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -132,8 +130,8 @@ BOOL BlurFilterClass::BuildPso() {
 			break;
 		case FilterType::R16:
 		{
-			auto vs = mShaderManager->GetDxcShader(GaussianBlurVS_F1);
-			auto ps = mShaderManager->GetDxcShader(GaussianBlurPS_F1);
+			auto vs = mShaderManager->GetDxcShader(VS_GaussianBlur_F1);
+			auto ps = mShaderManager->GetDxcShader(PS_GaussianBlur_F1);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -141,8 +139,8 @@ BOOL BlurFilterClass::BuildPso() {
 			break;
 		case FilterType::R16G16B16A16:
 		{
-			auto vs = mShaderManager->GetDxcShader(GaussianBlurVS_F4);
-			auto ps = mShaderManager->GetDxcShader(GaussianBlurPS_F4);
+			auto vs = mShaderManager->GetDxcShader(VS_GaussianBlur_F4);
+			auto ps = mShaderManager->GetDxcShader(PS_GaussianBlur_F4);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -150,8 +148,8 @@ BOOL BlurFilterClass::BuildPso() {
 			break;
 		case FilterType::R32G32B32A32:
 		{
-			auto vs = mShaderManager->GetDxcShader(GaussianBlurVS_F4);
-			auto ps = mShaderManager->GetDxcShader(GaussianBlurPS_F4);
+			auto vs = mShaderManager->GetDxcShader(VS_GaussianBlur_F4);
+			auto ps = mShaderManager->GetDxcShader(PS_GaussianBlur_F4);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
@@ -163,90 +161,90 @@ BOOL BlurFilterClass::BuildPso() {
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[(FilterType)i])));
 	}
 
-	return true;
+	return TRUE;
 }
 
 void BlurFilterClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 		GpuResource* const primary,
 		GpuResource* const secondary,
-		D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
-		D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
-		D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
-		D3D12_GPU_DESCRIPTOR_HANDLE secondarySrv,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_primary,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_primary,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_secondary,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_secondary,
 		FilterType type,
-		size_t blurCount) {
+		UINT blurCount) {
 	cmdList->SetPipelineState(mPSOs[type].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_BlurPass, cbAddress);
-	cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EBilateral);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_BlurPass, cb_blur);
+	cmdList->SetGraphicsRoot32BitConstant(RootSignature::EC_Consts, 0, RootSignature::RootConstant::E_Bilateral);
 
-	for (INT i = 0; i < blurCount; ++i) {
-		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, secondary, secondaryRtv, primarySrv, type, true);
+	for (UINT i = 0; i < blurCount; ++i) {
+		cmdList->SetGraphicsRoot32BitConstant(RootSignature::EC_Consts, 1, RootSignature::RootConstant::E_Horizontal);
+		Blur(cmdList, secondary, ro_secondary, si_primary, type, true);
 
-		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, primary, primaryRtv, secondarySrv, type, false);
+		cmdList->SetGraphicsRoot32BitConstant(RootSignature::EC_Consts, 0, RootSignature::RootConstant::E_Horizontal);
+		Blur(cmdList, primary, ro_primary, si_secondary, type, false);
 	}
 }
 
 void BlurFilterClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE normalSrv,
-		D3D12_GPU_DESCRIPTOR_HANDLE depthSrv,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 		GpuResource* const primary,
 		GpuResource* const secondary,
-		D3D12_CPU_DESCRIPTOR_HANDLE primaryRtv,
-		D3D12_GPU_DESCRIPTOR_HANDLE primarySrv,
-		D3D12_CPU_DESCRIPTOR_HANDLE secondaryRtv,
-		D3D12_GPU_DESCRIPTOR_HANDLE secondarySrv,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_primary,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_primary,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_secondary,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_secondary,
 		FilterType type,
-		size_t blurCount) {
+		UINT blurCount) {
 	cmdList->SetPipelineState(mPSOs[type].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_BlurPass, cbAddress);
-	cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EBilateral);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_BlurPass, cb_blur);
+	cmdList->SetGraphicsRoot32BitConstant(RootSignature::EC_Consts, 1, RootSignature::RootConstant::E_Bilateral);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Normal, normalSrv);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Depth, depthSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Normal, si_normal);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Depth, si_depth);
 	
-	for (INT i = 0; i < blurCount; ++i) {
-		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 1, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, secondary, secondaryRtv, primarySrv, type, true);
+	for (UINT i = 0; i < blurCount; ++i) {
+		cmdList->SetGraphicsRoot32BitConstant(RootSignature::EC_Consts, 1, RootSignature::RootConstant::E_Horizontal);
+		Blur(cmdList, secondary, ro_secondary, si_primary, type, true);
 
-		cmdList->SetGraphicsRoot32BitConstant(RootSignatureLayout::EC_Consts, 0, RootConstantsLayout::EHorizontal);
-		Blur(cmdList, primary, primaryRtv, secondarySrv, type, false);
+		cmdList->SetGraphicsRoot32BitConstant(RootSignature::EC_Consts, 0, RootSignature::RootConstant::E_Horizontal);
+		Blur(cmdList, primary, ro_primary, si_secondary, type, false);
 	}
 }
 
 void BlurFilterClass::Blur(
 		ID3D12GraphicsCommandList* cmdList,
 		GpuResource* const output,
-		D3D12_CPU_DESCRIPTOR_HANDLE outputRtv,
-		D3D12_GPU_DESCRIPTOR_HANDLE inputSrv,
+		D3D12_CPU_DESCRIPTOR_HANDLE ro_output,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_input,
 		FilterType type,
 		BOOL horzBlur) {
 	output->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &outputRtv, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_output, true, nullptr);
 
 	switch (type)
 	{
 	case BlurFilter::R8G8B8A8:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input_F4, inputSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Input_F4, si_input);
 		break;
 	case BlurFilter::R16:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input_F1, inputSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Input_F1, si_input);
 		break;
 	case BlurFilter::R16G16B16A16:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input_F4, inputSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Input_F4, si_input);
 		break;
 	case BlurFilter::R32G32B32A32:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input_F4, inputSrv);
+		cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Input_F4, si_input);
 		break;
 	case BlurFilter::Count:
 		break;

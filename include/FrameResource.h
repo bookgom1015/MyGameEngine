@@ -29,8 +29,8 @@ public:
 	UploadBuffer<ObjectConstants> ObjectCB;
 	UploadBuffer<MaterialConstants> MaterialCB;
 	UploadBuffer<ConstantBuffer_SSAO> CB_SSAO;
-	UploadBuffer<BlurConstants> BlurCB;
-	UploadBuffer<DofConstants> DofCB;
+	UploadBuffer<ConstantBuffer_Blur> CB_Blur;
+	UploadBuffer<ConstantBuffer_DoF> CB_DoF;
 	UploadBuffer<ConstantBuffer_SSR> CB_SSR;
 	UploadBuffer<ConvertEquirectangularToCubeConstantBuffer> ConvEquirectToCubeCB;
 	UploadBuffer<RtaoConstants> RtaoCB;
@@ -38,7 +38,7 @@ public:
 	UploadBuffer<CalcLocalMeanVarianceConstants> CalcLocalMeanVarCB;
 	UploadBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> TsppBlendCB;
 	UploadBuffer<AtrousWaveletTransformFilterConstantBuffer> AtrousFilterCB;
-	UploadBuffer<DebugMapConstantBuffer> DebugMapCB;
+	UploadBuffer<ConstantBuffer_DebugMap> CB_DebugMap;
 	UploadBuffer<RaytracedReflectionConstantBuffer> RrCB;
 
 	UINT64 Fence;

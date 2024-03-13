@@ -38,7 +38,7 @@ namespace MotionBlur {
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,

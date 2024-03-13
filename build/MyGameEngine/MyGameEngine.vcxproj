@@ -337,6 +337,8 @@
     <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli" />
     <None Include="..\..\include\Actor.inl" />
+    <None Include="..\..\include\Bloom.inl" />
+    <None Include="..\..\include\DebugMap.inl" />
     <None Include="..\..\include\DepthOfField.inl" />
     <None Include="..\..\include\DxLowRenderer.inl" />
     <None Include="..\..\include\DXR_Shadow.inl" />
@@ -430,7 +432,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\ExtractHighlights.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\HighlightExtraction.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

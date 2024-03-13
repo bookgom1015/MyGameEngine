@@ -65,18 +65,16 @@ struct ConstantBuffer_SSAO {
 	FLOAT				ConstantPads[3];
 };
 
-struct BlurConstants {
+struct ConstantBuffer_Blur {
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4	BlurWeights[3];
 
 	FLOAT				BlurRadius;
-	FLOAT				ConstantPad0;
-	FLOAT				ConstantPad1;
-	FLOAT				ConstantPad2;
+	FLOAT				ConstantPads[3];
 
 };
 
-struct DofConstants {
+struct ConstantBuffer_DoF {
 	DirectX::XMFLOAT4X4	Proj;
 	DirectX::XMFLOAT4X4	InvProj;
 	FLOAT				FocusRange;
@@ -209,6 +207,6 @@ struct DebugMapSampleDesc {
 	FLOAT ConstantPad2;
 };
 
-struct DebugMapConstantBuffer {
+struct ConstantBuffer_DebugMap {
 	DebugMapSampleDesc SampleDescs[DebugMap::MapSize];
 };

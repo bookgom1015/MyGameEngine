@@ -9,7 +9,7 @@
 #include "Samplers.hlsli"
 #include "CoordinatesFittedToScreen.hlsli"
 
-ConstantBuffer<DebugMapConstantBuffer> cbDebug : register(b0);
+ConstantBuffer<ConstantBuffer_DebugMap> cb_Debug : register(b0);
 
 cbuffer gRootConstants : register(b1) {
 	uint gSampleMask0;
@@ -124,20 +124,20 @@ float4 SampleColor(int index, float2 tex) {
 	case DebugMap::SampleMask::FLOAT: {
 		Texture2D map = TextureObject(index);
 		float samp = map.SampleLevel(gsamPointClamp, tex, 0).x;
-		float finalColor = samp / cbDebug.SampleDescs[index].Denominator;
-		return finalColor >= 0 ? lerp(cbDebug.SampleDescs[index].MinColor, cbDebug.SampleDescs[index].MaxColor, finalColor) : 1;
+		float finalColor = samp / cb_Debug.SampleDescs[index].Denominator;
+		return finalColor >= 0 ? lerp(cb_Debug.SampleDescs[index].MinColor, cb_Debug.SampleDescs[index].MaxColor, finalColor) : 1;
 	}
 	case DebugMap::SampleMask::UINT: {
 		Texture2D<uint> map = TextureObject_uint(index);
 		uint samp = map.Load(int3(tex.x * 800, tex.y * 600, 0)).x;
-		float finalColor = min(1, samp / cbDebug.SampleDescs[index].Denominator);
-		return lerp(cbDebug.SampleDescs[index].MinColor, cbDebug.SampleDescs[index].MaxColor, finalColor);
+		float finalColor = min(1, samp / cb_Debug.SampleDescs[index].Denominator);
+		return lerp(cb_Debug.SampleDescs[index].MinColor, cb_Debug.SampleDescs[index].MaxColor, finalColor);
 	}
 	}
 	return 1;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
+SDR_FORMAT PS(VertexOut pin) : SV_Target {
 	switch (pin.InstID) {
 	case 0: return SampleColor(0, pin.TexC);
 	case 1: return SampleColor(1, pin.TexC);

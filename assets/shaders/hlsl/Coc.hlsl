@@ -9,14 +9,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-cbuffer cbDoF : register(b0) {
-	float4x4	gProj;
-	float4x4	gInvProj;
-	float		gFocusRange;
-	float		gFocusingSpeed;
-	float		gDeltaTime;
-	float		gConstantPad0;
-};
+ConstantBuffer<ConstantBuffer_DoF> cb_DoF : register(b0);
 
 Texture2D<GBuffer::DepthMapFormat> gi_Depth : register(t0);
 
@@ -34,10 +27,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-
 	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
-	float4 ph = mul(vout.PosH, gInvProj);
+	float4 ph = mul(vout.PosH, cb_DoF.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -46,12 +38,12 @@ VertexOut VS(uint vid : SV_VertexID) {
 DepthOfField::CoCMapFormat PS(VertexOut pin) : SV_Target {
 	float depth = gi_Depth.Sample(gsamDepthMap, pin.TexC);
 
-	depth = NdcDepthToViewDepth(depth, gProj);
+	depth = NdcDepthToViewDepth(depth, cb_DoF.Proj);
 
 	float focusDist = ui_FocalDistance[0];
 
 	float diff = depth - focusDist;
-	float coc = diff / gFocusRange;
+	float coc = diff / cb_DoF.FocusRange;
 	coc = clamp(coc, -1, 1);
 
 	return coc;

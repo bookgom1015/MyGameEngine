@@ -8,17 +8,17 @@
 using namespace DepthOfField;
 
 namespace {
-	const CHAR* CoC_VS = "CoC_VS";
-	const CHAR* CoC_PS = "CoC_PS";
+	const CHAR* VS_CoC = "VS_CoC";
+	const CHAR* PS_CoC = "PS_CoC";
 
-	const CHAR* DoF_VS = "DoF_VS";
-	const CHAR* DoF_PS = "DoF_PS";
+	const CHAR* VS_DoF = "VS_DoF";
+	const CHAR* PS_DoF = "PS_DoF";
 
-	const CHAR* DoFBlur_VS = "DoFBlur_VS";
-	const CHAR* DoFBlur_PS = "DoFBlur_PS";
+	const CHAR* VS_DoFBlur = "VS_DoFBlur";
+	const CHAR* PS_DoFBlur = "PS_DoFBlur";
 
-	const CHAR* FD_VS = "FD_VS";
-	const CHAR* FD_PS = "FD_PS";
+	const CHAR* VS_FD = "VS_FD";
+	const CHAR* PS_FD = "PS_FD";
 }
 
 DepthOfFieldClass::DepthOfFieldClass() {
@@ -37,7 +37,7 @@ BOOL DepthOfFieldClass::Initialize(
 
 	CheckReturn(BuildResources(cmdList, width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
@@ -45,32 +45,32 @@ BOOL DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 		const std::wstring actualPath = filePath + L"CoC.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, CoC_VS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, CoC_PS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_CoC));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_CoC));
 	}
 	{
 		const std::wstring actualPath = filePath + L"DepthOfField.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, DoF_VS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, DoF_PS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DoF));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_DoF));
 	}
 	{
 		const std::wstring actualPath = filePath + L"DoFBlur.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, DoFBlur_VS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, DoFBlur_PS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DoFBlur));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_DoFBlur));
 	}
 	{
 		const std::wstring actualPath = filePath + L"FocalDistance.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, FD_VS));
-		CheckReturn(mShaderManager->CompileShader(psInfo, FD_PS));
+		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_FD));
+		CheckReturn(mShaderManager->CompileShader(psInfo, PS_FD));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
@@ -156,18 +156,18 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_FD]));
 	}
 
-	return true;
+	return TRUE;
 }
 
-BOOL DepthOfFieldClass::BuildPso() {
+BOOL DepthOfFieldClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC defaultPsoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), DepthStencilBuffer::BufferFormat);
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC cocPsoDesc = quadPsoDesc;
 	cocPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_CoC].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(CoC_VS);
-		auto ps = mShaderManager->GetDxcShader(CoC_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_CoC);
+		auto ps = mShaderManager->GetDxcShader(PS_CoC);
 		cocPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		cocPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -177,8 +177,8 @@ BOOL DepthOfFieldClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC dofPsoDesc = quadPsoDesc;
 	dofPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DoF].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(DoF_VS);
-		auto ps = mShaderManager->GetDxcShader(DoF_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_DoF);
+		auto ps = mShaderManager->GetDxcShader(PS_DoF);
 		dofPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		dofPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -188,8 +188,8 @@ BOOL DepthOfFieldClass::BuildPso() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC dofBlurPsoDesc = dofPsoDesc;
 	dofBlurPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DoFBlur].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(DoFBlur_VS);
-		auto ps = mShaderManager->GetDxcShader(DoFBlur_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_DoFBlur);
+		auto ps = mShaderManager->GetDxcShader(PS_DoFBlur);
 		dofBlurPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		dofBlurPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -200,8 +200,8 @@ BOOL DepthOfFieldClass::BuildPso() {
 	fdPsoDesc.InputLayout = { nullptr, 0 };
 	fdPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_FD].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(FD_VS);
-		auto ps = mShaderManager->GetDxcShader(FD_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_FD);
+		auto ps = mShaderManager->GetDxcShader(PS_FD);
 		fdPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		fdPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -212,7 +212,7 @@ BOOL DepthOfFieldClass::BuildPso() {
 	fdPsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&fdPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_FD])));
 
-	return true;
+	return TRUE;
 }
 
 void DepthOfFieldClass::CalcFocalDist(
@@ -372,7 +372,7 @@ BOOL DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* cmdList, UINT width,
 	CheckReturn(BuildResources(cmdList, width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void DepthOfFieldClass::BuildDescriptors() {
@@ -464,5 +464,5 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT 
 	mFocalDistanceBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer->Resource());
 
-	return true;
+	return TRUE;
 }

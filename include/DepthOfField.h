@@ -105,7 +105,7 @@ namespace DepthOfField {
 			ID3D12Device* device, ShaderManager*const manager, ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 
 		void CalcFocalDist(
 			ID3D12GraphicsCommandList*const cmdList,

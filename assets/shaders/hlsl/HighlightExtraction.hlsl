@@ -1,5 +1,5 @@
-#ifndef __EXTRACTHIGHLIGHTS_HLSL__
-#define __EXTRACTHIGHLIGHTS_HLSL__
+#ifndef __HIGHLIGHTEXTRACTION_HLSL__
+#define __HIGHLIGHTEXTRACTION_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -25,19 +25,17 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-
-	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
+HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	float3 color = gi_BackBuffer.Sample(gsamLinearWrap, pin.TexC).rgb;
-	float brightness = dot(color.rgb, float3(0.2126f, 0.7152f, 0.0722f));
+	float brightness = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
 
-	if (brightness > gThreshold) return float4(color, 1.0f);
-	else return (float4)0.0f;
+	if (brightness > gThreshold) return float4(color, 1);
+	else return 0;
 }
 
-#endif // __EXTRACTHIGHLIGHTS_HLSL__
+#endif // __HIGHLIGHTEXTRACTION_HLSL__

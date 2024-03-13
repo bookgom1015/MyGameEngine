@@ -12,30 +12,28 @@ class ShaderManager;
 class GpuResource;
 
 namespace Bloom {
-	namespace ApplyBloom {
-		namespace RootSignatureLayout {
+	namespace RootSignature {
+		namespace ApplyBloom {
 			enum {
 				ESI_BackBuffer = 0,
 				ESI_Bloom,
 				Count
 			};
 		}
-	}
 
-	namespace ExtractHighlights {
-		namespace RootSignatureLayout {
+		namespace HighlightExtraction {
 			enum {
 				ESI_BackBuffer = 0,
 				EC_Consts,
 				Count
 			};
-		}
 
-		namespace RootConstatLayout {
-			enum {
-				EThreshold = 0,
-				Count
-			};
+			namespace RootConstant {
+				enum {
+					EThreshold = 0,
+					Count
+				};
+			}
 		}
 	}
 
@@ -47,7 +45,15 @@ namespace Bloom {
 		};
 	}
 
-	static const UINT NumRenderTargets = 3;
+	namespace Resolution {
+		enum Type {
+			E_Fullscreen = 0,
+			E_Quarter,
+			Count
+		};
+	}
+
+	static const UINT NumRenderTargets = 2;
 
 	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -58,27 +64,27 @@ namespace Bloom {
 
 	public:
 		__forceinline GpuResource* BloomMapResource(UINT index);
-		__forceinline GpuResource* ResultMapResource();
 
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE BloomMapSrv(UINT index) const;
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE BloomMapRtv(UINT index) const;
 
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE ResultMapRtv() const;
-
 	public:
 		BOOL Initialize(
 			ID3D12Device* device, ShaderManager*const manager, 
-			UINT width, UINT height, UINT divider);
+			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
-		void ExtractHighlights(
+		BOOL BuildPSO();
+		void ExtractHighlight(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			FLOAT threshold);
-		void Bloom(
+		void ApplyBloom(
 			ID3D12GraphicsCommandList*const cmdList,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer);
+			const D3D12_VIEWPORT& viewport,
+			const D3D12_RECT& scissorRect,
+			GpuResource*const backBuffer,
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
@@ -89,7 +95,7 @@ namespace Bloom {
 
 	public:
 		void BuildDescriptors();
-		BOOL BuildResources();
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -98,47 +104,20 @@ namespace Bloom {
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
 		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
 
-		UINT mBloomMapWidth;
-		UINT mBloomMapHeight;
+		Resolution::Type mResolutionType;
 
-		UINT mResultMapWidth;
-		UINT mResultMapHeight;
-
-		UINT mDivider;
-
-		D3D12_VIEWPORT mReducedViewport;
-		D3D12_RECT mReducedScissorRect;
-
-		D3D12_VIEWPORT mOriginalViewport;
-		D3D12_RECT mOriginalScissorRect;
+		D3D12_VIEWPORT mViewport;
+		D3D12_RECT mScissorRect;
 
 		std::array<std::unique_ptr<GpuResource>, 2> mBloomMaps;
-		std::unique_ptr<GpuResource> mResultMap;
-
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhBloomMapCpuSrvs;
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhBloomMapGpuSrvs;
 		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhBloomMapCpuRtvs;
 		
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhResultMapCpuRtv;
+		std::unique_ptr<GpuResource> mCopiedBackBuffer;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferGpuSrv;
 	};
 }
 
-GpuResource* Bloom::BloomClass::BloomMapResource(UINT index) {
-	return mBloomMaps[index].get();
-}
-
-GpuResource* Bloom::BloomClass::ResultMapResource() {
-	return mResultMap.get();
-}
-
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Bloom::BloomClass::BloomMapSrv(UINT index) const {
-	return mhBloomMapGpuSrvs[index];
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Bloom::BloomClass::BloomMapRtv(UINT index) const {
-	return mhBloomMapCpuRtvs[index];
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Bloom::BloomClass::ResultMapRtv() const {
-	return mhResultMapCpuRtv;
-}
+#include "Bloom.inl"

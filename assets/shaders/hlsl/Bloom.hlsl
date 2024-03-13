@@ -23,17 +23,15 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-
-	// Quad covering screen in NDC space.
-	vout.PosH = float4(2.0f * vout.TexC.x - 1.0f, 1.0f - 2.0f * vout.TexC.y, 0.0f, 1.0f);
+	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
 
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
+HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	float3 color = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
 	float3 bloom = gi_Bloom.Sample(gsamLinearClamp, pin.TexC).rgb;
-	return float4(color + bloom, 1.0f);
+	return float4(color + bloom, 1);
 }
 
 #endif // __BLOOM_HLSL__

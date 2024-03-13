@@ -8,14 +8,14 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<BlurConstants> cbBlur : register(b0);
+ConstantBuffer<ConstantBuffer_Blur> cbBlur : register(b0);
 
 cbuffer cbRootConstants : register(b1) {
 	uint2 gDimension;
 }
 
-Texture2D<float3>	gi_Normal	: register(t0);
-Texture2D<float>	gi_Depth	: register(t1);
+Texture2D<GBuffer::NormalMapFormat>	gi_Normal	: register(t0);
+Texture2D<GBuffer::DepthMapFormat>	gi_Depth	: register(t1);
 
 Texture2D<float>	gi_Input	: register(t2);
 RWTexture2D<float>	go_Output	: register(u0);
@@ -23,7 +23,7 @@ RWTexture2D<float>	go_Output	: register(u0);
 #define CacheSize (BlurFilterCS ::ThreadGroup::Size + 2 * BlurFilterCS ::MaxBlurRadius)
 groupshared float gCache[CacheSize];
 
-#define Deadline 0.1f
+#define Deadline 0.1
 
 [numthreads(BlurFilterCS::ThreadGroup::Size, 1, 1)]
 void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID) {
@@ -63,20 +63,20 @@ void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 	float blurColor = gCache[groupThreadID.x + cbBlur.BlurRadius] * blurWeights[cbBlur.BlurRadius];
 	float totalWeight = blurWeights[cbBlur.BlurRadius];
 
-	float2 centerTex = float2((dispatchThreadID.x + 0.5f) / (float)gDimension.x, (dispatchThreadID.y + 0.5f) / (float)gDimension.y);
-	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0));
+	float2 centerTex = float2((dispatchThreadID.x + 0.5) / (float)gDimension.x, (dispatchThreadID.y + 0.5) / (float)gDimension.y);
+	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0).rgb);
 	float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
 
-	float dx = 1.0f / gDimension.x;
+	float dx = 1.0 / gDimension.x;
 
 	for (int i = -cbBlur.BlurRadius; i <= cbBlur.BlurRadius; i++) {
 		if (i == 0) continue;
 
 		float2 neighborTex = float2(centerTex.x + dx * i, centerTex.y);
-		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0));
+		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0).rgb);
 		float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
 
-		if (dot(neighborNormal, centerNormal) >= 0.95f && abs(neighborDepth - centerDepth) <= 0.01f) {
+		if (dot(neighborNormal, centerNormal) >= 0.95 && abs(neighborDepth - centerDepth) <= 0.01) {
 			int k = groupThreadID.x + cbBlur.BlurRadius + i;
 
 			blurColor += gCache[k] * blurWeights[cbBlur.BlurRadius + i];
@@ -131,20 +131,20 @@ void VertBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 	float blurColor = gCache[groupThreadID.y + cbBlur.BlurRadius] * blurWeights[cbBlur.BlurRadius];
 	float totalWeight = blurWeights[cbBlur.BlurRadius];
 
-	float2 centerTex = float2((dispatchThreadID.x + 0.5f) / (float)gDimension.x, (dispatchThreadID.y + 0.5f) / (float)gDimension.y);
-	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0));
+	float2 centerTex = float2((dispatchThreadID.x + 0.5) / (float)gDimension.x, (dispatchThreadID.y + 0.5) / (float)gDimension.y);
+	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0).rgb);
 	float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
 
-	float dy = 1.0f / gDimension.y;
+	float dy = 1.0 / gDimension.y;
 
 	for (int i = -cbBlur.BlurRadius; i <= cbBlur.BlurRadius; i++) {
 		if (i == 0) continue;
 
 		float2 neighborTex = float2(centerTex.x, centerTex.y + dy * i);
-		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0));
+		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0).rgb);
 		float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
 
-		if (dot(neighborNormal, centerNormal) >= 0.95f && abs(neighborDepth - centerDepth) <= 0.01f) {
+		if (dot(neighborNormal, centerNormal) >= 0.95 && abs(neighborDepth - centerDepth) <= 0.01) {
 			int k = groupThreadID.y + cbBlur.BlurRadius + i;
 
 			blurColor += gCache[k] * blurWeights[cbBlur.BlurRadius + i];

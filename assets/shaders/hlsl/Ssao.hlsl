@@ -36,7 +36,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
+SSAO::AOCoefficientMapFormat PS(VertexOut pin) : SV_Target{
 	// p -- the point we are computing the ambient occlusion for.
 	// n -- normal vector at p.
 	// q -- a random offset from p.

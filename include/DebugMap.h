@@ -12,7 +12,7 @@ class ShaderManager;
 class GpuResource;
 
 namespace DebugMap {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			ECB_DebugMap = 0,
 			EC_Consts,
@@ -28,17 +28,17 @@ namespace DebugMap {
 			ESI_Debug4_uint,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			ESampleMask0 = 0,
-			ESampleMask1,
-			ESampleMask2,
-			ESampleMask3,
-			ESampleMask4,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_SampleMask0 = 0,
+				E_SampleMask1,
+				E_SampleMask2,
+				E_SampleMask3,
+				E_SampleMask4,
+				Count
+			};
+		}
 	}
 
 	class DebugMapClass {
@@ -53,7 +53,7 @@ namespace DebugMap {
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList*const cmdList,
 			D3D12_VIEWPORT viewport,
@@ -86,6 +86,4 @@ namespace DebugMap {
 	};
 };
 
-constexpr DebugMapSampleDesc DebugMap::DebugMapClass::SampleDesc(UINT index) const {
-	return mSampleDescs[index];
-}
+#include "DebugMap.inl"

@@ -7,6 +7,11 @@
 
 using namespace TemporalAA;
 
+namespace {
+	const CHAR* const VS_TAA = "VS_TAA";
+	const CHAR* const PS_TAA = "PS_TAA";
+}
+
 TemporalAAClass::TemporalAAClass() {
 	mCopiedBackBuffer = std::make_unique<GpuResource>();
 	mHistoryMap = std::make_unique<GpuResource>();
@@ -18,31 +23,31 @@ BOOL TemporalAAClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 	CheckReturn(BuildResources(width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL TemporalAAClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"TemporalAA.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, "TaaVS"));
-	CheckReturn(mShaderManager->CompileShader(psInfo, "TaaPS"));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_TAA));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_TAA));
 
-	return true;
+	return TRUE;
 }
 
 BOOL TemporalAAClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[3];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 
-	slotRootParameter[RootSignatureLayout::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[RootSignatureLayout::ESI_History].InitAsDescriptorTable(1, &texTables[1]);
-	slotRootParameter[RootSignatureLayout::ESI_Velocity].InitAsDescriptorTable(1, &texTables[2]);
-	slotRootParameter[RootSignatureLayout::ESI_Factor].InitAsConstants(1, 0);
+	slotRootParameter[RootSignature::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignature::ESI_History].InitAsDescriptorTable(1, &texTables[1]);
+	slotRootParameter[RootSignature::ESI_Velocity].InitAsDescriptorTable(1, &texTables[2]);
+	slotRootParameter[RootSignature::ESI_Factor].InitAsConstants(1, 0);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -52,22 +57,22 @@ BOOL TemporalAAClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL TemporalAAClass::BuildPso() {
+BOOL TemporalAAClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC taaPsoDesc = D3D12Util::QuadPsoDesc();
 	taaPsoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader("TaaVS");
-		auto ps = mShaderManager->GetDxcShader("TaaPS");
+		auto vs = mShaderManager->GetDxcShader(VS_TAA);
+		auto ps = mShaderManager->GetDxcShader(PS_TAA);
 		taaPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		taaPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	taaPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&taaPsoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
 void TemporalAAClass::Run(
@@ -97,11 +102,11 @@ void TemporalAAClass::Run(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Input, mhCopiedBackBufferGpuSrv);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_History, mhHistoryMapGpuSrv);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_Velocity, si_velocity);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Input, mhCopiedBackBufferGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_History, mhHistoryMapGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Velocity, si_velocity);
 
-	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::ESI_Factor, 1, &factor, 0);
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::ESI_Factor, 1, &factor, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -134,7 +139,7 @@ BOOL TemporalAAClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void TemporalAAClass::BuildDescriptors() {
@@ -184,5 +189,5 @@ BOOL TemporalAAClass::BuildResources(UINT width, UINT height) {
 		L"TAA_HistoryMap"
 	));
 
-	return true;
+	return TRUE;
 }

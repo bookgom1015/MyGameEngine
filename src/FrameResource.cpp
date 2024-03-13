@@ -19,8 +19,8 @@ BOOL FrameResource::Initialize() {
 	CheckReturn(ObjectCB.Initialize(Device, ObjectCount, true));
 	CheckReturn(MaterialCB.Initialize(Device, MaterialCount, true));
 	CheckReturn(CB_SSAO.Initialize(Device, 1, true));
-	CheckReturn(BlurCB.Initialize(Device, 1, true));
-	CheckReturn(DofCB.Initialize(Device, 1, true));
+	CheckReturn(CB_Blur.Initialize(Device, 1, true));
+	CheckReturn(CB_DoF.Initialize(Device, 1, true));
 	CheckReturn(CB_SSR.Initialize(Device, 1, true));
 	CheckReturn(ConvEquirectToCubeCB.Initialize(Device, 1, true))
 	CheckReturn(RtaoCB.Initialize(Device, 1, true));
@@ -28,7 +28,7 @@ BOOL FrameResource::Initialize() {
 	CheckReturn(CalcLocalMeanVarCB.Initialize(Device, 1, true));
 	CheckReturn(TsppBlendCB.Initialize(Device, 1, true));
 	CheckReturn(AtrousFilterCB.Initialize(Device, 1, true));
-	CheckReturn(DebugMapCB.Initialize(Device, 1, true));
+	CheckReturn(CB_DebugMap.Initialize(Device, 1, true));
 	CheckReturn(RrCB.Initialize(Device, 1, true));
 
 	return true;

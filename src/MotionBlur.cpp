@@ -7,8 +7,8 @@
 using namespace MotionBlur;
 
 namespace {
-	const CHAR* MotionBlur_VS = "MotionBlurVS";
-	const CHAR* MotionBlur_PS = "MotionBlurPS";
+	const CHAR* VS_MotionBlur = "VS_MotionBlur";
+	const CHAR* PS_MotionBlur = "PS_MotionBlur";
 }
 
 MotionBlurClass::MotionBlurClass() {
@@ -21,17 +21,17 @@ BOOL MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 	CheckReturn(BuildResources(width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL MotionBlurClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"MotionBlur.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, MotionBlur_VS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, MotionBlur_PS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_MotionBlur));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_MotionBlur));
 
-	return true;
+	return TRUE;
 }
 
 BOOL MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
@@ -59,24 +59,24 @@ BOOL MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL MotionBlurClass::BuildPso() {
+BOOL MotionBlurClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC motionBlurPsoDesc = quadPsoDesc;
 	motionBlurPsoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(MotionBlur_VS);
-		auto ps = mShaderManager->GetDxcShader(MotionBlur_PS);
+		auto vs = mShaderManager->GetDxcShader(VS_MotionBlur);
+		auto ps = mShaderManager->GetDxcShader(PS_MotionBlur);
 		motionBlurPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		motionBlurPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	motionBlurPsoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&motionBlurPsoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
 void MotionBlurClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,	CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
@@ -90,7 +90,7 @@ BOOL MotionBlurClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void MotionBlurClass::Run(
@@ -173,5 +173,5 @@ BOOL MotionBlurClass::BuildResources(UINT width, UINT height) {
 		L"MB_CopiedBackBuffer"
 	));
 
-	return true;
+	return TRUE;
 }
