@@ -159,7 +159,9 @@ namespace RaytracedReflection {
 		BOOL BuildShaderTables(
 			const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_mat);
+			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+			UINT objCBByteSize,
+			UINT matCBByteSize);
 		void BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
 		BOOL OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
 

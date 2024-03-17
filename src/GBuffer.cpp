@@ -107,9 +107,11 @@ void GBufferClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
-		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
-		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+		UINT objCBByteSize,
+		UINT matCBByteSize,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
@@ -142,11 +144,11 @@ void GBufferClass::Run(
 	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &mhDepthMapCpuDsv);
 	cmdList->ClearDepthStencilView(mhDepthMapCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, passCBAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_TexMaps, si_texMaps);
 	
-	DrawRenderItems(cmdList, ritems, objCBAddress, matCBAddress);
+	DrawRenderItems(cmdList, ritems, cb_obj, cb_mat, objCBByteSize, matCBByteSize);
 	
 	mAlbedoMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	mNormalMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -407,23 +409,23 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 	return TRUE;
 }
 
-void GBufferClass::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
-		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress) {
-	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-	UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
+void GBufferClass::DrawRenderItems(
+		ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj, D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+		UINT objCBByteSize, UINT matCBByteSize) {
 	
-	for (size_t i = 0; i < ritems.size(); ++i) {
+	for (size_t i = 0, end = ritems.size(); i < end; ++i) {
 		auto& ri = ritems[i];
 		
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geometry->VertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geometry->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBAddress + ri->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + ri->ObjCBIndex * objCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
 
 		if (ri->Material != nullptr) {
-			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = matCBAddress + ri->Material->MatCBIndex * matCBByteSize;
+			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = cb_mat + ri->Material->MatCBIndex * matCBByteSize;
 			cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Mat, currRitemMatCBAddress);
 		}
 

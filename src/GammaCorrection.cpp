@@ -8,12 +8,12 @@
 using namespace GammaCorrection;
 
 namespace {
-	const std::string GammaCorrectionVS = "GammaCorrectionVS";
-	const std::string GammaCorrectionPS = "GammaCorrectionPS";
+	const CHAR* const VS_GammaCorrection = "VS_GammaCorrection";
+	const CHAR* const PS_GammaCorrection = "PS_GammaCorrection";
 }
 
 GammaCorrectionClass::GammaCorrectionClass() {
-	mDuplicatedBackBuffer = std::make_unique<GpuResource>();
+	mCopiedBackBuffer = std::make_unique<GpuResource>();
 }
 
 BOOL GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
@@ -22,27 +22,27 @@ BOOL GammaCorrectionClass::Initialize(ID3D12Device* device, ShaderManager* const
 
 	CheckReturn(BuildResources(width, height));
 
-	return true;
+	return TRUE;
 }
 
 BOOL GammaCorrectionClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"GammaCorrection.hlsl";
 	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, GammaCorrectionVS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, GammaCorrectionPS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GammaCorrection));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_GammaCorrection));
 
-	return true;
+	return TRUE;
 }
 
 BOOL GammaCorrectionClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 0);
-	slotRootParameter[RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0);
+	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -52,15 +52,15 @@ BOOL GammaCorrectionClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL GammaCorrectionClass::BuildPso() {
+BOOL GammaCorrectionClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(GammaCorrectionVS);
-		auto ps = mShaderManager->GetDxcShader(GammaCorrectionPS);
+		auto vs = mShaderManager->GetDxcShader(VS_GammaCorrection);
+		auto ps = mShaderManager->GetDxcShader(PS_GammaCorrection);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -68,7 +68,7 @@ BOOL GammaCorrectionClass::BuildPso() {
 
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
 void GammaCorrectionClass::Run(
@@ -85,18 +85,18 @@ void GammaCorrectionClass::Run(
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	mDuplicatedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 
-	cmdList->CopyResource(mDuplicatedBackBuffer->Resource(), backBuffer->Resource());
+	cmdList->CopyResource(mCopiedBackBuffer->Resource(), backBuffer->Resource());
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	mDuplicatedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	FLOAT values[RootConstantsLayout::Count] = { gamma };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhDuplicatedBackBufferGpuSrv);
+	FLOAT values[RootSignature::RootConstant::Count] = { gamma };
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -110,8 +110,8 @@ void GammaCorrectionClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv, 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv, 
 		UINT descSize) {
-	mhDuplicatedBackBufferCpuSrv = hCpuSrv.Offset(1, descSize);
-	mhDuplicatedBackBufferGpuSrv = hGpuSrv.Offset(1, descSize);
+	mhCopiedBackBufferCpuSrv = hCpuSrv.Offset(1, descSize);
+	mhCopiedBackBufferGpuSrv = hGpuSrv.Offset(1, descSize);
 
 	BuildDescriptors();
 }
@@ -120,7 +120,7 @@ BOOL GammaCorrectionClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 
@@ -133,7 +133,7 @@ void GammaCorrectionClass::BuildDescriptors() {
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Format = SDR_FORMAT;
 
-	md3dDevice->CreateShaderResourceView(mDuplicatedBackBuffer->Resource(), &srvDesc, mhDuplicatedBackBufferCpuSrv);
+	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 }
 
 BOOL GammaCorrectionClass::BuildResources(UINT width, UINT height) {
@@ -150,15 +150,15 @@ BOOL GammaCorrectionClass::BuildResources(UINT width, UINT height) {
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	CheckReturn(mDuplicatedBackBuffer->Initialize(
+	CheckReturn(mCopiedBackBuffer->Initialize(
 		md3dDevice,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 		nullptr,
-		L"DuplicatedBackBuffer"
+		L"GammaCorrection_CopiedBackBuffer"
 	));
 
-	return true;
+	return TRUE;
 }

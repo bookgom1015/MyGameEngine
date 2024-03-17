@@ -79,7 +79,8 @@ void DebugCollisionClass::Run(
 		GpuResource*const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-		D3D12_GPU_VIRTUAL_ADDRESS cb_object,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+		UINT objCBByteSize,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
@@ -93,7 +94,7 @@ void DebugCollisionClass::Run(
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_Pass, cb_pass);
 
-	DrawRenderItems(cmdList, ritems, cb_object);
+	DrawRenderItems(cmdList, ritems, cb_obj, objCBByteSize);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
@@ -101,13 +102,13 @@ void DebugCollisionClass::Run(
 void DebugCollisionClass::DrawRenderItems(
 		ID3D12GraphicsCommandList* cmdList, 
 		const std::vector<RenderItem*>& ritems,
-		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress) {
-	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+		UINT objCBByteSize) {
 
 	for (UINT i = 0; i < ritems.size(); ++i) {
 		auto& ri = ritems[i];
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBAddress + ri->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBByteSize + ri->ObjCBIndex * objCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_Obj, currRitemObjCBAddress);
 
 		cmdList->IASetVertexBuffers(0, 0, nullptr);

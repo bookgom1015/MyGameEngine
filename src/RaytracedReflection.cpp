@@ -15,7 +15,7 @@ using namespace RaytracedReflection;
 using namespace DirectX;
 
 namespace {
-	const std::string CS_ReflectionRay			= "CS_ReflectionRay";
+	const CHAR* const CS_ReflectionRay			= "CS_ReflectionRay";
 
 	const WCHAR* const RadianceRayGenName		= L"RadianceRayGen";
 	const WCHAR* const RadianceClosestHitName	= L"RadianceClosestHit";
@@ -175,7 +175,9 @@ BOOL RaytracedReflectionClass::BuildPSO() {
 BOOL RaytracedReflectionClass::BuildShaderTables(
 		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
-		D3D12_GPU_VIRTUAL_ADDRESS cb_mat) {
+		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+		UINT objCBByteSize,
+		UINT matCBByteSize) {
 #ifdef _DEBUG
 	// A shader name look-up table for shader table debug print out.
 	std::unordered_map<void*, std::wstring> shaderIdToStringMap;
@@ -232,9 +234,6 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 
 		ShaderTable hitGroupTable(md3dDevice, ritemsSize * Ray::Count, shaderRecordSize);
 		CheckReturn(hitGroupTable.Initialze());
-
-		UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-		UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 		
 		mShadowRayOffset = ritemsSize;
 

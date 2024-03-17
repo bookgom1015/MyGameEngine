@@ -222,7 +222,7 @@ DxRenderer::DxRenderer() {
 	mSSR = std::make_unique<SSR::SSRClass>();
 	mDof = std::make_unique<DepthOfField::DepthOfFieldClass>();
 	mMotionBlur = std::make_unique<MotionBlur::MotionBlurClass>();
-	mTaa = std::make_unique<TemporalAA::TemporalAAClass>();
+	mTAA = std::make_unique<TemporalAA::TemporalAAClass>();
 	mDebugMap = std::make_unique<DebugMap::DebugMapClass>();
 	mDebugCollision = std::make_unique<DebugCollision::DebugCollisionClass>();
 	mGammaCorrection = std::make_unique<GammaCorrection::GammaCorrectionClass>();
@@ -304,7 +304,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
 	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
-	CheckReturn(mTaa->Initialize(device, shaderManager, width, height));
+	CheckReturn(mTAA->Initialize(device, shaderManager, width, height));
 	CheckReturn(mDebugMap->Initialize(device, shaderManager));
 	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
 	CheckReturn(mDebugCollision->Initialize(device, shaderManager));
@@ -497,7 +497,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		CheckReturn(mGBuffer->OnResize(width, height));
 		CheckReturn(mDof->OnResize(cmdList, width, height));
 		CheckReturn(mMotionBlur->OnResize(width, height));
-		CheckReturn(mTaa->OnResize(width, height));
+		CheckReturn(mTAA->OnResize(width, height));
 		CheckReturn(mGammaCorrection->OnResize(width, height));
 		CheckReturn(mToneMapping->OnResize(width, height));
 		CheckReturn(mPixelation->OnResize(width, height));
@@ -667,7 +667,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mSSR->CompileShaders(ShaderFilePath));
 	CheckReturn(mDof->CompileShaders(ShaderFilePath));
 	CheckReturn(mMotionBlur->CompileShaders(ShaderFilePath));
-	CheckReturn(mTaa->CompileShaders(ShaderFilePath));
+	CheckReturn(mTAA->CompileShaders(ShaderFilePath));
 	CheckReturn(mDebugMap->CompileShaders(ShaderFilePath));
 	CheckReturn(mDebugCollision->CompileShaders(ShaderFilePath));
 	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
@@ -850,7 +850,7 @@ void DxRenderer::BuildDescriptors() {
 	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mDof->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mMotionBlur->BuildDescriptors(hCpu, hGpu, descSize);
-	mTaa->BuildDescriptors(hCpu, hGpu, descSize);
+	mTAA->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
 	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -881,7 +881,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mSSR->BuildRootSignature(staticSamplers));
 	CheckReturn(mDof->BuildRootSignature(staticSamplers));
 	CheckReturn(mMotionBlur->BuildRootSignature(staticSamplers));
-	CheckReturn(mTaa->BuildRootSignature(staticSamplers));
+	CheckReturn(mTAA->BuildRootSignature(staticSamplers));
 	CheckReturn(mDebugMap->BuildRootSignature(staticSamplers));
 	CheckReturn(mDebugCollision->BuildRootSignature());
 	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
@@ -919,19 +919,19 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mSSR->BuildPSO());
 	CheckReturn(mDof->BuildPSO());
 	CheckReturn(mMotionBlur->BuildPSO());
-	CheckReturn(mTaa->BuildPSO());
+	CheckReturn(mTAA->BuildPSO());
 	CheckReturn(mDebugMap->BuildPSO());
 	CheckReturn(mDebugCollision->BuildPSO());
-	CheckReturn(mGammaCorrection->BuildPso());
-	CheckReturn(mToneMapping->BuildPso());
+	CheckReturn(mGammaCorrection->BuildPSO());
+	CheckReturn(mToneMapping->BuildPSO());
 	CheckReturn(mIrradianceMap->BuildPSO());
 	CheckReturn(mMipmapGenerator->BuildPSO());
-	CheckReturn(mPixelation->BuildPso());
-	CheckReturn(mSharpen->BuildPso());
-	CheckReturn(mGaussianFilter->BuildPso());
+	CheckReturn(mPixelation->BuildPSO());
+	CheckReturn(mSharpen->BuildPSO());
+	CheckReturn(mGaussianFilter->BuildPSO());
 	
 	CheckReturn(mDxrShadow->BuildPSO());
-	CheckReturn(mBlurFilterCS->BuildPso());
+	CheckReturn(mBlurFilterCS->BuildPSO());
 	CheckReturn(mRtao->BuildPSO());
 	CheckReturn(mRr->BuildPSO());
 	CheckReturn(mSVGF->BuildPSO());
@@ -1346,29 +1346,29 @@ BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
-	ConstantBuffer_SSR cb;
-	cb.View = mMainPassCB->View;
-	cb.InvView = mMainPassCB->InvView;
-	cb.Proj = mMainPassCB->Proj;
-	cb.InvProj = mMainPassCB->InvProj;
-	XMStoreFloat3(&cb.EyePosW, mCamera->GetPosition());
-	cb.MaxDistance = ShaderArgs::Ssr::MaxDistance;
-	cb.RayLength = ShaderArgs::Ssr::View::RayLength;
-	cb.NoiseIntensity = ShaderArgs::Ssr::View::NoiseIntensity;
-	cb.StepCount = ShaderArgs::Ssr::View::StepCount;
-	cb.BackStepCount = ShaderArgs::Ssr::View::BackStepCount;
-	cb.DepthThreshold = ShaderArgs::Ssr::View::DepthThreshold;
-	cb.Thickness = ShaderArgs::Ssr::Screen::Thickness;
-	cb.Resolution = ShaderArgs::Ssr::Screen::Resolution;
+	ConstantBuffer_SSR ssrCB;
+	ssrCB.View = mMainPassCB->View;
+	ssrCB.InvView = mMainPassCB->InvView;
+	ssrCB.Proj = mMainPassCB->Proj;
+	ssrCB.InvProj = mMainPassCB->InvProj;
+	XMStoreFloat3(&ssrCB.EyePosW, mCamera->GetPosition());
+	ssrCB.MaxDistance = ShaderArgs::Ssr::MaxDistance;
+	ssrCB.RayLength = ShaderArgs::Ssr::View::RayLength;
+	ssrCB.NoiseIntensity = ShaderArgs::Ssr::View::NoiseIntensity;
+	ssrCB.StepCount = ShaderArgs::Ssr::View::StepCount;
+	ssrCB.BackStepCount = ShaderArgs::Ssr::View::BackStepCount;
+	ssrCB.DepthThreshold = ShaderArgs::Ssr::View::DepthThreshold;
+	ssrCB.Thickness = ShaderArgs::Ssr::Screen::Thickness;
+	ssrCB.Resolution = ShaderArgs::Ssr::Screen::Resolution;
 
 	auto& currCB = mCurrFrameResource->CB_SSR;
-	currCB.CopyData(0, cb);
+	currCB.CopyData(0, ssrCB);
 
 	return TRUE;
 }
 
 BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
-	auto& currObjectCB = mCurrFrameResource->ObjectCB;
+	auto& currCB = mCurrFrameResource->CB_Object;
 	for (auto& e : mRitems) {
 		// Only update the cbuffer data if the constants have changed.  
 		// This needs to be tracked per frame resource.
@@ -1376,16 +1376,16 @@ BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
 			XMMATRIX world = XMLoadFloat4x4(&e->World);
 			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
 
-			ObjectConstants objConstants;
-			objConstants.PrevWorld = e->PrevWolrd;
-			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
-			objConstants.Center = { e->AABB.Center.x, e->AABB.Center.y, e->AABB.Center.z, 1.0f };
-			objConstants.Extents = { e->AABB.Extents.x, e->AABB.Extents.y, e->AABB.Extents.z, 0.0f };
+			ConstantBuffer_Object objCB;
+			objCB.PrevWorld = e->PrevWolrd;
+			XMStoreFloat4x4(&objCB.World, XMMatrixTranspose(world));
+			XMStoreFloat4x4(&objCB.TexTransform, XMMatrixTranspose(texTransform));
+			objCB.Center = { e->AABB.Center.x, e->AABB.Center.y, e->AABB.Center.z, 1.0f };
+			objCB.Extents = { e->AABB.Extents.x, e->AABB.Extents.y, e->AABB.Extents.z, 0.0f };
 
-			e->PrevWolrd = objConstants.World;
+			e->PrevWolrd = objCB.World;
 
-			currObjectCB.CopyData(e->ObjCBIndex, objConstants);
+			currCB.CopyData(e->ObjCBIndex, objCB);
 
 			// Next FrameResource need to be updated too.
 			e->NumFramesDirty--;
@@ -1397,7 +1397,7 @@ BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
-	auto& currMaterialCB = mCurrFrameResource->MaterialCB;
+	auto& currCB = mCurrFrameResource->CB_Material;
 	for (auto& e : mMaterials) {
 		// Only update the cbuffer data if the constants have changed.  If the cbuffer
 		// data changes, it needs to be updated for each FrameResource.
@@ -1406,15 +1406,15 @@ BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
 		{
 			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
 
-			MaterialConstants matConsts;
-			matConsts.DiffuseSrvIndex = mat->DiffuseSrvHeapIndex;
-			matConsts.Albedo = mat->Albedo;
-			matConsts.Roughness = mat->Roughness;
-			matConsts.Metalic = mat->Metailic;
-			matConsts.Specular = mat->Specular;
-			XMStoreFloat4x4(&matConsts.MatTransform, XMMatrixTranspose(matTransform));
+			ConstantBuffer_Material matCB;
+			matCB.DiffuseSrvIndex = mat->DiffuseSrvHeapIndex;
+			matCB.Albedo = mat->Albedo;
+			matCB.Roughness = mat->Roughness;
+			matCB.Metalic = mat->Metailic;
+			matCB.Specular = mat->Specular;
+			XMStoreFloat4x4(&matCB.MatTransform, XMMatrixTranspose(matTransform));
 
-			currMaterialCB.CopyData(mat->MatCBIndex, matConsts);
+			currCB.CopyData(mat->MatCBIndex, matCB);
 
 			// Next FrameResource need to be updated too.
 			mat->NumFramesDirty--;
@@ -1717,13 +1717,21 @@ BOOL DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 
 BOOL DxRenderer::BuildShaderTables() {
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
-	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
-	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
+	const auto objCBAddress = mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress();
+	const auto matCBAddress = mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress();
+	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object));
+	UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material));
 
 	UINT numRitems = static_cast<UINT>(opaques.size());
 	CheckReturn(mDxrShadow->BuildShaderTables(numRitems));
 	CheckReturn(mRtao->BuildShaderTables(numRitems));
-	CheckReturn(mRr->BuildShaderTables(opaques, objCBAddress, matCBAddress));
+	CheckReturn(mRr->BuildShaderTables(
+		opaques, 
+		objCBAddress, 
+		matCBAddress, 
+		objCBByteSize,
+		matCBByteSize
+	));	
 
 	return TRUE;
 }
@@ -1762,14 +1770,13 @@ BOOL DxRenderer::DrawShadow() {
 	const auto cbPassByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass));
 	const auto cbPassAddr = cbPass->GetGPUVirtualAddress() + 1 * cbPassByteSize;
 
-	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
-	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
-
 	mShadow->Run(
 		cmdList,
 		cbPassAddr,
-		objCBAddress,
-		matCBAddress,
+		mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress(),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
 		mhGpuDescForTexMaps,
 		mRitemRefs[RenderType::E_Opaque]
 	);
@@ -1804,16 +1811,15 @@ BOOL DxRenderer::DrawGBuffer() {
 		prevNd->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
-	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
-	const auto matCBAddress = mCurrFrameResource->MaterialCB.Resource()->GetGPUVirtualAddress();
-
 	mGBuffer->Run(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-		objCBAddress,
-		matCBAddress,
+		mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress(),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
 		mhGpuDescForTexMaps,
 		mRitemRefs[RenderType::E_Opaque]
 	);
@@ -1963,8 +1969,8 @@ BOOL DxRenderer::DrawSkySphere() {
 		mToneMapping->InterMediateMapRtv(),
 		DepthStencilView(),
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-		mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress(),
-		D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants)),
+		mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
 		mSkySphere
 	);
 
@@ -1981,9 +1987,6 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
-	const auto objCBAddress = mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress();
-	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-
 	mIrradianceMap->DrawCubeMap(
 		cmdList,
 		mScreenViewport,
@@ -1991,8 +1994,8 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 		mSwapChainBuffer->CurrentBackBuffer(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-		objCBAddress,
-		objCBByteSize,
+		mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
 		mIrradianceCubeMap,
 		ShaderArgs::IrradianceMap::MipLevel
 	);
@@ -2010,7 +2013,7 @@ BOOL DxRenderer::ApplyTAA() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	mTaa->Run(
+	mTAA->Run(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2345,7 +2348,8 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 			mSwapChainBuffer->CurrentBackBuffer(),
 			mSwapChainBuffer->CurrentBackBufferRtv(),
 			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-			mCurrFrameResource->ObjectCB.Resource()->GetGPUVirtualAddress(),
+			mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
 			mRitemRefs[RenderType::E_Opaque]
 		);
 	}

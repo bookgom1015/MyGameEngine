@@ -87,9 +87,11 @@ BOOL ShadowClass::BuildPSO() {
 
 void ShadowClass::Run(
 		ID3D12GraphicsCommandList*const cmdList,
-		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
-		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
-		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+		UINT objCBByteSize,
+		UINT matCBByteSize,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSO.Get());
@@ -103,11 +105,11 @@ void ShadowClass::Run(
 	cmdList->ClearDepthStencilView(mhCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	cmdList->OMSetRenderTargets(0, nullptr, false, &mhCpuDsv);
 
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, passCBAddress);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_TexMaps, si_texMaps);
 
-	DrawRenderItems(cmdList, ritems, objCBAddress, matCBAddress);
+	DrawRenderItems(cmdList, ritems, cb_obj, cb_mat, objCBByteSize, matCBByteSize);
 
 	mShadowMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
@@ -179,10 +181,10 @@ BOOL ShadowClass::BuildResources() {
 void ShadowClass::DrawRenderItems(
 		ID3D12GraphicsCommandList* cmdList, 
 		const std::vector<RenderItem*>& ritems,
-		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, 
-		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress) {
-	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-	UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(MaterialConstants));
+		D3D12_GPU_VIRTUAL_ADDRESS cb_obj, 
+		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+		UINT objCBByteSize,
+		UINT matCBByteSize) {
 
 	for (size_t i = 0; i < ritems.size(); ++i) {
 		auto& ri = ritems[i];
@@ -191,11 +193,11 @@ void ShadowClass::DrawRenderItems(
 		cmdList->IASetIndexBuffer(&ri->Geometry->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBAddress + ri->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + ri->ObjCBIndex * objCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
 
 		if (ri->Material != nullptr) {
-			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = matCBAddress + ri->Material->MatCBIndex * matCBByteSize;
+			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = cb_mat + ri->Material->MatCBIndex * matCBByteSize;
 			cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Mat, currRitemMatCBAddress);
 		}
 

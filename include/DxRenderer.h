@@ -188,7 +188,7 @@ private:
 	std::unique_ptr<SSR::SSRClass> mSSR;
 	std::unique_ptr<DepthOfField::DepthOfFieldClass> mDof;
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
-	std::unique_ptr<TemporalAA::TemporalAAClass> mTaa;
+	std::unique_ptr<TemporalAA::TemporalAAClass> mTAA;
 	std::unique_ptr<DebugMap::DebugMapClass> mDebugMap;
 	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;

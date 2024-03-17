@@ -82,7 +82,7 @@ namespace DebugMap {
 		std::array<D3D12_GPU_DESCRIPTOR_HANDLE, MapSize> mhDebugGpuSrvs;
 		std::array<SampleMask::Type, MapSize> mDebugMasks;
 		std::array<DebugMapSampleDesc, MapSize> mSampleDescs;
-		INT mNumEnabledMaps;
+		UINT mNumEnabledMaps;
 	};
 };
 

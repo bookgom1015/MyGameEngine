@@ -9,19 +9,19 @@ class ShaderManager;
 class GpuResource;
 
 namespace GammaCorrection {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			EC_Consts = 0,
 			ESI_BackBuffer,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			E_Gamma = 0,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_Gamma = 0,
+				Count
+			};
+		}
 	}
 
 	class GammaCorrectionClass {
@@ -33,7 +33,7 @@ namespace GammaCorrection {
 		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
@@ -56,9 +56,9 @@ namespace GammaCorrection {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 
-		std::unique_ptr<GpuResource> mDuplicatedBackBuffer;
+		std::unique_ptr<GpuResource> mCopiedBackBuffer;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDuplicatedBackBufferCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDuplicatedBackBufferGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCopiedBackBufferCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhCopiedBackBufferGpuSrv;
 	};
 }

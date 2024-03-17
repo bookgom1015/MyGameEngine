@@ -6,26 +6,31 @@
 
 using namespace GaussianFilter;
 
+namespace {
+	const CHAR* const CS_GaussianFilter3x3 = "CS_GaussianFilter3x3";
+	const CHAR* const CS_GaussianFilterRG3x3 = "CS_GaussianFilterRG3x3";
+}
+
 BOOL GaussianFilterClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	return true;
+	return TRUE;
 }
 
 BOOL GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const auto fullPath = filePath + L"GaussianFilter3x3CS.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
-		CheckReturn(mShaderManager->CompileShader(shaderInfo, "gaussianFilter3x3CS"));
+		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_GaussianFilter3x3));
 	}
 	{
 		const auto fullPath = filePath + L"GaussianFilterRG3x3CS.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
-		CheckReturn(mShaderManager->CompileShader(shaderInfo, "gaussianFilterRG3x3CS"));
+		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_GaussianFilterRG3x3));
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
@@ -34,7 +39,7 @@ BOOL GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
-	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstants::Count, 0, 0);
+	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0, 0);
 	slotRootParameter[RootSignature::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
 	slotRootParameter[RootSignature::EUO_Output].InitAsDescriptorTable(1, &texTables[1]);
 
@@ -45,10 +50,10 @@ BOOL GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 	);
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, globalRootSignatureDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL GaussianFilterClass::BuildPso() {
+BOOL GaussianFilterClass::BuildPSO() {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -57,10 +62,10 @@ BOOL GaussianFilterClass::BuildPso() {
 		IDxcBlob* cs;
 		switch (i) {
 		case FilterType::Filter3x3:
-			cs = mShaderManager->GetDxcShader("gaussianFilter3x3CS");
+			cs = mShaderManager->GetDxcShader(CS_GaussianFilter3x3);
 			break;
 		case FilterType::Filter3x3RG:
-			cs = mShaderManager->GetDxcShader("gaussianFilterRG3x3CS");
+			cs = mShaderManager->GetDxcShader(CS_GaussianFilterRG3x3);
 			break;
 		default:
 			ReturnFalse(L"Unsupported FilterType");
@@ -69,7 +74,7 @@ BOOL GaussianFilterClass::BuildPso() {
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[static_cast<FilterType>(i)])));
 	}
 
-	return true;
+	return TRUE;
 }
 
 void GaussianFilterClass::Run(
@@ -88,7 +93,7 @@ void GaussianFilterClass::Run(
 	{
 		FLOAT values[2] = { 1.0f / width, 1.0f / height };
 		cmdList->SetComputeRoot32BitConstants(RootSignature
-			::EC_Consts, _countof(values), values, RootSignature::RootConstants::E_InvDimensionX);
+			::EC_Consts, _countof(values), values, RootSignature::RootConstant::E_InvDimensionX);
 	}
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_Input, si_input);

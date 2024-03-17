@@ -9,8 +9,8 @@
 #include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
-ConstantBuffer<ObjectConstants> cb_Obj	: register(b1);
+ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 
 TextureCube gi_Cube : register(t0);
 

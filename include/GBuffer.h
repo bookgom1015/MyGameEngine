@@ -72,9 +72,11 @@ namespace GBuffer {
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
-			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress,
-			D3D12_GPU_VIRTUAL_ADDRESS matCBAddress,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+			UINT objCBByteSize,
+			UINT matCBByteSize,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 			const std::vector<RenderItem*>& ritems);
 
@@ -89,8 +91,10 @@ namespace GBuffer {
 		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
-		void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
-			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress, D3D12_GPU_VIRTUAL_ADDRESS matCBAddress);
+		void DrawRenderItems(
+			ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_obj, D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+			UINT objCBByteSize, UINT matCBByteSize);
 
 	private:
 		ID3D12Device* md3dDevice;

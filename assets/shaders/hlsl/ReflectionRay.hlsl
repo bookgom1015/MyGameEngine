@@ -33,7 +33,7 @@ cbuffer cbRootConstants : register(b0) {
 	float	gReflectionRadius;
 }
 
-ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b1);
+ConstantBuffer<ConstantBuffer_Pass>						cb_Pass							: register(b1);
 
 RaytracingAccelerationStructure							gi_BVH							: register(t0);
 Texture2D<HDR_FORMAT>									gi_BackBuffer					: register(t1);
@@ -46,14 +46,14 @@ TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered					: reg
 Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT						: register(t8);
 Texture2D												gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t9);
 
-RWTexture2D<RaytracedReflection::ReflectionMapFormat>	go_Reflection	: register(u0);
-RWTexture2D<RaytracedReflection::RayHitDistanceFormat>	go_RayHitDist	: register(u1);
+RWTexture2D<RaytracedReflection::ReflectionMapFormat>	go_Reflection					: register(u0);
+RWTexture2D<RaytracedReflection::RayHitDistanceFormat>	go_RayHitDist					: register(u1);
 
-ConstantBuffer<ObjectConstants>		lcb_Obj	: register(b0, space1);
-ConstantBuffer<MaterialConstants>	lcb_Mat	: register(b1, space1);
+ConstantBuffer<ConstantBuffer_Object>					lcb_Obj							: register(b0, space1);
+ConstantBuffer<ConstantBuffer_Material>					lcb_Mat							: register(b1, space1);
 
-StructuredBuffer<Vertex>	lsb_Vertices	: register(t0, space1);
-StructuredBuffer<uint>		lsb_Indices		: register(t1, space1);
+StructuredBuffer<Vertex>								lsb_Vertices					: register(t0, space1);
+StructuredBuffer<uint>									lsb_Indices						: register(t1, space1);
 
 struct RayPayload {
 	float4	Irrad;

@@ -2,12 +2,28 @@
 
 #include "Light.h"
 
-struct ObjectConstants {
+struct ConstantBuffer_Object {
 	DirectX::XMFLOAT4X4 World;
 	DirectX::XMFLOAT4X4 PrevWorld;
 	DirectX::XMFLOAT4X4 TexTransform;
 	DirectX::XMFLOAT4	Center;
 	DirectX::XMFLOAT4	Extents;
+};
+
+struct ConstantBuffer_Material {
+	DirectX::XMFLOAT4	Albedo;
+
+	FLOAT				Roughness;
+	FLOAT				Metalic;
+	FLOAT				Specular;
+	FLOAT				ConstantPad0;
+
+	DirectX::XMFLOAT4X4	MatTransform;
+
+	INT					DiffuseSrvIndex;
+	INT					NormalSrvIndex;
+	INT					AlphaSrvIndex;
+	FLOAT				MatConstPad0;
 };
 
 struct ConstantBuffer_Pass {
@@ -31,22 +47,6 @@ struct ConstantBuffer_Pass {
 	DirectX::XMFLOAT4	AmbientLight;
 
 	Light				Lights[MaxLights];
-};
-
-struct MaterialConstants {
-	DirectX::XMFLOAT4	Albedo;
-
-	FLOAT				Roughness;
-	FLOAT				Metalic;
-	FLOAT				Specular;
-	FLOAT				ConstantPad0;
-
-	DirectX::XMFLOAT4X4	MatTransform;
-
-	INT					DiffuseSrvIndex;
-	INT					NormalSrvIndex;
-	INT					AlphaSrvIndex;
-	FLOAT				MatConstPad0;
 };
 
 struct ConstantBuffer_SSAO {

@@ -11,7 +11,7 @@ struct IDxcBlob;
 class ShaderManager;
 
 namespace BlurFilterCS {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			ECB_BlurPass = 0,
 			EC_Consts,
@@ -21,14 +21,14 @@ namespace BlurFilterCS {
 			EUO_Output,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			EDimensionX = 0,
-			EDimensionY,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_DimensionX = 0,
+				E_DimensionY,
+				Count
+			};
+		}
 	}
 
 	namespace Filter {
@@ -56,7 +56,7 @@ namespace BlurFilterCS {
 		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,

@@ -8,9 +8,9 @@
 using namespace MipmapGenerator;
 
 namespace {
-	const CHAR*const VS_GenerateMipmap = "VS_GenerateMipmap";
-	const CHAR*const PS_GenerateMipmap = "PS_GenerateMipmap";
-	const CHAR*const PS_JustCopy = "PS_JustCopy";
+	const CHAR* const VS_GenerateMipmap = "VS_GenerateMipmap";
+	const CHAR* const PS_GenerateMipmap = "PS_GenerateMipmap";
+	const CHAR* const PS_JustCopy = "PS_JustCopy";
 }
 
 BOOL MipmapGeneratorClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {

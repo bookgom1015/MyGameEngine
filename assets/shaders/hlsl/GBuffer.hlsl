@@ -10,9 +10,9 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
-ConstantBuffer<ObjectConstants>		cb_Obj	: register(b1);
-ConstantBuffer<MaterialConstants>	cb_Mat	: register(b2);
+ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
+ConstantBuffer<ConstantBuffer_Material>	cb_Mat	: register(b2);
 
 Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]		: register(t0);
 

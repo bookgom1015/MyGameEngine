@@ -9,13 +9,14 @@ using namespace SVGF;
 using namespace DirectX;
 
 namespace {
-	std::string TsppReprojCS[SVGF::Value::Count] = { "TsppReprojCS", "TsppReprojCS_HDR" };
-	std::string TsppBlendCS[SVGF::Value::Count] = { "TsppBlendCS", "TsppBlendCS_HDR" };
-	std::string PartialDerivativeCS = "PartialDerivativeCS";
-	std::string CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CalcLocalMeanVarianceCS_Contrast", "CalcLocalMeanVarianceCS_HDR" };
-	std::string FillInCheckerboardCS = "FillInCheckerboardCS";
-	std::string EdgeStoppingFilter_Gaussian3x3CS[SVGF::Value::Count] = { "EdgeStoppingFilter_Gaussian3x3CS_Contrast", "EdgeStoppingFilter_Gaussian3x3CS_HDR" };
-	std::string DisocclusionBlur3x3CS[SVGF::Value::Count] = { "DisocclusionBlur3x3CS_Contrast", "DisocclusionBlur3x3CS_HDR" };
+	const CHAR* const TsppReprojCS[SVGF::Value::Count] = { "CS_TsppReproj", "CS_TsppReproj_HDR" };
+	const CHAR* const TsppBlendCS[SVGF::Value::Count] = { "CS_TsppBlend", "CS_TsppBlend_HDR" };
+	const CHAR* const PartialDerivativeCS = "CS_PartialDerivative";
+	const CHAR* const CalcLocalMeanVarianceCS[SVGF::Value::Count] = { "CS_CalcLocalMeanVariance_Contrast", "CS_CalcLocalMeanVariance_HDR" };
+	const CHAR* const FillInCheckerboardCS = "CS_FillInCheckerboard";
+	const CHAR* const EdgeStoppingFilter_Gaussian3x3CS[SVGF::Value::Count] = { 
+		"CS_EdgeStoppingFilter_Gaussian3x3_Contrast", "CS_EdgeStoppingFilter_Gaussian3x3_HDR" };
+	const CHAR* const DisocclusionBlur3x3CS[SVGF::Value::Count] = { "CS_DisocclusionBlur3x3_Contrast", "CS_DisocclusionBlur3x3_HDR" };
 }
 
 SVGFClass::SVGFClass() {

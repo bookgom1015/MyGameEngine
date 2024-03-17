@@ -8,8 +8,8 @@
 using namespace Pixelation;
 
 namespace {
-	const std::string PixelizeVS = "PixelizeVS";
-	const std::string PixelizePS = "PixelizePS";
+	const CHAR* const VS_Pixelize = "VS_Pixelize";
+	const CHAR* const PS_Pixelize = "PS_Pixelize";
 }
 
 PixelationClass::PixelationClass() {
@@ -22,27 +22,27 @@ BOOL PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const mana
 
 	BuildResources(width, height);
 
-	return true;
+	return TRUE;
 }
 
 BOOL PixelationClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Pixelate.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, PixelizeVS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, PixelizePS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_Pixelize));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_Pixelize));
 
-	return true;
+	return TRUE;
 }
 
 BOOL PixelationClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 0);
-	slotRootParameter[RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0);
+	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -52,15 +52,15 @@ BOOL PixelationClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL PixelationClass::BuildPso() {
+BOOL PixelationClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(PixelizeVS);
-		auto ps = mShaderManager->GetDxcShader(PixelizePS);
+		auto vs = mShaderManager->GetDxcShader(VS_Pixelize);
+		auto ps = mShaderManager->GetDxcShader(PS_Pixelize);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -68,7 +68,7 @@ BOOL PixelationClass::BuildPso() {
 	psoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
 void PixelationClass::BuildDescriptors(
@@ -85,7 +85,7 @@ BOOL PixelationClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void PixelationClass::Run(
@@ -111,11 +111,10 @@ void PixelationClass::Run(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
-	FLOAT values[RootConstantsLayout::Count] = { 
-		static_cast<FLOAT>(viewport.Width), static_cast<FLOAT>(viewport.Height), pixelSize };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+	FLOAT values[RootSignature::RootConstant::Count] = { static_cast<FLOAT>(viewport.Width), static_cast<FLOAT>(viewport.Height), pixelSize };
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -161,5 +160,5 @@ BOOL PixelationClass::BuildResources(UINT width, UINT height) {
 		L"Pixel_CopiedBackBufferMap"
 	));
 
-	return true;
+	return TRUE;
 }

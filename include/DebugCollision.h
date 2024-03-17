@@ -34,14 +34,16 @@ namespace DebugCollision {
 			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_object,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+			UINT objCBByteSize,
 			const std::vector<RenderItem*>& ritems);
 
 	private:
 		void DebugCollisionClass::DrawRenderItems(
 			ID3D12GraphicsCommandList* cmdList,
 			const std::vector<RenderItem*>& ritems,
-			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress);
+			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
+			UINT objCBByteSize);
 
 	private:
 		ID3D12Device* md3dDevice;

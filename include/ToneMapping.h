@@ -10,19 +10,19 @@ class ShaderManager;
 class GpuResource;
 
 namespace ToneMapping {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			EC_Cosnts = 0,
 			ESI_Intermediate,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			E_Exposure = 0,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_Exposure = 0,
+				Count
+			};
+		}
 	}
 
 	namespace PipelineState {
@@ -51,7 +51,7 @@ namespace ToneMapping {
 		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 
 		void Resolve(
 			ID3D12GraphicsCommandList* const cmdList,

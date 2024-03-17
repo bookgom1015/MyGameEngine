@@ -13,16 +13,16 @@ using namespace DirectX;
 using namespace Rtao;
 
 namespace {
-	std::string RtaoCS = "RtaoCS";
+	const CHAR* const CS_RTAO = "CS_RTAO";
 
-	const wchar_t* RtaoRayGenName		= L"RtaoRayGen";
-	const wchar_t* RtaoClosestHitName	= L"RtaoClosestHit";
-	const wchar_t* RtaoMissName			= L"RtaoMiss";
-	const wchar_t* RtaoHitGroupName		= L"RtaoHitGroup";
+	const WCHAR* const RTAO_RayGenName			= L"RTAO_RayGen";
+	const WCHAR* const RTAO_ClosestHitName		= L"RTAO_ClosestHit";
+	const WCHAR* const RTAO_MissName			= L"RTAO_Miss";
+	const WCHAR* const RTAO_HitGroupName		= L"RTAO_HitGroup";
 
-	const char* RayGenShaderTableName	= "RayGenShaderTable";
-	const char* MissShaderTableName		= "MissShaderTable";
-	const char* HitGroupShaderTableName	= "HitGroupShaderTable";
+	const CHAR* const RayGenShaderTableName		= "RayGenShaderTable";
+	const CHAR* const MissShaderTableName		= "MissShaderTable";
+	const CHAR* const HitGroupShaderTableName	= "HitGroupShaderTable";
 }
 
 RtaoClass::RtaoClass() {
@@ -50,7 +50,7 @@ BOOL RtaoClass::Initialize(ID3D12Device5* const device, ShaderManager* const man
 BOOL RtaoClass::CompileShaders(const std::wstring& filePath) {
 	const auto path = filePath + L"Rtao.hlsl";
 	auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3");
-	CheckReturn(mShaderManager->CompileShader(shaderInfo, RtaoCS));
+	CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_RTAO));
 
 	return TRUE;
 }
@@ -88,15 +88,15 @@ BOOL RtaoClass::BuildPSO() {
 	CD3DX12_STATE_OBJECT_DESC rtaoDxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	auto rtaoLib = rtaoDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-	auto rtaoShader = mShaderManager->GetDxcShader(RtaoCS);
+	auto rtaoShader = mShaderManager->GetDxcShader(CS_RTAO);
 	D3D12_SHADER_BYTECODE rtaoLibDxil = CD3DX12_SHADER_BYTECODE(rtaoShader->GetBufferPointer(), rtaoShader->GetBufferSize());
 	rtaoLib->SetDXILLibrary(&rtaoLibDxil);
-	LPCWSTR rtaoExports[] = { RtaoRayGenName, RtaoClosestHitName, RtaoMissName };
+	LPCWSTR rtaoExports[] = { RTAO_RayGenName, RTAO_ClosestHitName, RTAO_MissName };
 	rtaoLib->DefineExports(rtaoExports);
 
 	auto rtaoHitGroup = rtaoDxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-	rtaoHitGroup->SetClosestHitShaderImport(RtaoClosestHitName);
-	rtaoHitGroup->SetHitGroupExport(RtaoHitGroupName);
+	rtaoHitGroup->SetClosestHitShaderImport(RTAO_ClosestHitName);
+	rtaoHitGroup->SetHitGroupExport(RTAO_HitGroupName);
 	rtaoHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
 	auto shaderConfig = rtaoDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
@@ -126,14 +126,14 @@ BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	{
-		void* rayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RtaoRayGenName);
+		void* rayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RTAO_RayGenName);
 
 		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(rayGenShaderTable.Initialze());
 		rayGenShaderTable.push_back(ShaderRecord(rayGenShaderIdentifier, shaderIdentifierSize));
 
 #ifdef _DEBUG
-		shaderIdToStringMap[rayGenShaderIdentifier] = RtaoRayGenName;
+		shaderIdToStringMap[rayGenShaderIdentifier] = RTAO_RayGenName;
 
 		WLogln(L"RTAO - Ray Gen");
 		rayGenShaderTable.DebugPrint(shaderIdToStringMap);
@@ -143,14 +143,14 @@ BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 		mShaderTables[RayGenShaderTableName] = rayGenShaderTable.GetResource();
 	}
 	{
-		void* missShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RtaoMissName);
+		void* missShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RTAO_MissName);
 
 		ShaderTable missShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(missShaderTable.Initialze());
 		missShaderTable.push_back(ShaderRecord(missShaderIdentifier, shaderIdentifierSize));
 
 #ifdef _DEBUG
-		shaderIdToStringMap[missShaderIdentifier] = RtaoMissName;
+		shaderIdToStringMap[missShaderIdentifier] = RTAO_MissName;
 
 		WLogln(L"RTAO - Miss");
 		missShaderTable.DebugPrint(shaderIdToStringMap);
@@ -160,7 +160,7 @@ BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 		mShaderTables[MissShaderTableName] = missShaderTable.GetResource();
 	}
 	{
-		void* hitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RtaoHitGroupName);
+		void* hitGroupShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RTAO_HitGroupName);
 
 		ShaderTable hitGroupTable(md3dDevice, numRitems, shaderIdentifierSize);
 		CheckReturn(hitGroupTable.Initialze());		
@@ -168,7 +168,7 @@ BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 			hitGroupTable.push_back(ShaderRecord(hitGroupShaderIdentifier, shaderIdentifierSize));
 
 #ifdef _DEBUG
-		shaderIdToStringMap[hitGroupShaderIdentifier] = RtaoHitGroupName;
+		shaderIdToStringMap[hitGroupShaderIdentifier] = RTAO_HitGroupName;
 
 		WLogln(L"RTAO - Hit Group");
 		hitGroupTable.DebugPrint(shaderIdToStringMap);

@@ -7,8 +7,8 @@
 
 #include "./../../../include/HlslCompaction.h"
 
-ConstantBuffer<ConstantBuffer_Pass>	cb_Pass	: register(b0);
-ConstantBuffer<ObjectConstants>		cb_Obj	: register(b1);
+ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 
 struct GeoOut {
 	float4 PosH    : SV_POSITION;

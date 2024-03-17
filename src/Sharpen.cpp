@@ -8,8 +8,8 @@
 using namespace Sharpen;
 
 namespace {
-	const std::string SharpenVS = "SharpenVS";
-	const std::string SharpenPS = "SharpenPS";
+	const CHAR* const VS_Sharpen = "VS_Sharpen";
+	const CHAR* const PS_Sharpen = "PS_Sharpen";
 }
 
 SharpenClass::SharpenClass() {
@@ -22,27 +22,27 @@ BOOL SharpenClass::Initialize(ID3D12Device* device, ShaderManager* const manager
 
 	BuildResources(width, height);
 
-	return true;
+	return TRUE;
 }
 
 BOOL SharpenClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Sharpen.hlsl";
 	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-	CheckReturn(mShaderManager->CompileShader(vsInfo, SharpenVS));
-	CheckReturn(mShaderManager->CompileShader(psInfo, SharpenPS));
+	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_Sharpen));
+	CheckReturn(mShaderManager->CompileShader(psInfo, PS_Sharpen));
 
-	return true;
+	return TRUE;
 }
 
 BOOL SharpenClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootConstantsLayout::Count, 0);
-	slotRootParameter[RootSignatureLayout::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0);
+	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -52,15 +52,15 @@ BOOL SharpenClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
 
-	return true;
+	return TRUE;
 }
 
-BOOL SharpenClass::BuildPso() {
+BOOL SharpenClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(SharpenVS);
-		auto ps = mShaderManager->GetDxcShader(SharpenPS);
+		auto vs = mShaderManager->GetDxcShader(VS_Sharpen);
+		auto ps = mShaderManager->GetDxcShader(PS_Sharpen);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -68,7 +68,7 @@ BOOL SharpenClass::BuildPso() {
 	psoDesc.RTVFormats[0] = SDR_FORMAT;
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
-	return true;
+	return TRUE;
 }
 
 void SharpenClass::BuildDescriptors(
@@ -85,7 +85,7 @@ BOOL SharpenClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 
@@ -112,11 +112,11 @@ void SharpenClass::Run(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
-	FLOAT values[RootConstantsLayout::Count] = {
+	FLOAT values[RootSignature::RootConstant::Count] = { 
 		static_cast<FLOAT>(1.0f / viewport.Width), static_cast<FLOAT>(1.0f / viewport.Height), amount };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -163,5 +163,5 @@ BOOL SharpenClass::BuildResources(UINT width, UINT height) {
 		L"Sharpen_CopiedBackBufferMap"
 	));
 
-	return true;
+	return TRUE;
 }

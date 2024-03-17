@@ -9,21 +9,21 @@ class ShaderManager;
 class GpuResource;
 
 namespace Sharpen {
-	namespace RootSignatureLayout {
+	namespace RootSignature {
 		enum {
 			EC_Consts = 0,
 			ESI_BackBuffer,
 			Count
 		};
-	}
 
-	namespace RootConstantsLayout {
-		enum {
-			E_InvTexSizeX = 0,
-			E_InvTexSizeY,
-			E_Amount,
-			Count
-		};
+		namespace RootConstant {
+			enum {
+				E_InvTexSizeX = 0,
+				E_InvTexSizeY,
+				E_Amount,
+				Count
+			};
+		}
 	}
 
 	class SharpenClass {
@@ -35,7 +35,7 @@ namespace Sharpen {
 		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,

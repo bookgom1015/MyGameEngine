@@ -19,7 +19,7 @@ namespace GaussianFilter {
 			Count
 		};
 
-		namespace RootConstants {
+		namespace RootConstant {
 			enum {
 				E_DimensionX = 0,
 				E_DimensionY,
@@ -45,7 +45,7 @@ namespace GaussianFilter {
 		BOOL Initialize(ID3D12Device*const device, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
-		BOOL BuildPso();
+		BOOL BuildPSO();
 		void Run(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_input,

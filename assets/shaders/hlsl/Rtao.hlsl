@@ -73,7 +73,7 @@ float CalculateAO(out float tHit, uint2 launchIndex, Ray aoRay, float3 surfaceNo
 }
 
 [shader("raygeneration")]
-void RtaoRayGen() {
+void RTAO_RayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 	uint2 dimensions = DispatchRaysDimensions().xy;
 
@@ -109,12 +109,12 @@ void RtaoRayGen() {
 }
 
 [shader("closesthit")]
-void RtaoClosestHit(inout RayPayload payload, Attributes attrib) {
+void RTAO_ClosestHit(inout RayPayload payload, Attributes attrib) {
 	payload.tHit = RayTCurrent();
 }
 
 [shader("miss")]
-void RtaoMiss(inout RayPayload payload) {
+void RTAO_Miss(inout RayPayload payload) {
 	payload.tHit = Rtao::RayHitDistanceOnMiss;
 }
 
