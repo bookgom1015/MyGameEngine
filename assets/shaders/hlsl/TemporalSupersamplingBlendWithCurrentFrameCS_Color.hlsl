@@ -14,7 +14,7 @@
 #include "Rtao.hlsli"
 #include "RaytracedReflection.hlsli"
 
-ConstantBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> cbBlend : register(b0);
+ConstantBuffer<ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame> cb_Blend : register(b0);
 
 Texture2D<SVGF::ValueMapFormat_HDR>						gi_CurrentFrameValue						: register(t0);
 Texture2D<SVGF::LocalMeanVarianceMapFormat>				gi_CurrentFrameLocalMeanVariance			: register(t1);
@@ -37,9 +37,9 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	const float4 CachedValues = float4(tspp, f16tof32(EncodedCachedValues.yzw));
 
 	bool isCurrentFrameValueActive = true;
-	if (cbBlend.CheckerboardEnabled) {
+	if (cb_Blend.CheckerboardEnabled) {
 		bool isEvenPixel = ((DTid.x + DTid.y) & 1) == 0;
-		isCurrentFrameValueActive = cbBlend.CheckerboardEvenPixelActivated == isEvenPixel;
+		isCurrentFrameValueActive = cb_Blend.CheckerboardEvenPixelActivated == isEvenPixel;
 	}
 
 	float4 value = isCurrentFrameValueActive ? gi_CurrentFrameValue[DTid] : (float4)RaytracedReflection::InvalidReflectionAlphaValue;
@@ -49,7 +49,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	float variance = 0;
 
 	if (tspp > 0) {
-		const uint MaxTspp = 1 / cbBlend.MinSmoothingFactor;
+		const uint MaxTspp = 1 / cb_Blend.MinSmoothingFactor;
 		tspp = IsValidValue ? min(tspp + 1, MaxTspp) : tspp;
 
 		float4 cachedValue = gi_CachedValue[DTid];
@@ -57,8 +57,8 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		const float2 LocalMeanVariance = gi_CurrentFrameLocalMeanVariance[DTid];
 		const float LocalMean = LocalMeanVariance.x;
 		const float LocalVariance = LocalMeanVariance.y;
-		if (cbBlend.ClampCachedValues) {
-			const float LocalStdDev = max(cbBlend.StdDevGamma * sqrt(LocalVariance), cbBlend.ClampingMinStdDevTolerance);			
+		if (cb_Blend.ClampCachedValues) {
+			const float LocalStdDev = max(cb_Blend.StdDevGamma * sqrt(LocalVariance), cb_Blend.ClampingMinStdDevTolerance);
 			const float4 NonClampedCachedValue = cachedValue;
 
 			// Clamp value to mean +/- std.dev of local neighborhood to supress ghosting on value changing due to other occluder movements.
@@ -67,12 +67,12 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 			// Scale down the tspp based on how strongly the cached value got clamped to give more weight to new smaples.
 			float variance = ColorVariance(cachedValue, NonClampedCachedValue);
-			float tsppScale = saturate(cbBlend.ClampDifferenceToTsppScale * variance);
+			float tsppScale = saturate(cb_Blend.ClampDifferenceToTsppScale * variance);
 
 			tspp = lerp(tspp, 0, tsppScale);
 		}
 		const float InvTspp = 1.0 / tspp;
-		float a = cbBlend.ForceUseMinSmoothingFactor ? cbBlend.MinSmoothingFactor : max(InvTspp, cbBlend.MinSmoothingFactor);
+		float a = cb_Blend.ForceUseMinSmoothingFactor ? cb_Blend.MinSmoothingFactor : max(InvTspp, cb_Blend.MinSmoothingFactor);
 		const float MaxSmoothingFactor = 1;
 		a = min(a, MaxSmoothingFactor);
 
@@ -95,7 +95,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		{
 			float temporalVariance = ColorVariance(valueSquaredMean, value * value);
 			temporalVariance = max(0, temporalVariance); // Ensure variance doesn't go negative due to imprecision.
-			variance = tspp >= cbBlend.MinTsppToUseTemporalVariance ? temporalVariance : LocalVariance;
+			variance = tspp >= cb_Blend.MinTsppToUseTemporalVariance ? temporalVariance : LocalVariance;
 			variance = max(0.1, variance);
 		}
 
@@ -115,8 +115,8 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		valueSquaredMean = valueSquaredMean;
 	}
 
-	const float TsppRatio = min(tspp, cbBlend.BlurStrengthMaxTspp) / float(cbBlend.BlurStrengthMaxTspp);
-	const float BlurStrength = pow(1 - TsppRatio, cbBlend.BlurDecayStrength);
+	const float TsppRatio = min(tspp, cb_Blend.BlurStrengthMaxTspp) / float(cb_Blend.BlurStrengthMaxTspp);
+	const float BlurStrength = pow(1 - TsppRatio, cb_Blend.BlurDecayStrength);
 
 	gio_Tspp[DTid] = tspp;
 	gio_Value[DTid] = value;

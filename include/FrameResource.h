@@ -32,14 +32,13 @@ public:
 	UploadBuffer<ConstantBuffer_Blur> CB_Blur;
 	UploadBuffer<ConstantBuffer_DoF> CB_DoF;
 	UploadBuffer<ConstantBuffer_SSR> CB_SSR;
-	UploadBuffer<ConvertEquirectangularToCubeConstantBuffer> ConvEquirectToCubeCB;
-	UploadBuffer<RtaoConstants> RtaoCB;
-	UploadBuffer<CrossBilateralFilterConstants> CrossBilateralFilterCB;
-	UploadBuffer<CalcLocalMeanVarianceConstants> CalcLocalMeanVarCB;
-	UploadBuffer<TemporalSupersamplingBlendWithCurrentFrameConstants> TsppBlendCB;
-	UploadBuffer<AtrousWaveletTransformFilterConstantBuffer> AtrousFilterCB;
+	UploadBuffer<ConstantBuffer_Irradiance> CB_Irradiance;
+	UploadBuffer<ConstantBuffer_RTAO> CB_RTAO;
+	UploadBuffer<ConstantBuffer_CrossBilateralFilter> CB_CrossBilateralFilter;
+	UploadBuffer<ConstantBuffer_CalcLocalMeanVariance> CB_CalcLocalMeanVar;
+	UploadBuffer<ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame> CB_TSPPBlend;
+	UploadBuffer<ConstantBuffer_AtrousWaveletTransformFilter> CB_AtrousFilter;
 	UploadBuffer<ConstantBuffer_DebugMap> CB_DebugMap;
-	UploadBuffer<RaytracedReflectionConstantBuffer> RrCB;
 
 	UINT64 Fence;
 

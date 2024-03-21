@@ -10,14 +10,14 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer> cbCube : register(b0);
+ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
 
 cbuffer cbRootConstants : register(b1) {
 	uint	gFaceID;
 	float	gSampleDelta;
 }
 
-TextureCube<float3> gi_Cube : register(t0);
+TextureCube<HDR_FORMAT> gi_Cube : register(t0);
 
 VERTEX_IN
 
@@ -31,9 +31,9 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 
 	vout.PosL = vin.PosL;
 	
-	float4x4 view = cbCube.View[gFaceID];
-	float4 posV = mul(float4(vin.PosL, 1.0f), view);
-	float4 posH = mul(posV, cbCube.Proj);
+	float4x4 view = cb_Irrad.View[gFaceID];
+	float4 posV = mul(float4(vin.PosL, 1), view);
+	float4 posH = mul(posV, cb_Irrad.Proj);
 	
 	vout.PosH = posH.xyww;
 
@@ -66,7 +66,7 @@ float3 ConvoluteIrradiance(float3 pos) {
 			// tangent space to world space
 			const float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 
-			irradiance += gi_Cube.SampleLevel(gsamLinearClamp, sampleVec, 0) * cosTheta * sinTheta;
+			irradiance += gi_Cube.Sample(gsamLinearClamp, sampleVec).rgb * cosTheta * sinTheta;
 			++numSamples;
 		}
 	}
@@ -75,7 +75,7 @@ float3 ConvoluteIrradiance(float3 pos) {
 	return irradiance;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
+HDR_FORMAT PS(VertexOut pin) : SV_Target{
 	float3 irradiance = ConvoluteIrradiance(pin.PosL);
 	
 	return float4(irradiance, 1);

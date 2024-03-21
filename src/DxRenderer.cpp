@@ -406,13 +406,12 @@ BOOL DxRenderer::Update(FLOAT delta) {
 	CheckReturn(UpdateCB_DoF(delta));
 	CheckReturn(UpdateCB_Objects(delta));
 	CheckReturn(UpdateCB_Materials(delta));
-	CheckReturn(UpdateCB_ConvEquirectToCube(delta));
+	CheckReturn(UpdateCB_Irradiance(delta));
 	CheckReturn(UpdateCB_DebugMap(delta));
 
 	if (bRaytracing) {
 		CheckReturn(UpdateCB_SVGF(delta));
 		CheckReturn(UpdateCB_RTAO(delta));
-		CheckReturn(UpdateCB_RR(delta));
 	}
 	else {
 		CheckReturn(UpdateCB_SSAO(delta));
@@ -1168,7 +1167,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 		mCbvSrvUavHeap.Get(),
 		cmdList,
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-		mCurrFrameResource->ConvEquirectToCubeCB.Resource()->GetGPUVirtualAddress(),
+		mCurrFrameResource->CB_Irradiance.Resource()->GetGPUVirtualAddress(),
 		mMipmapGenerator.get(),
 		mIrradianceCubeMap
 	));
@@ -1424,14 +1423,14 @@ BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
 	return TRUE;
 }
 
-BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
-	ConvertEquirectangularToCubeConstantBuffer cubeCB;
+BOOL DxRenderer::UpdateCB_Irradiance(FLOAT delta) {
+	ConstantBuffer_Irradiance irradCB;
 		
-	XMStoreFloat4x4(&cubeCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
+	XMStoreFloat4x4(&irradCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
 
 	// Positive +X
 	XMStoreFloat4x4(
-		&cubeCB.View[0],
+		&irradCB.View[0],
 		XMMatrixTranspose(XMMatrixLookAtLH(
 			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f),
@@ -1440,7 +1439,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	);
 	// Positive -X
 	XMStoreFloat4x4(
-		&cubeCB.View[1],
+		&irradCB.View[1],
 		XMMatrixTranspose(XMMatrixLookAtLH(
 			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f),
@@ -1449,7 +1448,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	);
 	// Positive +Y
 	XMStoreFloat4x4(
-		&cubeCB.View[2],
+		&irradCB.View[2],
 		XMMatrixTranspose(XMMatrixLookAtLH(
 			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
@@ -1458,7 +1457,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	);
 	// Positive -Y
 	XMStoreFloat4x4(
-		&cubeCB.View[3],
+		&irradCB.View[3],
 		XMMatrixTranspose(XMMatrixLookAtLH(
 			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f),
@@ -1467,7 +1466,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	);
 	// Positive +Z
 	XMStoreFloat4x4(
-		&cubeCB.View[4],
+		&irradCB.View[4],
 		XMMatrixTranspose(XMMatrixLookAtLH(
 			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
@@ -1476,7 +1475,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 	);
 	// Positive -Z
 	XMStoreFloat4x4(
-		&cubeCB.View[5],
+		&irradCB.View[5],
 		XMMatrixTranspose(XMMatrixLookAtLH(
 			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
 			XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
@@ -1484,8 +1483,8 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 		))
 	);
 	
-	auto& currCubeCB = mCurrFrameResource->ConvEquirectToCubeCB;
-	currCubeCB.CopyData(0, cubeCB);
+	auto& currCB = mCurrFrameResource->CB_Irradiance;
+	currCB.CopyData(0, irradCB);
 
 	return TRUE;
 }
@@ -1493,7 +1492,7 @@ BOOL DxRenderer::UpdateCB_ConvEquirectToCube(FLOAT delta) {
 BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 	// Calculate local mean/variance
 	{
-		CalcLocalMeanVarianceConstants calcLocalMeanVarCB;
+		ConstantBuffer_CalcLocalMeanVariance calcLocalMeanVarCB;
 
 		ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels = !ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels;
 
@@ -1505,21 +1504,21 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 		calcLocalMeanVarCB.EvenPixelActivated = ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels;
 		calcLocalMeanVarCB.PixelStepY = ShaderArgs::SVGF::CheckerboardSamplingEnabled ? 2 : 1;
 
-		auto& currLocalCalcMeanVarCB = mCurrFrameResource->CalcLocalMeanVarCB;
-		currLocalCalcMeanVarCB.CopyData(0, calcLocalMeanVarCB);
+		auto& currCB = mCurrFrameResource->CB_CalcLocalMeanVar;
+		currCB.CopyData(0, calcLocalMeanVarCB);
 	}
 	// Temporal supersampling reverse reproject
 	{
-		CrossBilateralFilterConstants filterCB;
+		ConstantBuffer_CrossBilateralFilter filterCB;
 		filterCB.DepthSigma = 1.0f;
 		filterCB.DepthNumMantissaBits = D3D12Util::NumMantissaBitsInFloatFormat(16);
 
-		auto& currFilterCB = mCurrFrameResource->CrossBilateralFilterCB;
-		currFilterCB.CopyData(0, filterCB);
+		auto& currCB = mCurrFrameResource->CB_CrossBilateralFilter;
+		currCB.CopyData(0, filterCB);
 	}
 	// Temporal supersampling blend with current frame
 	{
-		TemporalSupersamplingBlendWithCurrentFrameConstants tsppBlendCB;
+		ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame tsppBlendCB;
 		tsppBlendCB.StdDevGamma = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::StdDevGamma;
 		tsppBlendCB.ClampCachedValues = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping;
 		tsppBlendCB.ClampingMinStdDevTolerance = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::MinStdDevTolerance;
@@ -1534,12 +1533,12 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 		tsppBlendCB.CheckerboardEnabled = ShaderArgs::SVGF::CheckerboardSamplingEnabled;
 		tsppBlendCB.CheckerboardEvenPixelActivated = ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels;
 
-		auto& currTsppBlendCB = mCurrFrameResource->TsppBlendCB;
-		currTsppBlendCB.CopyData(0, tsppBlendCB);
+		auto& currCB = mCurrFrameResource->CB_TSPPBlend;
+		currCB.CopyData(0, tsppBlendCB);
 	}
 	// Atrous wavelet transform filter
 	{
-		AtrousWaveletTransformFilterConstantBuffer atrousFilterCB;
+		ConstantBuffer_AtrousWaveletTransformFilter atrousFilterCB;
 
 		// Adaptive kernel radius rotation.
 		FLOAT kernelRadiusLerfCoef = 0;
@@ -1575,8 +1574,8 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 
 		atrousFilterCB.DepthNumMantissaBits = D3D12Util::NumMantissaBitsInFloatFormat(16);
 
-		auto& currAtrousFilterCB = mCurrFrameResource->AtrousFilterCB;
-		currAtrousFilterCB.CopyData(0, atrousFilterCB);
+		auto& currCB = mCurrFrameResource->CB_AtrousFilter;
+		currCB.CopyData(0, atrousFilterCB);
 	}
 
 	return TRUE;
@@ -1586,7 +1585,7 @@ BOOL DxRenderer::UpdateCB_RTAO(FLOAT delta) {
 	static UINT count = 0;
 	static auto prev = mMainPassCB->View;
 
-	RtaoConstants rtaoCB;
+	ConstantBuffer_RTAO rtaoCB;
 	rtaoCB.View = mMainPassCB->View;
 	rtaoCB.InvView = mMainPassCB->InvView;
 	rtaoCB.Proj = mMainPassCB->Proj;
@@ -1603,28 +1602,8 @@ BOOL DxRenderer::UpdateCB_RTAO(FLOAT delta) {
 
 	prev = mMainPassCB->View;
 
-	auto& currRtaoCB = mCurrFrameResource->RtaoCB;
-	currRtaoCB.CopyData(0, rtaoCB);
-
-	return TRUE;
-}
-
-BOOL DxRenderer::UpdateCB_RR(FLOAT delta) {
-	RaytracedReflectionConstantBuffer rrCB;
-
-	rrCB.View = mMainPassCB->View;
-	rrCB.InvView = mMainPassCB->InvView;
-	rrCB.Proj = mMainPassCB->Proj;
-	rrCB.InvProj = mMainPassCB->InvProj;
-	rrCB.ViewProj = mMainPassCB->ViewProj;
-
-	rrCB.EyePosW = mMainPassCB->EyePosW;
-	rrCB.ReflectionRadius = ShaderArgs::RaytracedReflection::ReflectionRadius;
-
-	rrCB.TextureDim = { mClientWidth, mClientHeight };
-
-	auto& currRrCB = mCurrFrameResource->RrCB;
-	currRrCB.CopyData(0, rrCB);
+	auto& currCB = mCurrFrameResource->CB_RTAO;
+	currCB.CopyData(0, rtaoCB);
 
 	return TRUE;
 }
@@ -2990,13 +2969,10 @@ BOOL DxRenderer::DrawRTAO() {
 
 	// Calculate ambient occlusion.
 	{
-		const auto rtaoCBAddress = mCurrFrameResource->RtaoCB.Resource()->GetGPUVirtualAddress();
-		const auto tlasVAddress = mTLAS->Result->GetGPUVirtualAddress();
-
 		mRtao->RunCalculatingAmbientOcclusion(
 			cmdList,
-			tlasVAddress,
-			rtaoCBAddress,
+			mTLAS->Result->GetGPUVirtualAddress(),
+			mCurrFrameResource->CB_RTAO.Resource()->GetGPUVirtualAddress(),
 			mGBuffer->PositionMapSrv(),
 			mGBuffer->NormalDepthMapSrv(),
 			mGBuffer->DepthMapSrv(),
@@ -3030,7 +3006,7 @@ BOOL DxRenderer::DrawRTAO() {
 				// Retrieves values from previous frame via reverse reprojection.				
 				mSVGF->ReverseReprojectPreviousFrame(
 					cmdList,
-					mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
+					mCurrFrameResource->CB_CrossBilateralFilter.Resource()->GetGPUVirtualAddress(),
 					mGBuffer->NormalDepthMapSrv(),
 					mGBuffer->ReprojNormalDepthMapSrv(),
 					mGBuffer->PrevNormalDepthMapSrv(),
@@ -3052,7 +3028,7 @@ BOOL DxRenderer::DrawRTAO() {
 				// Calculate local mean and variance for clamping during the blending operation.
 				mSVGF->RunCalculatingLocalMeanVariance(
 					cmdList,
-					mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
+					mCurrFrameResource->CB_CalcLocalMeanVar.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
 					mClientWidth, mClientHeight,
 					ShaderArgs::SVGF::CheckerboardSamplingEnabled
@@ -3061,7 +3037,7 @@ BOOL DxRenderer::DrawRTAO() {
 				if (ShaderArgs::SVGF::CheckerboardSamplingEnabled) {
 					mSVGF->FillInCheckerboard(
 						cmdList,
-						mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
+						mCurrFrameResource->CB_CalcLocalMeanVar.Resource()->GetGPUVirtualAddress(),
 						mClientWidth, mClientHeight
 					);
 				}
@@ -3092,7 +3068,7 @@ BOOL DxRenderer::DrawRTAO() {
 
 					mSVGF->BlendWithCurrentFrame(
 						cmdList,
-						mCurrFrameResource->TsppBlendCB.Resource()->GetGPUVirtualAddress(),
+						mCurrFrameResource->CB_TSPPBlend.Resource()->GetGPUVirtualAddress(),
 						aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_AmbientCoefficient],
 						aoResourcesGpuDescriptors[Rtao::Descriptor::AO::ES_RayHitDistance],
 						temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Uav],
@@ -3147,7 +3123,7 @@ BOOL DxRenderer::DrawRTAO() {
 
 				mSVGF->ApplyAtrousWaveletTransformFilter(
 					cmdList,
-					mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
+					mCurrFrameResource->CB_AtrousFilter.Resource()->GetGPUVirtualAddress(),
 					temporalAOCoefficientsGpuDescriptors[inputAOCoefficientIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv],
 					mGBuffer->NormalDepthMapSrv(),
 					temporalCachesGpuDescriptors[temporalCurrentFrameResourceIndex][Rtao::Descriptor::TemporalCache::ES_RayHitDistance],
@@ -3201,14 +3177,10 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 
 	// Calculate raytraced reflection.
 	{
-		const auto rrCBAddress = mCurrFrameResource->RrCB.Resource()->GetGPUVirtualAddress();
-		const auto tlasVAddress = mTLAS->Result->GetGPUVirtualAddress();
-
 		mRr->CalcReflection(
 			cmdList,
 			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-			rrCBAddress,
-			tlasVAddress,
+			mTLAS->Result->GetGPUVirtualAddress(),
 			mToneMapping->InterMediateMapSrv(),
 			mGBuffer->NormalMapSrv(),
 			mGBuffer->DepthMapSrv(),
@@ -3249,7 +3221,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 				// Retrieves values from previous frame via reverse reprojection.				
 				mSVGF->ReverseReprojectPreviousFrame(
 					cmdList,
-					mCurrFrameResource->CrossBilateralFilterCB.Resource()->GetGPUVirtualAddress(),
+					mCurrFrameResource->CB_CrossBilateralFilter.Resource()->GetGPUVirtualAddress(),
 					mGBuffer->NormalDepthMapSrv(),
 					mGBuffer->ReprojNormalDepthMapSrv(),
 					mGBuffer->PrevNormalDepthMapSrv(),
@@ -3271,7 +3243,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 				// Calculate local mean and variance for clamping during the blending operation.
 				mSVGF->RunCalculatingLocalMeanVariance(
 					cmdList,
-					mCurrFrameResource->CalcLocalMeanVarCB.Resource()->GetGPUVirtualAddress(),
+					mCurrFrameResource->CB_CalcLocalMeanVar.Resource()->GetGPUVirtualAddress(),
 					reflectionGpuDescriptors[RaytracedReflection::Descriptor::Reflection::ES_Reflection],
 					mClientWidth, mClientHeight,
 					ShaderArgs::RaytracedReflection::CheckerboardSamplingEnabled
@@ -3303,7 +3275,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 				
 					mSVGF->BlendWithCurrentFrame(
 						cmdList,
-						mCurrFrameResource->TsppBlendCB.Resource()->GetGPUVirtualAddress(),
+						mCurrFrameResource->CB_TSPPBlend.Resource()->GetGPUVirtualAddress(),
 						reflectionGpuDescriptors[RaytracedReflection::Descriptor::Reflection::ES_Reflection],
 						reflectionGpuDescriptors[RaytracedReflection::Descriptor::Reflection::ES_RayHitDistance],
 						temporalReflectionGpuDescriptors[temporalCurrentFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Uav],
@@ -3357,7 +3329,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 
 				mSVGF->ApplyAtrousWaveletTransformFilter(
 					cmdList,
-					mCurrFrameResource->AtrousFilterCB.Resource()->GetGPUVirtualAddress(),
+					mCurrFrameResource->CB_AtrousFilter.Resource()->GetGPUVirtualAddress(),
 					temporalReflectionGpuDescriptors[inputReflectionIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Srv],
 					mGBuffer->NormalDepthMapSrv(),
 					temporalCacheGpuDescriptors[temporalCurrentFrameResourceIndex][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],

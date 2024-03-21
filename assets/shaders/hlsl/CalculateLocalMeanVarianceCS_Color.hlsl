@@ -23,7 +23,7 @@
 #include "Rtao.hlsli"
 #include "RaytracedReflection.hlsli"
 
-ConstantBuffer<CalcLocalMeanVarianceConstants> cb : register(b0);
+ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance> cb_LocalMeanVar : register(b0);
 
 Texture2D<SVGF::ValueMapFormat_HDR>				gi_Value				: register(t0);
 RWTexture2D<SVGF::LocalMeanVarianceMapFormat>	go_LocalMeanVariance	: register(u0);
@@ -36,20 +36,20 @@ groupshared uint NumValuesCache[16][8];
 // Inactive pixel indices get increased by 1 in the y direction.
 int2 GetActivePixelIndex(int2 pixel) {
 	bool isEvenPixel = ((pixel.x + pixel.y) & 1) == 0;
-	return cb.CheckerboardSamplingEnabled && cb.EvenPixelActivated != isEvenPixel ? pixel + int2(0, 1) : pixel;
+	return cb_LocalMeanVar.CheckerboardSamplingEnabled && cb_LocalMeanVar.EvenPixelActivated != isEvenPixel ? pixel + int2(0, 1) : pixel;
 }
 
 // Load up to 16x16 pixels and filter them horizontally.
 // The output is cached in shared memory and contains NumRows x 8 results.
 void FilterHorizontally(uint2 Gid, uint GI) {
 	const uint2 GroupDim = uint2(8, 8);
-	const uint NumValuesToLoadPerRowOrColumn = GroupDim.x + (cb.KernelWidth - 1);
+	const uint NumValuesToLoadPerRowOrColumn = GroupDim.x + (cb_LocalMeanVar.KernelWidth - 1);
 
 	// Processes the thread group as row-major 4x16, where each sub group of 16 threads processes one row.
 	// Each thread loads up to 4 values, with the subgroups loading rows interleaved.
 	// Loads up to 4x16x4 == 256 input values.
 	uint2 GTid4x16_row0 = uint2(GI % 16, GI / 16);
-	const int2 KernelBasePixel = (Gid * GroupDim - int(cb.KernelRadius)) * int2(1, cb.PixelStepY);
+	const int2 KernelBasePixel = (Gid * GroupDim - int(cb_LocalMeanVar.KernelRadius)) * int2(1, cb_LocalMeanVar.PixelStepY);
 	const uint NumRowsToLoadPerThread = 4;
 	const uint RowBaseWaveLaneIndex = (WaveGetLaneIndex() / 16) * 16;
 		
@@ -62,12 +62,12 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 		}
 
 		// Load all the contributing columns for each row.
-		int2 pixel = GetActivePixelIndex(KernelBasePixel + GTid4x16 * int2(1, cb.PixelStepY));
+		int2 pixel = GetActivePixelIndex(KernelBasePixel + GTid4x16 * int2(1, cb_LocalMeanVar.PixelStepY));
 		float4 value = 0;
 
 		// The lane is out of bounds of the GroupDim * kernel, but could be within bounds of the input texture, so don't read it form the texture.
 		// However, we need to keep it as an active lane for a below split sum.
-		if (GTid4x16.x < NumValuesToLoadPerRowOrColumn && IsWithinBounds(pixel, cb.TextureDim))
+		if (GTid4x16.x < NumValuesToLoadPerRowOrColumn && IsWithinBounds(pixel, cb_LocalMeanVar.TextureDim))
 			value = gi_Value[pixel];
 
 		// Filter the values for the first GroupDim columns.
@@ -81,7 +81,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 			// split the kernel wide aggregation among the first 8 and the second 8 lanes, and then combine them.
 
 			// Initialize the first 8 lanes to the first cell contribution of the kernel.
-			// This covers the remainder of 1 in cb.KernelWidth / 2 used in the loop below.
+			// This covers the remainder of 1 in cb_LocalMeanVar.KernelWidth / 2 used in the loop below.
 			if (GTid4x16.x < GroupDim.x && value.a != RaytracedReflection::InvalidReflectionAlphaValue) {
 				valueSum = value;
 				squaredValueSum = value * value;
@@ -90,9 +90,9 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Get the lane index that has the first value for a kernel in this lane.
 			uint RowKernelStartLaneIndex = RowBaseWaveLaneIndex + 1 // Skip over the already accumulated firt cell of kernel.
-				+ (GTid4x16.x < GroupDim.x ? GTid4x16.x : (GTid4x16.x - GroupDim.x) + cb.KernelRadius);
+				+ (GTid4x16.x < GroupDim.x ? GTid4x16.x : (GTid4x16.x - GroupDim.x) + cb_LocalMeanVar.KernelRadius);
 
-			for (uint c = 0; c < cb.KernelRadius; ++c) {
+			for (uint c = 0; c < cb_LocalMeanVar.KernelRadius; ++c) {
 				uint laneToReadFrom = RowKernelStartLaneIndex + c;
 				float4 cValue = WaveReadLaneAt(value, laneToReadFrom);
 
@@ -123,11 +123,11 @@ void FilterVertically(uint2 DTid, uint2 GTid) {
 	float4 squaredValueSum = 0;
 	uint numValues = 0;
 
-	uint2 pixel = GetActivePixelIndex(int2(DTid.x, DTid.y * cb.PixelStepY));
+	uint2 pixel = GetActivePixelIndex(int2(DTid.x, DTid.y * cb_LocalMeanVar.PixelStepY));
 
 	float4 val1, val2;
 	// Accumulate for the whole kernel.
-	for (uint r = 0; r < cb.KernelWidth; ++r) {
+	for (uint r = 0; r < cb_LocalMeanVar.KernelWidth; ++r) {
 		uint rowID = GTid.y + r;
 		uint rNumValues = NumValuesCache[rowID][GTid.x];
 

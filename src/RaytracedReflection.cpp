@@ -88,7 +88,6 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
 		slotRootParameter[RootSignature::Global::ECB_Pass].InitAsConstantBufferView(1);
-		slotRootParameter[RootSignature::Global::ECB_Rr].InitAsConstantBufferView(2);
 		slotRootParameter[RootSignature::Global::EAS_BVH].InitAsShaderResourceView(0);
 		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::Global::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
@@ -295,7 +294,6 @@ BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList,
 void RaytracedReflectionClass::CalcReflection(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-		D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
 		D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
@@ -319,7 +317,6 @@ void RaytracedReflectionClass::CalcReflection(
 	cmdList->SetComputeRoot32BitConstants(RootSignature::Global::EC_Rr, 1, &radius, RootSignature::Global::RootConstantsLayout::E_ReflectionRadius);
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Pass, cb_pass);
-	cmdList->SetComputeRootConstantBufferView(RootSignature::Global::ECB_Rr, cb_rr);
 	cmdList->SetComputeRootShaderResourceView(RootSignature::Global::EAS_BVH, as_bvh);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_BackBuffer, si_backBuffer);

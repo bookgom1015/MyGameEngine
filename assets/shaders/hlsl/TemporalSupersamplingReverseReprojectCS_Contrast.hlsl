@@ -16,7 +16,7 @@
 #include "Rtao.hlsli"
 #include "RaytracedReflection.hlsli"
 
-ConstantBuffer<CrossBilateralFilterConstants> cb_Reproject : register (b0);
+ConstantBuffer<ConstantBuffer_CrossBilateralFilter> cb_Reproject : register (b0);
 
 cbuffer cbRootConstants : register (b1) {
 	uint2	gTextureDim;

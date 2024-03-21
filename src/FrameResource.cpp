@@ -22,14 +22,13 @@ BOOL FrameResource::Initialize() {
 	CheckReturn(CB_Blur.Initialize(Device, 1, true));
 	CheckReturn(CB_DoF.Initialize(Device, 1, true));
 	CheckReturn(CB_SSR.Initialize(Device, 1, true));
-	CheckReturn(ConvEquirectToCubeCB.Initialize(Device, 1, true))
-	CheckReturn(RtaoCB.Initialize(Device, 1, true));
-	CheckReturn(CrossBilateralFilterCB.Initialize(Device, 1, true));
-	CheckReturn(CalcLocalMeanVarCB.Initialize(Device, 1, true));
-	CheckReturn(TsppBlendCB.Initialize(Device, 1, true));
-	CheckReturn(AtrousFilterCB.Initialize(Device, 1, true));
+	CheckReturn(CB_Irradiance.Initialize(Device, 1, true))
+	CheckReturn(CB_RTAO.Initialize(Device, 1, true));
+	CheckReturn(CB_CrossBilateralFilter.Initialize(Device, 1, true));
+	CheckReturn(CB_CalcLocalMeanVar.Initialize(Device, 1, true));
+	CheckReturn(CB_TSPPBlend.Initialize(Device, 1, true));
+	CheckReturn(CB_AtrousFilter.Initialize(Device, 1, true));
 	CheckReturn(CB_DebugMap.Initialize(Device, 1, true));
-	CheckReturn(RrCB.Initialize(Device, 1, true));
 
 	return true;
 }

@@ -15,14 +15,14 @@
 #include "ShadingHelpers.hlsli"
 #include "Rtao.hlsli"
 
-ConstantBuffer<CalcLocalMeanVarianceConstants> cbLocalMeanVar : register(b0);
+ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance> cb_LocalMeanVar : register(b0);
 
 RWTexture2D<float2> gioLocalMeanVarianceMap	: register(u0);
 
 // Adjust an index in Y coordinate to a same/next pixel that has an invalid value generated for it.
 int2 GetInactivePixelIndex(int2 pixel) {
 	bool isEvenPixel = ((pixel.x + pixel.y) & 1) == 0;
-	return cbLocalMeanVar.EvenPixelActivated == isEvenPixel ? pixel + int2(0, 1) : pixel;
+	return cb_LocalMeanVar.EvenPixelActivated == isEvenPixel ? pixel + int2(0, 1) : pixel;
 }
 
 [numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]

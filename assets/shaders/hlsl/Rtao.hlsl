@@ -23,7 +23,7 @@ struct RayPayload {
 	float tHit;
 };
 
-ConstantBuffer<RtaoConstants> cbRtao : register(b0);
+ConstantBuffer<ConstantBuffer_RTAO> cbRtao : register(b0);
 
 // Nonnumeric values cannot be added to a cbuffer.
 RaytracingAccelerationStructure				gBVH			: register(t0);

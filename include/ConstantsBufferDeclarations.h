@@ -103,12 +103,12 @@ struct ConstantBuffer_SSR {
 	FLOAT				ConstantPad0;
 };
 
-struct ConvertEquirectangularToCubeConstantBuffer {
+struct ConstantBuffer_Irradiance {
 	DirectX::XMFLOAT4X4 Proj;
 	DirectX::XMFLOAT4X4 View[6];
 };
 
-struct RtaoConstants {
+struct ConstantBuffer_RTAO {
 	DirectX::XMFLOAT4X4	View;
 	DirectX::XMFLOAT4X4	InvView;
 	DirectX::XMFLOAT4X4	Proj;
@@ -124,14 +124,14 @@ struct RtaoConstants {
 	FLOAT ConstantPad[2];
 };
 
-struct CrossBilateralFilterConstants {
+struct ConstantBuffer_CrossBilateralFilter {
 	FLOAT	DepthSigma;
 	UINT	DepthNumMantissaBits;
 	FLOAT	ConstantPad0;
 	FLOAT	ConstantPad1;
 };
 
-struct CalcLocalMeanVarianceConstants {
+struct ConstantBuffer_CalcLocalMeanVariance {
 	DirectX::XMUINT2 TextureDim;
 	UINT	KernelWidth;
 	UINT	KernelRadius;
@@ -142,7 +142,7 @@ struct CalcLocalMeanVarianceConstants {
 	FLOAT	ConstantPad0;
 };
 
-struct TemporalSupersamplingBlendWithCurrentFrameConstants {
+struct ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame {
 	FLOAT StdDevGamma;
 	BOOL ClampCachedValues;
 	FLOAT ClampingMinStdDevTolerance;
@@ -159,7 +159,7 @@ struct TemporalSupersamplingBlendWithCurrentFrameConstants {
 	BOOL CheckerboardEvenPixelActivated;
 };
 
-struct AtrousWaveletTransformFilterConstantBuffer {
+struct ConstantBuffer_AtrousWaveletTransformFilter {
 	DirectX::XMUINT2 TextureDim;
 	FLOAT DepthWeightCutoff;
 	BOOL UsingBilateralDownsamplingBuffers;
@@ -181,20 +181,6 @@ struct AtrousWaveletTransformFilterConstantBuffer {
 
 	UINT DepthNumMantissaBits;
 	FLOAT ConstantPads[3];
-};
-
-struct RaytracedReflectionConstantBuffer {
-	DirectX::XMFLOAT4X4	View;
-	DirectX::XMFLOAT4X4	InvView;
-	DirectX::XMFLOAT4X4	Proj;
-	DirectX::XMFLOAT4X4	InvProj;
-	DirectX::XMFLOAT4X4	ViewProj;
-
-	DirectX::XMFLOAT3 EyePosW;
-	FLOAT ReflectionRadius;
-
-	DirectX::XMUINT2 TextureDim;
-	FLOAT ConstantPads[2];
 };
 
 struct DebugMapSampleDesc {

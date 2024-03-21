@@ -22,7 +22,6 @@ namespace RaytracedReflection {
 			enum {
 				EC_Rr = 0,
 				ECB_Pass,
-				ECB_Rr,
 				EAS_BVH,
 				ESI_BackBuffer,
 				ESI_Normal,
@@ -168,7 +167,6 @@ namespace RaytracedReflection {
 		void CalcReflection(
 			ID3D12GraphicsCommandList4* const  cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_rr,
 			D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,

@@ -111,10 +111,9 @@ private:
 	BOOL UpdateCB_SSR(FLOAT delta);
 	BOOL UpdateCB_Objects(FLOAT delta);
 	BOOL UpdateCB_Materials(FLOAT delta);
-	BOOL UpdateCB_ConvEquirectToCube(FLOAT delta);
+	BOOL UpdateCB_Irradiance(FLOAT delta);
 	BOOL UpdateCB_SVGF(FLOAT delta);
 	BOOL UpdateCB_RTAO(FLOAT delta);
-	BOOL UpdateCB_RR(FLOAT delta);
 	BOOL UpdateCB_DebugMap(FLOAT delta);
 
 	BOOL AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);

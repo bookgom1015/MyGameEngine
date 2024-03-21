@@ -10,7 +10,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer> cbCube : register(b0);
+ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
 
 cbuffer cbRootConstants : register(b1) {
 	uint	gFaceID;
@@ -18,7 +18,7 @@ cbuffer cbRootConstants : register(b1) {
 	float	gRoughness;
 }
 
-TextureCube<float3> gi_Environment	: register(t0);
+TextureCube<HDR_FORMAT> gi_Environment	: register(t0);
 
 VERTEX_IN
 
@@ -34,9 +34,9 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
 
 	vout.PosL = vin.PosL;
 
-	float4x4 view = cbCube.View[gFaceID];
-	float4 posV = mul(float4(vin.PosL, 1.0f), view);
-	float4 posH = mul(posV, cbCube.Proj);
+	float4x4 view = cb_Irrad.View[gFaceID];
+	float4 posV = mul(float4(vin.PosL, 1), view);
+	float4 posH = mul(posV, cb_Irrad.Proj);
 
 	vout.PosH = posH.xyww;
 
@@ -58,7 +58,7 @@ float ChetanJagsMipLevel(float3 N, float3 V, float3 H, float roughness) {
 	return mipLevel;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
+HDR_FORMAT PS(VertexOut pin) : SV_Target{
 	const float3 N = normalize(pin.PosL);
 	const float3 R = N;
 	const float3 V = R;
@@ -74,7 +74,7 @@ float4 PS(VertexOut pin) : SV_Target{
 		float NdotL = max(dot(N, L), 0);
 		if (NdotL > 0) {			
 			const float mipLevel = ChetanJagsMipLevel(N, V, H, gRoughness);
-			const float3 color = gi_Environment.SampleLevel(gsamLinearClamp, L, mipLevel);
+			const float3 color = gi_Environment.SampleLevel(gsamLinearClamp, L, mipLevel).rgb;
 
 			prefilteredColor += color * NdotL;
 			totalWeight += NdotL;

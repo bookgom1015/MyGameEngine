@@ -9,13 +9,13 @@
 #include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConvertEquirectangularToCubeConstantBuffer>	cbCube	: register(b0);
+ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
 
 cbuffer cbRootConstants : register(b1) {
 	uint gFaceID;
 }
 
-Texture2D<float3> gi_Equirectangular : register(t0);
+Texture2D<HDR_FORMAT> gi_Equirectangular : register(t0);
 
 VERTEX_IN
 
@@ -31,9 +31,9 @@ VertexOut VS(VertexIn vin) {
 
 	vout.PosL = vin.PosL;
 
-	float4x4 view = cbCube.View[gFaceID];
-	float4 posV = mul(float4(vin.PosL, 1.0f), view);
-	float4 posH = mul(posV, cbCube.Proj);
+	float4x4 view = cb_Irrad.View[gFaceID];
+	float4 posV = mul(float4(vin.PosL, 1), view);
+	float4 posH = mul(posV, cb_Irrad.Proj);
 
 	vout.PosH = posH.xyww;
 
@@ -48,9 +48,9 @@ float2 SampleSphericalMap(float3 view) {
 	return texc;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
+HDR_FORMAT PS(VertexOut pin) : SV_Target{
 	float2 texc = SampleSphericalMap(normalize(pin.PosL));
-	float3 samp = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, 0);
+	float3 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc).rgb;
 	return float4(samp, 1);
 }
 
