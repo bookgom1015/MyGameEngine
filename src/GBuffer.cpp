@@ -7,7 +7,10 @@
 #include "RenderItem.h"
 #include "DxMesh.h"
 #include "Vertex.h"
+#include "ResourceUploadBatch.h"
+#include "DDSTextureLoader.h"
 
+using namespace DirectX;
 using namespace GBuffer;
 
 namespace {
@@ -53,11 +56,12 @@ BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
 
 	CD3DX12_DESCRIPTOR_RANGE texTables[1];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0, 0);
+	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0);
 
 	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignatureLayout::ECB_Obj].InitAsConstantBufferView(1);
 	slotRootParameter[RootSignatureLayout::ECB_Mat].InitAsConstantBufferView(2);
+	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootSignatureLayout::RootConstant::Count, 3);
 	slotRootParameter[RootSignatureLayout::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[0]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
@@ -113,7 +117,9 @@ void GBufferClass::Run(
 		UINT objCBByteSize,
 		UINT matCBByteSize,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-		const std::vector<RenderItem*>& ritems) {
+		const std::vector<RenderItem*>& ritems,
+		FLOAT maxDist,
+		FLOAT minDist) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
@@ -145,6 +151,9 @@ void GBufferClass::Run(
 	cmdList->ClearDepthStencilView(mhDepthMapCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
+
+	float values[RootSignatureLayout::RootConstant::Count] = { maxDist, minDist };
+	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
 
 	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_TexMaps, si_texMaps);
 	
@@ -265,6 +274,11 @@ void GBufferClass::BuildDescriptors() {
 	{
 		srvDesc.Format = PositionMapFormat;
 		rtvDesc.Format = PositionMapFormat;
+		md3dDevice->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
+		md3dDevice->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
+	}
+	{
+		srvDesc.Format = PositionMapFormat;
 		md3dDevice->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
 		md3dDevice->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
 	}

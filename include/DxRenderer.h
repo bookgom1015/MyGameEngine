@@ -93,6 +93,9 @@ public:
 	UINT AddTexture(const std::string& file, const Material& material);
 
 private:
+
+
+private:
 	BOOL CompileShaders();
 	BOOL BuildGeometries();
 

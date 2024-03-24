@@ -80,11 +80,6 @@ IrradianceMapClass::IrradianceMapClass() {
 
 	mIrradEquirectMapViewport = { 0.0f, 0.0f, static_cast<FLOAT>(EquirectangularMapWidth), static_cast<FLOAT>(EquirectangularMapHeight), 0.0f, 1.0f };
 	mIrradEquirectMapScissorRect = { 0, 0, static_cast<INT>(EquirectangularMapWidth), static_cast<INT>(EquirectangularMapHeight) };
-
-	bNeedToUpdate = false;
-	mNeedToSave = Save::E_None;
-
-	DrawCubeType = DrawCube::E_EnvironmentCube;
 }
 
 UINT IrradianceMapClass::Size() const {
@@ -506,23 +501,9 @@ BOOL IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, 
 	}
 
 	mTemporaryEquirectangularMap->Swap(tex->Resource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	mTemporaryEquirectangularMap->Resource()->SetName(L"TemporaryEquirectangularMap");
+	mTemporaryEquirectangularMap->Resource()->SetName(L"Irradiance_TemporaryEquirectangularMap");
 
-	{
-		auto desc = mTemporaryEquirectangularMap->GetDesc();
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-		srvDesc.Texture2D.MipLevels = desc.MipLevels;
-		srvDesc.Texture2D.PlaneSlice = 0;
-		srvDesc.Format = desc.Format;
-		md3dDevice->CreateShaderResourceView(mTemporaryEquirectangularMap->Resource(), &srvDesc, mhTemporaryEquirectangularMapCpuSrv);
-	}
 	bNeedToUpdate = TRUE;
-
 
 	return TRUE;
 }
@@ -561,6 +542,20 @@ BOOL IrradianceMapClass::Update(
 	}
 
 	if (!bNeedToUpdate) return TRUE;
+
+	{
+		auto desc = mTemporaryEquirectangularMap->GetDesc();
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+		srvDesc.Texture2D.MipLevels = desc.MipLevels;
+		srvDesc.Texture2D.PlaneSlice = 0;
+		srvDesc.Format = desc.Format;
+		md3dDevice->CreateShaderResourceView(mTemporaryEquirectangularMap->Resource(), &srvDesc, mhTemporaryEquirectangularMapCpuSrv);
+	}
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { descHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -953,7 +948,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"DiffuseIrradianceCubeMap"
+			L"Irradiance_DiffuseIrradianceCubeMap"
 		));
 
 		texDesc.MipLevels = MaxMipLevel;
@@ -965,7 +960,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"EnvironmentCubeMap"
+			L"Irradiance_EnvironmentCubeMap"
 		));
 
 		texDesc.MipLevels = MaxMipLevel;
@@ -977,7 +972,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"PrefilteredEnvironmentCubeMap"
+			L"Irradiance_PrefilteredEnvironmentCubeMap"
 		));
 	}
 	{
@@ -994,7 +989,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"DiffuseIrradianceEquirectangularMap"
+			L"Irradiance_DiffuseIrradianceEquirectangularMap"
 		));
 
 		texDesc.MipLevels = MaxMipLevel;
@@ -1006,7 +1001,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"EquirectangularMap"
+			L"Irradiance_EquirectangularMap"
 		));
 	}
 	{
@@ -1014,7 +1009,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 		texDesc.DepthOrArraySize = 1;
 		texDesc.MipLevels = 1;
 
-		wchar_t name[] = L"PrefilteredEnvironmentEquirectangularMap_";
+		wchar_t name[] = L"Irradiance_PrefilteredEnvironmentEquirectangularMap_";
 		for (UINT i = 0; i < MaxMipLevel; ++i) {
 			double denom = 1 / std::pow(2, i);
 			texDesc.Width = static_cast<UINT>(EquirectangularMapWidth * denom);
@@ -1048,7 +1043,7 @@ BOOL IrradianceMapClass::BuildResources(ID3D12GraphicsCommandList* const cmdList
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			L"IntegratedBRDFMap"
+			L"Irradiance_IntegratedBRDFMap"
 		));
 	}
 

@@ -16,9 +16,18 @@ namespace GBuffer {
 			ECB_Pass = 0,
 			ECB_Obj,
 			ECB_Mat,
+			EC_Consts,
 			ESI_TexMaps,
 			Count
 		};
+
+		namespace RootConstant {
+			enum {
+				EC_MaxDistance = 0,
+				EC_MinDistance,
+				Count
+			};
+		}
 	}
 
 	static const UINT NumRenderTargets = 7;
@@ -63,7 +72,7 @@ namespace GBuffer {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE PositionMapRtv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager, 
+		BOOL Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager,
 			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
@@ -78,7 +87,9 @@ namespace GBuffer {
 			UINT objCBByteSize,
 			UINT matCBByteSize,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-			const std::vector<RenderItem*>& ritems);
+			const std::vector<RenderItem*>& ritems,
+			FLOAT maxDist,
+			FLOAT minDist);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,

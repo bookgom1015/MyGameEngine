@@ -50,6 +50,13 @@ namespace {
 }
 
 namespace ShaderArgs {
+	namespace GBuffer {
+		namespace Dither {
+			FLOAT MaxDistance = 0.5f;
+			FLOAT MinDistance = 0.1f;
+		}
+	}
+
 	namespace Bloom {
 		FLOAT HighlightThreshold = 0.99f;
 		INT BlurCount = 3;
@@ -1800,7 +1807,9 @@ BOOL DxRenderer::DrawGBuffer() {
 		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
 		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
 		mhGpuDescForTexMaps,
-		mRitemRefs[RenderType::E_Opaque]
+		mRitemRefs[RenderType::E_Opaque],
+		ShaderArgs::GBuffer::Dither::MaxDistance,
+		ShaderArgs::GBuffer::Dither::MinDistance
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2670,6 +2679,14 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur));
 				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur));
 				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RaytracedReflection::Denoiser::LowTsppBlurPasses), 1, 8);
+
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::CollapsingHeader("Main Pass")) {
+			if (ImGui::TreeNode("Dithering Transparency")) {
+				ImGui::SliderFloat("Max Distance", &ShaderArgs::GBuffer::Dither::MaxDistance, 0.1f, 10.0f);
+				ImGui::SliderFloat("Min Distance", &ShaderArgs::GBuffer::Dither::MinDistance, 0.01f, 1.0f);
 
 				ImGui::TreePop();
 			}

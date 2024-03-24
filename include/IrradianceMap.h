@@ -299,7 +299,7 @@ namespace IrradianceMap {
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass);
 
 	public:
-		DrawCube::Type DrawCubeType;
+		DrawCube::Type DrawCubeType = DrawCube::E_EnvironmentCube;
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -353,8 +353,8 @@ namespace IrradianceMap {
 		D3D12_VIEWPORT mIrradEquirectMapViewport;
 		D3D12_RECT mIrradEquirectMapScissorRect;
 
-		BOOL bNeedToUpdate;
-		Save::Type mNeedToSave;
+		BOOL bNeedToUpdate = FALSE;
+		Save::Type mNeedToSave = Save::E_None;
 	};
 }
 
