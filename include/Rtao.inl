@@ -1,37 +1,37 @@
 #ifndef __RTAO_INL__
 #define __RTAO_INL__
 
-const Rtao::AOResourcesType& Rtao::RtaoClass::AOResources() const {
+const RTAO::AOResourcesType& RTAO::RTAOClass::AOResources() const {
 	return mAOResources;
 }
-const Rtao::AOResourcesGpuDescriptors& Rtao::RtaoClass::AOResourceGpuDescriptors() const {
+const RTAO::AOResourcesGpuDescriptors& RTAO::RTAOClass::AOResourceGpuDescriptors() const {
 	return mhAOResourcesGpus;
 }
 
-const Rtao::TemporalCachesType& Rtao::RtaoClass::TemporalCaches() const {
+const RTAO::TemporalCachesType& RTAO::RTAOClass::TemporalCaches() const {
 	return mTemporalCaches;
 }
-const Rtao::TemporalCachesGpuDescriptors& Rtao::RtaoClass::TemporalCacheGpuDescriptors() const {
+const RTAO::TemporalCachesGpuDescriptors& RTAO::RTAOClass::TemporalCacheGpuDescriptors() const {
 	return mhTemporalCachesGpus;
 }
 
-const Rtao::TemporalAOCoefficientsType& Rtao::RtaoClass::TemporalAOCoefficients() {
+const RTAO::TemporalAOCoefficientsType& RTAO::RTAOClass::TemporalAOCoefficients() {
 	return mTemporalAOCoefficients;
 }
-const Rtao::TemporalAOCoefficientsGpuDescriptors& Rtao::RtaoClass::TemporalAOCoefficientGpuDescriptors() const {
+const RTAO::TemporalAOCoefficientsGpuDescriptors& RTAO::RTAOClass::TemporalAOCoefficientGpuDescriptors() const {
 	return mhTemporalAOCoefficientsGpus;
 }
 
-constexpr UINT Rtao::RtaoClass::TemporalCurrentFrameResourceIndex() const {
+constexpr UINT RTAO::RTAOClass::TemporalCurrentFrameResourceIndex() const {
 	return mTemporalCurrentFrameResourceIndex;
 }
 
-constexpr UINT Rtao::RtaoClass::TemporalCurrentFrameTemporalAOCoefficientResourceIndex() const {
+constexpr UINT RTAO::RTAOClass::TemporalCurrentFrameTemporalAOCoefficientResourceIndex() const {
 	return mTemporalCurrentFrameTemporalAOCeofficientResourceIndex;
 }
 
-constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Rtao::RtaoClass::ResolvedAOCoefficientSrv() const {
-	return mhTemporalAOCoefficientsGpus[mTemporalCurrentFrameTemporalAOCeofficientResourceIndex][Rtao::Descriptor::TemporalAOCoefficient::Srv];
+constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RTAO::RTAOClass::ResolvedAOCoefficientSrv() const {
+	return mhTemporalAOCoefficientsGpus[mTemporalCurrentFrameTemporalAOCeofficientResourceIndex][RTAO::Descriptor::TemporalAOCoefficient::Srv];
 }
 
 #endif // __RTAO_INL__

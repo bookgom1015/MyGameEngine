@@ -13,7 +13,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 #include "CrossBilateralWeights.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 #include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_CrossBilateralFilter> cb_Reproject : register (b0);
@@ -129,10 +129,10 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	// Invalidate weights for invalid values in the cache.
 	float4 vCacheValues = gi_CachedValue.GatherRed(gsamPointClamp, adjustedCacheTex).wzxy;
-	weights = vCacheValues != Rtao::InvalidAOCoefficientValue ? weights : 0;
+	weights = vCacheValues != RTAO::InvalidAOCoefficientValue ? weights : 0;
 	float weightSum = dot(1, weights);
 
-	float cachedValue = Rtao::InvalidAOCoefficientValue;
+	float cachedValue = RTAO::InvalidAOCoefficientValue;
 	float cachedValueSquaredMean = 0;
 	float cachedRayHitDist = 0;
 

@@ -200,7 +200,7 @@ private:
 	std::unique_ptr<Pixelation::PixelationClass> mPixelation;
 	std::unique_ptr<Sharpen::SharpenClass> mSharpen;
 	std::unique_ptr<GaussianFilter::GaussianFilterClass> mGaussianFilter;
-	std::unique_ptr<RaytracedReflection::RaytracedReflectionClass> mRr;
+	std::unique_ptr<RaytracedReflection::RaytracedReflectionClass> mRR;
 	std::unique_ptr<SVGF::SVGFClass> mSVGF;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
@@ -234,7 +234,7 @@ private:
 
 	std::unique_ptr<DXR_Shadow::DXR_ShadowClass> mDxrShadow;
 	std::unique_ptr<BlurFilterCS::BlurFilterCSClass> mBlurFilterCS;
-	std::unique_ptr<Rtao::RtaoClass> mRtao;
+	std::unique_ptr<RTAO::RTAOClass> mRTAO;
 
 	Light mLights[MaxLights];
 	UINT mLightCount = 0;

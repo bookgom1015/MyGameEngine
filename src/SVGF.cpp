@@ -270,6 +270,7 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::AtrousWaveletTransformFilter::Count];
 		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ECB_AtrousFilter].InitAsConstantBufferView(0, 0);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::EC_Consts].InitAsConstants(RootSignature::AtrousWaveletTransformFilter::RootConstant::Count, 1);
 		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_TemporalAOCoefficient].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
 		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_Variance].InitAsDescriptorTable(1, &texTables[2]);
@@ -701,21 +702,26 @@ void SVGFClass::BlendWithCurrentFrame(
 }
 
 void SVGFClass::ApplyAtrousWaveletTransformFilter(
-		ID3D12GraphicsCommandList4* const cmdList,
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_temporalValue,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
-		D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
-		D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalValue,
-		UINT width, UINT height,
-		Value::Type type,
-		bool useSmoothingVar) {
+	ID3D12GraphicsCommandList4* const cmdList,
+	D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
+	D3D12_GPU_DESCRIPTOR_HANDLE si_temporalValue,
+	D3D12_GPU_DESCRIPTOR_HANDLE si_normalDepth,
+	D3D12_GPU_DESCRIPTOR_HANDLE si_hitDistance,
+	D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
+	D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalValue,
+	UINT width, UINT height,
+	FLOAT rayHitDistToKernelWidthScale,
+	FLOAT rayHitDistToKernelSizeScaleExp,
+	Value::Type type,
+	bool useSmoothingVar) {
 	if (type == Value::E_Contrast) cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_Contrast].Get());
 	else cmdList->SetPipelineState(mPsos[PipelineState::E_AtrousWaveletTransformFilter_HDR].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get());
 
 	const auto si_variance = mhVarianceResourcesGpus[useSmoothingVar ? SVGF::Descriptor::Variance::ES_Smoothed : SVGF::Descriptor::Variance::ES_Raw];
+
+	FLOAT values[RootSignature::AtrousWaveletTransformFilter::RootConstant::Count] = { rayHitDistToKernelWidthScale, rayHitDistToKernelSizeScaleExp };
+	cmdList->SetComputeRoot32BitConstants(RootSignature::AtrousWaveletTransformFilter::EC_Consts, _countof(values), values, 0);
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::AtrousWaveletTransformFilter::ECB_AtrousFilter, cbAddress);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::AtrousWaveletTransformFilter::ESI_TemporalAOCoefficient, si_temporalValue);

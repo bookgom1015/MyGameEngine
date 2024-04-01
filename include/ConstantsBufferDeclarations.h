@@ -169,18 +169,15 @@ struct ConstantBuffer_AtrousWaveletTransformFilter {
 	UINT MinKernelWidth;
 	UINT MaxKernelWidth;
 
-	FLOAT RayHitDistanceToKernelWidthScale;
-	FLOAT RayHitDistanceToKernelSizeScaleExponent;
 	BOOL PerspectiveCorrectDepthInterpolation;
 	FLOAT MinVarianceToDenoise;
+	UINT DepthNumMantissaBits;
+	FLOAT ConstantPad;
 
 	FLOAT ValueSigma;
 	FLOAT DepthSigma;
 	FLOAT NormalSigma;
 	FLOAT FovY;
-
-	UINT DepthNumMantissaBits;
-	FLOAT ConstantPads[3];
 };
 
 struct DebugMapSampleDesc {

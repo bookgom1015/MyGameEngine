@@ -213,9 +213,6 @@
     <ClInclude Include="..\..\include\DxRenderer.h">
       <Filter>Header Files\Render\DirectX</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\VkLowRenderer.h">
-      <Filter>Header Files\Render\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\VkRenderer.h">
       <Filter>Header Files\Render\Vulkan</Filter>
     </ClInclude>
@@ -339,7 +336,7 @@
     <ClInclude Include="..\..\include\BlurFilterCS.h">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Rtao.h">
+    <ClInclude Include="..\..\include\RTAO.h">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\DebugCollision.h">
@@ -389,6 +386,9 @@
     </ClInclude>
     <ClInclude Include="..\..\include\Light.h">
       <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\VkLowRenderer.h">
+      <Filter>Header Files\Render\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -554,7 +554,7 @@
     <ClCompile Include="..\..\src\BlurFilterCS.cpp">
       <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Rtao.cpp">
+    <ClCompile Include="..\..\src\RTAO.cpp">
       <Filter>Source Files\Render\DirectX\Shading\DXR</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\DebugCollision.cpp">
@@ -695,7 +695,7 @@
     <None Include="..\..\assets\shaders\hlsl\DxrShadingHelpers.hlsli">
       <Filter>Shader Files\HLSL\DXR</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Rtao.hlsli">
+    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli">
@@ -728,13 +728,13 @@
     <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_Contrast.hlsl">
       <Filter>Shader Files\HLSL\DXR\Denoising\Temporal</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Rtao.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsl">
       <Filter>Shader Files\HLSL\DXR\RTAO</Filter>
     </None>
     <None Include="..\..\include\Renderer.inl">
       <Filter>Header Files\Render</Filter>
     </None>
-    <None Include="..\..\include\Rtao.inl">
+    <None Include="..\..\include\RTAO.inl">
       <Filter>Header Files\Render\DirectX\Shading\DXR</Filter>
     </None>
     <None Include="..\..\include\SSR.inl">

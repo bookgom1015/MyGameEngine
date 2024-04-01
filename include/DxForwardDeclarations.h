@@ -14,7 +14,7 @@ namespace DebugMap { class DebugMapClass; }
 namespace DXR_Shadow { class DXR_ShadowClass; }
 namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
 namespace BlurFilterCS { class BlurFilterCSClass; }
-namespace Rtao { class RtaoClass; }
+namespace RTAO { class RTAOClass; }
 namespace DebugCollision { class DebugCollisionClass; }
 namespace GammaCorrection { class GammaCorrectionClass; }
 namespace ToneMapping { class ToneMappingClass; }

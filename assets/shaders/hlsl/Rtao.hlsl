@@ -10,7 +10,7 @@
 #include "DxrShadingHelpers.hlsli"
 #include "RandGenerator.hlsli"
 #include "Samplers.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
@@ -23,7 +23,7 @@ struct RayPayload {
 	float tHit;
 };
 
-ConstantBuffer<ConstantBuffer_RTAO> cbRtao : register(b0);
+ConstantBuffer<ConstantBuffer_RTAO> cb_RTAO : register(b0);
 
 // Nonnumeric values cannot be added to a cbuffer.
 RaytracingAccelerationStructure				gBVH			: register(t0);
@@ -58,16 +58,16 @@ bool TraceAORayAndReportIfHit(out float tHit, Ray aoRay, float TMax, float3 surf
 
 	tHit = payload.tHit;
 
-	return Rtao::HasAORayHitAnyGeometry(tHit);
+	return RTAO::HasAORayHitAnyGeometry(tHit);
 }
 
 float CalculateAO(out float tHit, uint2 launchIndex, Ray aoRay, float3 surfaceNormal) {
 	float occlusion = 0;
-	const float TMax = cbRtao.OcclusionRadius;
+	const float TMax = cb_RTAO.OcclusionRadius;
 	if (TraceAORayAndReportIfHit(tHit, aoRay, TMax, surfaceNormal)) {
 		float3 hitPosition = aoRay.Origin + tHit * aoRay.Direction;
 		float distZ = distance(aoRay.Origin, hitPosition);
-		occlusion = OcclusionFunction(distZ, cbRtao.SurfaceEpsilon, cbRtao.OcclusionFadeStart, cbRtao.OcclusionFadeEnd);
+		occlusion = OcclusionFunction(distZ, cb_RTAO.SurfaceEpsilon, cb_RTAO.OcclusionFadeStart, cb_RTAO.OcclusionFadeEnd);
 	}
 	return occlusion;
 }
@@ -81,13 +81,13 @@ void RTAO_RayGen() {
 	float depth;
 	DecodeNormalDepth(gi_NormalDepth[launchIndex], surfaceNormal, depth);
 
-	float tHit = Rtao::RayHitDistanceOnMiss;
-	float ambientCoef = Rtao::InvalidAOCoefficientValue;
+	float tHit = RTAO::RayHitDistanceOnMiss;
+	float ambientCoef = RTAO::InvalidAOCoefficientValue;
 
-	if (depth != Rtao::RayHitDistanceOnMiss) {
+	if (depth != RTAO::RayHitDistanceOnMiss) {
 		float3 hitPosition = gi_Position[launchIndex].xyz;
 
-		uint seed = InitRand(launchIndex.x + launchIndex.y * dimensions.x, cbRtao.FrameCount);
+		uint seed = InitRand(launchIndex.x + launchIndex.y * dimensions.x, cb_RTAO.FrameCount);
 
 		float3 direction = CosHemisphereSample(seed, surfaceNormal);
 		float flip = sign(dot(direction, surfaceNormal));
@@ -95,17 +95,17 @@ void RTAO_RayGen() {
 
 		float occlusionSum = 0;
 
-		for (int i = 0; i < cbRtao.SampleCount; ++i) {
+		for (int i = 0; i < cb_RTAO.SampleCount; ++i) {
 			Ray aoRay = { hitPosition, direction };
 			occlusionSum += CalculateAO(tHit, launchIndex, aoRay, surfaceNormal);
 		}
 
-		occlusionSum /= cbRtao.SampleCount;
+		occlusionSum /= cb_RTAO.SampleCount;
 		ambientCoef = 1 - occlusionSum;
 	}
 
 	go_AOCoefficient[launchIndex] = ambientCoef;
-	go_RayHitDistance[launchIndex] = Rtao::HasAORayHitAnyGeometry(tHit) ? tHit : cbRtao.OcclusionRadius;
+	go_RayHitDistance[launchIndex] = RTAO::HasAORayHitAnyGeometry(tHit) ? tHit : cb_RTAO.OcclusionRadius;
 }
 
 [shader("closesthit")]
@@ -115,7 +115,7 @@ void RTAO_ClosestHit(inout RayPayload payload, Attributes attrib) {
 
 [shader("miss")]
 void RTAO_Miss(inout RayPayload payload) {
-	payload.tHit = Rtao::RayHitDistanceOnMiss;
+	payload.tHit = RTAO::RayHitDistanceOnMiss;
 }
 
 #endif // __RTAO_HLSL__

@@ -20,7 +20,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 #include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance> cb_LocalMeanVar : register(b0);
@@ -63,7 +63,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 		// Load all the contributing columns for each row.
 		int2 pixel = GetActivePixelIndex(KernelBasePixel + GTid4x16 * int2(1, cb_LocalMeanVar.PixelStepY));
-		float value = Rtao::InvalidAOCoefficientValue;
+		float value = RTAO::InvalidAOCoefficientValue;
 
 		// The lane is out of bounds of the GroupDim * kernel, but could be within bounds of the input texture, so don't read it form the texture.
 		// However, we need to keep it as an active lane for a below split sum.
@@ -82,7 +82,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Initialize the first 8 lanes to the first cell contribution of the kernel.
 			// This covers the remainder of 1 in cb_LocalMeanVar.KernelWidth / 2 used in the loop below.
-			if (GTid4x16.x < GroupDim.x && value != Rtao::InvalidAOCoefficientValue) {
+			if (GTid4x16.x < GroupDim.x && value != RTAO::InvalidAOCoefficientValue) {
 				valueSum = value;
 				squaredValueSum = value * value;
 				++numValues;
@@ -96,7 +96,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 				uint laneToReadFrom = RowKernelStartLaneIndex + c;
 				float cValue = WaveReadLaneAt(value, laneToReadFrom);
 
-				if (cValue != Rtao::InvalidAOCoefficientValue) {
+				if (cValue != RTAO::InvalidAOCoefficientValue) {
 					valueSum += cValue;
 					squaredValueSum += cValue * cValue;
 					++numValues;
@@ -153,7 +153,7 @@ void FilterVertically(uint2 DTid, uint2 GTid) {
 
 	variance = max(0, variance); // Ensure variance doesn't go negative due to imprecision.
 
-	go_LocalMeanVariance[pixel] = numValues > 0 ? float2(mean, variance) : Rtao::InvalidAOCoefficientValue;
+	go_LocalMeanVariance[pixel] = numValues > 0 ? float2(mean, variance) : RTAO::InvalidAOCoefficientValue;
 }
 
 [numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]

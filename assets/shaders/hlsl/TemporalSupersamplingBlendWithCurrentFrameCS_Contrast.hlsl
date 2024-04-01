@@ -11,7 +11,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 #include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame> cb_Blend : register(b0);
@@ -42,9 +42,9 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		isCurrentFrameValueActive = cb_Blend.CheckerboardEvenPixelActivated == isEvenPixel;
 	}
 
-	float value = isCurrentFrameValueActive ? gi_CurrentFrameValue[DTid] : Rtao::InvalidAOCoefficientValue;
-	const bool IsValidValue = value != Rtao::InvalidAOCoefficientValue;
-	float valueSquaredMean = IsValidValue ? value * value : Rtao::InvalidAOCoefficientValue;
+	float value = isCurrentFrameValueActive ? gi_CurrentFrameValue[DTid] : RTAO::InvalidAOCoefficientValue;
+	const bool IsValidValue = value != RTAO::InvalidAOCoefficientValue;
+	float valueSquaredMean = IsValidValue ? value * value : RTAO::InvalidAOCoefficientValue;
 	float rayHitDistance = 0;
 	float variance = 0;
 

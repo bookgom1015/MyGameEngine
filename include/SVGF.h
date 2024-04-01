@@ -122,6 +122,7 @@ namespace SVGF {
 		namespace AtrousWaveletTransformFilter {
 			enum {
 				ECB_AtrousFilter = 0,
+				EC_Consts,
 				ESI_TemporalAOCoefficient,
 				ESI_NormalDepth,
 				ESI_Variance,
@@ -131,6 +132,14 @@ namespace SVGF {
 				EUO_TemporalAOCoefficient,
 				Count
 			};
+
+			namespace RootConstant {
+				enum {
+					E_RayHitDistToKernelWidthScale = 0,
+					E_RayHitDistToKernelSizeScaleExp,
+					Count
+				};
+			}
 		}
 
 		namespace DisocclusionBlur {
@@ -351,6 +360,8 @@ namespace SVGF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_tspp,
 			D3D12_GPU_DESCRIPTOR_HANDLE uo_temporalValue,
 			UINT width, UINT height,
+			FLOAT rayHitDistToKernelWidthScale,
+			FLOAT rayHitDistToKernelSizeScaleExp,
 			Value::Type type,
 			bool useSmoothingVar);
 		void BlurDisocclusion(

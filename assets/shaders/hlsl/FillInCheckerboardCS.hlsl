@@ -13,7 +13,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 
 ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance> cb_LocalMeanVar : register(b0);
 
@@ -40,9 +40,9 @@ void CS(uint2 dispatchThreadID : SV_DispatchThreadID) {
 	}
 
 	// Average valid inputs.
-	float4 weights = inValues4x2._11_21_31_41 != Rtao::InvalidAOCoefficientValue;
+	float4 weights = inValues4x2._11_21_31_41 != RTAO::InvalidAOCoefficientValue;
 	float weightSum = dot(1, weights);
-	float2 filteredValue = weightSum > 0.001f ? mul(weights, inValues4x2) / weightSum : Rtao::InvalidAOCoefficientValue;
+	float2 filteredValue = weightSum > 0.001f ? mul(weights, inValues4x2) / weightSum : RTAO::InvalidAOCoefficientValue;
 
 	gioLocalMeanVarianceMap[pixel] = filteredValue;
 }

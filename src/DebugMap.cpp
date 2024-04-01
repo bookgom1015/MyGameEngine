@@ -111,7 +111,7 @@ void DebugMapClass::Run(
 		RootSignature::RootConstant::E_SampleMask0
 	);
 
-	for (INT i = 0; i < mNumEnabledMaps; ++i) {
+	for (UINT i = 0; i < mNumEnabledMaps; ++i) {
 		if (mDebugMasks[i] == SampleMask::UINT) 
 			cmdList->SetGraphicsRootDescriptorTable(static_cast<UINT>(RootSignature::ESI_Debug0_uint + i), mhDebugGpuSrvs[i]);
 		else

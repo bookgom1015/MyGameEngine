@@ -1,4 +1,4 @@
-#include "Rtao.h"
+#include "RTAO.h"
 #include "Logger.h"
 #include "D3D12Util.h"
 #include "ShaderManager.h"
@@ -10,7 +10,7 @@
 #undef max
 
 using namespace DirectX;
-using namespace Rtao;
+using namespace RTAO;
 
 namespace {
 	const CHAR* const CS_RTAO = "CS_RTAO";
@@ -25,7 +25,7 @@ namespace {
 	const CHAR* const HitGroupShaderTableName	= "HitGroupShaderTable";
 }
 
-RtaoClass::RtaoClass() {
+RTAOClass::RTAOClass() {
 	for (INT i = 0; i < Resource::AO::Count; ++i) {
 		mAOResources[i] = std::make_unique<GpuResource>();
 	}
@@ -38,7 +38,7 @@ RtaoClass::RtaoClass() {
 	}
 };
 
-BOOL RtaoClass::Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height) {
+BOOL RTAOClass::Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -47,15 +47,15 @@ BOOL RtaoClass::Initialize(ID3D12Device5* const device, ShaderManager* const man
 	return TRUE;
 }
 
-BOOL RtaoClass::CompileShaders(const std::wstring& filePath) {
-	const auto path = filePath + L"Rtao.hlsl";
+BOOL RTAOClass::CompileShaders(const std::wstring& filePath) {
+	const auto path = filePath + L"RTAO.hlsl";
 	auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3");
 	CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_RTAO));
 
 	return TRUE;
 }
 
-BOOL RtaoClass::BuildRootSignatures(const StaticSamplers& samplers) {
+BOOL RTAOClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Ray-traced ambient occlusion
 	CD3DX12_DESCRIPTOR_RANGE texTables[5];
 	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
@@ -84,7 +84,7 @@ BOOL RtaoClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	return TRUE;
 }
 
-BOOL RtaoClass::BuildPSO() {
+BOOL RTAOClass::BuildPSO() {
 	CD3DX12_STATE_OBJECT_DESC rtaoDxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
 	auto rtaoLib = rtaoDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
@@ -117,7 +117,7 @@ BOOL RtaoClass::BuildPSO() {
 	return TRUE;
 }
 
-BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
+BOOL RTAOClass::BuildShaderTables(UINT numRitems) {
 #ifdef _DEBUG
 	// A shader name look-up table for shader table debug print out.
 	std::unordered_map<void*, std::wstring> shaderIdToStringMap;
@@ -182,7 +182,7 @@ BOOL RtaoClass::BuildShaderTables(UINT numRitems) {
 	return TRUE;
 }
 
-void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void RTAOClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	for (UINT i = 0; i < Descriptor::AO::Count; ++i) {
 		mhAOResourcesCpus[i] = hCpu.Offset(1, descSize);
 		mhAOResourcesGpus[i] = hGpu.Offset(1, descSize);
@@ -203,14 +203,14 @@ void RtaoClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 	BuildDescriptors();	
 }
 
-BOOL RtaoClass::OnResize(UINT width, UINT height) {
+BOOL RTAOClass::OnResize(UINT width, UINT height) {
 	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
 	return TRUE;
 }
 
-void RtaoClass::RunCalculatingAmbientOcclusion(
+void RTAOClass::RunCalculatingAmbientOcclusion(
 		ID3D12GraphicsCommandList4* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS accelStruct,
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
@@ -221,7 +221,7 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	cmdList->SetPipelineState1(mDxrPso.Get());
 	cmdList->SetComputeRootSignature(mRootSignature.Get());
 
-	const auto& aoCoeff = mAOResources[Rtao::Resource::AO::E_AmbientCoefficient].get();
+	const auto& aoCoeff = mAOResources[RTAO::Resource::AO::E_AmbientCoefficient].get();
 	aoCoeff->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarrier(cmdList, aoCoeff);
 
@@ -231,8 +231,8 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_Pos, si_pos);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_Normal, si_normal);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_Depth, si_depth);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_AOCoefficient, mhAOResourcesGpus[Rtao::Descriptor::AO::EU_AmbientCoefficient]);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_RayHitDistance, mhAOResourcesGpus[Rtao::Descriptor::AO::EU_RayHitDistance]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_AOCoefficient, mhAOResourcesGpus[RTAO::Descriptor::AO::EU_AmbientCoefficient]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_RayHitDistance, mhAOResourcesGpus[RTAO::Descriptor::AO::EU_RayHitDistance]);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	const auto& rayGen = mShaderTables[RayGenShaderTableName];
@@ -255,17 +255,17 @@ void RtaoClass::RunCalculatingAmbientOcclusion(
 	D3D12Util::UavBarrier(cmdList, aoCoeff);
 }
 
-UINT RtaoClass::MoveToNextFrame() {
+UINT RTAOClass::MoveToNextFrame() {
 	mTemporalCurrentFrameResourceIndex = (mTemporalCurrentFrameResourceIndex + 1) % 2;
 	return mTemporalCurrentFrameResourceIndex;
 }
 
-UINT RtaoClass::MoveToNextFrameTemporalAOCoefficient() {
+UINT RTAOClass::MoveToNextFrameTemporalAOCoefficient() {
 	mTemporalCurrentFrameTemporalAOCeofficientResourceIndex = (mTemporalCurrentFrameTemporalAOCeofficientResourceIndex + 1) % 2;
 	return mTemporalCurrentFrameTemporalAOCeofficientResourceIndex;
 }
 
-void RtaoClass::BuildDescriptors() {
+void RTAOClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -345,7 +345,7 @@ void RtaoClass::BuildDescriptors() {
 	}
 }
 
-BOOL RtaoClass::BuildResources(UINT width, UINT height) {
+BOOL RTAOClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;

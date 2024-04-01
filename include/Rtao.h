@@ -10,7 +10,7 @@
 class ShaderManager;
 class GpuResource;
 
-namespace Rtao {
+namespace RTAO {
 	namespace RootSignature {
 		enum {
 			ESI_AccelerationStructure = 0,
@@ -89,10 +89,10 @@ namespace Rtao {
 
 	const FLOAT AmbientMapClearValues[1] = { 1.0f };
 
-	class RtaoClass {
+	class RTAOClass {
 	public:
-		RtaoClass();
-		virtual ~RtaoClass() = default;
+		RTAOClass();
+		virtual ~RTAOClass() = default;
 
 	public:
 		__forceinline const AOResourcesType& AOResources() const;
@@ -144,17 +144,17 @@ namespace Rtao {
 
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
 
-		Rtao::AOResourcesType mAOResources;
-		Rtao::AOResourcesCpuDescriptors mhAOResourcesCpus;
-		Rtao::AOResourcesGpuDescriptors mhAOResourcesGpus;
+		RTAO::AOResourcesType mAOResources;
+		RTAO::AOResourcesCpuDescriptors mhAOResourcesCpus;
+		RTAO::AOResourcesGpuDescriptors mhAOResourcesGpus;
 
-		Rtao::TemporalCachesType mTemporalCaches;
-		Rtao::TemporalCachesCpuDescriptors mhTemporalCachesCpus;
-		Rtao::TemporalCachesGpuDescriptors mhTemporalCachesGpus;
+		RTAO::TemporalCachesType mTemporalCaches;
+		RTAO::TemporalCachesCpuDescriptors mhTemporalCachesCpus;
+		RTAO::TemporalCachesGpuDescriptors mhTemporalCachesGpus;
 
-		Rtao::TemporalAOCoefficientsType mTemporalAOCoefficients;
-		Rtao::TemporalAOCoefficientsCpuDescriptors mhTemporalAOCoefficientsCpus;
-		Rtao::TemporalAOCoefficientsGpuDescriptors mhTemporalAOCoefficientsGpus;
+		RTAO::TemporalAOCoefficientsType mTemporalAOCoefficients;
+		RTAO::TemporalAOCoefficientsCpuDescriptors mhTemporalAOCoefficientsCpus;
+		RTAO::TemporalAOCoefficientsGpuDescriptors mhTemporalAOCoefficientsGpus;
 
 		UINT mTemporalCurrentFrameResourceIndex = 0;
 		UINT mTemporalCurrentFrameTemporalAOCeofficientResourceIndex = 0;
@@ -163,4 +163,4 @@ namespace Rtao {
 	};
 }
 
-#include "Rtao.inl"
+#include "RTAO.inl"

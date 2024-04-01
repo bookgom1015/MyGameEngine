@@ -7,7 +7,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 #include "RaytracedReflection.hlsli"
 
 #define GAUSSIAN_KERNEL_3X3
@@ -59,7 +59,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 		// Load all the contributing columns for each row.
 		int2 pixel = GroupKernelBasePixel + GTid4x16 * gStep;
-		float value = Rtao::InvalidAOCoefficientValue;
+		float value = RTAO::InvalidAOCoefficientValue;
 		float depth = 0;
 
 		// The lane is out of bounds of the GroupDim + kernel, but could be within bounds of the input texture,
@@ -102,7 +102,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 			// Initialize the first 8 lanes to the center cell contribution of the kernel.
 			// This covers the remainder of 1 in FilterKernel::Width / 2 used in the loop below.
 			{
-				if (GTid4x16.x < GroupDim.x && kcValue != Rtao::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue) {
+				if (GTid4x16.x < GroupDim.x && kcValue != RTAO::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue) {
 					float w_h = FilterKernel::Kernel1D[FilterKernel::Radius];
 					gaussianWeightedValueSum = w_h * kcValue;
 					gaussianWeightedSum = w_h;
@@ -123,7 +123,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 				float cValue = WaveReadLaneAt(value, laneToReadFrom);
 				float cDepth = WaveReadLaneAt(depth, laneToReadFrom);
 
-				if (cValue != Rtao::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue && cDepth != GBuffer::InvalidNormDepthValue) {
+				if (cValue != RTAO::InvalidAOCoefficientValue && kcDepth != GBuffer::InvalidNormDepthValue && cDepth != GBuffer::InvalidNormDepthValue) {
 					float w_h = FilterKernel::Kernel1D[kernelCellIndex];
 
 					// Simple depth test with tolerance growing as the kernel radius increases.
@@ -149,7 +149,7 @@ void FilterHorizontally(uint2 Gid, uint GI) {
 
 			// Store only the valid results, i.e. first GroupDim columns.
 			if (GTid4x16.x < GroupDim.x) {
-				float gaussianFilteredValue = gaussianWeightedSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightedSum : Rtao::InvalidAOCoefficientValue;
+				float gaussianFilteredValue = gaussianWeightedSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightedSum : RTAO::InvalidAOCoefficientValue;
 				float filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
 
 				FilteredResultCache[GTid4x16.y][GTid4x16.x] = filteredValue;
@@ -178,7 +178,7 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 			float rDepth = PackedDepthCache[rowID][GTid.x];
 			float rFilteredValue = FilteredResultCache[rowID][GTid.x];
 
-			if (rDepth != GBuffer::InvalidNormDepthValue && rFilteredValue != Rtao::InvalidAOCoefficientValue) {
+			if (rDepth != GBuffer::InvalidNormDepthValue && rFilteredValue != RTAO::InvalidAOCoefficientValue) {
 				float w_h = FilterKernel::Kernel1D[r];
 
 				// Simple depth test with tolerance growing as the kernel radius increases.
@@ -195,9 +195,9 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 			}
 		}
 
-		float gaussianFilteredValue = gaussianWeightSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightSum : Rtao::InvalidAOCoefficientValue;
+		float gaussianFilteredValue = gaussianWeightSum > 1e-6 ? gaussianWeightedValueSum / gaussianWeightSum : RTAO::InvalidAOCoefficientValue;
 		filteredValue = weightSum > 1e-6 ? weightedValueSum / weightSum : gaussianFilteredValue;
-		filteredValue = filteredValue != Rtao::InvalidAOCoefficientValue ? lerp(kcValue, filteredValue, blurStrength) : filteredValue;
+		filteredValue = filteredValue != RTAO::InvalidAOCoefficientValue ? lerp(kcValue, filteredValue, blurStrength) : filteredValue;
 	}
 
 	gio_Value[DTid] = filteredValue;

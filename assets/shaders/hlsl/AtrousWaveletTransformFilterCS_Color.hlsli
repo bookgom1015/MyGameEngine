@@ -8,10 +8,15 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Kernels.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
 #include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_AtrousWaveletTransformFilter> cb_Atrous : register(b0);
+
+cbuffer cbRootConstants : register(b1) {
+	float gRayHitDistanceToKernelWidthScale;
+	float gRayHitDistanceToKernelSizeScaleExponent;
+}
 
 Texture2D<SVGF::ValueMapFormat_HDR>					gi_Value					: register(t0);
 Texture2D<GBuffer::NormalDepthMapFormat>			gi_NormalDepth				: register(t1);
@@ -160,7 +165,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 			// This is because average ray hit distance grows large fast if the closeby occluders cover only part if the hemisphere.
 			// Having a smaller kernel for such cases helps preserve occlusion detail.
 			float t = min(avgRayHitDistance / 22.0, 1); // 22 was seleted emprically.
-			float k = cb_Atrous.RayHitDistanceToKernelWidthScale * pow(t, cb_Atrous.RayHitDistanceToKernelSizeScaleExponent);
+			float k = gRayHitDistanceToKernelWidthScale * pow(t, gRayHitDistanceToKernelSizeScaleExponent);
 			kernelStep = max(1, round(k * avgRayHitDistance / projectedSurfaceDim));
 
 			uint2 targetKernelStep = clamp(kernelStep, (cb_Atrous.MinKernelWidth - 1) / 2, (cb_Atrous.MaxKernelWidth - 1) / 2);

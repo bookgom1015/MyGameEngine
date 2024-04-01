@@ -40,17 +40,18 @@ BOOL FreeLookActor::ProcessActorInput(const InputState& input) {
 	mForwardSpeed = 0.0f;
 	mStrapeSpeed = 0.0f;
 	
-	if (input.Keyboard.GetKeyValue(VK_W)) mForwardSpeed += 1.0f;
-	if (input.Keyboard.GetKeyValue(VK_S)) mForwardSpeed += -1.0f;
-	if (input.Keyboard.GetKeyValue(VK_A)) mStrapeSpeed += -1.0f;
-	if (input.Keyboard.GetKeyValue(VK_D)) mStrapeSpeed += 1.0f;
+	float speed = 1.0f;
+	if (input.Keyboard.GetKeyValue(VK_LSHIFT)) speed *= 0.1f;
+
+	if (input.Keyboard.GetKeyValue(VK_W)) mForwardSpeed	+= speed;
+	if (input.Keyboard.GetKeyValue(VK_S)) mForwardSpeed	+= -speed;
+	if (input.Keyboard.GetKeyValue(VK_A)) mStrapeSpeed	+= -speed;
+	if (input.Keyboard.GetKeyValue(VK_D)) mStrapeSpeed	+= speed;
 	
 	mLookUpSpeed = input.Mouse.GetMouseDelta().y;
 	mTurnSpeed = input.Mouse.GetMouseDelta().x;
-	//Logln("Look", std::to_string(mLookUpSpeed));
-	//Logln("Turn", std::to_string(mTurnSpeed));
 
-	return true;
+	return TRUE;
 }
 
 BOOL FreeLookActor::UpdateActor(FLOAT delta) {
@@ -67,7 +68,7 @@ BOOL FreeLookActor::UpdateActor(FLOAT delta) {
 	mCameraComp->Yaw(yaw);
 	mCameraComp->Pitch(pitch);
 
-	return true;
+	return TRUE;
 }
 
 const XMVECTOR& FreeLookActor::GetCameraForwardVector() const {

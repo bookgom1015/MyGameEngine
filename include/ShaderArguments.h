@@ -278,7 +278,7 @@ namespace SVGF {
 }
 }
 
-namespace Rtao {
+namespace RTAO {
 #ifdef HLSL
 	typedef CONTRAST_VALUE_FORMAT				AOCoefficientMapFormat;
 	typedef COMPACT_NORMAL_DEPTH_DXGI_FORMAT	NormalDepthMapFormat;

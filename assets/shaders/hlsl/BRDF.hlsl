@@ -20,7 +20,7 @@ Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t3);
 Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t4);
 #ifdef DXR
 Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow		: register(t5);
-Texture2D<Rtao::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
+Texture2D<RTAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
 #else
 Texture2D<Shadow::ShadowMapFormat>						gi_Shadow		: register(t5);
 Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
