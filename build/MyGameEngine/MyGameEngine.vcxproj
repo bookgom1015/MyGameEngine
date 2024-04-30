@@ -164,6 +164,7 @@
     </ClInclude>
     <ClInclude Include="..\..\include\Actor.h" />
     <ClInclude Include="..\..\include\ActorManager.h" />
+    <ClInclude Include="..\..\include\BoxActor.h" />
     <ClInclude Include="..\..\include\BRDF.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='VkRelease|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='VkDebug|x64'">true</ExcludedFromBuild>
@@ -183,6 +184,7 @@
     </ClInclude>
     <ClInclude Include="..\..\include\Camera.h" />
     <ClInclude Include="..\..\include\CameraComponent.h" />
+    <ClInclude Include="..\..\include\CastleActor.h" />
     <ClInclude Include="..\..\include\Component.h" />
     <ClInclude Include="..\..\include\ConstantsBufferDeclarations.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='VkRelease|x64'">true</ExcludedFromBuild>
@@ -378,6 +380,7 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Actor.cpp" />
     <ClCompile Include="..\..\src\ActorManager.cpp" />
+    <ClCompile Include="..\..\src\BoxActor.cpp" />
     <ClCompile Include="..\..\src\BRDF.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='VkDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='VkRelease|x64'">true</ExcludedFromBuild>
@@ -397,6 +400,7 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Camera.cpp" />
     <ClCompile Include="..\..\src\CameraComponent.cpp" />
+    <ClCompile Include="..\..\src\CastleActor.cpp" />
     <ClCompile Include="..\..\src\Component.cpp" />
     <ClCompile Include="..\..\src\GaussianFilter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='VkDebug|x64'">true</ExcludedFromBuild>

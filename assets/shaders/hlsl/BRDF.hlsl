@@ -13,19 +13,20 @@
 
 ConstantBuffer<ConstantBuffer_Pass> cb_Pass	: register(b0);
 
-Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo		: register(t0);
-Texture2D<GBuffer::NormalMapFormat>						gi_Normal		: register(t1);
-Texture2D<GBuffer::DepthMapFormat>						gi_Depth		: register(t2);
-Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t3);
-Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t4);
+Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo				: register(t0);
+Texture2D<GBuffer::NormalMapFormat>						gi_Normal				: register(t1);
+Texture2D<GBuffer::DepthMapFormat>						gi_Depth				: register(t2);
+Texture2D<GBuffer::RMSMapFormat>						gi_RMS					: register(t3);
+Texture2D<GBuffer::PositionMapFormat>					gi_Position				: register(t4);
+TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad			: register(t5);
+
 #ifdef DXR
-Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow		: register(t5);
-Texture2D<RTAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
+Texture2D<RTAO::AOCoefficientMapFormat>					gi_AOCoeiff				: register(t0, space1);
+Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow[MaxLights]	: register(t1, space1);
 #else
-Texture2D<Shadow::ShadowMapFormat>						gi_Shadow		: register(t5);
-Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
+Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff				: register(t0, space1);
+Texture2D<Shadow::ShadowMapFormat>						gi_Shadow[MaxLights]	: register(t1, space1);
 #endif
-TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad	: register(t7);
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -66,12 +67,23 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
-	float3 shadowFactor = 1;
+	float shadowFactor[MaxLights];
+	{
+		[loop]
+		for (uint i = 0; i < MaxLights; ++i) shadowFactor[i] = 1;
+	}
+
 #ifdef DXR
-	shadowFactor[0] = gi_Shadow.Sample(gsamLinearClamp, pin.TexC);
+	shadowFactor[0] = gi_Shadow[0].Sample(gsamLinearClamp, pin.TexC);
 #else
-	const float4 shadowPosH = mul(posW, cb_Pass.ShadowTransform);
-	shadowFactor[0] = CalcShadowFactor(gi_Shadow, gsamShadow, shadowPosH);
+	{
+		[loop]
+		for (uint i = 0; i < cb_Pass.LightCount; ++i) {
+			const float4 shadowPosH = mul(posW, cb_Pass.Lights[i].ShadowTransform);
+			//const float4 shadowPosH = mul(posW, cb_Pass.ShadowTransform);
+			shadowFactor[i] = CalcShadowFactor(gi_Shadow[i], gsamShadow, shadowPosH);
+		}
+	}
 #endif
 
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);

@@ -54,16 +54,16 @@ private:
 private:
 	static GameWorld* sGameWorld;
 
-	BOOL bIsCleanedUp;
 
-	HINSTANCE mhInst;			// Application instance handle
-	HWND mhMainWnd;				// Main window handle
-	GLFWwindow* mGlfwWnd;
-	BOOL bAppPaused;			// Is the application paused?
-	BOOL bMinimized;			// Is the application minimized?
-	BOOL bMaximized;			// Is the application maximized?
-	BOOL bResizing;				// Are the resize bars being dragged?
-	BOOL bFullscreenState;		// Fullscreen enabled 
+	HINSTANCE	mhInst				= NULL;		// Application instance handle
+	HWND		mhMainWnd			= NULL;		// Main window handle
+	GLFWwindow* mGlfwWnd			= nullptr;
+	BOOL		bIsCleanedUp		= FALSE;
+	BOOL		bAppPaused			= FALSE;	// Is the application paused?
+	BOOL		bMinimized			= FALSE;	// Is the application minimized?
+	BOOL		bMaximized			= FALSE;	// Is the application maximized?
+	BOOL		bResizing			= FALSE;	// Are the resize bars being dragged?
+	BOOL		bFullscreenState	= FALSE;	// Fullscreen enabled 
 
 	std::unique_ptr<GameTimer> mTimer;
 	std::unique_ptr<InputManager> mInputManager;
@@ -71,7 +71,7 @@ private:
 
 	std::unique_ptr<ActorManager> mActorManager;
 
-	EGameStates mGameState;
+	EGameStates mGameState = EGameStates::EGS_Play;
 
-	FLOAT mTimeSlowDown;
+	FLOAT mTimeSlowDown = 1.0f;
 };

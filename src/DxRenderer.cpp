@@ -226,7 +226,7 @@ DxRenderer::DxRenderer() {
 	mBlurFilter = std::make_unique<BlurFilter::BlurFilterClass>();
 	mBloom = std::make_unique<Bloom::BloomClass>();
 	mSSR = std::make_unique<SSR::SSRClass>();
-	mDof = std::make_unique<DepthOfField::DepthOfFieldClass>();
+	mDoF = std::make_unique<DepthOfField::DepthOfFieldClass>();
 	mMotionBlur = std::make_unique<MotionBlur::MotionBlurClass>();
 	mTAA = std::make_unique<TemporalAA::TemporalAAClass>();
 	mDebugMap = std::make_unique<DebugMap::DebugMapClass>();
@@ -308,7 +308,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_Quarter));
 	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
-	CheckReturn(mDof->Initialize(device, shaderManager, cmdList, width, height));
+	CheckReturn(mDoF->Initialize(device, shaderManager, cmdList, width, height));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
 	CheckReturn(mTAA->Initialize(device, shaderManager, width, height));
 	CheckReturn(mDebugMap->Initialize(device, shaderManager));
@@ -432,18 +432,25 @@ BOOL DxRenderer::Update(FLOAT delta) {
 BOOL DxRenderer::Draw() {
 	CheckHRESULT(mCurrFrameResource->CmdListAlloc->Reset());
 	
-	// Pre-pass and main-pass
+	// Pre-pass
 	{
 		CheckReturn(DrawGBuffer());
 		if (bRaytracing) {
 			CheckReturn(DrawDXRShadow());
 			CheckReturn(DrawRTAO());
-			CheckReturn(DrawDXRBackBuffer());
-			CheckReturn(CalcDepthPartialDerivative());
 		}
 		else {
 			CheckReturn(DrawShadow());
 			CheckReturn(DrawSSAO());
+		}
+	}
+	// Main-pass
+	{
+		if (bRaytracing) {
+			CheckReturn(DrawDXRBackBuffer());
+			CheckReturn(CalcDepthPartialDerivative());
+		}
+		else {
 			CheckReturn(DrawBackBuffer());
 		}
 	}
@@ -500,7 +507,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 	if (bNeedToReszie) {
 		CheckReturn(mBRDF->OnResize(width, height));
 		CheckReturn(mGBuffer->OnResize(width, height));
-		CheckReturn(mDof->OnResize(cmdList, width, height));
+		CheckReturn(mDoF->OnResize(cmdList, width, height));
 		CheckReturn(mMotionBlur->OnResize(width, height));
 		CheckReturn(mTAA->OnResize(width, height));
 		CheckReturn(mGammaCorrection->OnResize(width, height));
@@ -670,7 +677,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mBlurFilter->CompileShaders(ShaderFilePath));
 	CheckReturn(mBloom->CompileShaders(ShaderFilePath));
 	CheckReturn(mSSR->CompileShaders(ShaderFilePath));
-	CheckReturn(mDof->CompileShaders(ShaderFilePath));
+	CheckReturn(mDoF->CompileShaders(ShaderFilePath));
 	CheckReturn(mMotionBlur->CompileShaders(ShaderFilePath));
 	CheckReturn(mTAA->CompileShaders(ShaderFilePath));
 	CheckReturn(mDebugMap->CompileShaders(ShaderFilePath));
@@ -818,7 +825,9 @@ BOOL DxRenderer::BuildGeometries() {
 
 BOOL DxRenderer::BuildFrameResources() {
 	for (INT i = 0; i < gNumFrameResources; i++) {
-		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(), 2, 32, 32));
+		mFrameResources.push_back(std::make_unique<FrameResource>(
+			md3dDevice.Get(), 1 /* Main Passes */ + Shadow::NumDepthStenciles /* Shadow Passes */,
+			32 /* Objects */, 32 /* Materials */));
 		CheckReturn(mFrameResources.back()->Initialize());
 	}
 
@@ -853,7 +862,7 @@ void DxRenderer::BuildDescriptors() {
 	mSSAO->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mDof->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mDoF->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mMotionBlur->BuildDescriptors(hCpu, hGpu, descSize);
 	mTAA->BuildDescriptors(hCpu, hGpu, descSize);
 	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
@@ -884,7 +893,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mBlurFilter->BuildRootSignature(staticSamplers));
 	CheckReturn(mBloom->BuildRootSignature(staticSamplers));
 	CheckReturn(mSSR->BuildRootSignature(staticSamplers));
-	CheckReturn(mDof->BuildRootSignature(staticSamplers));
+	CheckReturn(mDoF->BuildRootSignature(staticSamplers));
 	CheckReturn(mMotionBlur->BuildRootSignature(staticSamplers));
 	CheckReturn(mTAA->BuildRootSignature(staticSamplers));
 	CheckReturn(mDebugMap->BuildRootSignature(staticSamplers));
@@ -922,7 +931,7 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mBloom->BuildPSO());
 	CheckReturn(mBlurFilter->BuildPSO());
 	CheckReturn(mSSR->BuildPSO());
-	CheckReturn(mDof->BuildPSO());
+	CheckReturn(mDoF->BuildPSO());
 	CheckReturn(mMotionBlur->BuildPSO());
 	CheckReturn(mTAA->BuildPSO());
 	CheckReturn(mDebugMap->BuildPSO());
@@ -1199,52 +1208,56 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
-	XMVECTOR lightDir = XMLoadFloat3(&mLights[0].Direction);
-	XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
-	XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
-	XMVECTOR lightUp = UnitVectors::UpVector;
-	XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+	for (UINT i = 0; i < mLightCount; ++i) {
+		if (i >= MaxLights || mLights[i].Type != LightType::E_Directional) continue;
 
-	// Transform bounding sphere to light space.
-	XMFLOAT3 sphereCenterLS;
-	XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
+		XMVECTOR lightDir = XMLoadFloat3(&mLights[i].Direction);
+		XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
+		XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
+		XMVECTOR lightUp = UnitVectors::UpVector;
+		XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
 
-	// Ortho frustum in light space encloses scene.
-	FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
-	FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
-	FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
-	FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
-	FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
-	FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
+		// Transform bounding sphere to light space.
+		XMFLOAT3 sphereCenterLS;
+		XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
 
-	XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+		// Ortho frustum in light space encloses scene.
+		FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
+		FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
+		FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
+		FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
+		FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
+		FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
 
-	// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
-	XMMATRIX T(
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f
-	);
+		XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
 
-	XMMATRIX S = lightView * lightProj * T;
-	XMStoreFloat4x4(&mMainPassCB->ShadowTransform, XMMatrixTranspose(S));
+		// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
+		XMMATRIX T(
+			0.5f, 0.0f, 0.0f, 0.0f,
+			0.0f, -0.5f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.5f, 0.5f, 0.0f, 1.0f
+		);
 
-	XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
-	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(lightView), lightView);
-	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(lightProj), lightProj);
-	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+		XMMATRIX S = lightView * lightProj * T;
+		XMStoreFloat4x4(&mLights[i].ShadowTransform, XMMatrixTranspose(S));
 
-	XMStoreFloat4x4(&mShadowPassCB->View, XMMatrixTranspose(lightView));
-	XMStoreFloat4x4(&mShadowPassCB->InvView, XMMatrixTranspose(invView));
-	XMStoreFloat4x4(&mShadowPassCB->Proj, XMMatrixTranspose(lightProj));
-	XMStoreFloat4x4(&mShadowPassCB->InvProj, XMMatrixTranspose(invProj));
-	XMStoreFloat4x4(&mShadowPassCB->ViewProj, XMMatrixTranspose(viewProj));
-	XMStoreFloat4x4(&mShadowPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
-	XMStoreFloat3(&mShadowPassCB->EyePosW, lightPos);
+		XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
+		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(lightView), lightView);
+		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(lightProj), lightProj);
+		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
-	auto& currCB = mCurrFrameResource->CB_Pass;
-	currCB.CopyData(1, *mShadowPassCB);
+		XMStoreFloat4x4(&mShadowPassCB->View, XMMatrixTranspose(lightView));
+		XMStoreFloat4x4(&mShadowPassCB->InvView, XMMatrixTranspose(invView));
+		XMStoreFloat4x4(&mShadowPassCB->Proj, XMMatrixTranspose(lightProj));
+		XMStoreFloat4x4(&mShadowPassCB->InvProj, XMMatrixTranspose(invProj));
+		XMStoreFloat4x4(&mShadowPassCB->ViewProj, XMMatrixTranspose(viewProj));
+		XMStoreFloat4x4(&mShadowPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
+		XMStoreFloat3(&mShadowPassCB->EyePosW, lightPos);
+
+		auto& currCB = mCurrFrameResource->CB_Pass;
+		currCB.CopyData(static_cast<INT>(1 + i), *mShadowPassCB);
+	}
 
 	return TRUE;
 }
@@ -1721,11 +1734,11 @@ BOOL DxRenderer::DrawShadow() {
 		if (!bShadowMapCleanedUp) {
 			CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-			const auto shadow = mShadow->Resource();
+			const auto shadow = mShadow->Resource(0);
 
 			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-			cmdList->ClearDepthStencilView(mShadow->Dsv(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+			cmdList->ClearDepthStencilView(mShadow->Dsv(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 
@@ -1746,18 +1759,24 @@ BOOL DxRenderer::DrawShadow() {
 
 	const auto cbPass = mCurrFrameResource->CB_Pass.Resource();
 	const auto cbPassByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass));
-	const auto cbPassAddr = cbPass->GetGPUVirtualAddress() + 1 * cbPassByteSize;
+	
+	for (UINT i = 0; i < mLightCount; ++i) {
+		if (i >= MaxLights || mLights[i].Type != LightType::E_Directional) continue;
 
-	mShadow->Run(
-		cmdList,
-		cbPassAddr,
-		mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
-		mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress(),
-		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
-		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
-		mhGpuDescForTexMaps,
-		mRitemRefs[RenderType::E_Opaque]
-	);
+		const D3D12_GPU_VIRTUAL_ADDRESS cbPassAddr = cbPass->GetGPUVirtualAddress() + (1 + i) * cbPassByteSize;
+
+		mShadow->Run(
+			cmdList,
+			cbPassAddr,
+			mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+			mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress(),
+			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
+			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
+			mhGpuDescForTexMaps,
+			mRitemRefs[RenderType::E_Opaque],
+			i
+		);
+	}
 
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
@@ -1888,9 +1907,9 @@ BOOL DxRenderer::DrawBackBuffer() {
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mGBuffer->PositionMapSrv(),
-		mShadow->Srv(),
-		mSSAO->AOCoefficientMapSrv(0),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
+		mSSAO->AOCoefficientMapSrv(0),
+		mShadow->Srv(0),
 		BRDF::Render::E_Raster
 	);
 
@@ -2128,7 +2147,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
 
 	const auto dofCBAddr = mCurrFrameResource->CB_DoF.Resource()->GetGPUVirtualAddress();
-	mDof->CalcFocalDist(
+	mDoF->CalcFocalDist(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2136,7 +2155,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		mGBuffer->DepthMapSrv()
 	);
 
-	mDof->CalcCoC(
+	mDoF->CalcCoC(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2144,7 +2163,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		mGBuffer->DepthMapSrv()
 	);
 
-	mDof->ApplyDoF(
+	mDoF->ApplyDoF(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2156,7 +2175,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		ShaderArgs::DepthOfField::SampleCount
 	);
 
-	mDof->BlurDoF(
+	mDoF->BlurDoF(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2361,12 +2380,12 @@ BOOL DxRenderer::DrawImGui() {
 	ImGui::NewFrame();
 
 	static const auto BuildDebugMap = [&](BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type) {
-		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = false; }
+		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = FALSE; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
 	static const auto BuildDebugMapWithSampleDesc = [&](
 			BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type, DebugMapSampleDesc desc) {
-		if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = false; }
+		if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = FALSE; }
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
 
@@ -2442,11 +2461,20 @@ BOOL DxRenderer::DrawImGui() {
 				}
 
 				if (ImGui::TreeNode("Rasterization")) {
-					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Shadow]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_Shadow],
-							mShadow->Srv(),
-							DebugMap::SampleMask::RRR);
+					if (ImGui::TreeNode("Shadow")) {
+						for (UINT i = 0; i < Shadow::NumDepthStenciles; ++i) {
+							auto debug = mShadow->DebugShadowMap(i);
+							std::stringstream label;
+							label << "Shadow_" << i;
+							if (ImGui::Checkbox(label.str().c_str(), reinterpret_cast<bool*>(debug))) {
+								BuildDebugMap(
+									*debug,
+									mShadow->Srv(i),
+									DebugMap::SampleMask::RRR);
+							}
+						}
+
+						ImGui::TreePop();
 					}
 					if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
 						BuildDebugMap(
@@ -2936,9 +2964,9 @@ BOOL DxRenderer::DrawDXRBackBuffer() {
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->RMSMapSrv(),
 		mGBuffer->PositionMapSrv(),
-		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
-		mRTAO->ResolvedAOCoefficientSrv(),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
+		mRTAO->ResolvedAOCoefficientSrv(),
+		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
 		BRDF::Render::E_Raytrace
 	);
 

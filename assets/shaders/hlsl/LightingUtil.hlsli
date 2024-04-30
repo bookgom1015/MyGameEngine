@@ -106,7 +106,7 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 #endif
 }
 
-float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye,	float3 shadowFactor, uint lightCount) {
+float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 normal, float3 toEye,	float shadowFactor[MaxLights], uint lightCount) {
 	float3 result = 0;
 
 	[loop]

@@ -17,6 +17,8 @@ namespace LightType {
 }
 
 struct Light {
+	DirectX::XMFLOAT4X4 ShadowTransform;
+
 	DirectX::XMFLOAT3	LightColor;
 	FLOAT				FalloffStart;	// point/spot light only
 

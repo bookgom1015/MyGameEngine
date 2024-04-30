@@ -159,7 +159,12 @@ void RadianceClosestHit(inout RayPayload payload, Attributes attr) {
 		payload
 	);
 
-	float3 shadowFactor = 1;
+	float shadowFactor[MaxLights];
+	{
+		[loop]
+		for (uint i = 0; i < MaxLights; ++i) shadowFactor[i] = 1;
+	}
+
 	shadowFactor[0] = payload.IsHit ? 0 : 1;
 
 	//

@@ -19,16 +19,16 @@ RotatingMonkey::~RotatingMonkey() {};
 BOOL RotatingMonkey::OnInitialzing() {
 	CheckReturn(mMeshComp->LoadMesh("monkey.obj"));
 
-	return true;
+	return TRUE;
 }
 
 BOOL RotatingMonkey::ProcessActorInput(const InputState& input) {
 
-	return true;
+	return TRUE;
 }
 
 BOOL RotatingMonkey::UpdateActor(FLOAT delta) {
 	AddRotationYaw(delta * mSpeed);
 
-	return true;
+	return TRUE;
 }

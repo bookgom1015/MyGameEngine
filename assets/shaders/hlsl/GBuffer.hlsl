@@ -73,48 +73,8 @@ VertexOut VS(VertexIn vin) {
 	return vout;
 }
 
-float4x4 patCalc(float opacity) {
-	//Initialize the return value matrix
-	//This matrix will store our 4x4 pattern.
-	float4x4 retval = float4x4(
-		(float4)0,
-		(float4)0,
-		(float4)0,
-		(float4)0
-	);
-
-	//We multiply our opacity by 16 and store it in a variable.
-	int dPatlvl = int(abs(opacity * 16.0));
-
-	//We calculate the pattern with a loop
-	for (int i = 1; i <= dPatlvl; i++) {
-		int xPat; int yPat; //Initiate xPat and yPat
-		float iFl = float(i); //I made a variable for i as a float to save myself from messy code
-
-		//xPat gets offset by how divisible it is by 2, 4, and 8.
-		xPat = int(floor(iFl / 2.0) * 2.0 + floor((iFl - 1.0) / 4.0) - floor((iFl - 1.0) / 8.0));
-		xPat -= int(floor(float(xPat) / 4.0) * 4.0);//We sorta "screen wrap" the xPat value so that it loops itself back into the matrix's range
-
-		//yPat gets offset by how divisible it is by 2 and 4.
-		yPat = int(abs(sign(iFl % 2.0) - 1.0) * 2.0 + floor((iFl - 1.0) / 4.0));
-		yPat -= int(floor(float(yPat) / 4.0) * 4.0);//We also "screen wrap" the yPat value so that it loops itself back into the matrix's range
-
-		//We write retval[xPat][yPat] to equal 1.0
-		//shadertoy wouldn't let me say retval[xPat][yPat] = 1.0;
-		//so I had to work around it using a vec4 and offset numbers.
-		retval[xPat] += float4(
-			abs(sign(abs(yPat)) - 1),
-			abs(sign(abs(yPat - 1)) - 1),
-			abs(sign(abs(yPat - 2)) - 1),
-			abs(sign(abs(yPat - 3)) - 1)
-		);
-	}
-
-	return retval;
-}
-
 PixelOut PS(VertexOut pin) {
-	const uint2 screenPos = pin.TexC * uint2(1280, 720);
+	const uint2 screenPos = (pin.NonJitPosH.xy * 0.5 + 0.5) * uint2(1280, 720);
 	const float threshold = ThresholdMatrix[screenPos.x % 4][screenPos.y % 4];
 
 	float4 posV = mul(pin.NonJitPosH, cb_Pass.InvProj);

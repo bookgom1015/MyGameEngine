@@ -4,7 +4,6 @@
 #include "RenderItem.h"
 #include "DxMesh.h"
 #include "MathHelper.h"
-#include "HlslCompaction.h"
 #include "D3D12Util.h"
 #include "Vertex.h"
 
@@ -16,7 +15,8 @@ namespace {
 }
 
 ShadowClass::ShadowClass() {
-	mShadowMap = std::make_unique<GpuResource>();
+	for (UINT i = 0; i < MaxLights; ++i) 
+		mShadowMaps[i] = std::make_unique<GpuResource>();
 }
 
 BOOL ShadowClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
@@ -93,17 +93,18 @@ void ShadowClass::Run(
 		UINT objCBByteSize,
 		UINT matCBByteSize,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-		const std::vector<RenderItem*>& ritems) {
+		const std::vector<RenderItem*>& ritems,
+		UINT index) {
 	cmdList->SetPipelineState(mPSO.Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	cmdList->RSSetViewports(1, &mViewport);
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
-	mShadowMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);	
+	mShadowMaps[index]->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);	
 
-	cmdList->ClearDepthStencilView(mhCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-	cmdList->OMSetRenderTargets(0, nullptr, false, &mhCpuDsv);
+	cmdList->ClearDepthStencilView(mhCpuDsvs[index], D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	cmdList->OMSetRenderTargets(0, nullptr, false, &mhCpuDsvs[index]);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
 
@@ -111,7 +112,7 @@ void ShadowClass::Run(
 
 	DrawRenderItems(cmdList, ritems, cb_obj, cb_mat, objCBByteSize, matCBByteSize);
 
-	mShadowMap->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+	mShadowMaps[index]->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
 void ShadowClass::BuildDescriptors(
@@ -119,9 +120,11 @@ void ShadowClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
 		UINT descSize, UINT dsvDescSize) {
-	mhCpuSrv = hCpu.Offset(1, descSize);
-	mhGpuSrv = hGpu.Offset(1, descSize);
-	mhCpuDsv = hCpuDsv.Offset(1, dsvDescSize);
+	for (UINT i = 0; i < MaxLights; ++i) {
+		mhCpuSrvs[i] = hCpu.Offset(1, descSize);
+		mhGpuSrvs[i] = hGpu.Offset(1, descSize);
+		mhCpuDsvs[i] = hCpuDsv.Offset(1, dsvDescSize);
+	}
 
 	BuildDescriptors();
 }
@@ -135,14 +138,17 @@ void ShadowClass::BuildDescriptors() {
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	srvDesc.Texture2D.PlaneSlice = 0;
-	md3dDevice->CreateShaderResourceView(mShadowMap->Resource(), &srvDesc, mhCpuSrv);
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	dsvDesc.Format = ShadowMapFormat;
 	dsvDesc.Texture2D.MipSlice = 0;
-	md3dDevice->CreateDepthStencilView(mShadowMap->Resource(), &dsvDesc, mhCpuDsv);
+
+	for (UINT i = 0; i < MaxLights; ++i) {
+		md3dDevice->CreateShaderResourceView(mShadowMaps[i]->Resource(), &srvDesc, mhCpuSrvs[i]);
+		md3dDevice->CreateDepthStencilView(mShadowMaps[i]->Resource(), &dsvDesc, mhCpuDsvs[i]);
+	}
 }
 
 BOOL ShadowClass::BuildResources() {
@@ -165,15 +171,20 @@ BOOL ShadowClass::BuildResources() {
 	optClear.DepthStencil.Depth = 1.0f;
 	optClear.DepthStencil.Stencil = 0;
 
-	CheckReturn(mShadowMap->Initialize(
-		md3dDevice,
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&texDesc,
-		D3D12_RESOURCE_STATE_DEPTH_READ,
-		&optClear,
-		L"Shadow_ShadowMap"
-	));
+	for (UINT i = 0; i < MaxLights; ++i) {
+		std::wstringstream wsstream(L"Shadow_ShadowMap_");
+		wsstream << i;
+
+		CheckReturn(mShadowMaps[i]->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&texDesc,
+			D3D12_RESOURCE_STATE_DEPTH_READ,
+			&optClear,
+			wsstream.str().c_str()
+		));
+	}
 
 	return TRUE;
 }

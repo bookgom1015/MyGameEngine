@@ -5,6 +5,7 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "HlslCompaction.h"
 
 class ShaderManager;
 
@@ -21,7 +22,7 @@ namespace Shadow {
 		};
 	}
 
-	const UINT NumDepthStenciles = 1;
+	const UINT NumDepthStenciles = MaxLights;
 
 	class ShadowClass {
 	public:
@@ -35,9 +36,11 @@ namespace Shadow {
 		__forceinline constexpr D3D12_VIEWPORT Viewport() const;
 		__forceinline constexpr D3D12_RECT ScissorRect() const;
 
-		__forceinline GpuResource* Resource();
-		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Srv() const;
-		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
+		__forceinline GpuResource* Resource(UINT index);
+		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Srv(UINT index) const;
+		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv(UINT index) const;
+
+		__forceinline BOOL* DebugShadowMap(UINT index);
 
 	public:
 		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
@@ -52,7 +55,8 @@ namespace Shadow {
 			UINT objCBByteSize,
 			UINT matCBByteSize,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-			const std::vector<RenderItem*>& ritems);
+			const std::vector<RenderItem*>& ritems,
+			UINT index);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
@@ -82,11 +86,14 @@ namespace Shadow {
 		D3D12_VIEWPORT mViewport;
 		D3D12_RECT mScissorRect;
 
-		std::unique_ptr<GpuResource> mShadowMap;
+		std::unique_ptr<GpuResource> mShadowMaps[MaxLights];
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrvs[MaxLights];
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrvs[MaxLights];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsvs[MaxLights];
+
+		// Debugging
+		BOOL mDebugShadowMaps[MaxLights] = { FALSE };
 	};
 };
 

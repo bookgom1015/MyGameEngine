@@ -27,7 +27,6 @@ namespace DebugMapLayout {
 		E_RMS,
 		E_Velocity,
 
-		E_Shadow,
 		E_SSAO,
 		E_Bloom,
 		E_SSR,
@@ -188,7 +187,7 @@ private:
 	std::unique_ptr<BlurFilter::BlurFilterClass> mBlurFilter;
 	std::unique_ptr<Bloom::BloomClass> mBloom;
 	std::unique_ptr<SSR::SSRClass> mSSR;
-	std::unique_ptr<DepthOfField::DepthOfFieldClass> mDof;
+	std::unique_ptr<DepthOfField::DepthOfFieldClass> mDoF;
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
 	std::unique_ptr<TemporalAA::TemporalAAClass> mTAA;
 	std::unique_ptr<DebugMap::DebugMapClass> mDebugMap;

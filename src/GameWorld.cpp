@@ -9,6 +9,8 @@
 #include "SphereActor.h"
 #include "PlaneActor.h"
 #include "RotatingMonkey.h"
+#include "CastleActor.h"
+#include "BoxActor.h"
 
 #ifdef _DirectX
 #include "DxRenderer.h"
@@ -80,18 +82,6 @@ GameWorld* GameWorld::sGameWorld = nullptr;
 GameWorld::GameWorld() {
 	sGameWorld = this;
 
-	bIsCleanedUp = false;
-
-	mhInst = NULL;
-	mhMainWnd = NULL;
-	mGlfwWnd = nullptr;
-	bIsCleanedUp = false;
-	bAppPaused = false;
-	bMinimized = false;
-	bMaximized = false;
-	bResizing = false;
-	bFullscreenState = false;
-
 	mTimer = std::make_unique<GameTimer>();
 	mInputManager = std::make_unique<InputManager>();
 #ifdef _DirectX
@@ -100,10 +90,6 @@ GameWorld::GameWorld() {
 	mRenderer = std::make_unique<VkRenderer>();
 #endif
 	mActorManager = std::make_unique<ActorManager>();
-
-	mGameState = EGameStates::EGS_Play;
-
-	mTimeSlowDown = 1.0f;
 }
 
 GameWorld::~GameWorld() {
@@ -117,12 +103,12 @@ BOOL GameWorld::Initialize() {
 	CheckReturn(mInputManager->Initialize(mhMainWnd));
 	CheckReturn(mRenderer->Initialize(mhMainWnd, mGlfwWnd, InitClientWidth, InitClientHeight));
 
-	mInputManager->SetMouseRelative(true);
-	mInputManager->SetCursorVisibility(false);
+	mInputManager->SetMouseRelative(TRUE);
+	mInputManager->SetCursorVisibility(FALSE);
 
 	mTimer->SetLimitFrameRate(GameTimer::E_LimitFrameRate60f);
 
-	return true;
+	return TRUE;
 }
 
 BOOL GameWorld::RunLoop() {
@@ -134,7 +120,7 @@ BOOL GameWorld::RunLoop() {
 
 	mTimer->Reset();
 
-	if (!LoadData()) return S_FALSE;
+	if (!LoadData()) return FALSE;
 
 #ifdef _DirectX
 	while (msg.message != WM_QUIT) {
@@ -182,7 +168,7 @@ BOOL GameWorld::RunLoop() {
 	}
 #endif
 
-	return true;
+	return TRUE;
 }
 
 void GameWorld::CleanUp() {
@@ -194,7 +180,7 @@ void GameWorld::CleanUp() {
 	glfwTerminate();
 #endif
 
-	bIsCleanedUp = true;
+	bIsCleanedUp = TRUE;
 }
 
 GameWorld* GameWorld::GetWorld() { return sGameWorld; }
@@ -215,11 +201,11 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		// when it becomes active.
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE) {
-			bAppPaused = true;
+			bAppPaused = TRUE;
 		}
 		else {
 			mInputManager->IgnoreMouseInput();
-			bAppPaused = false;
+			bAppPaused = FALSE;
 		}
 		return 0;
 
@@ -231,28 +217,28 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		height = HIWORD(lParam);
 		if (mRenderer->IsInitialized()) {
 			if (wParam == SIZE_MINIMIZED) {
-				bAppPaused = true;
-				bMinimized = true;
-				bMaximized = false;
+				bAppPaused = TRUE;
+				bMinimized = TRUE;
+				bMaximized = FALSE;
 			}
 			else if (wParam == SIZE_MAXIMIZED) {
-				bAppPaused = false;
-				bMinimized = false;
-				bMaximized = true;
+				bAppPaused = FALSE;
+				bMinimized = FALSE;
+				bMaximized = TRUE;
 				OnResize(width, height);
 			}
 			else if (wParam == SIZE_RESTORED) {
 				// Restoring from minimized state?
 				if (bMinimized) {
-					bAppPaused = false;
-					bMinimized = false;
+					bAppPaused = FALSE;
+					bMinimized = FALSE;
 					OnResize(width, height);
 				}
 
 				// Restoring from maximized state?
 				else if (bMaximized) {
-					bAppPaused = false;
-					bMaximized = false;
+					bAppPaused = FALSE;
+					bMaximized = FALSE;
 					OnResize(width, height);
 				}
 				// If user is dragging the resize bars, we do not resize 
@@ -278,16 +264,16 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
 	case WM_ENTERSIZEMOVE:
 		mTimer->Stop();
-		bAppPaused = true;
-		bResizing = true;
+		bAppPaused = TRUE;
+		bResizing = TRUE;
 		return 0;
 
 		// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
 		// Here we reset everything based on the new window dimensions.
 	case WM_EXITSIZEMOVE:
 		mTimer->Start();
-		bAppPaused = false;
-		bResizing = false;
+		bAppPaused = FALSE;
+		bResizing = FALSE;
 		OnResize(width, height);
 		return 0;
 
@@ -343,7 +329,7 @@ void GameWorld::OnResize(UINT width, UINT height) {
 }
 
 void GameWorld::OnFocusChanged(INT focused) {
-	bAppPaused = (focused == GLFW_TRUE ? false : true);
+	bAppPaused = (focused == GLFW_TRUE ? FALSE : TRUE);
 	mInputManager->IgnoreMouseInput();
 }
 
@@ -409,7 +395,7 @@ BOOL GameWorld::InitMainWindow() {
 	//glfwSetWindowPosCallback(mGlfwWnd, GLFWWindowPosCallback);
 #endif
 
-	return true;
+	return TRUE;
 }
 
 void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -461,7 +447,7 @@ BOOL GameWorld::ProcessInput() {
 	mInputManager->Update();
 	if (mGameState == EGameStates::EGS_Play) CheckReturn(mActorManager->ProcessInput(mInputManager->GetInputState()));
 
-	return true;
+	return TRUE;
 }
 
 BOOL GameWorld::Update() {
@@ -469,13 +455,13 @@ BOOL GameWorld::Update() {
 	CheckReturn(mActorManager->Update(dt * mTimeSlowDown));
 	CheckReturn(mRenderer->Update(dt * mTimeSlowDown));
 
-	return true;
+	return TRUE;
 }
 
 BOOL GameWorld::Draw() {
 	CheckReturn(mRenderer->Draw());
 
-	return true;
+	return TRUE;
 }
 
 BOOL GameWorld::LoadData() {
@@ -489,8 +475,9 @@ BOOL GameWorld::LoadData() {
 	new RotatingMonkey("monkey_2", 2.0f * XM_2PI, DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
 	new RotatingMonkey("monkey_3", XM_PI, DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
 	new RotatingMonkey("monkey_4", XM_PIDIV4, DirectX::XMFLOAT3(0.0f, 0.0f, -20.0f), rot);
-	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(10.0f, 1.0f, 10.0f));
+	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(30.0f, 1.0f, 30.0f));
 	new SphereActor("sphere_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -2.0f));
+	new BoxActor("box_actor", DirectX::XMFLOAT3(0.0f, 9.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(6.0f, 6.0f, 6.0f));
 
-	return true;
+	return TRUE;
 }

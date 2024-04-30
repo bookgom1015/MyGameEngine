@@ -4,15 +4,15 @@
 
 class MeshComponent;
 
-class RotatingMonkey : public Actor {
+class CastleActor : public Actor {
 public:
-	RotatingMonkey(
-		const std::string& name, FLOAT speed,
+	CastleActor(
+		const std::string& name,
 		DirectX::XMFLOAT3 pos = { 0.0f, 0.0f, 0.0f },
 		DirectX::XMFLOAT4 rot = { 0.0f, 0.0f, 0.0f, 1.0f },
 		DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f });
-	RotatingMonkey(const std::string& name, const Transform& trans);
-	virtual ~RotatingMonkey();
+	CastleActor(const std::string& name, const Transform& trans);
+	virtual ~CastleActor();
 
 protected:
 	virtual BOOL OnInitialzing() override;
@@ -22,6 +22,4 @@ protected:
 
 private:
 	MeshComponent* mMeshComp;
-
-	FLOAT mSpeed;
 };

@@ -100,7 +100,7 @@ void DebugMapClass::Run(
 	
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, &dio_dsv);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, &dio_dsv);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_DebugMap, cb_debug);
 
@@ -127,7 +127,7 @@ void DebugMapClass::Run(
 }
 
 BOOL DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask) {
-	if (mNumEnabledMaps >= 5) return false;
+	if (mNumEnabledMaps >= 5) return FALSE;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
 	mDebugMasks[mNumEnabledMaps] = mask;
@@ -138,7 +138,7 @@ BOOL DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask:
 }
 
 BOOL DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask::Type mask, DebugMapSampleDesc desc) {
-	if (mNumEnabledMaps >= 5) return false;
+	if (mNumEnabledMaps >= 5) return FALSE;
 
 	mhDebugGpuSrvs[mNumEnabledMaps] = hGpuSrv;
 	mDebugMasks[mNumEnabledMaps] = mask;
@@ -150,15 +150,15 @@ BOOL DebugMapClass::AddDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv, SampleMask:
 }
 
 void DebugMapClass::RemoveDebugMap(D3D12_GPU_DESCRIPTOR_HANDLE hGpuSrv) {
-	for (UINT i = 0; i < mNumEnabledMaps; ++i) {
+	const auto num = static_cast<INT>(mNumEnabledMaps);
+	for (INT i = 0; i < num; ++i) {
 		if (mhDebugGpuSrvs[i].ptr == hGpuSrv.ptr) {
-			for (UINT curr = i, end = mNumEnabledMaps - 2; curr <= end; ++curr) {
-				UINT next = curr + 1;
+			for (INT curr = i, end = num - 2; curr <= end; ++curr) {
+				INT next = curr + 1;
 				mhDebugGpuSrvs[curr] = mhDebugGpuSrvs[next];
 				mDebugMasks[curr] = mDebugMasks[next];
 				mSampleDescs[curr] = mSampleDescs[next];
-			}
-			
+			}			
 
 			--mNumEnabledMaps;
 			return;
