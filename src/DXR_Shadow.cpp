@@ -242,7 +242,7 @@ BOOL DXR_ShadowClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, UI
 	texDesc.DepthOrArraySize = 1;
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	texDesc.Format = ShadowMapFormat;
-	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	texDesc.Width = width;
 	texDesc.Height = height;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;

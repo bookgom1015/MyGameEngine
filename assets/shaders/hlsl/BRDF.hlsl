@@ -22,7 +22,7 @@ TextureCube<IrradianceMap::DiffuseIrradCubeMapFormat>	gi_DiffuseIrrad			: regist
 
 #ifdef DXR
 Texture2D<RTAO::AOCoefficientMapFormat>					gi_AOCoeiff				: register(t0, space1);
-Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow[MaxLights]	: register(t1, space1);
+Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow				: register(t1, space1);
 #else
 Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff				: register(t0, space1);
 Texture2D<Shadow::ShadowMapFormat>						gi_Shadow[MaxLights]	: register(t1, space1);
@@ -74,7 +74,17 @@ float4 PS(VertexOut pin) : SV_Target {
 	}
 
 #ifdef DXR
-	shadowFactor[0] = gi_Shadow[0].Sample(gsamLinearClamp, pin.TexC);
+	{
+		uint2 size;
+		gi_Shadow.GetDimensions(size.x, size.y);
+
+		uint value = gi_Shadow.Load(int3(size * pin.TexC, 0));
+
+		[loop]
+		for (uint i = 0; i < cb_Pass.LightCount; ++i) {
+			shadowFactor[i] = GetShiftedShadowValue(value, i);
+		}
+	}
 #else
 	{
 		[loop]

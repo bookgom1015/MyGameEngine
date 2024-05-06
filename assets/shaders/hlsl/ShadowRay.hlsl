@@ -14,7 +14,7 @@ struct ShadowHitInfo {
 	bool IsHit;
 };
 
-ConstantBuffer<ConstantBuffer_Pass> cb_Pass		: register(b0);
+ConstantBuffer<ConstantBuffer_Pass>			cb_Pass		: register(b0);
 
 RaytracingAccelerationStructure				gi_BVH		: register(t0);
 Texture2D<GBuffer::PositionMapFormat>		gi_Position	: register(t1);
@@ -32,38 +32,41 @@ void ShadowRayGen() {
 	float3 normal = gi_Normal[launchIndex].xyz;
 	float d = gi_Depth[launchIndex];
 
+	uint value = ~0;
+
 	if (d !=  GBuffer::InvalidDepthValue) {
 		float3 posW = gi_Position[launchIndex].xyz;
 
-		RayDesc ray;
-		ray.Origin = posW + 0.1 * normal;
-		ray.Direction = -cb_Pass.Lights[0].Direction;
-		ray.TMin = 0;
-		ray.TMax = 1000;
+		[loop]
+		for (uint i = 0; i < cb_Pass.LightCount; ++i) {
+			if (cb_Pass.Lights[i].Type != LightType::E_Directional) continue;
 
-		ShadowHitInfo payload;
-		payload.IsHit = false;
+			RayDesc ray;
+			ray.Origin = posW + 0.1 * normal;
+			ray.Direction = -cb_Pass.Lights[i].Direction;
+			ray.TMin = 0;
+			ray.TMax = 1000;
 
-		TraceRay(
-			gi_BVH,
-			0,
-			0xFF,
-			0,
-			1,
-			0,
-			ray,
-			payload
-		);
+			ShadowHitInfo payload;
+			payload.IsHit = false;
 
-		float shadowFactor = payload.IsHit ? 0 : 1;
-		float4 color = float4((float3)shadowFactor, 1);
+			TraceRay(
+				gi_BVH,
+				0,
+				0xFF,
+				0,
+				1,
+				0,
+				ray,
+				payload
+			);
 
-		gi_Shadow[launchIndex] = shadowFactor;
-
-		return;
+			uint shifted = CalcShiftedShadowValue(payload.IsHit, value, i);
+			value = shifted;
+		}
 	}
 
-	gi_Shadow[launchIndex] = 1;
+	gi_Shadow[launchIndex] = value;
 }
 
 [shader("closesthit")]

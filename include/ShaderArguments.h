@@ -97,9 +97,9 @@ namespace Shadow {
 
 namespace DXR_Shadow {
 #ifdef HLSL
-	typedef float ShadowMapFormat;
+	typedef uint ShadowMapFormat;
 #else 
-	static const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R16_UNORM;
+	static const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R16_UINT;
 #endif 
 }
 

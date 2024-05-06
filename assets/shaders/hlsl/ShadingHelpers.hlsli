@@ -138,6 +138,19 @@ float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampCo
 	return percentLit / 9.0f;
 }
 
+uint CalcShiftedShadowValue(bool isHit, uint value, uint index) {
+	if (index == 0) value = 0;
+
+	uint shadowFactor = isHit ? 0 : 1;
+	uint shifted = shadowFactor << index;
+
+	return value | shifted;
+}
+
+uint GetShiftedShadowValue(uint value, uint index) {
+	return (value >> index) & 1;
+}
+
 float NdcDepthToViewDepth(float z_ndc, float4x4 proj) {
 	// z_ndc = A + B/viewZ, where proj[2,2]=A and proj[3,2]=B.
 	float viewZ = proj[3][2] / (z_ndc - proj[2][2]);

@@ -2923,22 +2923,6 @@ BOOL DxRenderer::DrawDXRShadow() {
 		mClientWidth, mClientHeight
 	);
 	
-	mBlurFilterCS->Run(
-		cmdList,
-		mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress(),
-		mGBuffer->NormalMapSrv(),
-		mGBuffer->DepthMapSrv(),
-		mDxrShadow->Resource(DXR_Shadow::Resources::EShadow0),
-		mDxrShadow->Resource(DXR_Shadow::Resources::EShadow1),
-		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
-		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::EU_Shadow0),
-		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow1),
-		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::EU_Shadow1),
-		BlurFilterCS::Filter::R16,
-		mClientWidth, mClientHeight,
-		ShaderArgs::DxrShadowMap::BlurCount
-	);
-	
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
