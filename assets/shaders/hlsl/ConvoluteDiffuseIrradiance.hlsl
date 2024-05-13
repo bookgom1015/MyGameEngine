@@ -66,7 +66,8 @@ float3 ConvoluteIrradiance(float3 pos) {
 			// tangent space to world space
 			const float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
 
-			irradiance += gi_Cube.Sample(gsamLinearClamp, sampleVec).rgb * cosTheta * sinTheta;
+			float4 gammaDecoded = gi_Cube.Sample(gsamLinearClamp, sampleVec);
+			irradiance += gammaDecoded.rgb * cosTheta * sinTheta;
 			++numSamples;
 		}
 	}

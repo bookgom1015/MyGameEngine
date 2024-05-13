@@ -8,7 +8,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
-#include "DxrShadingHelpers.hlsli"
+#include "DXR_ShadingHelpers.hlsli"
 
 struct ShadowHitInfo {
 	bool IsHit;

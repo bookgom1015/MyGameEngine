@@ -86,7 +86,10 @@ PixelOut PS(VertexOut pin) {
 	clip(dist - threshold);
 
 	float4 albedo = cb_Mat.Albedo;
-	if (cb_Mat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cb_Mat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	if (cb_Mat.DiffuseSrvIndex != -1) {
+		float4 corrected = sRGBToLinear(gi_TexMaps[cb_Mat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC));
+		albedo *= corrected;
+	}
 	
 	pin.NonJitPosH /= pin.NonJitPosH.w;
 	pin.PrevPosH /= pin.PrevPosH.w;

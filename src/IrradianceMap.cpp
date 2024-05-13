@@ -144,7 +144,7 @@ BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvoluteSpecularIrradiance));
 	}
 	{
-		const std::wstring actualPath = filePath + L"IntegrateBrdf.hlsl";
+		const std::wstring actualPath = filePath + L"IntegrateBRDF.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_IntegrateBRDF));

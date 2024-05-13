@@ -7,6 +7,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
+#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
@@ -16,8 +17,8 @@ cbuffer cbRootConstants : register(b2) {
 	float gMipLevel;
 }
 
-TextureCube<float3> gi_Cube				: register(t0);
-Texture2D<float3>	gi_Equirectangular	: register(t1);
+TextureCube<IrradianceMap::EnvCubeMapFormat>	gi_Cube				: register(t0);
+Texture2D<IrradianceMap::EquirectMapFormat>		gi_Equirectangular	: register(t1);
 
 VERTEX_IN
 
@@ -49,16 +50,18 @@ float2 SampleSphericalMap(float3 view) {
 }
 
 float4 PS(VertexOut pin) : SV_Target{
-	float3 samp = 0;
+	float4 color = 0;
 
 #ifdef SPHERICAL
 	float2 texc = SampleSphericalMap(normalize(pin.PosL));
-	 samp = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, gMipLevel);
+	color = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, gMipLevel);
 #else
-	samp = gi_Cube.SampleLevel(gsamLinearWrap, normalize(pin.PosL), gMipLevel);
+	color = gi_Cube.SampleLevel(gsamLinearWrap, normalize(pin.PosL), gMipLevel);
 #endif
 
-	return float4(samp, 1);
+	float4 gammaEncoded = LinearTosRGB(color);
+
+	return gammaEncoded;
 }
 
 #endif // __DRAWCUBEMAP_HLSL__

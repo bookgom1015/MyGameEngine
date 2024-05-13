@@ -704,7 +704,7 @@
     <None Include="..\..\include\UploadBuffer.inl">
       <Filter>Header Files\Render</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DxrShadingHelpers.hlsli">
+    <None Include="..\..\assets\shaders\hlsl\DXR_ShadingHelpers.hlsli">
       <Filter>Shader Files\HLSL\DXR</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli">
@@ -890,7 +890,7 @@
     <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
       <Filter>Shader Files\HLSL\Irradiance</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\IntegrateBrdf.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBRDF.hlsl">
       <Filter>Shader Files\HLSL\BRDF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">

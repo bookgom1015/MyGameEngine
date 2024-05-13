@@ -74,9 +74,8 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target{
 		float NdotL = max(dot(N, L), 0);
 		if (NdotL > 0) {			
 			const float mipLevel = ChetanJagsMipLevel(N, V, H, gRoughness);
-			const float3 color = gi_Environment.SampleLevel(gsamLinearClamp, L, mipLevel).rgb;
 
-			prefilteredColor += color * NdotL;
+			prefilteredColor += gi_Environment.SampleLevel(gsamLinearClamp, L, mipLevel).rgb * NdotL;
 			totalWeight += NdotL;
 		}
 	}

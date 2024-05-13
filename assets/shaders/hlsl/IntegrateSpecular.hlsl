@@ -21,7 +21,7 @@ Texture2D<GBuffer::RMSMapFormat>						gi_RMS			: register(t4);
 Texture2D<GBuffer::PositionMapFormat>					gi_Position		: register(t5);
 Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff		: register(t6);
 TextureCube<IrradianceMap::PrefilteredEnvCubeMapFormat>	gi_Prefiltered	: register(t7);
-Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BrdfLUT		: register(t8);
+Texture2D<IrradianceMap::IntegratedBrdfMapFormat>		gi_BRDF_LUT		: register(t8);
 Texture2D<SSR::SSRMapFormat>							gi_Reflection	: register(t9);
 
 #include "CoordinatesFittedToScreen.hlsli"
@@ -78,7 +78,7 @@ float4 PS(VertexOut pin) : SV_Target{
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
 
-	const float2 envBRDF = gi_BrdfLUT.Sample(gsamLinearClamp, float2(NdotV, roughness));
+	const float2 envBRDF = gi_BRDF_LUT.Sample(gsamLinearClamp, float2(NdotV, roughness));
 	const float3 specBias = (kS * envBRDF.x + envBRDF.y);
 	const float3 specRadiance = prefilteredColor;
 	const float3 reflectionRadiance = reflection.rgb;

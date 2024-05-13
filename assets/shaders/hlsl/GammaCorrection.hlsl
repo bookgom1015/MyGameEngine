@@ -25,10 +25,7 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 
 	vout.TexC = gTexCoords[vid];
 
-	// Quad covering screen in NDC space.
 	float2 pos = float2(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y);
-
-	// Already in homogeneous clip space.
 	vout.PosH = float4(pos, 0, 1);
 
 	return vout;

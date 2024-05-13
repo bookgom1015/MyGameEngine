@@ -157,6 +157,14 @@ float NdcDepthToViewDepth(float z_ndc, float4x4 proj) {
 	return viewZ;
 }
 
+float4 sRGBToLinear(float4 color) {
+	return pow(color, 2.2);
+}
+
+float4 LinearTosRGB(float4 color) {
+	return pow(color, 1 / 2.2);
+}
+
 float2 CalcVelocity(float4 curr_pos, float4 prev_pos) {
 	curr_pos.xy = (curr_pos.xy + (float2)1.0f) / 2.0f;
 	curr_pos.y = 1.0f - curr_pos.y;

@@ -20,7 +20,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
-#include "DxrShadingHelpers.hlsli"
+#include "DXR_ShadingHelpers.hlsli"
 #include "RandGenerator.hlsli"
 #include "Samplers.hlsli"
 #include "RaytracedReflection.hlsli"

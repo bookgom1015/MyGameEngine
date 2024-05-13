@@ -7,12 +7,13 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
+#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 
-TextureCube gi_Cube : register(t0);
+TextureCube<IrradianceMap::EnvCubeMapFormat> gi_Cube : register(t0);
 
 VERTEX_IN
 
