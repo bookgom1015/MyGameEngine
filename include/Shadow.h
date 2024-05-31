@@ -22,6 +22,14 @@ namespace Shadow {
 		};
 	}
 
+	namespace Resource {
+		enum {
+			E_ZDepth = 0,
+			E_Shadow,
+			Count
+		};
+	}
+
 	const UINT NumDepthStenciles = MaxLights;
 
 	class ShadowClass {

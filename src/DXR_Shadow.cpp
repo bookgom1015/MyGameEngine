@@ -22,8 +22,7 @@ namespace {
 }
 
 DXR_ShadowClass::DXR_ShadowClass() {
-	mResources[Resources::EShadow0] = std::make_unique<GpuResource>();
-	mResources[Resources::EShadow1] = std::make_unique<GpuResource>();
+	mResource = std::make_unique<GpuResource>();
 }
 
 BOOL DXR_ShadowClass::Initialize(
@@ -161,13 +160,12 @@ void DXR_ShadowClass::Run(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Normal, si_normal);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::ESI_Depth, si_depth);
 
-	const auto shadow0 = mResources[Resources::EShadow0].get();
-	const auto shadow1 = mResources[Resources::EShadow1].get();
+	const auto shadow = mResource.get();
 
-	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12Util::UavBarrier(cmdList, shadow0);
+	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, shadow);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Shadow, mhGpuDescs[Descriptors::EU_Shadow0]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Global::EUO_Shadow, mhGpuDesc);
 
 	D3D12_DISPATCH_RAYS_DESC dispatchDesc = {};
 	const auto& rayGen = mShaderTables[ShadowRayGenShaderTable];
@@ -188,21 +186,16 @@ void DXR_ShadowClass::Run(
 	cmdList->SetPipelineState1(mPSO.Get());
 	cmdList->DispatchRays(&dispatchDesc);
 	
-	shadow0->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	D3D12Util::UavBarrier(cmdList, shadow0);
+	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12Util::UavBarrier(cmdList, shadow);
 }
 
 
 void DXR_ShadowClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
-	mhCpuDescs[Descriptors::ES_Shadow0] = hCpu.Offset(1, descSize);
-	mhGpuDescs[Descriptors::ES_Shadow0] = hGpu.Offset(1, descSize);
-	mhCpuDescs[Descriptors::EU_Shadow0] = hCpu.Offset(1, descSize);
-	mhGpuDescs[Descriptors::EU_Shadow0] = hGpu.Offset(1, descSize);
-
-	mhCpuDescs[Descriptors::ES_Shadow1] = hCpu.Offset(1, descSize);
-	mhGpuDescs[Descriptors::ES_Shadow1] = hGpu.Offset(1, descSize);
-	mhCpuDescs[Descriptors::EU_Shadow1] = hCpu.Offset(1, descSize);
-	mhGpuDescs[Descriptors::EU_Shadow1] = hGpu.Offset(1, descSize);
+	mhCpuDesc = hCpu.Offset(1, descSize);
+	mhGpuDesc = hGpu.Offset(1, descSize);
+	mhCpuDesc = hCpu.Offset(1, descSize);
+	mhGpuDesc = hGpu.Offset(1, descSize);
 
 	BuildDescriptors();	
 }
@@ -228,13 +221,9 @@ void DXR_ShadowClass::BuildDescriptors() {
 	srvDesc.Format = ShadowMapFormat;
 	uavDesc.Format = ShadowMapFormat;
 
-	auto pRawResource = mResources[Resources::EShadow0]->Resource();
-	md3dDevice->CreateShaderResourceView(pRawResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow0]);
-	md3dDevice->CreateUnorderedAccessView(pRawResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow0]);
-
-	auto pSmoothedResource = mResources[Resources::EShadow1]->Resource();
-	md3dDevice->CreateShaderResourceView(pSmoothedResource, &srvDesc, mhCpuDescs[Descriptors::ES_Shadow1]);
-	md3dDevice->CreateUnorderedAccessView(pSmoothedResource, nullptr, &uavDesc, mhCpuDescs[Descriptors::EU_Shadow1]);
+	auto resource = mResource->Resource();
+	md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhCpuDesc);
+	md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhCpuDesc);
 }
 
 BOOL DXR_ShadowClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
@@ -251,17 +240,15 @@ BOOL DXR_ShadowClass::BuildResource(ID3D12GraphicsCommandList* const cmdList, UI
 	texDesc.SampleDesc.Quality = 0;
 
 	for (INT i = 0; i < 2; ++i) {
-		std::wstringstream wsstream;
-		wsstream << "DXR_Shadow_ShadowMap" << i;
 
-		CheckReturn(mResources[Resources::EShadow0 + i]->Initialize(
+		CheckReturn(mResource->Initialize(
 			md3dDevice,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
-			wsstream.str().c_str()
+			L"DXR_Shadow_ShadowMap"
 		));
 	}
 

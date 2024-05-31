@@ -28,36 +28,14 @@ namespace DXR_Shadow {
 		}
 	}
 
-	namespace Resources {
-		enum Type {
-			EShadow0 = 0,
-			EShadow1,
-			Count
-		};
-	}
-
-	namespace Descriptors {
-		enum Type {
-			ES_Shadow0 = 0,
-			EU_Shadow0,
-			ES_Shadow1,
-			EU_Shadow1,
-			Count
-		};
-	}
-
-	using ResourcesType = std::array<std::unique_ptr<GpuResource>, Resources::Count>;
-	using ResourcesCpuDescriptors = std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
-	using ResourcesGpuDescriptors = std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, Descriptors::Count>;
-
 	class DXR_ShadowClass {
 	public:
 		DXR_ShadowClass();
 		virtual ~DXR_ShadowClass() = default;
 
 	public:
-		__forceinline GpuResource* Resource(Resources::Type type);
-		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE Descriptor(Descriptors::Type type) const;
+		__forceinline GpuResource* Resource();
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE Descriptor() const;
 
 	public:
 		BOOL Initialize(ID3D12Device5*const device, ID3D12GraphicsCommandList*const cmdList, ShaderManager*const manager, UINT width, UINT height);
@@ -93,9 +71,9 @@ namespace DXR_Shadow {
 		std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12Resource>> mShaderTables;
 		UINT mHitGroupShaderTableStrideInBytes;
 
-		DXR_Shadow::ResourcesType mResources;
-		DXR_Shadow::ResourcesCpuDescriptors mhCpuDescs;
-		DXR_Shadow::ResourcesGpuDescriptors mhGpuDescs;
+		std::unique_ptr<GpuResource> mResource;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDesc;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuDesc;
 	};
 }
 

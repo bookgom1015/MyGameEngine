@@ -2495,7 +2495,7 @@ BOOL DxRenderer::DrawImGui() {
 					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
 						BuildDebugMap(
 							mDebugMapStates[DebugMapLayout::E_DxrShadow],
-							mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
+							mDxrShadow->Descriptor(),
 							DebugMap::SampleMask::RRR);
 					}
 					if (ImGui::TreeNode("RTAO")) {
@@ -2950,7 +2950,7 @@ BOOL DxRenderer::DrawDXRBackBuffer() {
 		mGBuffer->PositionMapSrv(),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
 		mRTAO->ResolvedAOCoefficientSrv(),
-		mDxrShadow->Descriptor(DXR_Shadow::Descriptors::ES_Shadow0),
+		mDxrShadow->Descriptor(),
 		BRDF::Render::E_Raytrace
 	);
 
