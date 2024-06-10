@@ -14,6 +14,10 @@ ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 ConstantBuffer<ConstantBuffer_Material>	cb_Mat	: register(b2);
 
+cbuffer cbRootConstants : register(b3) {
+	uint gLightIndex;
+}
+
 Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t0);
 
 VERTEX_IN
@@ -27,7 +31,7 @@ VertexOut VS(VertexIn vin) {
 	VertexOut vout = (VertexOut)0;
 	
 	float4 posW = mul(float4(vin.PosL, 1), cb_Obj.World);
-	vout.PosH = mul(posW, cb_Pass.ViewProj);
+	vout.PosH = mul(posW, cb_Pass.Lights[gLightIndex].ViewProj);
 
 	float4 texC = mul(float4(vin.TexC, 0, 1), cb_Obj.TexTransform);
 	vout.TexC = mul(texC, cb_Mat.MatTransform).xy;

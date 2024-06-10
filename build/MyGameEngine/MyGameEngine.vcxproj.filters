@@ -157,6 +157,9 @@
     <Filter Include="Prefabs\Private">
       <UniqueIdentifier>{2eb7ad19-0344-4c93-81f1-d4b94cd1137d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader Files\HLSL\Shadow">
+      <UniqueIdentifier>{36132e04-cd10-4ab5-94b6-38f559e96126}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\GameWorld.h">
@@ -665,9 +668,6 @@
     <None Include="..\..\assets\shaders\glsl\Shadow.frag">
       <Filter>Shader Files\GLSL</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Shadow.hlsl">
-      <Filter>Shader Files\HLSL</Filter>
-    </None>
     <None Include="..\..\include\GBuffer.inl">
       <Filter>Header Files\Render\DirectX\Shading</Filter>
     </None>
@@ -904,6 +904,12 @@
     </None>
     <None Include="..\..\include\DebugMap.inl">
       <Filter>Header Files\Render\DirectX\Debug</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
+      <Filter>Shader Files\HLSL\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+      <Filter>Shader Files\HLSL\Shadow</Filter>
     </None>
   </ItemGroup>
 </Project>

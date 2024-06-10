@@ -172,7 +172,6 @@ private:
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuDescForTexMaps;
 
 	std::unique_ptr<ConstantBuffer_Pass> mMainPassCB;
-	std::unique_ptr<ConstantBuffer_Pass> mShadowPassCB;
 	
 	std::unique_ptr<ShaderManager> mShaderManager;
 

@@ -17,6 +17,7 @@ namespace LightType {
 }
 
 struct Light {
+	DirectX::XMFLOAT4X4	ViewProj;
 	DirectX::XMFLOAT4X4 ShadowTransform;
 
 	DirectX::XMFLOAT3	LightColor;

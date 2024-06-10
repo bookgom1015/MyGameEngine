@@ -114,7 +114,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
 		// space1
 		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
-		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 1, 1);
+		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1);
 
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);

@@ -41,8 +41,8 @@ struct ConstantBuffer_Pass {
 	UINT				LightCount;
 
 	DirectX::XMFLOAT2	JitteredOffset;
+	FLOAT				ConstantPad0;
 	FLOAT				ConstantPad1;
-	FLOAT				ConstantPad2;
 
 	DirectX::XMFLOAT4	AmbientLight;
 

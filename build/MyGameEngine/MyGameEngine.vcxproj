@@ -649,7 +649,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\Shadow.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
@@ -884,6 +884,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\SSR_View.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

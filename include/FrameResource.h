@@ -9,6 +9,7 @@ public:
 	FrameResource(
 		ID3D12Device* pDevice,
 		UINT passCount,
+		UINT shadowCount,
 		UINT objectCount,
 		UINT materialCount);
 	virtual ~FrameResource() = default;
@@ -44,6 +45,7 @@ public:
 
 	ID3D12Device* Device;
 	UINT PassCount;
+	UINT ShadowCount;
 	UINT ObjectCount;
 	UINT MaterialCount;
 };

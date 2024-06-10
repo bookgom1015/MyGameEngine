@@ -25,7 +25,7 @@ Texture2D<RTAO::AOCoefficientMapFormat>					gi_AOCoeiff				: register(t0, space1
 Texture2D<DXR_Shadow::ShadowMapFormat>					gi_Shadow				: register(t1, space1);
 #else
 Texture2D<SSAO::AOCoefficientMapFormat>					gi_AOCoeiff				: register(t0, space1);
-Texture2D<Shadow::ShadowMapFormat>						gi_Shadow[MaxLights]	: register(t1, space1);
+Texture2D<Shadow::ShadowMapFormat>						gi_Shadow				: register(t1, space1);
 #endif
 
 #include "CoordinatesFittedToScreen.hlsli"
@@ -73,7 +73,6 @@ float4 PS(VertexOut pin) : SV_Target {
 		for (uint i = 0; i < MaxLights; ++i) shadowFactor[i] = 1;
 	}
 
-#ifdef DXR
 	{
 		uint2 size;
 		gi_Shadow.GetDimensions(size.x, size.y);
@@ -85,16 +84,6 @@ float4 PS(VertexOut pin) : SV_Target {
 			shadowFactor[i] = GetShiftedShadowValue(value, i);
 		}
 	}
-#else
-	{
-		[loop]
-		for (uint i = 0; i < cb_Pass.LightCount; ++i) {
-			const float4 shadowPosH = mul(posW, cb_Pass.Lights[i].ShadowTransform);
-			//const float4 shadowPosH = mul(posW, cb_Pass.ShadowTransform);
-			shadowFactor[i] = CalcShadowFactor(gi_Shadow[i], gsamShadow, shadowPosH);
-		}
-	}
-#endif
 
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 

@@ -209,7 +209,6 @@ DxRenderer::DxRenderer() {
 	bIsCleanedUp = false;
 
 	mMainPassCB = std::make_unique<ConstantBuffer_Pass>();
-	mShadowPassCB = std::make_unique<ConstantBuffer_Pass>();
 
 	mShaderManager = std::make_unique<ShaderManager>();
 
@@ -303,7 +302,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #endif
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
-	CheckReturn(mShadow->Initialize(device, shaderManager, 2048, 2048));
+	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 2048, 2048));
 	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_Quarter));
@@ -826,7 +825,7 @@ BOOL DxRenderer::BuildGeometries() {
 BOOL DxRenderer::BuildFrameResources() {
 	for (INT i = 0; i < gNumFrameResources; i++) {
 		mFrameResources.push_back(std::make_unique<FrameResource>(
-			md3dDevice.Get(), 1 /* Main Passes */ + Shadow::NumDepthStenciles /* Shadow Passes */,
+			md3dDevice.Get(), 1, MaxLights /* Shadows */,
 			32 /* Objects */, 32 /* Materials */));
 		CheckReturn(mFrameResources.back()->Initialize());
 	}
@@ -1208,6 +1207,12 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
+	
+
+	return TRUE;
+}
+
+BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	for (UINT i = 0; i < mLightCount; ++i) {
 		if (i >= MaxLights || mLights[i].Type != LightType::E_Directional) continue;
 
@@ -1247,22 +1252,17 @@ BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
 		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(lightProj), lightProj);
 		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
-		XMStoreFloat4x4(&mShadowPassCB->View, XMMatrixTranspose(lightView));
-		XMStoreFloat4x4(&mShadowPassCB->InvView, XMMatrixTranspose(invView));
-		XMStoreFloat4x4(&mShadowPassCB->Proj, XMMatrixTranspose(lightProj));
-		XMStoreFloat4x4(&mShadowPassCB->InvProj, XMMatrixTranspose(invProj));
-		XMStoreFloat4x4(&mShadowPassCB->ViewProj, XMMatrixTranspose(viewProj));
-		XMStoreFloat4x4(&mShadowPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
-		XMStoreFloat3(&mShadowPassCB->EyePosW, lightPos);
-
-		auto& currCB = mCurrFrameResource->CB_Pass;
-		currCB.CopyData(static_cast<INT>(1 + i), *mShadowPassCB);
+		XMStoreFloat4x4(&mLights[i].ViewProj, XMMatrixTranspose(viewProj));
+		XMStoreFloat3(&mLights[i].Position, lightPos);
+		//XMStoreFloat4x4(&mMainPassCB->Lights[i].View, XMMatrixTranspose(lightView));
+		//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvView, XMMatrixTranspose(invView));
+		//XMStoreFloat4x4(&mMainPassCB->Lights[i].Proj, XMMatrixTranspose(lightProj));
+		//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvProj, XMMatrixTranspose(invProj));
+		//XMStoreFloat4x4(&mMainPassCB->Lights[i].ViewProj, XMMatrixTranspose(viewProj));
+		//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvViewProj, XMMatrixTranspose(invViewProj));
+		//XMStoreFloat3(&mMainPassCB->Lights[i].Position, lightPos);
 	}
 
-	return TRUE;
-}
-
-BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	XMMATRIX view = XMLoadFloat4x4(&mCamera->GetView());
 	XMMATRIX proj = XMLoadFloat4x4(&mCamera->GetProj());
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
@@ -1732,20 +1732,7 @@ BOOL DxRenderer::DrawShadow() {
 
 	if (!bShadowEnabled) {
 		if (!bShadowMapCleanedUp) {
-			CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-			const auto shadow = mShadow->Resource(0);
-
-			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
-			cmdList->ClearDepthStencilView(mShadow->Dsv(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-			shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
-
-			CheckHRESULT(cmdList->Close());
-			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
-
-			bShadowMapCleanedUp = TRUE;
 		}
 		
 		return TRUE;
@@ -1756,22 +1743,18 @@ BOOL DxRenderer::DrawShadow() {
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	const auto cbPass = mCurrFrameResource->CB_Pass.Resource();
-	const auto cbPassByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass));
-	
+		
 	for (UINT i = 0; i < mLightCount; ++i) {
 		if (i >= MaxLights || mLights[i].Type != LightType::E_Directional) continue;
 
-		const D3D12_GPU_VIRTUAL_ADDRESS cbPassAddr = cbPass->GetGPUVirtualAddress() + (1 + i) * cbPassByteSize;
-
 		mShadow->Run(
 			cmdList,
-			cbPassAddr,
+			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 			mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
 			mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress(),
 			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
 			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
+			mGBuffer->PositionMapSrv(),
 			mhGpuDescForTexMaps,
 			mRitemRefs[RenderType::E_Opaque],
 			i
@@ -1909,7 +1892,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 		mGBuffer->PositionMapSrv(),
 		mIrradianceMap->DiffuseIrradianceCubeMapSrv(),
 		mSSAO->AOCoefficientMapSrv(0),
-		mShadow->Srv(0),
+		mShadow->Srv(Shadow::Descriptor::ESI_Shadow),
 		BRDF::Render::E_Raster
 	);
 
@@ -2462,16 +2445,12 @@ BOOL DxRenderer::DrawImGui() {
 
 				if (ImGui::TreeNode("Rasterization")) {
 					if (ImGui::TreeNode("Shadow")) {
-						for (UINT i = 0; i < Shadow::NumDepthStenciles; ++i) {
-							auto debug = mShadow->DebugShadowMap(i);
-							std::stringstream label;
-							label << "Shadow_" << i;
-							if (ImGui::Checkbox(label.str().c_str(), reinterpret_cast<bool*>(debug))) {
-								BuildDebugMap(
-									*debug,
-									mShadow->Srv(i),
-									DebugMap::SampleMask::RRR);
-							}
+						auto debug = mShadow->DebugShadowMap();
+						if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(debug))) {
+							BuildDebugMap(
+								*debug,
+								mShadow->Srv(Shadow::Descriptor::ESI_Shadow),
+								DebugMap::SampleMask::RRR);
 						}
 
 						ImGui::TreePop();

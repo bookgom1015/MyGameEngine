@@ -89,10 +89,21 @@ namespace GBuffer {
 
 namespace Shadow {
 #ifdef HLSL
-	typedef float ShadowMapFormat;
+	typedef float ZDepthMapFormat;
+	typedef uint ShadowMapFormat;
 #else 
-	static const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	static const DXGI_FORMAT ZDepthMapFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	static const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R16_UINT;
 #endif 
+	namespace Default {
+		namespace ThreadGroup {
+			enum {
+				Width = 8,
+				Height = 8,
+				Size = Width * Height
+		};
+	}
+}
 }
 
 namespace DXR_Shadow {
