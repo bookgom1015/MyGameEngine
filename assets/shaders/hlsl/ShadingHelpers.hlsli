@@ -113,7 +113,7 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
 	return normalize(sampleVec);
 }
 
-float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
+float CalcShadowFactorPCF(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
 
 	float depth = shadowPosH.z;
@@ -138,7 +138,24 @@ float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampCo
 	return percentLit / 9.0f;
 }
 
-uint CalcShiftedShadowValue(bool isHit, uint value, uint index) {
+float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
+	shadowPosH.xyz /= shadowPosH.w;
+
+	float depth = shadowPosH.z;
+
+	return shadowMap.SampleCmpLevelZero(sampComp, shadowPosH.xy, depth);
+}
+
+uint CalcShiftedShadowValueF(float percent, uint value, uint index) {
+	if (index == 0) value = 0;
+
+	uint shadowFactor = percent < 0.5 ? 0 : 1;
+	uint shifted = shadowFactor << index;
+
+	return value | shifted;
+}
+
+uint CalcShiftedShadowValueB(bool isHit, uint value, uint index) {
 	if (index == 0) value = 0;
 
 	uint shadowFactor = isHit ? 0 : 1;
@@ -149,6 +166,15 @@ uint CalcShiftedShadowValue(bool isHit, uint value, uint index) {
 
 uint GetShiftedShadowValue(uint value, uint index) {
 	return (value >> index) & 1;
+}
+
+uint FloatToByte(float value) {
+	value = clamp(value, 0.0, 1.0);
+	return (uint)(value * 255.0 + 0.5);
+}
+
+float ByteToFloat(uint value) {
+	return value / 255.0;
 }
 
 float NdcDepthToViewDepth(float z_ndc, float4x4 proj) {

@@ -153,8 +153,9 @@ void ShadowClass::Run(
 
 	mShadowMaps[Resource::E_ZDepth]->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);	
 
-	cmdList->ClearDepthStencilView(mhCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-	cmdList->OMSetRenderTargets(0, nullptr, false, &mhCpuDsv);
+	auto& dsv = mhCpuDsvs[Descriptor::DSV::EDS_ZDepth];
+	cmdList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	cmdList->OMSetRenderTargets(0, nullptr, false, &dsv);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ZDepth::ECB_Pass, cb_pass);
 
@@ -178,12 +179,16 @@ void ShadowClass::BuildDescriptors(
 	mhCpuDescs[Descriptor::ESI_ZDepth] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptor::ESI_ZDepth] = hGpu.Offset(1, descSize);
 
+	mhCpuDescs[Descriptor::ESI_ZDepthCube] = hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptor::ESI_ZDepthCube] = hGpu.Offset(1, descSize);
+
 	mhCpuDescs[Descriptor::ESI_Shadow] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptor::ESI_Shadow] = hGpu.Offset(1, descSize);
 	mhCpuDescs[Descriptor::EUO_Shadow] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptor::EUO_Shadow] = hGpu.Offset(1, descSize);
 
-	mhCpuDsv = hCpuDsv.Offset(1, dsvDescSize);
+	mhCpuDsvs[Descriptor::DSV::EDS_ZDepth] = hCpuDsv.Offset(1, dsvDescSize);
+	mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube] = hCpuDsv.Offset(1, dsvDescSize);
 
 	BuildDescriptors();
 }
@@ -206,8 +211,11 @@ void ShadowClass::BuildDescriptors() {
 		dsvDesc.Format = ZDepthMapFormat;
 		dsvDesc.Texture2D.MipSlice = 0;
 
-		md3dDevice->CreateDepthStencilView(mShadowMaps[Resource::E_ZDepth]->Resource(), &dsvDesc, mhCpuDsv);
+		md3dDevice->CreateDepthStencilView(mShadowMaps[Resource::E_ZDepth]->Resource(), &dsvDesc, mhCpuDsvs[Descriptor::DSV::EDS_ZDepth]);
 		md3dDevice->CreateShaderResourceView(mShadowMaps[Resource::E_ZDepth]->Resource(), &srvDesc, mhCpuDescs[Descriptor::ESI_ZDepth]);
+
+		md3dDevice->CreateDepthStencilView(mShadowMaps[Resource::E_ZDepthCube]->Resource(), &dsvDesc, mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube]);
+		md3dDevice->CreateShaderResourceView(mShadowMaps[Resource::E_ZDepthCube]->Resource(), &srvDesc, mhCpuDescs[Descriptor::ESI_ZDepthCube]);
 	}
 	{
 		srvDesc.Format = ShadowMapFormat;
@@ -271,6 +279,29 @@ BOOL ShadowClass::BuildResources() {
 			L"Shadow_ZDepthMap"
 		));
 	}
+	// Z-Depth cube map
+	{
+		texDesc.Width = mTexWidth;
+		texDesc.Height = mTexHeight;
+		texDesc.Format = ZDepthMapFormat;
+		texDesc.DepthOrArraySize = 6;
+		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+		D3D12_CLEAR_VALUE optClear;
+		optClear.Format = ZDepthMapFormat;
+		optClear.DepthStencil.Depth = 1.0f;
+		optClear.DepthStencil.Stencil = 0;
+
+		CheckReturn(mShadowMaps[Resource::E_ZDepthCube]->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&texDesc,
+			D3D12_RESOURCE_STATE_DEPTH_READ,
+			&optClear,
+			L"Shadow_ZDepthCubeMap"
+		));
+	}
 
 	return TRUE;
 }
@@ -324,8 +355,8 @@ void ShadowClass::DrawShadow(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::EUO_Shadow, mhGpuDescs[Descriptor::EUO_Shadow]);
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(static_cast<UINT>(mViewport.Width), Default::ThreadGroup::Width),
-		D3D12Util::CeilDivide(static_cast<UINT>(mViewport.Height), Default::ThreadGroup::Height), 1);
+		D3D12Util::CeilDivide(static_cast<UINT>(mClientWidth), Default::ThreadGroup::Width),
+		D3D12Util::CeilDivide(static_cast<UINT>(mClientHeight), Default::ThreadGroup::Height), 1);
 
 	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	D3D12Util::UavBarrier(cmdList, shadow);

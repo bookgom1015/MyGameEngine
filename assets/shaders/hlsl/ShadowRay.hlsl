@@ -61,8 +61,7 @@ void ShadowRayGen() {
 				payload
 			);
 
-			uint shifted = CalcShiftedShadowValue(payload.IsHit, value, i);
-			value = shifted;
+			value = CalcShiftedShadowValueB(payload.IsHit, value, i);
 		}
 	}
 

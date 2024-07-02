@@ -49,6 +49,7 @@ namespace Bloom {
 		enum Type {
 			E_Fullscreen = 0,
 			E_Quarter,
+			E_OneSixteenth,
 			Count
 		};
 	}

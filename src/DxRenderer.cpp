@@ -302,10 +302,10 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 #endif
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
-	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 2048, 2048));
+	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 4096, 4096));
 	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
-	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_Quarter));
+	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_OneSixteenth));
 	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
 	CheckReturn(mDoF->Initialize(device, shaderManager, cmdList, width, height));
 	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
@@ -361,7 +361,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.577f, -0.577f, 0.577f };
 		light.LightColor = { 240.0f / 255.0f, 235.0f / 255.0f, 223.0f / 255.0f };
-		light.Intensity = 3.153f;
+		light.Intensity = 1.802f;
 
 		mLights[mLightCount] = light;
 		++mLightCount;
@@ -371,7 +371,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.067f, -0.701f, -0.836f };
 		light.LightColor = { 149.0f / 255.0f, 142.0f/ 255.0f, 100.0f / 255.0f };
-		light.Intensity = 2.435f;
+		light.Intensity = 1.534f;
 
 		mLights[mLightCount] = light;
 		++mLightCount;

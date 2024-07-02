@@ -242,9 +242,13 @@ BOOL BloomClass::BuildResources(UINT width, UINT height) {
 		actWidth = width;
 		actHeight = height;
 	}
-	else {
+	else if (mResolutionType == Resolution::E_Quarter) {
 		actWidth = static_cast<UINT>(width * 0.5f);
 		actHeight = static_cast<UINT>(height * 0.5f);
+	}
+	else {
+		actWidth = static_cast<UINT>(width * 0.25f);
+		actHeight = static_cast<UINT>(height * 0.25f);
 	}
 
 	mViewport = { 0.0f, 0.0f, static_cast<FLOAT>(actWidth), static_cast<FLOAT>(actHeight), 0.0f, 1.0f };

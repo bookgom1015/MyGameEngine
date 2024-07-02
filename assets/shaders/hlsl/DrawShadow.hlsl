@@ -29,8 +29,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	const float4 shadowPosH = mul(posW, cb_Pass.Lights[gLightIndex].ShadowTransform);
 	float shadowFactor = CalcShadowFactor(gi_ZDepth, gsamShadow, shadowPosH);
 	
-	uint shifted = (uint)shadowFactor << gLightIndex;
-	value = value | shifted;
+	value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 
 	guo_Shadow[DTid] = value;
 }

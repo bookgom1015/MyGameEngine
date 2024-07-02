@@ -26,7 +26,7 @@ constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE Shadow::ShadowClass::Srv(Shadow::Descrip
 }
 
 constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Shadow::ShadowClass::Dsv() const {
-	return mhCpuDsv;
+	return mhCpuDsvs[Descriptor::DSV::EDS_ZDepth];
 }
 
 BOOL* Shadow::ShadowClass::DebugShadowMap() {

@@ -59,6 +59,7 @@ namespace Shadow {
 	namespace PipelineState {
 		enum {
 			EG_ZDepth = 0,
+			EG_ZDepthCube,
 			EC_Shadow,
 			Count
 		};
@@ -67,6 +68,7 @@ namespace Shadow {
 	namespace Resource {
 		enum Type {
 			E_ZDepth = 0,
+			E_ZDepthCube,
 			E_Shadow,
 			Count
 		};
@@ -75,13 +77,22 @@ namespace Shadow {
 	namespace Descriptor {
 		enum Type {
 			ESI_ZDepth = 0,
+			ESI_ZDepthCube,
 			ESI_Shadow,
 			EUO_Shadow,
 			Count
 		};
+
+		namespace DSV {
+			enum {
+				EDS_ZDepth = 0,
+				EDS_ZDepthCube,
+				Count
+			};
+		}
 	}
 
-	static const UINT NumDepthStenciles = 1;
+	static const UINT NumDepthStenciles = 2;
 
 	class ShadowClass {
 	public:
@@ -162,7 +173,7 @@ namespace Shadow {
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDescs[Descriptor::Count];
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuDescs[Descriptor::Count];
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsvs[Descriptor::DSV::Count];
 
 		BOOL mDebugShadowMap;
 	};
