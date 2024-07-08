@@ -7,18 +7,19 @@
 
 #include "Samplers.h"
 #include "MipmapGenerator.h"
+#include "HlslCompaction.h"	
 
 class ShaderManager;
 class GpuResource;
 
 struct RenderItem;
 
+namespace EquirectangularConverter { class EquirectangularConverterClass; }
+
 namespace IrradianceMap {
 	namespace RootSignature {
 		enum Type {
-			E_ConvEquirectToCube = 0,
-			E_ConvCubeToEquirect,
-			E_ConvoluteDiffuseIrradiance,
+			E_ConvoluteDiffuseIrradiance = 0,
 			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBRDF,
 			E_DrawCube,
@@ -26,41 +27,9 @@ namespace IrradianceMap {
 			Count
 		};
 
-		namespace ConvEquirectToCube {
-			enum {
-				ECB_ConvEquirectToCube = 0,
-				EC_Consts,
-				ESI_Equirectangular,
-				Count
-			};
-
-			namespace RootConstant {
-				enum {
-					E_FaceID = 0,
-					Count
-				};
-			}
-		}
-
-		namespace ConvCubeToEquirect {
-			enum {
-				ESI_Cube = 0,
-				EC_Consts,
-				Count
-			};
-
-			namespace RootConstant {
-				enum {
-					E_MipLevel = 0,
-					Count
-				};
-			}
-		}
-
 		namespace DrawCube {
 			enum {
 				ECB_Pass = 0,
-				ECB_Obj,
 				EC_Consts,
 				ESI_Cube,
 				ESI_Equirectangular,
@@ -151,18 +120,6 @@ namespace IrradianceMap {
 		};
 	}
 
-	namespace CubeMapFace {
-		enum Type {
-			E_PositiveX = 0,	// Right
-			E_NegativeX,		// Left
-			E_PositiveY,		// Upper
-			E_NegativeY,		// Bottom
-			E_PositiveZ,		// Frontward
-			E_NegativeZ,		// Backward
-			Count
-		};
-	}
-
 	namespace Save {
 		enum Type : std::uint8_t {
 			E_None				= 1 << 0,
@@ -220,10 +177,10 @@ namespace IrradianceMap {
 			ID3D12CommandQueue*const queue,
 			ID3D12DescriptorHeap* descHeap,
 			ID3D12GraphicsCommandList* const cmdList,
+			EquirectangularConverter::EquirectangularConverterClass* converter,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
-			MipmapGenerator::MipmapGeneratorClass* const generator,
-			RenderItem* box);
+			MipmapGenerator::MipmapGeneratorClass* const generator);
 		BOOL DrawCubeMap(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
@@ -231,9 +188,6 @@ namespace IrradianceMap {
 			GpuResource* backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
-			D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
-			UINT objCBByteSize,
-			RenderItem* cube,
 			FLOAT mipLevel = 0.0f);
 		BOOL DrawSkySphere(
 			ID3D12GraphicsCommandList* const cmdList,
@@ -260,40 +214,12 @@ namespace IrradianceMap {
 			LPCWSTR setname);
 		BOOL Save(ID3D12CommandQueue* const queue, GpuResource* resource, const std::wstring& filepath);
 
-		void ConvertEquirectangularToCube(
-			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
-			GpuResource* resource,
-			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
-			D3D12_CPU_DESCRIPTOR_HANDLE* ro_outputs,
-			RenderItem* box);
-		void ConvertEquirectangularToCube(
-			ID3D12GraphicsCommandList* const cmdList,
-			UINT width, UINT height,
-			GpuResource* resource,
-			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
-			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
-			CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[][CubeMapFace::Count],
-			RenderItem* box,
-			UINT maxMipLevel);
-		void ConvertCubeToEquirectangular(
-			ID3D12GraphicsCommandList* const cmdList, 
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
-			GpuResource* equirectResource,
-			D3D12_CPU_DESCRIPTOR_HANDLE equirectRtv,
-			D3D12_GPU_DESCRIPTOR_HANDLE cubeSrv,
-			UINT mipLevel = 0);
 		void GenerateDiffuseIrradiance(
 			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
-			RenderItem* box);
+			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube);
 		void GeneratePrefilteredEnvironment(
 			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
-			RenderItem* box);
+			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube);
 		void GenerateIntegratedBrdf(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass);

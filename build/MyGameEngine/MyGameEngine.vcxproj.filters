@@ -399,6 +399,9 @@
     <ClInclude Include="..\..\include\BoxActor.h">
       <Filter>Prefabs\Public</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\EquirectangularConverter.h">
+      <Filter>Header Files\Render\DirectX\Shading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\GameWorld.cpp">
@@ -625,6 +628,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\BoxActor.cpp">
       <Filter>Prefabs\Private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\EquirectangularConverter.cpp">
+      <Filter>Source Files\Render\DirectX\Shading</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -910,6 +916,12 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
       <Filter>Shader Files\HLSL\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawZDepthCube.hlsl">
+      <Filter>Shader Files\HLSL\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\HardcodedCubeVertices.hlsli">
+      <Filter>Shader Files\HLSL</Filter>
     </None>
   </ItemGroup>
 </Project>

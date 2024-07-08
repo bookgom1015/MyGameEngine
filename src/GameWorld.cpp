@@ -55,12 +55,13 @@ namespace {
 	const UINT InitClientWidth = 1280;
 	const UINT InitClientHeight = 720;
 
+#ifdef _DirectX
 	LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		// Forward hwnd on because we can get messages (e.g., WM_CREATE)
 		// before CreateWindow returns, and thus before mhMainWnd is valid
 		return GameWorld::GetWorld()->MsgProc(hwnd, msg, wParam, lParam);
 	}
-
+#else
 	void GLFWKeyCallback(GLFWwindow* wnd, INT key, INT code, INT action, INT mods) {
 		auto game = reinterpret_cast<GameWorld*>(glfwGetWindowUserPointer(wnd));
 		game->MsgProc(wnd, key, code, action, mods);
@@ -75,6 +76,7 @@ namespace {
 		auto game = reinterpret_cast<GameWorld*>(glfwGetWindowUserPointer(pWnd));
 		game->OnFocusChanged(inState);
 	}
+#endif
 }
 
 GameWorld* GameWorld::sGameWorld = nullptr;
@@ -189,6 +191,7 @@ Renderer* GameWorld::GetRenderer() const { return mRenderer.get(); }
 
 ActorManager* GameWorld::GetActorManager() const { return mActorManager.get(); }
 
+#ifdef _DirectX
 LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	static UINT width = InitClientWidth;
 	static UINT height = InitClientHeight;
@@ -309,7 +312,7 @@ LRESULT GameWorld::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
-
+#else
 LRESULT GameWorld::MsgProc(GLFWwindow* wnd, INT key, INT code, INT action, INT mods) {
 	switch (key) {
 	case GLFW_KEY_ESCAPE:
@@ -321,6 +324,7 @@ LRESULT GameWorld::MsgProc(GLFWwindow* wnd, INT key, INT code, INT action, INT m
 
 	return 0;
 }
+#endif
 
 void GameWorld::OnResize(UINT width, UINT height) {
 	if (!mRenderer->OnResize(width, height)) {
@@ -328,10 +332,12 @@ void GameWorld::OnResize(UINT width, UINT height) {
 	}
 }
 
+#ifdef _Vulkan
 void GameWorld::OnFocusChanged(INT focused) {
 	bAppPaused = (focused == GLFW_TRUE ? FALSE : TRUE);
 	mInputManager->IgnoreMouseInput();
 }
+#endif
 
 BOOL GameWorld::InitMainWindow() {
 #ifdef _DirectX
@@ -465,7 +471,7 @@ BOOL GameWorld::Draw() {
 }
 
 BOOL GameWorld::LoadData() {
-	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/brown_photostudio.dds"));
+	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/forest_hdr.dds"));
 
 	XMFLOAT4 rot;
 	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVectors::UpVector, XM_PI));

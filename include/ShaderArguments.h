@@ -214,7 +214,7 @@ namespace DebugMap {
 	}
 }
 
-namespace DxrGeometryBuffer {
+namespace DXR_GeometryBuffer {
 	static const UINT GeometryBufferCount = 32;
 }
 
@@ -352,6 +352,18 @@ namespace MipmapGenerator {
 			Size	= Width * Height
 		};
 	}
+}
+
+namespace CubeMapFace {
+	enum Type {
+		E_PositiveX = 0,	// Right
+		E_NegativeX,		// Left
+		E_PositiveY,		// Upper
+		E_NegativeY,		// Bottom
+		E_PositiveZ,		// Frontward
+		E_NegativeZ,		// Backward
+		Count
+	};
 }
 
 #include "ShaderArguments.inl"

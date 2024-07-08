@@ -419,13 +419,15 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT 
 	rscDesc.SampleDesc.Quality = 0;
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 
+	auto defaultHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
 	// Circle of confusion
 	{
 		rscDesc.Format = CoCMapFormat;
 		rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		CheckReturn(mCoCMap->Initialize(
 			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			&defaultHeapProp,
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -440,7 +442,7 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT 
 		
 		CheckReturn(mCopiedBackBuffer->Initialize(
 			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			&defaultHeapProp,
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -450,11 +452,13 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT 
 	}
 	// Focal distance
 	{
+		auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(FLOAT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
 		CheckReturn(mFocalDistanceBuffer->Initialize(
 			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			&defaultHeapProp,
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(FLOAT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+			&resourceDesc,
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			L"DoF_FocalDistanceMap"

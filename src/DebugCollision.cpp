@@ -108,7 +108,7 @@ void DebugCollisionClass::DrawRenderItems(
 	for (UINT i = 0; i < ritems.size(); ++i) {
 		auto& ri = ritems[i];
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = objCBByteSize + ri->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + ri->ObjCBIndex * objCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_Obj, currRitemObjCBAddress);
 
 		cmdList->IASetVertexBuffers(0, 0, nullptr);

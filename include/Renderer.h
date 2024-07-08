@@ -1,62 +1,66 @@
 #pragma once
 
+//
+// Common header files.
+//
+#include <algorithm>
+#include <array>
+#include <DirectXCollision.h>
+#include <map>
+#include <memory>
+#include <set>
+#include <unordered_map>
+#include <vector>
 #include <Windows.h>
 #include <wrl.h>
-#include <vector>
-#include <map>
-#include <unordered_map>
-#include <set>
-#include <array>
-#include <algorithm>
+
+#include "Camera.h"
+#include "Transform.h"
+#include "Mesh.h"
+#include "RenderType.h"
 
 //
 // Link necessary libraries.
 //
-#pragma comment(lib, "dxguid.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "dxcompiler.lib")
-#pragma comment(lib, "glfw3.lib")
-#pragma comment(lib, "vulkan-1.lib")
-#pragma comment(lib, "DirectXTK12.lib")
+#ifdef _DirectX
+	#pragma comment(lib, "dxguid.lib")
+	#pragma comment(lib, "dxgi.lib")
+	#pragma comment(lib, "d3d12.lib")
+	#pragma comment(lib, "d3dcompiler.lib")
+	#pragma comment(lib, "dxcompiler.lib")
+	#pragma comment(lib, "DirectXTK12.lib")
+#else 
+	#pragma comment(lib, "glfw3.lib")
+	#pragma comment(lib, "vulkan-1.lib")
+#endif
 
-//
-// DirectX header files.
-//
-#include <d3d12.h>
-#include <d3d12sdklayers.h>
-#include <D3Dcompiler.h>
-#include <dxgi1_6.h>
-#include "d3dx12.h"
-#include <DirectXCollision.h>
-
-#include <GraphicsMemory.h>
-#include <DDSTextureLoader.h>
-#include <ResourceUploadBatch.h>
-//
-
-//
-// Vulkan header files.
-//
-#define VK_USE_PLATFORM_WIN32_KHR
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-//
-
-#include "Transform.h"
-#include "Mesh.h"
-#include "Camera.h"
-#include "RenderType.h"
-
-#include <Windows.h>
+#ifdef _DirectX
+	//
+	// DirectX header files.
+	//
+	#include <d3d12.h>
+	#include <d3d12sdklayers.h>
+	#include <D3Dcompiler.h>
+	#include <dxgi1_6.h>
+	#include <GraphicsMemory.h>
+	#include <DDSTextureLoader.h>
+	#include <ResourceUploadBatch.h>
+	#include "d3dx12.h"
+#else 
+	//
+	// Vulkan header files.
+	//
+	#define VK_USE_PLATFORM_WIN32_KHR
+	#define GLFW_INCLUDE_VULKAN
+	#include <GLFW/glfw3.h>
+	
+	#define GLFW_EXPOSE_NATIVE_WIN32
+	#include <GLFW/glfw3native.h>
+#endif
 
 class Renderer {
 public:
-	virtual BOOL Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) = 0;
+	virtual BOOL Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) = 0;
 	virtual void CleanUp() = 0;
 
 	virtual BOOL Update(FLOAT delta) = 0;
@@ -122,30 +126,30 @@ public:
 	__forceinline constexpr FLOAT AspectRatio() const;
 
 protected:
-	BOOL bInitialized = false;
+	BOOL bInitialized = FALSE;
 
 	UINT mClientWidth;
 	UINT mClientHeight;
 
 	Camera* mCamera;
 
-	BOOL bShowImGui = false;
+	BOOL bShowImGui = FALSE;
 
-	BOOL bDebuggingEnabled = false;
-	BOOL bShadowEnabled = true;
-	BOOL bSsaoEnabled = true;
-	BOOL bTaaEnabled = true;
-	BOOL bInitiatingTaa = true;
-	BOOL bMotionBlurEnabled = true;
-	BOOL bDepthOfFieldEnabled = true;
-	BOOL bBloomEnabled = true;
-	BOOL bSsrEnabled = true;
-	BOOL bGammaCorrectionEnabled = true;
-	BOOL bToneMappingEnabled = true;
-	BOOL bPixelationEnabled = false;
-	BOOL bSharpenEnabled = false;
+	BOOL bDebuggingEnabled = FALSE;
+	BOOL bShadowEnabled = TRUE;
+	BOOL bSsaoEnabled = TRUE;
+	BOOL bTaaEnabled = TRUE;
+	BOOL bInitiatingTaa = TRUE;
+	BOOL bMotionBlurEnabled = TRUE;
+	BOOL bDepthOfFieldEnabled = TRUE;
+	BOOL bBloomEnabled = TRUE;
+	BOOL bSsrEnabled = TRUE;
+	BOOL bGammaCorrectionEnabled = TRUE;
+	BOOL bToneMappingEnabled = TRUE;
+	BOOL bPixelationEnabled = FALSE;
+	BOOL bSharpenEnabled = FALSE;
 
-	BOOL bRaytracing = false;
+	BOOL bRaytracing = FALSE;
 };
 
 #include "Renderer.inl"

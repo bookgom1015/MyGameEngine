@@ -39,7 +39,7 @@ namespace DebugCollision {
 			const std::vector<RenderItem*>& ritems);
 
 	private:
-		void DebugCollisionClass::DrawRenderItems(
+		void DrawRenderItems(
 			ID3D12GraphicsCommandList* cmdList,
 			const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,

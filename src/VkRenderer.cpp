@@ -28,11 +28,11 @@ VkRenderer::~VkRenderer() {
 	if (!bIsCleanedUp) CleanUp();
 }
 
-BOOL VkRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
+BOOL VkRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	mClientWidth = width;
 	mClientHeight = height;
 
-	CheckReturn(LowInitialize(glfwWnd, width, height));
+	CheckReturn(LowInitialize(reinterpret_cast<GLFWwindow*>(glfwWnd), width, height));
 
 	CheckReturn(CreateRenderPass());
 	CheckReturn(CreateCommandPool());
@@ -174,7 +174,7 @@ BOOL VkRenderer::OnResize(UINT width, UINT height) {
 }
 
 void* VkRenderer::AddModel(const std::string& file, const Transform& trans, RenderType::Type type) {
-	if (mMeshes.count(file) == 0) CheckReturn(AddGeometry(file));
+	if (mMeshes.count(file) == 0) if (!AddGeometry(file)) return nullptr;
 	return AddRenderItem(file, trans, type);
 }
 
@@ -1377,9 +1377,9 @@ void* VkRenderer::AddRenderItem(const std::string& file, const Transform& trans,
 	ritem->MatName = file;
 
 	auto pRitem = ritem.get();
-	CheckReturn(CreateUniformBuffers(pRitem));
-	CheckReturn(CreateDescriptorSets(pRitem));
-	CheckReturn(UpdateDescriptorSet(pRitem));
+	if (!CreateUniformBuffers(pRitem)) return nullptr;
+	if (!CreateDescriptorSets(pRitem)) return nullptr;
+	if (!UpdateDescriptorSet(pRitem)) return nullptr;
 
 	mRitemRefs[type].push_back(pRitem);
 	mRitems.push_back(std::move(ritem));
@@ -1571,10 +1571,16 @@ BOOL VkRenderer::UpdateUniformBuffer(FLOAT delta) {
 		XMMATRIX S = lightView * lightProj * T;
 		XMStoreFloat4x4(&mainPass.ShadowTransform, XMMatrixTranspose(S));
 
+		auto detLightView = XMMatrixDeterminant(lightView);
+		auto detLightProj = XMMatrixDeterminant(lightProj);
+
 		XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
-		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(lightView), lightView);
-		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(lightProj), lightProj);
-		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+		XMMATRIX invView = XMMatrixInverse(&detLightView, lightView);
+		XMMATRIX invProj = XMMatrixInverse(&detLightProj, lightProj);
+
+		auto detViewProj = XMMatrixDeterminant(viewProj);
+
+		XMMATRIX invViewProj = XMMatrixInverse(&detViewProj, viewProj);
 
 		XMStoreFloat4x4(&shadowPass.View, XMMatrixTranspose(lightView));
 		XMStoreFloat4x4(&shadowPass.InvView, XMMatrixTranspose(invView));

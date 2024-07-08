@@ -20,7 +20,7 @@ cbuffer cbRootConstants : register(b1) {
 
 TextureCube<HDR_FORMAT> gi_Environment	: register(t0);
 
-VERTEX_IN
+#include "HardCodedCubeVertices.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -29,13 +29,15 @@ struct VertexOut {
 
 static const int SAMPLE_COUNT = 2048;
 
-VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
+VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
-	vout.PosL = vin.PosL;
+	float3 posL = gVertices[vid];
+
+	vout.PosL = posL;
 
 	float4x4 view = cb_Irrad.View[gFaceID];
-	float4 posV = mul(float4(vin.PosL, 1), view);
+	float4 posV = mul(float4(posL, 1), view);
 	float4 posH = mul(posV, cb_Irrad.Proj);
 
 	vout.PosH = posH.xyww;

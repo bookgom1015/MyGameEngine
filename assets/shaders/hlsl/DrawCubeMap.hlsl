@@ -11,7 +11,6 @@
 #include "Samplers.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
-ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 
 cbuffer cbRootConstants : register(b2) {
 	float gMipLevel;
@@ -20,7 +19,7 @@ cbuffer cbRootConstants : register(b2) {
 TextureCube<IrradianceMap::EnvCubeMapFormat>	gi_Cube				: register(t0);
 Texture2D<IrradianceMap::EquirectMapFormat>		gi_Equirectangular	: register(t1);
 
-VERTEX_IN
+#include "HardCodedCubeVertices.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -29,14 +28,13 @@ struct VertexOut {
 
 static const float2 InvATan = float2(0.1591, 0.3183);
 
-VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID) {
+VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
-	vout.PosL = vin.PosL;
+	float3 posL = gVertices[vid];
 
-	float4 posW = mul(float4(vin.PosL, 1.0f), cb_Obj.World);
-
-	vout.PosH = mul(posW, cb_Pass.ViewProj);
+	vout.PosL = posL;
+	vout.PosH = mul(float4(posL, 1), cb_Pass.ViewProj);
 
 	return vout;
 }

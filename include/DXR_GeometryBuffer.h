@@ -8,13 +8,13 @@
 
 struct MeshGeometry;
 
-namespace DxrGeometryBuffer {
-	static const UINT GeometryDescriptorCount = DxrGeometryBuffer::GeometryBufferCount * 2;
+namespace DXR_GeometryBuffer {
+	static const UINT GeometryDescriptorCount = DXR_GeometryBuffer::GeometryBufferCount * 2;
 
-	class DxrGeometryBufferClass {
+	class DXR_GeometryBufferClass {
 	public:
-		DxrGeometryBufferClass() = default;
-		virtual ~DxrGeometryBufferClass() = default;
+		DXR_GeometryBufferClass() = default;
+		virtual ~DXR_GeometryBufferClass() = default;
 
 	public:
 		__forceinline constexpr D3D12_GPU_DESCRIPTOR_HANDLE VerticesSrv() const;
@@ -29,7 +29,7 @@ namespace DxrGeometryBuffer {
 	private:
 		ID3D12Device5* md3dDevice;
 
-		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, DxrGeometryBuffer::GeometryBufferCount> mResources;
+		std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, DXR_GeometryBuffer::GeometryBufferCount> mResources;
 		D3D12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
 		D3D12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
 		UINT mDescSize;
@@ -38,10 +38,10 @@ namespace DxrGeometryBuffer {
 	};
 }
 
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE DxrGeometryBuffer::DxrGeometryBufferClass::VerticesSrv() const {
+constexpr D3D12_GPU_DESCRIPTOR_HANDLE DXR_GeometryBuffer::DXR_GeometryBufferClass::VerticesSrv() const {
 	return mhGpuSrv;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DxrGeometryBuffer::DxrGeometryBufferClass::IndicesSrv() const {
+D3D12_GPU_DESCRIPTOR_HANDLE DXR_GeometryBuffer::DXR_GeometryBufferClass::IndicesSrv() const {
 	return CD3DX12_GPU_DESCRIPTOR_HANDLE(mhGpuSrv, GeometryBufferCount, mDescSize);
 }

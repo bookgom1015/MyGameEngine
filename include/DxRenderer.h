@@ -64,7 +64,7 @@ public:
 	virtual ~DxRenderer();
 
 public:
-	virtual BOOL Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) override;
+	virtual BOOL Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) override;
 	virtual void CleanUp() override;
 
 	virtual BOOL Update(FLOAT delta) override;
@@ -105,7 +105,6 @@ private:
 	void BuildRenderItems();
 
 	BOOL UpdateShadingObjects(FLOAT delta);
-	BOOL UpdateCB_Shadow(FLOAT delta);
 	BOOL UpdateCB_Main(FLOAT delta);
 	BOOL UpdateCB_SSAO(FLOAT delta);
 	BOOL UpdateCB_Blur(FLOAT delta);
@@ -200,12 +199,13 @@ private:
 	std::unique_ptr<GaussianFilter::GaussianFilterClass> mGaussianFilter;
 	std::unique_ptr<RaytracedReflection::RaytracedReflectionClass> mRR;
 	std::unique_ptr<SVGF::SVGFClass> mSVGF;
+	std::unique_ptr<EquirectangularConverter::EquirectangularConverterClass> mEquirectangularConverter;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 
-	BOOL bShadowMapCleanedUp = false;
-	BOOL bSsaoMapCleanedUp = false;
-	BOOL bSsrMapCleanedUp = false;
+	BOOL bShadowMapCleanedUp = FALSE;
+	BOOL bSsaoMapCleanedUp = FALSE;
+	BOOL bSsrMapCleanedUp = FALSE;
 
 	std::array<DirectX::XMFLOAT2, 16> mHaltonSequence;
 	std::array<DirectX::XMFLOAT2, 16> mFittedToBakcBufferHaltonSequence;
@@ -213,8 +213,9 @@ private:
 	std::unordered_map<DebugMapLayout::Type, BOOL> mDebugMapStates;
 
 	RenderItem* mPickedRitem = nullptr;
-	RenderItem* mIrradianceCubeMap = nullptr;
 	RenderItem* mSkySphere = nullptr;
+
+	BOOL bNeedToUpdate_Irrad = TRUE;
 
 	//
 	// DirectXTK12

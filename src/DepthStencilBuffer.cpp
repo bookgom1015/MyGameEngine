@@ -60,9 +60,11 @@ BOOL DepthStencilBufferClass::BuildResources() {
 	optClear.DepthStencil.Depth = 1.0f;
 	optClear.DepthStencil.Stencil = 0;
 	
+	auto defaultHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
 	CheckReturn(mDepthStencilBuffer->Initialize(
 		md3dDevice,
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		&defaultHeapProp,
 		D3D12_HEAP_FLAG_NONE,
 		&depthStencilDesc,
 		D3D12_RESOURCE_STATE_DEPTH_READ,

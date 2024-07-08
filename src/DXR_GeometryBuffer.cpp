@@ -1,18 +1,18 @@
-#include "DxrGeometryBuffer.h"
+#include "DXR_GeometryBuffer.h"
 #include "DxMesh.h"
 #include "Vertex.h"
 
-using namespace DxrGeometryBuffer;
+using namespace DXR_GeometryBuffer;
 
-BOOL DxrGeometryBufferClass::Initialize(ID3D12Device5* const device) {
+BOOL DXR_GeometryBufferClass::Initialize(ID3D12Device5* const device) {
 	md3dDevice = device;
-
+	
 	mNumGeometries = 0;
 
 	return true;
 }
 
-void DxrGeometryBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void DXR_GeometryBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	mhCpuSrv = hCpu.Offset(1, descSize);
 	mhGpuSrv = hGpu.Offset(1, descSize);
 	mDescSize = descSize;
@@ -21,8 +21,8 @@ void DxrGeometryBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCp
 	hGpu.Offset(GeometryDescriptorCount, descSize);
 }
 
-void DxrGeometryBufferClass::AddGeometry(MeshGeometry* geo) {
-	if (mNumGeometries >= DxrGeometryBuffer::GeometryBufferCount) return;
+void DXR_GeometryBufferClass::AddGeometry(MeshGeometry* geo) {
+	if (mNumGeometries >= DXR_GeometryBuffer::GeometryBufferCount) return;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

@@ -20,7 +20,7 @@
 #include "DebugMap.h"
 #include "ImGuiManager.h"
 #include "DXR_Shadow.h"
-#include "DxrGeometryBuffer.h"
+#include "DXR_GeometryBuffer.h"
 #include "BlurFilterCS.h"
 #include "RTAO.h"
 #include "DebugCollision.h"
@@ -34,6 +34,7 @@
 #include "RaytracedReflection.h"
 #include "AccelerationStructure.h"
 #include "SVGF.h"
+#include "EquirectangularConverter.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -237,13 +238,13 @@ DxRenderer::DxRenderer() {
 	mPixelation = std::make_unique<Pixelation::PixelationClass>();
 	mSharpen = std::make_unique<Sharpen::SharpenClass>();
 	mGaussianFilter = std::make_unique<GaussianFilter::GaussianFilterClass>();
-
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadow = std::make_unique<DXR_Shadow::DXR_ShadowClass>();
 	mBlurFilterCS = std::make_unique<BlurFilterCS::BlurFilterCSClass>();
 	mRTAO = std::make_unique<RTAO::RTAOClass>();
 	mRR = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
 	mSVGF = std::make_unique<SVGF::SVGFClass>();
+	mEquirectangularConverter = std::make_unique<EquirectangularConverter::EquirectangularConverterClass>();
 
 	auto blurWeights = Blur::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
@@ -276,7 +277,7 @@ DxRenderer::~DxRenderer() {
 	if (!bIsCleanedUp) CleanUp();
 }
 
-BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) {
+BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	Logln(std::to_string(sizeof(ConstantBuffer_Pass)));
 	Logln(std::to_string(D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass))));
 	Logln(std::to_string(sizeof(Light)));
@@ -320,11 +321,11 @@ BOOL DxRenderer::Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT hei
 	CheckReturn(mPixelation->Initialize(device, shaderManager, width, height));
 	CheckReturn(mSharpen->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGaussianFilter->Initialize(device, shaderManager));
-
 	CheckReturn(mDxrShadow->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mRTAO->Initialize(device, shaderManager, width, height));
 	CheckReturn(mRR->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
+	CheckReturn(mEquirectangularConverter->Initialize(device, shaderManager));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -405,13 +406,12 @@ BOOL DxRenderer::Update(FLOAT delta) {
 		CloseHandle(eventHandle);
 	}
 
-	CheckReturn(UpdateCB_Shadow(delta));
 	CheckReturn(UpdateCB_Main(delta));
 	CheckReturn(UpdateCB_Blur(delta));
 	CheckReturn(UpdateCB_DoF(delta));
 	CheckReturn(UpdateCB_Objects(delta));
 	CheckReturn(UpdateCB_Materials(delta));
-	CheckReturn(UpdateCB_Irradiance(delta));
+	if (bNeedToUpdate_Irrad) CheckReturn(UpdateCB_Irradiance(delta));
 	CheckReturn(UpdateCB_DebugMap(delta));
 
 	if (bRaytracing) {
@@ -688,12 +688,12 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mPixelation->CompileShaders(ShaderFilePath));
 	CheckReturn(mSharpen->CompileShaders(ShaderFilePath));
 	CheckReturn(mGaussianFilter->CompileShaders(ShaderFilePath));
-
 	CheckReturn(mDxrShadow->CompileShaders(ShaderFilePath));
 	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
 	CheckReturn(mRTAO->CompileShaders(ShaderFilePath));
 	CheckReturn(mRR->CompileShaders(ShaderFilePath));
 	CheckReturn(mSVGF->CompileShaders(ShaderFilePath));
+	CheckReturn(mEquirectangularConverter->CompileShaders(ShaderFilePath));
 
 #ifdef _DEBUG
 	WLogln(L"Finished compiling shaders \n");
@@ -904,12 +904,12 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mPixelation->BuildRootSignature(staticSamplers));
 	CheckReturn(mSharpen->BuildRootSignature(staticSamplers));
 	CheckReturn(mGaussianFilter->BuildRootSignature(staticSamplers));
-
-	CheckReturn(mDxrShadow->BuildRootSignatures(staticSamplers, DxrGeometryBuffer::GeometryBufferCount));
+	CheckReturn(mDxrShadow->BuildRootSignatures(staticSamplers, DXR_GeometryBuffer::GeometryBufferCount));
 	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
 	CheckReturn(mRTAO->BuildRootSignatures(staticSamplers));
 	CheckReturn(mRR->BuildRootSignatures(staticSamplers));
 	CheckReturn(mSVGF->BuildRootSignatures(staticSamplers));
+	CheckReturn(mEquirectangularConverter->BuildRootSignature(staticSamplers));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -941,13 +941,13 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mMipmapGenerator->BuildPSO());
 	CheckReturn(mPixelation->BuildPSO());
 	CheckReturn(mSharpen->BuildPSO());
-	CheckReturn(mGaussianFilter->BuildPSO());
-	
+	CheckReturn(mGaussianFilter->BuildPSO());	
 	CheckReturn(mDxrShadow->BuildPSO());
 	CheckReturn(mBlurFilterCS->BuildPSO());
 	CheckReturn(mRTAO->BuildPSO());
 	CheckReturn(mRR->BuildPSO());
 	CheckReturn(mSVGF->BuildPSO());
+	CheckReturn(mEquirectangularConverter->BuildPSO());
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
@@ -968,18 +968,6 @@ void DxRenderer::BuildRenderItems() {
 		XMStoreFloat4x4(&skyRitem->World, XMMatrixScaling(1000.0f, 1000.0f, 1000.0f));
 		mSkySphere = skyRitem.get();
 		mRitems.push_back(std::move(skyRitem));
-	}
-	{
-		auto boxRitem = std::make_unique<RenderItem>();
-		boxRitem->ObjCBIndex = static_cast<INT>(mRitems.size());
-		boxRitem->Geometry = mGeometries["basic"].get();
-		boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		boxRitem->IndexCount = boxRitem->Geometry->DrawArgs["box"].IndexCount;
-		boxRitem->StartIndexLocation = boxRitem->Geometry->DrawArgs["box"].StartIndexLocation;
-		boxRitem->BaseVertexLocation = boxRitem->Geometry->DrawArgs["box"].BaseVertexLocation;
-		XMStoreFloat4x4(&boxRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 4.5f, 0.0f));
-		mIrradianceCubeMap = boxRitem.get();
-		mRitems.push_back(std::move(boxRitem));
 	}
 }
 
@@ -1180,10 +1168,10 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 		mCommandQueue.Get(),
 		mCbvSrvUavHeap.Get(),
 		cmdList,
+		mEquirectangularConverter.get(),
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mCurrFrameResource->CB_Irradiance.Resource()->GetGPUVirtualAddress(),
-		mMipmapGenerator.get(),
-		mIrradianceCubeMap
+		mMipmapGenerator.get()
 	));
 	
 	if (bNeedToRebuildTLAS) {
@@ -1206,99 +1194,153 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	return TRUE;
 }
 
-BOOL DxRenderer::UpdateCB_Shadow(FLOAT delta) {
-	
-
-	return TRUE;
-}
-
 BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
-	for (UINT i = 0; i < mLightCount; ++i) {
-		if (i >= MaxLights || mLights[i].Type != LightType::E_Directional) continue;
+	// Shadow
+	{
+		mMainPassCB->LightCount = mLightCount;
 
-		XMVECTOR lightDir = XMLoadFloat3(&mLights[i].Direction);
-		XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
-		XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
-		XMVECTOR lightUp = UnitVectors::UpVector;
-		XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+		for (UINT i = 0; i < mLightCount; ++i) {
+			if (i >= MaxLights) continue;
 
-		// Transform bounding sphere to light space.
-		XMFLOAT3 sphereCenterLS;
-		XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
+			auto& light = mLights[i];
 
-		// Ortho frustum in light space encloses scene.
-		FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
-		FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
-		FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
-		FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
-		FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
-		FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
+			if (light.Type == LightType::E_Directional) {
+				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
+				XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
+				XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
+				XMVECTOR lightUp = UnitVectors::UpVector;
+				XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
 
-		XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+				// Transform bounding sphere to light space.
+				XMFLOAT3 sphereCenterLS;
+				XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
 
-		// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
+				// Ortho frustum in light space encloses scene.
+				FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
+				FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
+				FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
+				FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
+				FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
+				FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
+
+				XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+
+				// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
+				XMMATRIX T(
+					0.5f, 0.0f, 0.0f, 0.0f,
+					0.0f, -0.5f, 0.0f, 0.0f,
+					0.0f, 0.0f, 1.0f, 0.0f,
+					0.5f, 0.5f, 0.0f, 1.0f
+				);
+
+				XMMATRIX S = lightView * lightProj * T;
+				XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(S));
+
+				XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
+				XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(lightView), lightView);
+				XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(lightProj), lightProj);
+				XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
+				XMStoreFloat4x4(&light.ViewProj, XMMatrixTranspose(viewProj));
+				XMStoreFloat3(&light.Position, lightPos);
+				//XMStoreFloat4x4(&mMainPassCB->Lights[i].View, XMMatrixTranspose(lightView));
+				//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvView, XMMatrixTranspose(invView));
+				//XMStoreFloat4x4(&mMainPassCB->Lights[i].Proj, XMMatrixTranspose(lightProj));
+				//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvProj, XMMatrixTranspose(invProj));
+				//XMStoreFloat4x4(&mMainPassCB->Lights[i].ViewProj, XMMatrixTranspose(viewProj));
+				//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvViewProj, XMMatrixTranspose(invViewProj));
+				//XMStoreFloat3(&mMainPassCB->Lights[i].Position, lightPos);
+			}
+			else if (light.Type == LightType::E_Spot) {
+
+			}
+			else if (light.Type == LightType::E_Point) {
+				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f);
+				auto pos = XMLoadFloat3(&light.Position);
+				pos.m128_f32[3] = 1.0f;
+				
+				// Positive +X
+				{
+					auto target = pos + XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+					auto view_px = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto vp_px = view_px * proj;
+					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_px));
+				}
+				// Positive -X
+				{
+					auto target = pos + XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f);
+					auto view_nx = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto vp_nx = view_nx * proj;
+					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_nx));
+				}
+				// Positive +Y
+				{
+					auto target = pos + XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+					auto view_py = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)));
+					auto vp_py = view_py * proj;
+					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_py));
+				}
+				// Positive -Y
+				{
+					auto target = pos + XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+					auto view_ny = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)));
+					auto vp_ny = view_ny * proj;
+					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_ny));
+				}
+				// Positive +Z
+				{
+					auto target = pos + XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+					auto view_pz = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto vp_pz = view_pz * proj;
+					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_pz));
+				}
+				// Positive -Z
+				{
+					auto target = pos + XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
+					auto view_nz = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto vp_nz = view_nz * proj;
+					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_nz));
+				}
+			}
+
+			mMainPassCB->Lights[i] = light;
+		}
+	}
+	// Main
+	{
+		XMMATRIX view = XMLoadFloat4x4(&mCamera->GetView());
+		XMMATRIX proj = XMLoadFloat4x4(&mCamera->GetProj());
+		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+
+		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
+		// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
 		XMMATRIX T(
 			0.5f, 0.0f, 0.0f, 0.0f,
 			0.0f, -0.5f, 0.0f, 0.0f,
 			0.0f, 0.0f, 1.0f, 0.0f,
 			0.5f, 0.5f, 0.0f, 1.0f
 		);
+		XMMATRIX viewProjTex = XMMatrixMultiply(viewProj, T);
 
-		XMMATRIX S = lightView * lightProj * T;
-		XMStoreFloat4x4(&mLights[i].ShadowTransform, XMMatrixTranspose(S));
+		size_t offsetIndex = static_cast<size_t>(GetCurrentFence()) % mFittedToBakcBufferHaltonSequence.size();
 
-		XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
-		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(lightView), lightView);
-		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(lightProj), lightProj);
-		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+		mMainPassCB->PrevViewProj = mMainPassCB->ViewProj;
+		XMStoreFloat4x4(&mMainPassCB->View, XMMatrixTranspose(view));
+		XMStoreFloat4x4(&mMainPassCB->InvView, XMMatrixTranspose(invView));
+		XMStoreFloat4x4(&mMainPassCB->Proj, XMMatrixTranspose(proj));
+		XMStoreFloat4x4(&mMainPassCB->InvProj, XMMatrixTranspose(invProj));
+		XMStoreFloat4x4(&mMainPassCB->ViewProj, XMMatrixTranspose(viewProj));
+		XMStoreFloat4x4(&mMainPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
+		XMStoreFloat4x4(&mMainPassCB->ViewProjTex, XMMatrixTranspose(viewProjTex));
+		XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->GetPosition());
+		mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.0f, 0.0f);
 
-		XMStoreFloat4x4(&mLights[i].ViewProj, XMMatrixTranspose(viewProj));
-		XMStoreFloat3(&mLights[i].Position, lightPos);
-		//XMStoreFloat4x4(&mMainPassCB->Lights[i].View, XMMatrixTranspose(lightView));
-		//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvView, XMMatrixTranspose(invView));
-		//XMStoreFloat4x4(&mMainPassCB->Lights[i].Proj, XMMatrixTranspose(lightProj));
-		//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvProj, XMMatrixTranspose(invProj));
-		//XMStoreFloat4x4(&mMainPassCB->Lights[i].ViewProj, XMMatrixTranspose(viewProj));
-		//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvViewProj, XMMatrixTranspose(invViewProj));
-		//XMStoreFloat3(&mMainPassCB->Lights[i].Position, lightPos);
+		auto& currCB = mCurrFrameResource->CB_Pass;
+		currCB.CopyData(0, *mMainPassCB);
 	}
-
-	XMMATRIX view = XMLoadFloat4x4(&mCamera->GetView());
-	XMMATRIX proj = XMLoadFloat4x4(&mCamera->GetProj());
-	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
-
-	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
-	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
-	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
-
-	// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
-	XMMATRIX T(
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f
-	);
-	XMMATRIX viewProjTex = XMMatrixMultiply(viewProj, T);
-
-	size_t offsetIndex = static_cast<size_t>(GetCurrentFence()) % mFittedToBakcBufferHaltonSequence.size();
-
-	mMainPassCB->PrevViewProj = mMainPassCB->ViewProj;
-	XMStoreFloat4x4(&mMainPassCB->View, XMMatrixTranspose(view));
-	XMStoreFloat4x4(&mMainPassCB->InvView, XMMatrixTranspose(invView));
-	XMStoreFloat4x4(&mMainPassCB->Proj, XMMatrixTranspose(proj));
-	XMStoreFloat4x4(&mMainPassCB->InvProj, XMMatrixTranspose(invProj));
-	XMStoreFloat4x4(&mMainPassCB->ViewProj, XMMatrixTranspose(viewProj));
-	XMStoreFloat4x4(&mMainPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
-	XMStoreFloat4x4(&mMainPassCB->ViewProjTex, XMMatrixTranspose(viewProjTex));
-	XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->GetPosition());
-	mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.0f, 0.0f);
-
-	mMainPassCB->LightCount = mLightCount;
-	for (UINT i = 0; i < mLightCount; ++i)
-		mMainPassCB->Lights[i] = mLights[i];
-
-	auto& currCB = mCurrFrameResource->CB_Pass;
-	currCB.CopyData(0, *mMainPassCB);
 
 	return TRUE;
 }
@@ -1504,6 +1546,8 @@ BOOL DxRenderer::UpdateCB_Irradiance(FLOAT delta) {
 	
 	auto& currCB = mCurrFrameResource->CB_Irradiance;
 	currCB.CopyData(0, irradCB);
+
+	bNeedToUpdate_Irrad = FALSE;
 
 	return TRUE;
 }
@@ -1976,9 +2020,6 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 		mSwapChainBuffer->CurrentBackBuffer(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-		mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
-		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
-		mIrradianceCubeMap,
 		ShaderArgs::IrradianceMap::MipLevel
 	);
 	
@@ -2372,6 +2413,7 @@ BOOL DxRenderer::DrawImGui() {
 		else { mDebugMap->RemoveDebugMap(handle); }
 	};
 
+	// Main Panel
 	{
 		ImGui::Begin("Main Panel");
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -2650,6 +2692,7 @@ BOOL DxRenderer::DrawImGui() {
 
 		ImGui::End();
 	}
+	;// Sub Panel
 	{
 		ImGui::Begin("Sub Panel");
 		ImGui::NewLine();
@@ -2663,6 +2706,8 @@ BOOL DxRenderer::DrawImGui() {
 			}
 			if (ImGui::TreeNode("SVGF")) {
 				ImGui::Checkbox("Clamp Cached Values", reinterpret_cast<bool*>(&ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping));
+
+				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("RTAO")) {
 				ImGui::SliderInt("Sample Count", reinterpret_cast<int*>(&ShaderArgs::RTAO::SampleCount), 1, 4);
@@ -2765,6 +2810,7 @@ BOOL DxRenderer::DrawImGui() {
 
 		ImGui::End();
 	}
+	;// Light Panel
 	{
 		ImGui::Begin("Light Panel");
 		ImGui::NewLine();
@@ -2851,6 +2897,7 @@ BOOL DxRenderer::DrawImGui() {
 
 		ImGui::End();
 	}
+	// Reference Panel
 	{
 		ImGui::Begin("Reference Panel");
 		ImGui::NewLine();

@@ -18,7 +18,12 @@ namespace LightType {
 
 struct Light {
 	DirectX::XMFLOAT4X4	ViewProj;
-	DirectX::XMFLOAT4X4 ShadowTransform;
+	DirectX::XMFLOAT4X4 ShadowTransform0;
+	DirectX::XMFLOAT4X4 ShadowTransform1;
+	DirectX::XMFLOAT4X4 ShadowTransform2;
+	DirectX::XMFLOAT4X4 ShadowTransform3;
+	DirectX::XMFLOAT4X4 ShadowTransform4;
+	DirectX::XMFLOAT4X4 ShadowTransform5;
 
 	DirectX::XMFLOAT3	LightColor;
 	FLOAT				FalloffStart;	// point/spot light only
@@ -31,6 +36,6 @@ struct Light {
 
 	UINT				Type;
 	FLOAT				SpotPower;		// spot light only
+	FLOAT				ConstantPad0;
 	FLOAT				ConstantPad1;
-	FLOAT				ConstantPad2;
 };

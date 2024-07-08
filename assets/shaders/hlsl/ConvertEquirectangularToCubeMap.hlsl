@@ -17,7 +17,7 @@ cbuffer cbRootConstants : register(b1) {
 
 Texture2D<HDR_FORMAT> gi_Equirectangular : register(t0);
 
-VERTEX_IN
+#include "HardCodedCubeVertices.hlsli"
 
 struct VertexOut {
 	float4 PosH		: SV_POSITION;
@@ -26,13 +26,15 @@ struct VertexOut {
 
 static const float2 InvATan = float2(0.1591, 0.3183);
 
-VertexOut VS(VertexIn vin) {
+VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
-	vout.PosL = vin.PosL;
+	float3 posL = gVertices[vid];
+
+	vout.PosL = posL;
 
 	float4x4 view = cb_Irrad.View[gFaceID];
-	float4 posV = mul(float4(vin.PosL, 1), view);
+	float4 posV = mul(float4(posL, 1), view);
 	float4 posH = mul(posV, cb_Irrad.Proj);
 
 	vout.PosH = posH.xyww;

@@ -12,7 +12,7 @@ namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }
 namespace DebugMap { class DebugMapClass; }
 namespace DXR_Shadow { class DXR_ShadowClass; }
-namespace DxrGeometryBuffer { class DxrGeometryBufferClass; }
+namespace DXR_GeometryBuffer { class DXR_GeometryBufferClass; }
 namespace BlurFilterCS { class BlurFilterCSClass; }
 namespace RTAO { class RTAOClass; }
 namespace DebugCollision { class DebugCollisionClass; }
@@ -25,3 +25,4 @@ namespace Sharpen { class SharpenClass; }
 namespace GaussianFilter { class GaussianFilterClass; }
 namespace RaytracedReflection { class RaytracedReflectionClass; }
 namespace SVGF { class SVGFClass; }
+namespace EquirectangularConverter { class EquirectangularConverterClass; }

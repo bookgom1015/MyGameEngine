@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VkLowRenderer.h"
+#include "MathHelper.h"
 #include "MeshImporter.h"
 #include "Light.h"
 
@@ -74,7 +75,7 @@ public:
 	virtual ~VkRenderer();
 
 public:
-	virtual BOOL Initialize(HWND hwnd, GLFWwindow* glfwWnd, UINT width, UINT height) override;
+	virtual BOOL Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) override;
 	virtual void CleanUp() override;
 
 	virtual BOOL Update(FLOAT delta) override;

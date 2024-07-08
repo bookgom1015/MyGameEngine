@@ -1,9 +1,6 @@
 #include "Renderer.h"
 
 #include <assert.h>
-#include <algorithm>
-#include <memory>
-#include <wrl.h>
 
 void Renderer::Pick(FLOAT x, FLOAT y) {}
 

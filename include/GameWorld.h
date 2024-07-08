@@ -33,12 +33,17 @@ public:
 	Renderer* GetRenderer() const;
 	ActorManager* GetActorManager() const;
 
+#ifdef _DirectX
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#else
 	LRESULT MsgProc(GLFWwindow* wnd, INT key, INT code, INT action, INT mods);
+#endif
 
 	void OnResize(UINT width, UINT height);
 
+#ifdef _Vulkan
 	void OnFocusChanged(INT focused);
+#endif
 
 private:
 	BOOL InitMainWindow();

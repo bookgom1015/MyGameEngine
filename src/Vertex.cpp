@@ -15,6 +15,7 @@ BOOL Vertex::operator==(const Vertex& other) const {
 		MathHelper::IsEqual(TexCoord, other.TexCoord);
 }
 
+#ifdef _Vulkan
 VkVertexInputBindingDescription Vertex::GetBindingDescription() {
 	VkVertexInputBindingDescription bindingDescription = {};
 	bindingDescription.binding = 0;
@@ -43,6 +44,7 @@ std::array<VkVertexInputAttributeDescription, 3> Vertex::GetAttributeDescription
 
 	return attributeDescriptions;
 }
+#endif
 
 D3D12_INPUT_LAYOUT_DESC Vertex::InputLayoutDesc() {
 	return mInputLayoutDesc;
