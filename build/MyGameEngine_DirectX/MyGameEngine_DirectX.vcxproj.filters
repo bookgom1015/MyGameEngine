@@ -142,6 +142,66 @@
     <Filter Include="Source Files\Raytracing">
       <UniqueIdentifier>{83647e7b-c19a-49a2-ba1c-b8db5aeb1a07}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader Files">
+      <UniqueIdentifier>{28d4dd9d-4c82-4514-a964-975f4a5b56b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing">
+      <UniqueIdentifier>{984e8ef2-b78e-4513-8d59-ca89cc9d4670}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing\SVGF">
+      <UniqueIdentifier>{fb902142-e690-4edd-b8b2-aefe40ca6302}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing\SVGF\Denosing">
+      <UniqueIdentifier>{849bf245-1473-4a1c-a98f-2fe041dfd8a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing\SVGF\Temporal">
+      <UniqueIdentifier>{19de86d1-e23e-4ab2-9f2e-b35888a349ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Debug">
+      <UniqueIdentifier>{a9ab278a-7489-47f3-8e35-b3a3b6957ac1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Irradiance">
+      <UniqueIdentifier>{0d98bd4c-d5a2-44f5-8b40-861a67c9b356}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\DoF">
+      <UniqueIdentifier>{bc223a7e-d21a-4a8b-84c5-e47ed61673b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Shadow">
+      <UniqueIdentifier>{1e54b67f-4899-410d-b872-ab6f76d4553d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing\RTAO">
+      <UniqueIdentifier>{ac281612-e821-4de0-ad6d-c9356c28421c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing\RaytracedReflection">
+      <UniqueIdentifier>{66c9a69a-2e94-470a-8e97-241553171fbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Anti-Aliasing">
+      <UniqueIdentifier>{c44446b3-7958-438f-84c6-f09e2fe4327a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\SSR">
+      <UniqueIdentifier>{b9e18b2b-6ece-4a33-af27-375b45749743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\SSAO">
+      <UniqueIdentifier>{882f7f15-e796-46d9-a459-09613928d81f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Blur">
+      <UniqueIdentifier>{8d4f5da8-8534-42f4-b719-e6f809db02de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Util">
+      <UniqueIdentifier>{9cfcf905-414c-41ed-8a34-82aee422bd2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\BRDF">
+      <UniqueIdentifier>{af31ec37-613d-4b17-880e-9b1d2f26d97f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Bloom">
+      <UniqueIdentifier>{0e0426c5-f452-495a-ab5b-788e665e0183}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Raytracing\Shadow">
+      <UniqueIdentifier>{c26e0a2a-a650-4992-9a01-e39f753f3d85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files\Equirectangular">
+      <UniqueIdentifier>{bced6101-fb72-4c25-9fcb-8f22e554a985}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\externals\imgui\imgui.cpp">
@@ -645,6 +705,210 @@
     </None>
     <None Include="..\..\include\ShaderArguments.inl">
       <Filter>Header Files\Infrastructure</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_Color.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_Contrast.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_Color.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_Contrast.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Temporal</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Color.hlsli">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Contrast.hlsli">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_Color.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_Contrast.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculatePartialDerivativeCS.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_Color.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_Contrast.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
+      <Filter>Shader Files\Debug</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
+      <Filter>Shader Files\Debug</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
+      <Filter>Shader Files\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
+      <Filter>Shader Files\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CoC.hlsl">
+      <Filter>Shader Files\DoF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
+      <Filter>Shader Files\DoF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
+      <Filter>Shader Files\DoF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
+      <Filter>Shader Files\DoF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+      <Filter>Shader Files\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
+      <Filter>Shader Files\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
+      <Filter>Shader Files\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsl">
+      <Filter>Shader Files\Raytracing\RTAO</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli">
+      <Filter>Shader Files\Raytracing\RTAO</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli">
+      <Filter>Shader Files\Raytracing\RaytracedReflection</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+      <Filter>Shader Files\Raytracing\RaytracedReflection</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
+      <Filter>Shader Files\Anti-Aliasing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSAO.hlsl">
+      <Filter>Shader Files\SSAO</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SsrCommon.hlsli">
+      <Filter>Shader Files\SSR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSR_Screen.hlsl">
+      <Filter>Shader Files\SSR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSR_View.hlsl">
+      <Filter>Shader Files\SSR</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
+      <Filter>Shader Files\Blur</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
+      <Filter>Shader Files\Blur</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
+      <Filter>Shader Files\Blur</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilter3x3CS.hlsl">
+      <Filter>Shader Files\Blur</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\HardcodedCubeVertices.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsl">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBRDF.hlsl">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <Filter>Shader Files\BRDF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FillInCheckerboardCS.hlsl">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DXR_ShadingHelpers.hlsli">
+      <Filter>Shader Files\Raytracing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
+      <Filter>Shader Files\Bloom</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\HighlightExtraction.hlsl">
+      <Filter>Shader Files\Bloom</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
+      <Filter>Shader Files\Raytracing\Shadow</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
+      <Filter>Shader Files\DoF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
+      <Filter>Shader Files\Equirectangular</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
+      <Filter>Shader Files\Equirectangular</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli">
+      <Filter>Shader Files\Raytracing\SVGF\Denosing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
+      <Filter>Shader Files\Blur</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
+      <Filter>Shader Files\Irradiance</Filter>
     </None>
   </ItemGroup>
 </Project>

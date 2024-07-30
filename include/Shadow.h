@@ -43,6 +43,7 @@ namespace Shadow {
 				EC_Consts,
 				ESI_Position,
 				ESI_ZDepth,
+				ESI_ZDepthCube,
 				EUO_Shadow,
 				Count
 			};
@@ -130,6 +131,7 @@ namespace Shadow {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 			const std::vector<RenderItem*>& ritems,
+			BOOL point,
 			UINT index);
 
 		void BuildDescriptors(

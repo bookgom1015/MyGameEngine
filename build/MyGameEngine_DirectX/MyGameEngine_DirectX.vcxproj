@@ -301,6 +301,25 @@
     <ClInclude Include="..\..\include\Vertex.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Color.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Contrast.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\DXR_ShadingHelpers.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\HardcodedCubeVertices.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\SsrCommon.hlsli" />
     <None Include="..\..\include\Actor.inl" />
     <None Include="..\..\include\Bloom.inl" />
     <None Include="..\..\include\DebugMap.inl" />
@@ -319,6 +338,155 @@
     <None Include="..\..\include\SVGF.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
     <None Include="..\..\include\UploadBuffer.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateLocalMeanVarianceCS_Contrast.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculatePartialDerivativeCS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CoC.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvertCubeMapToEquirectangular.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvertEquirectangularToCubeMap.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ConvoluteSpecularIrradiance.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_Contrast.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FillInCheckerboardCS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FocalDistance.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlur.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianBlurCS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilter3x3CS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GaussianFilterRG3x3CS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GBuffer.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\HighlightExtraction.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBRDF.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\MotionBlur.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSAO.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSR_Screen.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\SSR_View.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingBlendWithCurrentFrameCS_Contrast.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_Color.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\TemporalSupersamplingReverseReprojectCS_Contrast.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

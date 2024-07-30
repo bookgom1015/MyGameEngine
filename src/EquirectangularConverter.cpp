@@ -12,6 +12,7 @@ using namespace EquirectangularConverter;
 
 namespace {
 	const CHAR* const VS_ConvRectToCube = "VS_ConvRectToCube";
+	const CHAR* const GS_ConvRectToCube = "GS_ConvRectToCube";
 	const CHAR* const PS_ConvRectToCube = "PS_ConvRectToCube";
 
 	const CHAR* const VS_ConvCubeToRect = "VS_ConvCubeToRect";
@@ -29,8 +30,10 @@ BOOL EquirectangularConverterClass::CompileShaders(const std::wstring& filePath)
 	{
 		const std::wstring actualPath = filePath + L"ConvertEquirectangularToCubeMap.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvRectToCube));
+		CheckReturn(mShaderManager->CompileShader(gsInfo, GS_ConvRectToCube));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvRectToCube));
 	}
 	{
@@ -53,7 +56,6 @@ BOOL EquirectangularConverterClass::BuildRootSignature(const StaticSamplers& sam
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
 		slotRootParameter[RootSignature::ConvEquirectToCube::ECB_ConvEquirectToCube].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::ConvEquirectToCube::EC_Consts].InitAsConstants(RootSignature::ConvEquirectToCube::RootConstant::Count, 1);
 		slotRootParameter[RootSignature::ConvEquirectToCube::ESI_Equirectangular].InitAsDescriptorTable(1, &texTables[0]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
@@ -94,8 +96,10 @@ BOOL EquirectangularConverterClass::BuildPSO() {
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvEquirectToCube].Get();
 		{
 			auto vs = mShaderManager->GetDxcShader(VS_ConvRectToCube);
+			auto gs = mShaderManager->GetDxcShader(GS_ConvRectToCube);
 			auto ps = mShaderManager->GetDxcShader(PS_ConvRectToCube);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
+			psoDesc.GS = { reinterpret_cast<BYTE*>(gs->GetBufferPointer()), gs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		psoDesc.NumRenderTargets = 1;
@@ -128,7 +132,7 @@ void EquirectangularConverterClass::ConvertEquirectangularToCube(
 	GpuResource* resource,
 	D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 	D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
-	D3D12_CPU_DESCRIPTOR_HANDLE* ro_outputs) {
+	D3D12_CPU_DESCRIPTOR_HANDLE ro_output) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_ConvEquirectToCube].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ConvEquirectToCube].Get());
 
@@ -140,16 +144,12 @@ void EquirectangularConverterClass::ConvertEquirectangularToCube(
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ConvEquirectToCube::ECB_ConvEquirectToCube, cbConvEquirectToCube);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ConvEquirectToCube::ESI_Equirectangular, si_equirectangular);
 
-	for (UINT i = 0; i < CubeMapFace::Count; ++i) {
-		cmdList->OMSetRenderTargets(1, &ro_outputs[i], TRUE, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_output, TRUE, nullptr);
 
-		cmdList->SetGraphicsRoot32BitConstant(RootSignature::ConvEquirectToCube::EC_Consts, i, 0);
-
-		cmdList->IASetVertexBuffers(0, 0, nullptr);
-		cmdList->IASetIndexBuffer(nullptr);
-		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		cmdList->DrawInstanced(36, 1, 0, 0);
-	}
+	cmdList->IASetVertexBuffers(0, 0, nullptr);
+	cmdList->IASetIndexBuffer(nullptr);
+	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	cmdList->DrawInstanced(36, 1, 0, 0);
 
 	resource->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
@@ -160,7 +160,7 @@ void EquirectangularConverterClass::ConvertEquirectangularToCube(
 	GpuResource* resource,
 	D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 	D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
-	CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[][CubeMapFace::Count],
+	CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[],
 	UINT maxMipLevel) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_ConvEquirectToCube].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ConvEquirectToCube].Get());
@@ -180,16 +180,12 @@ void EquirectangularConverterClass::ConvertEquirectangularToCube(
 		cmdList->RSSetViewports(1, &viewport);
 		cmdList->RSSetScissorRects(1, &scissorRect);
 
-		for (UINT face = 0; face < CubeMapFace::Count; ++face) {
-			cmdList->OMSetRenderTargets(1, &ro_outputs[mipLevel][face], TRUE, nullptr);
+		cmdList->OMSetRenderTargets(1, &ro_outputs[mipLevel], TRUE, nullptr);
 
-			cmdList->SetGraphicsRoot32BitConstant(RootSignature::ConvEquirectToCube::EC_Consts, face, 0);
-
-			cmdList->IASetVertexBuffers(0, 0, nullptr);
-			cmdList->IASetIndexBuffer(nullptr);
-			cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			cmdList->DrawInstanced(36, 1, 0, 0);
-		}
+		cmdList->IASetVertexBuffers(0, 0, nullptr);
+		cmdList->IASetIndexBuffer(nullptr);
+		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		cmdList->DrawInstanced(36, 1, 0, 0);
 	}
 
 	resource->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

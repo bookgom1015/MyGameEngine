@@ -140,10 +140,22 @@ float CalcShadowFactorPCF(Texture2D<float> shadowMap, SamplerComparisonState sam
 
 float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
-
-	float depth = shadowPosH.z;
+	const float depth = shadowPosH.z;
 
 	return shadowMap.SampleCmpLevelZero(sampComp, shadowPosH.xy, depth);
+}
+
+float CalcShadowFactorCube(TextureCube<float> shadowMap, SamplerState samp, float4x4 shadowViewProj, float3 fragPosW, float3 lightPosW) {
+	const float3 direction = normalize(fragPosW - lightPosW);
+
+	const float closestDepth = shadowMap.SampleLevel(samp, direction, 0);
+
+	float4 shadowPosH = mul(float4(fragPosW, 1), shadowViewProj);
+	shadowPosH /= shadowPosH.w;
+
+	const float depth = shadowPosH.z;
+
+	return depth < closestDepth;
 }
 
 uint CalcShiftedShadowValueF(float percent, uint value, uint index) {

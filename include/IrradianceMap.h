@@ -71,8 +71,7 @@ namespace IrradianceMap {
 
 			namespace RootConstant {
 				enum {
-					E_FaceID = 0,
-					E_MipLevel,
+					E_MipLevel = 0,
 					E_Roughness,
 					Count
 				};
@@ -135,10 +134,14 @@ namespace IrradianceMap {
 
 	static const UINT MaxMipLevel = 5;
 
-	// Equirectangular Map(5) + Environemt CubeMap(6 * 5) + Diffuse Irradiance CubeMap(6) + Diffuse Irradiance Equirectangular Map(1) 
-	//	+ Prefiltered Irradiance CubeMap(6 * 5) + Integrated BRDF Map(1) + Prefiltered Irradiance Equirectangular Map(5)
 	static const UINT NumRenderTargets = 
-		MaxMipLevel + (CubeMapFace::Count * MaxMipLevel) + CubeMapFace::Count + 1 + (CubeMapFace::Count * MaxMipLevel) + 1 + 5;
+		MaxMipLevel		// Equirectangular Map(5)
+		+ MaxMipLevel	// Environemt CubeMap(5) 
+		+ 1				// Diffuse Irradiance CubeMap(1)
+		+ 1				// Diffuse Irradiance Equirectangular Map(1)
+		+ MaxMipLevel	// Prefiltered Irradiance CubeMap(5)
+		+ 1				// Integrated BRDF Map(1)
+		+ MaxMipLevel;	// Prefiltered Irradiance Equirectangular Map(5)
 
 	class IrradianceMapClass {
 	public:
@@ -246,12 +249,12 @@ namespace IrradianceMap {
 		std::unique_ptr<GpuResource> mEnvironmentCubeMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuRtvs[MaxMipLevel][CubeMapFace::Count];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhEnvironmentCubeMapCpuRtvs[MaxMipLevel];
 
 		std::unique_ptr<GpuResource> mDiffuseIrradianceCubeMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceCubeMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceCubeMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceCubeMapCpuRtvs[CubeMapFace::Count];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceCubeMapCpuRtv;
 
 		std::unique_ptr<GpuResource> mDiffuseIrradianceEquirectMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDiffuseIrradianceEquirectMapCpuSrv;
@@ -261,7 +264,7 @@ namespace IrradianceMap {
 		std::unique_ptr<GpuResource> mPrefilteredEnvironmentCubeMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapCpuSrv;
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapCpuRtvs[MaxMipLevel][CubeMapFace::Count];
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentCubeMapCpuRtvs[MaxMipLevel];
 
 		std::unique_ptr<GpuResource> mPrefilteredEnvironmentEquirectMaps[MaxMipLevel];
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhPrefilteredEnvironmentEquirectMapCpuSrvs[MaxMipLevel];

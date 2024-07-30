@@ -25,17 +25,9 @@ namespace EquirectangularConverter {
 		namespace ConvEquirectToCube {
 			enum {
 				ECB_ConvEquirectToCube = 0,
-				EC_Consts,
 				ESI_Equirectangular,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_FaceID = 0,
-					Count
-				};
-			}
 		}
 
 		namespace ConvCubeToEquirect {
@@ -80,14 +72,14 @@ namespace EquirectangularConverter {
 			GpuResource* resource,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
-			D3D12_CPU_DESCRIPTOR_HANDLE* ro_outputs);
+			D3D12_CPU_DESCRIPTOR_HANDLE ro_output);
 		void ConvertEquirectangularToCube(
 			ID3D12GraphicsCommandList* const cmdList,
 			UINT width, UINT height,
 			GpuResource* resource,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
-			CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[][CubeMapFace::Count],
+			CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[],
 			UINT maxMipLevel);
 		void ConvertCubeToEquirectangular(
 			ID3D12GraphicsCommandList* const cmdList,

@@ -13,7 +13,6 @@
 ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
 
 cbuffer cbRootConstants : register(b1) {
-	uint	gFaceID;
 	uint	gMipLevel;
 	float	gRoughness;
 }
@@ -23,8 +22,13 @@ TextureCube<HDR_FORMAT> gi_Environment	: register(t0);
 #include "HardCodedCubeVertices.hlsli"
 
 struct VertexOut {
-	float4 PosH		: SV_POSITION;
 	float3 PosL		: POSITION;
+};
+
+struct GeoOut {
+	float4	PosH		: SV_POSITION;
+	float3	PosL		: POSITION;
+	uint	ArrayIndex	: SV_RenderTargetArrayIndex;
 };
 
 static const int SAMPLE_COUNT = 2048;
@@ -32,17 +36,32 @@ static const int SAMPLE_COUNT = 2048;
 VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
-	float3 posL = gVertices[vid];
-
-	vout.PosL = posL;
-
-	float4x4 view = cb_Irrad.View[gFaceID];
-	float4 posV = mul(float4(posL, 1), view);
-	float4 posH = mul(posV, cb_Irrad.Proj);
-
-	vout.PosH = posH.xyww;
+	vout.PosL = gVertices[vid];
 
 	return vout;
+}
+
+[maxvertexcount(18)]
+void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
+	GeoOut gout = (GeoOut)0;
+
+	[unroll]
+	for (int face = 0; face < 6; ++face) {
+		float4x4 view = cb_Irrad.View[face];
+		[unroll]
+		for (int i = 0; i < 3; ++i) {
+			float3 posL = gin[i].PosL;
+			float4 posV = mul(float4(posL, 1), view);
+			float4 posH = mul(posV, cb_Irrad.Proj);
+
+			gout.PosL = posL;
+			gout.PosH = posH.xyww;
+			gout.ArrayIndex = face;
+
+			triStream.Append(gout);
+		}
+		triStream.RestartStrip();
+	}
 }
 
 float ChetanJagsMipLevel(float3 N, float3 V, float3 H, float roughness) {
@@ -60,7 +79,7 @@ float ChetanJagsMipLevel(float3 N, float3 V, float3 H, float roughness) {
 	return mipLevel;
 }
 
-HDR_FORMAT PS(VertexOut pin) : SV_Target{
+HDR_FORMAT PS(GeoOut pin) : SV_Target{
 	const float3 N = normalize(pin.PosL);
 	const float3 R = N;
 	const float3 V = R;

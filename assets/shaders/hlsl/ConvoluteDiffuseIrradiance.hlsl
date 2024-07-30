@@ -22,24 +22,44 @@ TextureCube<HDR_FORMAT> gi_Cube : register(t0);
 #include "HardCodedCubeVertices.hlsli"
 
 struct VertexOut {
-	float4 PosH		: SV_POSITION;
 	float3 PosL		: POSITION;
+};
+
+struct GeoOut {
+	float4	PosH		: SV_POSITION;
+	float3	PosL		: POSITION;
+	uint	ArrayIndex	: SV_RenderTargetArrayIndex;
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
-	float3 posL = gVertices[vid];
-
-	vout.PosL = posL;
-	
-	float4x4 view = cb_Irrad.View[gFaceID];
-	float4 posV = mul(float4(posL, 1), view);
-	float4 posH = mul(posV, cb_Irrad.Proj);
-	
-	vout.PosH = posH.xyww;
+	vout.PosL = gVertices[vid];
 
 	return vout;
+}
+
+[maxvertexcount(18)]
+void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
+	GeoOut gout = (GeoOut)0;
+
+	[unroll]
+	for (int face = 0; face < 6; ++face) {
+		float4x4 view = cb_Irrad.View[face];
+		[unroll]
+		for (int i = 0; i < 3; ++i) {
+			float3 posL = gin[i].PosL;
+			float4 posV = mul(float4(posL, 1), view);
+			float4 posH = mul(posV, cb_Irrad.Proj);
+
+			gout.PosL = posL;
+			gout.PosH = posH.xyww;
+			gout.ArrayIndex = face;
+
+			triStream.Append(gout);
+		}
+		triStream.RestartStrip();
+	}
 }
 
 float3 ConvoluteIrradiance(float3 pos) {
@@ -78,7 +98,7 @@ float3 ConvoluteIrradiance(float3 pos) {
 	return irradiance;
 }
 
-HDR_FORMAT PS(VertexOut pin) : SV_Target{
+HDR_FORMAT PS(GeoOut pin) : SV_Target{
 	float3 irradiance = ConvoluteIrradiance(pin.PosL);
 	
 	return float4(irradiance, 1);

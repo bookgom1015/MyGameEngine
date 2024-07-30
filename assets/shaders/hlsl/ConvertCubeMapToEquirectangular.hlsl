@@ -36,12 +36,12 @@ VertexOut VS(uint vid : SV_VertexID) {
 }
 
 float3 SphericalToCartesian(float2 sphericalCoord) {
-	// ±¸¸é ÁÂÇ¥¿¡¼­ ÅØ½ºÃ³ ÁÂÇ¥·Î º¯È¯
+	// Convert from spherical coordinates to texture coordinates.
 	sphericalCoord.y = 1 - sphericalCoord.y;
 	sphericalCoord -= 0.5;
 	sphericalCoord /= InvATan;
 
-	// ÅØ½ºÃ³ ÁÂÇ¥¸¦ 3D °ø°£ ÁÂÇ¥·Î º¯È¯
+	// Convert texture coordinates to 3D space coordinates.
 	float3 cartesianCoord;
 	cartesianCoord.x = cos(sphericalCoord.x) * cos(sphericalCoord.y);
 	cartesianCoord.y = sin(sphericalCoord.y);
