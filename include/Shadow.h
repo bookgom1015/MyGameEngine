@@ -16,6 +16,7 @@ namespace Shadow {
 		enum {
 			E_ZDepth = 0,
 			E_Shadow,
+			E_ShadowCS,
 			Count
 		};
 
@@ -44,6 +45,27 @@ namespace Shadow {
 				ESI_Position,
 				ESI_ZDepth,
 				ESI_ZDepthCube,
+				ESI_FaceIDCube,
+				EUO_Shadow,
+				Count
+			};
+
+			namespace RootConstant {
+				enum {
+					E_LightIndex = 0,
+					Count
+				};
+			}
+		}
+
+		namespace ShadowCS {
+			enum {
+				ECB_Pass = 0,
+				EC_Consts,
+				ESI_Position,
+				ESI_ZDepth,
+				ESI_ZDepthCube,
+				ESI_FaceIDCube,
 				EUO_Shadow,
 				Count
 			};
@@ -61,6 +83,7 @@ namespace Shadow {
 		enum {
 			EG_ZDepth = 0,
 			EG_ZDepthCube,
+			EG_Shadow,
 			EC_Shadow,
 			Count
 		};
@@ -70,6 +93,7 @@ namespace Shadow {
 		enum Type {
 			E_ZDepth = 0,
 			E_ZDepthCube,
+			E_FaceIDCube,
 			E_Shadow,
 			Count
 		};
@@ -79,6 +103,7 @@ namespace Shadow {
 		enum Type {
 			ESI_ZDepth = 0,
 			ESI_ZDepthCube,
+			ESI_FaceIDCube,
 			ESI_Shadow,
 			EUO_Shadow,
 			Count
@@ -91,9 +116,17 @@ namespace Shadow {
 				Count
 			};
 		}
+
+		namespace RTV {
+			enum {
+				ERT_FaceIDCube = 0,
+				Count
+			};
+		}
 	}
 
-	static const UINT NumDepthStenciles = 2;
+	static const UINT NumRenderTargets	= 1;
+	static const UINT NumDepthStenciles	= 2;
 
 	class ShadowClass {
 	public:
@@ -138,16 +171,22 @@ namespace Shadow {
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
-			UINT descSize, UINT dsvDescSize);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
+			UINT descSize, UINT dsvDescSize, UINT rtvDescSize);
 
 	private:
 		void BuildDescriptors();
 		BOOL BuildResources();
 
-		void DrawRenderItems(
-			ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
-			D3D12_GPU_VIRTUAL_ADDRESS cb_obj, D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
-			UINT objCBByteSize, UINT matCBByteSize);
+		void DrawZDepth(
+			ID3D12GraphicsCommandList* cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_obj, 
+			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
+			UINT objCBByteSize, UINT matCBByteSize,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
+			BOOL point, UINT index,
+			const std::vector<RenderItem*>& ritems);
 
 		void DrawShadow(
 			ID3D12GraphicsCommandList* const cmdList,
@@ -175,7 +214,10 @@ namespace Shadow {
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDescs[Descriptor::Count];
 		CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuDescs[Descriptor::Count];
+
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsvs[Descriptor::DSV::Count];
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuRtvs[Descriptor::RTV::Count];
 
 		BOOL mDebugShadowMap;
 	};

@@ -11,72 +11,24 @@
 #define PI              3.1415926535897f
 
 //
-// Trowbridge-Reitz GGX 
-// 
-float DistributionGGX(float3 N, float3 H, float roughness) {
-	float a = roughness * roughness;
-	float a2 = a * a;
-	float NdotH = max(dot(N, H), 0);
-	float NdotH2 = NdotH * NdotH;
-
-	float num = a2;
-	float denom = (NdotH2 * (a2 - 1) + 1);
-	denom = PI * denom * denom;
-
-	return num / denom;
-}
+// Declarations
+//
+#include "BRDF_Declarations.hlsli"
+#include "Shadow_Declarations.hlsli"
+#include "Random_Declarations.hlsli"
+#include "Conversion_Declarations.hlsli"
+#include "Packaging_Declarations.hlsli"
+#include "FloatPrecision_Declarations.hlsli"
 
 //
-// Smith's method with Schlick-GGX 
-// 
-// k is a remapping of ес based on whether using the geometry function 
-//  for either direct lighting or IBL lighting.
-float GeometryShlickGGX(float NdotV, float roughness) {
-	float a = (roughness + 1);
-	float k = (a * a) / 8;
-
-	float num = NdotV;
-	float denom = NdotV * (1 - k) + k;
-
-	return num / denom;
-}
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
-	float NdotV = max(dot(N, V), 0);
-	float NdotL = max(dot(N, L), 0);
-
-	float ggx1 = GeometryShlickGGX(NdotV, roughness);
-	float ggx2 = GeometryShlickGGX(NdotL, roughness);
-
-	return ggx1 * ggx2;
-}
-
-float GeometryShlickGGX_IBL(float NdotV, float roughness) {
-	float a = roughness;
-	float k = (a * a) / 2;
-
-	float num = NdotV;
-	float denom = NdotV * (1 - k) + k;
-
-	return num / denom;
-}
-float GeometrySmith_IBL(float3 N, float3 V, float3 L, float roughness) {
-	float NdotV = max(dot(N, V), 0);
-	float NdotL = max(dot(N, L), 0);
-
-	float ggx1 = GeometryShlickGGX_IBL(NdotV, roughness);
-	float ggx2 = GeometryShlickGGX_IBL(NdotL, roughness);
-
-	return ggx1 * ggx2;
-}
-
-// the Fresnel Schlick approximation
-float3 FresnelSchlick(float cos, float3 F0) {
-	return F0 + (1 - F0) * pow(max((1 - cos), 0), 5);
-}
-
-float3 FresnelSchlickRoughness(float cos, float3 F0, float roughness) {
-	return F0 + (max((float3)(1 - roughness), F0) - F0) * pow(max(1 - cos, 0), 5);
-}
+// Implementations
+//
+#include "BRDF_Implementations.hlsli"
+#include "Shadow_Implementations.hlsli"
+#include "Random_Implementations.hlsli"
+#include "Conversion_Implementations.hlsli"
+#include "Packaging_Implementations.hlsli"
+#include "FloatPrecision_Implementations.hlsli"
 
 float RadicalInverse_VdC(uint bits) {
 	bits = (bits << 16u) | (bits >> 16u);
@@ -113,94 +65,66 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
 	return normalize(sampleVec);
 }
 
-float CalcShadowFactorPCF(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
-	shadowPosH.xyz /= shadowPosH.w;
+uint GetCubeFaceIndex(float3 direction) {
+    float3 absDir = abs(direction);
+    if (absDir.x >= absDir.y && absDir.x >= absDir.z)
+		return (direction.x > 0.0) ? 0 : 1; // +X : -X
+    else if (absDir.y >= absDir.x && absDir.y >= absDir.z)
+		return (direction.y > 0.0) ? 2 : 3; // +Y : -Y
+    else
+		return (direction.z > 0.0) ? 4 : 5; // +Z : -Z    
+}
 
-	float depth = shadowPosH.z;
+// Convert normalized direction to UV coordinates for the 2D texture
+float2 ConvertDirectionToUV(float3 dir) {	
+	float absX = abs(dir.x);
+	float absY = abs(dir.y);
+	float absZ = abs(dir.z);
 
-	uint width, height, numMips;
-	shadowMap.GetDimensions(0, width, height, numMips);
+	float u, v;
 
-	float dx = 1.0f / (float)width;
-
-	float percentLit = 0.0f;
-	const float2 offsets[9] = {
-		float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
-		float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
-		float2(-dx,  +dx), float2(0.0f,  +dx), float2(dx,  +dx)
-	};
-
-	[unroll]
-	for (int i = 0; i < 9; ++i) {
-		percentLit += shadowMap.SampleCmpLevelZero(sampComp, shadowPosH.xy + offsets[i], depth);
+	// Check which face the vector corresponds to
+	if (absX >= absY && absX >= absZ) {
+		// +X or -X face
+		if (dir.x > 0) {
+			u = 0.5 * (dir.z / dir.x + 1.0);
+			v = 0.5 * (dir.y / dir.x + 1.0);
+		}
+		else {
+			u = 0.5 * (-dir.z / dir.x + 1.0);
+			v = 0.5 * (dir.y / dir.x + 1.0);
+		}
+	}
+	else if (absY >= absX && absY >= absZ) {
+		// +Y or -Y face
+		if (dir.y > 0) {
+			u = 0.5 * (dir.x / dir.y + 1.0);
+			v = 0.5 * (-dir.z / dir.y + 1.0);
+		}
+		else {
+			u = 0.5 * (dir.x / dir.y + 1.0);
+			v = 0.5 * (dir.z / dir.y + 1.0);
+		}
+	}
+	else {
+		// +Z or -Z face
+		if (dir.z > 0) {
+			u = 0.5 * (-dir.x / dir.z + 1.0);
+			v = 0.5 * (dir.y / dir.z + 1.0);
+		}
+		else {
+			u = 0.5 * (dir.x / dir.z + 1.0);
+			v = 0.5 * (dir.y / dir.z + 1.0);
+		}
 	}
 
-	return percentLit / 9.0f;
-}
-
-float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
-	shadowPosH.xyz /= shadowPosH.w;
-	const float depth = shadowPosH.z;
-
-	return shadowMap.SampleCmpLevelZero(sampComp, shadowPosH.xy, depth);
-}
-
-float CalcShadowFactorCube(TextureCube<float> shadowMap, SamplerState samp, float4x4 shadowViewProj, float3 fragPosW, float3 lightPosW) {
-	const float3 direction = normalize(fragPosW - lightPosW);
-
-	const float closestDepth = shadowMap.SampleLevel(samp, direction, 0);
-
-	float4 shadowPosH = mul(float4(fragPosW, 1), shadowViewProj);
-	shadowPosH /= shadowPosH.w;
-
-	const float depth = shadowPosH.z;
-
-	return depth < closestDepth;
-}
-
-uint CalcShiftedShadowValueF(float percent, uint value, uint index) {
-	if (index == 0) value = 0;
-
-	uint shadowFactor = percent < 0.5 ? 0 : 1;
-	uint shifted = shadowFactor << index;
-
-	return value | shifted;
-}
-
-uint CalcShiftedShadowValueB(bool isHit, uint value, uint index) {
-	if (index == 0) value = 0;
-
-	uint shadowFactor = isHit ? 0 : 1;
-	uint shifted = shadowFactor << index;
-
-	return value | shifted;
-}
-
-uint GetShiftedShadowValue(uint value, uint index) {
-	return (value >> index) & 1;
-}
-
-uint FloatToByte(float value) {
-	value = clamp(value, 0.0, 1.0);
-	return (uint)(value * 255.0 + 0.5);
-}
-
-float ByteToFloat(uint value) {
-	return value / 255.0;
+	return float2(u, v);
 }
 
 float NdcDepthToViewDepth(float z_ndc, float4x4 proj) {
 	// z_ndc = A + B/viewZ, where proj[2,2]=A and proj[3,2]=B.
 	float viewZ = proj[3][2] / (z_ndc - proj[2][2]);
 	return viewZ;
-}
-
-float4 sRGBToLinear(float4 color) {
-	return pow(color, 2.2);
-}
-
-float4 LinearTosRGB(float4 color) {
-	return pow(color, 1 / 2.2);
 }
 
 float2 CalcVelocity(float4 curr_pos, float4 prev_pos) {
@@ -267,40 +191,6 @@ float3 BoxCubeMapLookup(float3 rayOrigin, float3 unitRayDir, float3 boxCenter, f
 	return p + t * unitRayDir;
 }
 
-float rand_1_05(in float2 uv) {
-	float2 noise = frac(sin(dot(uv, float2(12.9898, 78.233) * 2)) * 43758.5453);
-	return abs(noise.x + noise.y) * 0.5;
-}
-
-float2 rand_2_10(in float2 uv) {
-	float noiseX = frac(sin(dot(uv, float2(12.9898, 78.233) * 2)) * 43758.5453);
-	float noiseY = sqrt(1 - noiseX * noiseX);
-	return float2(noiseX, noiseY);
-}
-
-float2 rand_2_0004(in float2 uv) {
-	float noiseX = frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
-	float noiseY = frac(sin(dot(uv, float2(12.9898, 78.233) * 2)) * 43758.5453);
-	return float2(noiseX, noiseY) * 0.004;
-}
-
-float3 RgbToYuv(float3 rgb) {
-	float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
-	return float3(y, 0.493 * (rgb.b - y), 0.877 * (rgb.r - y));
-}
-
-float3 YuvToRgb(float3 yuv) {
-	float y = yuv.x;
-	float u = yuv.y;
-	float v = yuv.z;
-
-	return float3(
-		y + 1.0 / 0.877 * v,
-		y - 0.39393 * u - 0.58081 * v,
-		y + 1.0 / 0.493 * u
-	);
-}
-
 uint GetIndexOfValueClosestToReference(float ref, float2 values) {
 	float2 delta = abs(ref - values);
 	uint index = delta[1] < delta[0] ? 1 : 0;
@@ -319,52 +209,6 @@ bool IsWithinBounds(int2 index, int2 dimensions) {
 	return index.x >= 0 && index.y >= 0 && index.x < dimensions.x&& index.y < dimensions.y;
 }
 
-uint SmallestPowerOf2GreaterThan(uint x) {
-	// Set all the bits behind the most significant non-zero bit in x to 1.
-	// Essentially giving us the largest value that is smaller than the
-	// next power of 2 we're looking for.
-	x |= x >> 1;
-	x |= x >> 2;
-	x |= x >> 4;
-	x |= x >> 8;
-	x |= x >> 16;
-
-	// Return the next power of two value.
-	return x + 1;
-}
-
-uint Float2ToHalf(float2 val) {
-	uint result = 0;
-	result = f32tof16(val.x);
-	result |= f32tof16(val.y) << 16;
-	return result;
-}
-
-float2 HalfToFloat2(uint val) {
-	float2 result;
-	result.x = f16tof32(val);
-	result.y = f16tof32(val >> 16);
-	return result;
-}
-
-uint Float4ToUint(float4 val) {
-	uint result = 0;
-	result = asuint(val.x);
-	result |= asuint(val.y) << 8;
-	result |= asuint(val.z) << 16;
-	result |= asuint(val.w) << 24;
-	return result;
-}
-
-float4 UintToFloat4(uint val) {
-	float4 result = 0;
-	result.x = val;
-	result.y = val >> 8;
-	result.z = val >> 16;
-	result.w = val >> 24;
-	return result;
-}
-
 // Remap partial depth derivatives at z0 from [1,1] pixel offset to a new pixel offset.
 float2 RemapDdxy(float z0, float2 ddxy, float2 pixelOffset) {
 	// Perspective correction for non-linear depth interpolation.
@@ -377,32 +221,6 @@ float2 RemapDdxy(float z0, float2 ddxy, float2 pixelOffset) {
 	//      z = (z0 + ddxy) / (1 + (1-q) / z0 * ddxy) 
 	float2 z = (z0 + ddxy) / (1 + ((1 - pixelOffset) / z0) * ddxy);
 	return sign(pixelOffset) * (z - z0);
-}
-
-// Returns float precision for a given float value.
-// Values within (value -precision, value + precision) map to the same value. 
-// Precision = exponentRange/MaxMantissaValue = (2^e+1 - 2^e) / (2^NumMantissaBits)
-// Ref: https://blog.demofox.org/2017/11/21/floating-point-precision/
-float FloatPrecision(float x, uint NumMantissaBits) {
-	// Find the exponent range the value is in.
-	uint nextPowerOfTwo = SmallestPowerOf2GreaterThan(x);
-	float exponentRange = nextPowerOfTwo - (nextPowerOfTwo >> 1);
-
-	float MaxMantissaValue = 1u << NumMantissaBits;
-
-	return exponentRange / MaxMantissaValue;
-}
-
-float FloatPrecisionR10(float x) {
-	return FloatPrecision(x, 5);
-}
-
-float FloatPrecisionR16(float x) {
-	return FloatPrecision(x, 10);
-}
-
-float FloatPrecisionR32(float x) {
-	return FloatPrecision(x, 23);
 }
 
 bool IsInRange(float val, float min, float max) {
@@ -422,123 +240,6 @@ float2 ApproximateProjectedSurfaceDimensionsPerPixel(float z, float2 ddxy, float
 	float2 w = sqrt(dx * dx + ddxy * ddxy);
 
 	return w;
-}
-
-/***************************************************************/
-// Normal encoding
-// Ref: https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
-float2 OctWrap(float2 v) {
-	return (1.0 - abs(v.yx)) * (v.xy >= 0.0 ? 1.0 : -1.0);
-}
-
-// Converts a 3D unit vector to a 2D vector with <0,1> range. 
-float2 EncodeNormal(float3 n) {
-	n /= (abs(n.x) + abs(n.y) + abs(n.z));
-	n.xy = n.z >= 0.0 ? n.xy : OctWrap(n.xy);
-	n.xy = n.xy * 0.5 + 0.5;
-	return n.xy;
-}
-
-float3 DecodeNormal(float2 f) {
-	f = f * 2.0 - 1.0;
-
-	// https://twitter.com/Stubbesaurus/status/937994790553227264
-	float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-	float t = saturate(-n.z);
-	n.xy += n.xy >= 0.0 ? -t : t;
-	return normalize(n);
-}
-/***************************************************************/
-
-
-
-// Pack [0.0, 1.0] float to 8 bit uint. 
-uint Pack_R8_FLOAT(float r) {
-	return clamp(round(r * 255), 0, 255);
-}
-
-float Unpack_R8_FLOAT(uint r) {
-	return (r & 0xFF) / 255.0;
-}
-
-// pack two 8 bit uint2 into a 16 bit uint.
-uint Pack_R8G8_to_R16_UINT(uint r, uint g) {
-	return (r & 0xff) | ((g & 0xff) << 8);
-}
-
-void Unpack_R16_to_R8G8_UINT(uint v, out uint r, out uint g) {
-	r = v & 0xFF;
-	g = (v >> 8) & 0xFF;
-}
-
-
-// Pack unsigned floating point, where 
-// - rgb.rg are in [0, 1] range stored as two 8 bit uints.
-// - rgb.b in [0, FLT_16_BIT_MAX] range stored as a 16bit float.
-uint Pack_R8G8B16_FLOAT(float3 rgb) {
-	uint r = Pack_R8_FLOAT(rgb.r);
-	uint g = Pack_R8_FLOAT(rgb.g) << 8;
-	uint b = f32tof16(rgb.b) << 16;
-	return r | g | b;
-}
-
-float3 Unpack_R8G8B16_FLOAT(uint rgb) {
-	float r = Unpack_R8_FLOAT(rgb);
-	float g = Unpack_R8_FLOAT(rgb >> 8);
-	float b = f16tof32(rgb >> 16);
-	return float3(r, g, b);
-}
-
-uint NormalizedFloat3ToByte3(float3 v) {
-	return
-		(uint(v.x * 255) << 16) +
-		(uint(v.y * 255) << 8) +
-		uint(v.z * 255);
-}
-
-float3 Byte3ToNormalizedFloat3(uint v) {
-	return float3(
-		(v >> 16) & 0xff,
-		(v >> 8) & 0xff,
-		v & 0xff) / 255;
-}
-
-// Encode normal and depth with 16 bits allocated for each.
-uint EncodeNormalDepth_N16D16(float3 normal, float depth) {
-	float3 encodedNormalDepth = float3(EncodeNormal(normal), depth);
-	return Pack_R8G8B16_FLOAT(encodedNormalDepth);
-}
-
-
-// Decoded 16 bit normal and 16bit depth.
-void DecodeNormalDepth_N16D16(uint packedEncodedNormalAndDepth, out float3 normal, out float depth) {
-	float3 encodedNormalDepth = Unpack_R8G8B16_FLOAT(packedEncodedNormalAndDepth);
-	normal = DecodeNormal(encodedNormalDepth.xy);
-	depth = encodedNormalDepth.z;
-}
-
-uint EncodeNormalDepth(float3 normal, float depth) {
-	return EncodeNormalDepth_N16D16(normal, depth);
-}
-
-void DecodeNormalDepth(uint encodedNormalDepth, out float3 normal, out float depth) {
-	DecodeNormalDepth_N16D16(encodedNormalDepth, normal, depth);
-}
-
-void DecodeNormal(uint encodedNormalDepth, out float3 normal) {
-	float depthDummy;
-	DecodeNormalDepth_N16D16(encodedNormalDepth, normal, depthDummy);
-}
-
-void DecodeDepth(uint encodedNormalDepth, out float depth) {
-	float3 normalDummy;
-	DecodeNormalDepth_N16D16(encodedNormalDepth, normalDummy, depth);
-}
-
-void UnpackEncodedNormalDepth(uint packedEncodedNormalDepth, out float2 encodedNormal, out float depth) {
-	float3 encodedNormalDepth = Unpack_R8G8B16_FLOAT(packedEncodedNormalDepth);
-	encodedNormal = encodedNormalDepth.xy;
-	depth = encodedNormalDepth.z;
 }
 
 float ColorVariance(float4 lval, float4 rval) {

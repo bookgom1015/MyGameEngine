@@ -88,7 +88,7 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	}
 }
 
-void PS(GeoOut pin) {
+Shadow::FaceIDCubeMapFormat PS(GeoOut pin) : SV_Target {
 	float4 albedo = cb_Mat.Albedo;
 	if (cb_Mat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cb_Mat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
@@ -98,6 +98,8 @@ void PS(GeoOut pin) {
 	// shader early, thereby skipping the rest of the shader code.
 	clip(albedo.a - 0.1f);
 #endif
+
+	return (float)pin.ArrayIndex;
 }
 
 #endif // __DRAWZDEPTH_HLSL__

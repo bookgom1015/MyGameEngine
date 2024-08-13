@@ -89,11 +89,17 @@ namespace GBuffer {
 
 namespace Shadow {
 #ifdef HLSL
-	typedef float ZDepthMapFormat;
-	typedef uint ShadowMapFormat;
+	typedef float	ZDepthMapFormat;
+	typedef uint	ShadowMapFormat;
+	typedef float	FaceIDCubeMapFormat;
+
+	static const uint InvalidFaceID = 255;
 #else 
-	static const DXGI_FORMAT ZDepthMapFormat = DXGI_FORMAT_D32_FLOAT;
-	static const DXGI_FORMAT ShadowMapFormat = DXGI_FORMAT_R16_UINT;
+	static const DXGI_FORMAT ZDepthMapFormat		= DXGI_FORMAT_D32_FLOAT;
+	static const DXGI_FORMAT ShadowMapFormat		= DXGI_FORMAT_R16_UINT;
+	static const DXGI_FORMAT FaceIDCubeMapFormat	= DXGI_FORMAT_R16_FLOAT;
+
+	const FLOAT FaceIDCubeMapClearValues[4] = { 255.0f, 0.0f, 0.0f, 0.0f };
 #endif 
 	namespace Default {
 		namespace ThreadGroup {

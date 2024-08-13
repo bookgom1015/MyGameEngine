@@ -637,6 +637,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	rtvHeapDesc.NumDescriptors =
 		SwapChainBufferCount
 		+ GBuffer::NumRenderTargets
+		+ Shadow::NumRenderTargets
 		+ SSAO::NumRenderTargets
 		+ DepthOfField::NumRenderTargets
 		+ Bloom::NumRenderTargets
@@ -857,7 +858,7 @@ void DxRenderer::BuildDescriptors() {
 	mSwapChainBuffer->BuildDescriptors(hCpu, hGpu, descSize);
 	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
 	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mShadow->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
+	mShadow->BuildDescriptors(hCpu, hGpu, hCpuDsv, hCpuRtv, descSize, dsvDescSize, rtvDescSize);
 	mSSAO->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -2835,7 +2836,7 @@ BOOL DxRenderer::DrawImGui() {
 				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
 					ImGui::SliderFloat("Falloff Start", &light.FalloffStart, 0, 100.0f);
 					ImGui::SliderFloat("Falloff End", &light.FalloffEnd, 0, 100.0f);
 

@@ -781,7 +781,7 @@
     <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
       <Filter>Shader Files\DoF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
       <Filter>Shader Files\Shadow</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
@@ -909,6 +909,45 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\SkySphere.hlsl">
       <Filter>Shader Files\Irradiance</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF_Declarations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\BRDF_Implementations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Shadow_Declarations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Shadow_Implementations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Random_Declarations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Random_Implementations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Conversion_Declarations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Conversion_Implementations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Packaging_Declarations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Packaging_Implementations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Declarations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Implementations.hlsli">
+      <Filter>Shader Files\Util</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+      <Filter>Shader Files\Shadow</Filter>
     </None>
   </ItemGroup>
 </Project>

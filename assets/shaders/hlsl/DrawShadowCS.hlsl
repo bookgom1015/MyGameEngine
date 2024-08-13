@@ -1,5 +1,5 @@
-#ifndef __DRAWSHADOW_HLSL__
-#define __DRAWSHADOW_HLSL__
+#ifndef __DRAWSHADOWCS_HLSL__
+#define __DRAWSHADOWCS_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -22,14 +22,6 @@ Texture2DArray<Shadow::FaceIDCubeMapFormat>	gi_FaceIDTexArray	: register(t3);
 
 RWTexture2D<Shadow::ShadowMapFormat>	guo_Shadow	: register(u0);
 
-#include "CoordinatesFittedToScreen.hlsli"
-
-struct VertexOut {
-	float4 PosH		: SV_POSITION;
-	float3 PosV		: POSITION;
-	float2 TexC		: TEXCOORD;
-};
-
 float4x4 GetShadowTransform(Light light, float2 uv, uint index) {
 	float faceID = gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
 	uint u_faceID = (uint)faceID;
@@ -44,28 +36,15 @@ float4x4 GetShadowTransform(Light light, float2 uv, uint index) {
 	}
 }
 
-VertexOut VS(uint vid : SV_VertexID) {
-	VertexOut vout = (VertexOut)0;
-
-	vout.TexC = gTexCoords[vid];
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
-
-	return vout;
-}
-
-void PS(VertexOut pin) {
-	uint2 size;
-	gi_Position.GetDimensions(size.x, size.y);
-
-	uint2 DTid = (pin.TexC - 0.5) * size;
-
+[numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
+void CS(uint2 DTid : SV_DispatchThreadID) {
 	uint value = 0;
 	if (gLightIndex != 0) value = guo_Shadow[DTid];
 
 	Light light = cb_Pass.Lights[gLightIndex];
 
 	const float4 posW = gi_Position.Load(int3(DTid, 0));
-
+	
 	if (light.Type == LightType::E_Point) {
 		const float3 direction = posW.xyz - light.Position;
 		const uint index = GetCubeFaceIndex(direction);
@@ -74,7 +53,8 @@ void PS(VertexOut pin) {
 
 		const float4x4 shadowTransform = GetShadowTransform(light, uv, index);
 		const float shadowFactor = CalcShadowFactorTexArray(gi_ZDepthTexArray, gsamPointClamp, shadowTransform, posW.xyz, uv, index);
-
+		
+		//value = (uv.x + uv.y) * 0.5 * 65535;
 		value = (uint)shadowFactor;
 	}
 	else {
@@ -87,4 +67,4 @@ void PS(VertexOut pin) {
 	guo_Shadow[DTid] = value;
 }
 
-#endif // __DRAWSHADOW_HLSL__
+#endif // __DRAWSHADOWCS_HLSL__

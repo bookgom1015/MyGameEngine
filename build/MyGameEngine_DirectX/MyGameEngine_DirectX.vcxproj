@@ -305,20 +305,32 @@
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Contrast.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BRDF_Declarations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\BRDF_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Conversion_Declarations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Conversion_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\DXR_ShadingHelpers.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Declarations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HardcodedCubeVertices.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Packaging_Declarations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Packaging_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Random_Declarations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Random_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Shadow_Declarations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Shadow_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\SsrCommon.hlsli" />
     <None Include="..\..\include\Actor.inl" />
     <None Include="..\..\include\Bloom.inl" />
@@ -394,7 +406,7 @@
     <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
@@ -485,6 +497,11 @@
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ToneMapping.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
