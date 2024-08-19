@@ -781,9 +781,6 @@
     <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
       <Filter>Shader Files\DoF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
-      <Filter>Shader Files\Shadow</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
       <Filter>Shader Files\Shadow</Filter>
     </None>
@@ -946,7 +943,7 @@
     <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Implementations.hlsli">
       <Filter>Shader Files\Util</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
       <Filter>Shader Files\Shadow</Filter>
     </None>
   </ItemGroup>

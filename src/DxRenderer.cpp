@@ -1244,61 +1244,53 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 
 				XMStoreFloat4x4(&light.ViewProj, XMMatrixTranspose(viewProj));
 				XMStoreFloat3(&light.Position, lightPos);
-				//XMStoreFloat4x4(&mMainPassCB->Lights[i].View, XMMatrixTranspose(lightView));
-				//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvView, XMMatrixTranspose(invView));
-				//XMStoreFloat4x4(&mMainPassCB->Lights[i].Proj, XMMatrixTranspose(lightProj));
-				//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvProj, XMMatrixTranspose(invProj));
-				//XMStoreFloat4x4(&mMainPassCB->Lights[i].ViewProj, XMMatrixTranspose(viewProj));
-				//XMStoreFloat4x4(&mMainPassCB->Lights[i].InvViewProj, XMMatrixTranspose(invViewProj));
-				//XMStoreFloat3(&mMainPassCB->Lights[i].Position, lightPos);
 			}
 			else if (light.Type == LightType::E_Spot) {
 
 			}
 			else if (light.Type == LightType::E_Point) {
 				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 1000.0f);
-				auto pos = XMLoadFloat3(&light.Position);
-				pos.m128_f32[3] = 1.0f;
+				auto pos = XMLoadFloat4(&XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 1.0f));
 				
 				// Positive +X
 				{
 					auto target = pos + XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-					auto view_px = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto view_px = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 					auto vp_px = view_px * proj;
 					XMStoreFloat4x4(&light.ShadowTransform0, XMMatrixTranspose(vp_px));
 				}
 				// Positive -X
 				{
 					auto target = pos + XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f);
-					auto view_nx = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto view_nx = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 					auto vp_nx = view_nx * proj;
 					XMStoreFloat4x4(&light.ShadowTransform1, XMMatrixTranspose(vp_nx));
 				}
 				// Positive +Y
 				{
 					auto target = pos + XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-					auto view_py = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)));
+					auto view_py = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f));
 					auto vp_py = view_py * proj;
 					XMStoreFloat4x4(&light.ShadowTransform2, XMMatrixTranspose(vp_py));
 				}
 				// Positive -Y
 				{
 					auto target = pos + XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
-					auto view_ny = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)));
+					auto view_ny = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
 					auto vp_ny = view_ny * proj;
 					XMStoreFloat4x4(&light.ShadowTransform3, XMMatrixTranspose(vp_ny));
 				}
 				// Positive +Z
 				{
 					auto target = pos + XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-					auto view_pz = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto view_pz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 					auto vp_pz = view_pz * proj;
 					XMStoreFloat4x4(&light.ShadowTransform4, XMMatrixTranspose(vp_pz));
 				}
 				// Positive -Z
 				{
 					auto target = pos + XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
-					auto view_nz = XMMatrixTranspose(XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)));
+					auto view_nz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 					auto vp_nz = view_nz * proj;
 					XMStoreFloat4x4(&light.ShadowTransform5, XMMatrixTranspose(vp_nz));
 				}

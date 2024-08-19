@@ -77,9 +77,13 @@ uint GetCubeFaceIndex(float3 direction) {
 
 // Convert normalized direction to UV coordinates for the 2D texture
 float2 ConvertDirectionToUV(float3 dir) {	
-	float absX = abs(dir.x);
-	float absY = abs(dir.y);
-	float absZ = abs(dir.z);
+	const float absX = abs(dir.x);
+	const float absY = abs(dir.y);
+	const float absZ = abs(dir.z);
+
+	const float minX = min(dir.x, -1e-6);
+	const float minY = min(dir.y, -1e-6);
+	const float minZ = min(dir.z, -1e-6);
 
 	float u, v;
 
@@ -87,34 +91,34 @@ float2 ConvertDirectionToUV(float3 dir) {
 	if (absX >= absY && absX >= absZ) {
 		// +X or -X face
 		if (dir.x > 0) {
-			u = 0.5 * (dir.z / dir.x + 1.0);
-			v = 0.5 * (dir.y / dir.x + 1.0);
+			u = 0.5 * (-dir.z / dir.x + 1.0);
+			v = 0.5 * (-dir.y / dir.x + 1.0);
 		}
 		else {
-			u = 0.5 * (-dir.z / dir.x + 1.0);
-			v = 0.5 * (dir.y / dir.x + 1.0);
+			u = 0.5 * ( dir.z / -minX + 1.0);
+			v = 0.5 * ( dir.y /  minX + 1.0);
 		}
 	}
 	else if (absY >= absX && absY >= absZ) {
 		// +Y or -Y face
 		if (dir.y > 0) {
-			u = 0.5 * (dir.x / dir.y + 1.0);
+			u = 0.5 * ( dir.x / dir.y + 1.0);
 			v = 0.5 * (-dir.z / dir.y + 1.0);
 		}
 		else {
-			u = 0.5 * (dir.x / dir.y + 1.0);
-			v = 0.5 * (dir.z / dir.y + 1.0);
+			u = 0.5 * ( dir.x / -minY + 1.0);
+			v = 0.5 * ( dir.z /  minY + 1.0);
 		}
 	}
 	else {
 		// +Z or -Z face
 		if (dir.z > 0) {
-			u = 0.5 * (-dir.x / dir.z + 1.0);
-			v = 0.5 * (dir.y / dir.z + 1.0);
+			u = 0.5 * ( dir.x / dir.z + 1.0);
+			v = 0.5 * (-dir.y / dir.z + 1.0);
 		}
 		else {
-			u = 0.5 * (dir.x / dir.z + 1.0);
-			v = 0.5 * (dir.y / dir.z + 1.0);
+			u = 0.5 * (dir.x / minZ + 1.0);
+			v = 0.5 * (dir.y / minZ + 1.0);
 		}
 	}
 

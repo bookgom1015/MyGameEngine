@@ -36,7 +36,7 @@ float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampCo
 float CalcShadowFactorCube(TextureCube<float> shadowMap, SamplerState samp, float4x4 shadowViewProj, float3 fragPosW, float3 lightPosW) {
 	const float3 direction = normalize(fragPosW - lightPosW);
 
-	const float closestDepth = shadowMap.SampleLevel(samp, direction, 0);
+	const float closestDepth = shadowMap.Sample(samp, direction);
 
 	float4 shadowPosH = mul(float4(fragPosW, 1), shadowViewProj);
 	shadowPosH /= shadowPosH.w;

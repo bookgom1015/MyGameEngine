@@ -16,7 +16,6 @@ namespace Shadow {
 		enum {
 			E_ZDepth = 0,
 			E_Shadow,
-			E_ShadowCS,
 			Count
 		};
 
@@ -57,33 +56,12 @@ namespace Shadow {
 				};
 			}
 		}
-
-		namespace ShadowCS {
-			enum {
-				ECB_Pass = 0,
-				EC_Consts,
-				ESI_Position,
-				ESI_ZDepth,
-				ESI_ZDepthCube,
-				ESI_FaceIDCube,
-				EUO_Shadow,
-				Count
-			};
-
-			namespace RootConstant {
-				enum {
-					E_LightIndex = 0,
-					Count
-				};
-			}
-		}
 	}
 
 	namespace PipelineState {
 		enum {
 			EG_ZDepth = 0,
 			EG_ZDepthCube,
-			EG_Shadow,
 			EC_Shadow,
 			Count
 		};

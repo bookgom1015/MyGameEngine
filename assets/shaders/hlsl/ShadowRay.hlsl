@@ -26,9 +26,6 @@ RWTexture2D<DXR_Shadow::ShadowMapFormat>	gi_Shadow	: register(u0);
 void ShadowRayGen() {
 	uint2 launchIndex = DispatchRaysIndex().xy;
 
-	float2 size;
-	gi_Normal.GetDimensions(size.x, size.y);
-
 	float3 normal = gi_Normal[launchIndex].xyz;
 	float d = gi_Depth[launchIndex];
 

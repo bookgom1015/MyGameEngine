@@ -23,9 +23,8 @@ Texture2DArray<Shadow::FaceIDCubeMapFormat>	gi_FaceIDTexArray	: register(t3);
 RWTexture2D<Shadow::ShadowMapFormat>	guo_Shadow	: register(u0);
 
 float4x4 GetShadowTransform(Light light, float2 uv, uint index) {
-	float faceID = gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
-	uint u_faceID = (uint)faceID;
-	switch (u_faceID) {
+	uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
+	switch (faceID) {
 	case 0: return light.ShadowTransform0;
 	case 1: return light.ShadowTransform1;
 	case 2: return light.ShadowTransform2;
@@ -44,7 +43,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	Light light = cb_Pass.Lights[gLightIndex];
 
 	const float4 posW = gi_Position.Load(int3(DTid, 0));
-	
+
 	if (light.Type == LightType::E_Point) {
 		const float3 direction = posW.xyz - light.Position;
 		const uint index = GetCubeFaceIndex(direction);
@@ -53,9 +52,9 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 		const float4x4 shadowTransform = GetShadowTransform(light, uv, index);
 		const float shadowFactor = CalcShadowFactorTexArray(gi_ZDepthTexArray, gsamPointClamp, shadowTransform, posW.xyz, uv, index);
-		
-		//value = (uv.x + uv.y) * 0.5 * 65535;
-		value = (uint)shadowFactor;
+
+		uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
+		value = shadowFactor;
 	}
 	else {
 		const float4 shadowPosH = mul(posW, light.ShadowTransform0);

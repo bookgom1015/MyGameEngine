@@ -406,9 +406,6 @@
     <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
-      <FileType>Document</FileType>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
       <FileType>Document</FileType>
     </None>
@@ -501,7 +498,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadow.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

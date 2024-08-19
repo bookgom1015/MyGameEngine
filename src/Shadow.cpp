@@ -14,9 +14,6 @@ namespace {
 	const CHAR* const GS_ZDepth = "GS_ZDepth";
 	const CHAR* const PS_ZDepth = "PS_ZDepth";
 
-	const CHAR* const VS_Shadow = "VS_Shadow";
-	const CHAR* const PS_Shadow = "PS_Shadow";
-
 	const CHAR* const CS_Shadow = "CS_Shadow";
 }
 
@@ -52,13 +49,6 @@ BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ZDepth));
 		CheckReturn(mShaderManager->CompileShader(gsInfo, GS_ZDepth));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ZDepth));
-	}
-	{
-		const std::wstring actualPath = filePath + L"DrawShadow.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_Shadow));
-		CheckReturn(mShaderManager->CompileShader(psInfo, PS_Shadow));
 	}
 	{
 		const std::wstring actualPath = filePath + L"DrawShadowCS.hlsl";
@@ -118,33 +108,6 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_Shadow]));
 	}
-	// Draw shadow on compute shader
-	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ShadowCS::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[5];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
-
-		slotRootParameter[RootSignature::ShadowCS::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::ShadowCS::EC_Consts].InitAsConstants(RootSignature::ShadowCS::RootConstant::Count, 1);
-		slotRootParameter[RootSignature::ShadowCS::ESI_Position].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::ShadowCS::ESI_ZDepth].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::ShadowCS::ESI_ZDepthCube].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::ShadowCS::ESI_FaceIDCube].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::ShadowCS::EUO_Shadow].InitAsDescriptorTable(1, &texTables[4]);
-
-		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-			_countof(slotRootParameter), slotRootParameter,
-			static_cast<UINT>(samplers.size()), samplers.data(),
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-		);
-
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ShadowCS]));
-	}
 
 	return TRUE;
 }
@@ -169,23 +132,10 @@ BOOL ShadowClass::BuildPSO() {
 		psoDesc.RasterizerState.DepthBiasClamp = 0.1f;
 		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ZDepth])));
 	}
-	// Draw shadow
-	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
-		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_Shadow].Get();
-		{
-			auto vs = mShaderManager->GetDxcShader(VS_Shadow);
-			auto ps = mShaderManager->GetDxcShader(PS_Shadow);
-			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
-			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
-		}
-		psoDesc.NumRenderTargets = 0;
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_Shadow])));
-	}
 	// Draw shadow on compute shader
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ShadowCS].Get();
+		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_Shadow].Get();
 		psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
 			auto cs = mShaderManager->GetDxcShader(CS_Shadow);
@@ -508,23 +458,23 @@ void ShadowClass::DrawShadow(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		UINT index) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::EC_Shadow].Get());
-	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_ShadowCS].Get());
+	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_Shadow].Get());
 
 	const auto& shadow = mShadowMaps[Resource::E_Shadow].get();
 
 	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12Util::UavBarrier(cmdList, shadow);
 
-	cmdList->SetComputeRootConstantBufferView(RootSignature::ShadowCS::ECB_Pass, cb_pass);
+	cmdList->SetComputeRootConstantBufferView(RootSignature::Shadow::ECB_Pass, cb_pass);
 
-	UINT values[RootSignature::ShadowCS::RootConstant::Count] = { index };
-	cmdList->SetComputeRoot32BitConstants(RootSignature::ShadowCS::EC_Consts, _countof(values), values, 0);
+	UINT values[RootSignature::Shadow::RootConstant::Count] = { index };
+	cmdList->SetComputeRoot32BitConstants(RootSignature::Shadow::EC_Consts, _countof(values), values, 0);
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ShadowCS::ESI_Position, si_pos);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ShadowCS::ESI_ZDepth, mhGpuDescs[Descriptor::ESI_ZDepth]);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ShadowCS::ESI_ZDepthCube, mhGpuDescs[Descriptor::ESI_ZDepthCube]);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ShadowCS::ESI_FaceIDCube, mhGpuDescs[Descriptor::ESI_FaceIDCube]);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ShadowCS::EUO_Shadow, mhGpuDescs[Descriptor::EUO_Shadow]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_Position, si_pos);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_ZDepth, mhGpuDescs[Descriptor::ESI_ZDepth]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_ZDepthCube, mhGpuDescs[Descriptor::ESI_ZDepthCube]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_FaceIDCube, mhGpuDescs[Descriptor::ESI_FaceIDCube]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::EUO_Shadow, mhGpuDescs[Descriptor::EUO_Shadow]);
 
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(static_cast<UINT>(mClientWidth), Default::ThreadGroup::Width),
