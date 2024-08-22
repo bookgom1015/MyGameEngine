@@ -29,8 +29,14 @@ struct VertexOut {
 
 struct GeoOut {
 	float4	PosH		: SV_POSITION;
+	float4	PosV		: POSITION;
 	float2	TexC		: TEXCOORD;
 	uint	ArrayIndex	: SV_RenderTargetArrayIndex;
+};
+
+struct PixelOut {
+	Shadow::VSDepthCubeMapFormat	VSDepth	: SV_TARGET0;
+	Shadow::FaceIDCubeMapFormat		FaceID	: SV_TARGET1;
 };
 
 VertexOut VS(VertexIn vin) {
@@ -44,14 +50,14 @@ VertexOut VS(VertexIn vin) {
 	return vout;
 }
 
-float4x4 GetShadowTransform(Light light, int face) {
+float4x4 GetViewMatrix(Light light, int face) {
 	switch (face) {
-	case 0: return light.ShadowTransform0;
-	case 1: return light.ShadowTransform1;
-	case 2: return light.ShadowTransform2;
-	case 3: return light.ShadowTransform3;
-	case 4: return light.ShadowTransform4;
-	case 5: return light.ShadowTransform5;
+	case 0: return light.View0;
+	case 1: return light.View1;
+	case 2: return light.View2;
+	case 3: return light.View3;
+	case 4: return light.View4;
+	case 5: return light.View5;
 	default: return (float4x4)0;
 	}
 }
@@ -65,8 +71,13 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	if (light.Type == LightType::E_Point) {
 		for (int face = 0; face < 6; ++face) {
 			gout.ArrayIndex = face;
-			for (int i = 0; i < 3; ++i) {
-				gout.PosH = mul(gin[i].PosW, GetShadowTransform(light, face));
+
+			const float4x4 view = GetViewMatrix(light, face);
+
+			for (int i = 0; i < 3; ++i) {				
+				const float4 posV = mul(gin[i].PosW, view);
+				gout.PosV = posV;
+				gout.PosH = mul(posV, light.Proj);
 
 				gout.TexC = gin[i].TexC;
 
@@ -78,7 +89,7 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	else {
 		[unroll]
 		for (int i = 0; i < 3; ++i) {
-			gout.PosH = mul(gin[i].PosW, light.ViewProj);
+			gout.PosH = mul(gin[i].PosW, light.View0);
 
 			float4 texC = mul(float4(gin[i].TexC, 0, 1), cb_Obj.TexTransform);
 			gout.TexC = mul(texC, cb_Mat.MatTransform).xy;
@@ -88,7 +99,9 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	}
 }
 
-Shadow::FaceIDCubeMapFormat PS(GeoOut pin) : SV_Target {
+PixelOut PS(GeoOut pin) {
+	PixelOut ps = (PixelOut)0;
+
 	float4 albedo = cb_Mat.Albedo;
 	if (cb_Mat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cb_Mat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
@@ -99,7 +112,10 @@ Shadow::FaceIDCubeMapFormat PS(GeoOut pin) : SV_Target {
 	clip(albedo.a - 0.1f);
 #endif
 
-	return (float)pin.ArrayIndex;
+	ps.VSDepth = pin.PosV.z;
+	ps.FaceID = (float)pin.ArrayIndex;
+
+	return ps;
 }
 
 #endif // __DRAWZDEPTH_HLSL__

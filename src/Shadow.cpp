@@ -85,20 +85,22 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Shadow::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[5];
+		CD3DX12_DESCRIPTOR_RANGE texTables[6];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		slotRootParameter[RootSignature::Shadow::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::Shadow::EC_Consts].InitAsConstants(RootSignature::Shadow::RootConstant::Count, 1);
 		slotRootParameter[RootSignature::Shadow::ESI_Position].InitAsDescriptorTable(1, &texTables[0]);
 		slotRootParameter[RootSignature::Shadow::ESI_ZDepth].InitAsDescriptorTable(1, &texTables[1]);
 		slotRootParameter[RootSignature::Shadow::ESI_ZDepthCube].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::Shadow::ESI_FaceIDCube].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::Shadow::EUO_Shadow].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[RootSignature::Shadow::ESI_VSDepthCube].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::Shadow::ESI_FaceIDCube].InitAsDescriptorTable(1, &texTables[4]);
+		slotRootParameter[RootSignature::Shadow::EUO_Shadow].InitAsDescriptorTable(1, &texTables[5]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -125,8 +127,9 @@ BOOL ShadowClass::BuildPSO() {
 			psoDesc.GS = { reinterpret_cast<BYTE*>(gs->GetBufferPointer()), gs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = FaceIDCubeMapFormat;
+		psoDesc.NumRenderTargets = 2;
+		psoDesc.RTVFormats[0] = VSDepthCubeMapFormat;
+		psoDesc.RTVFormats[1] = FaceIDCubeMapFormat;
 		psoDesc.RasterizerState.DepthBias = 100000;
 		psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 		psoDesc.RasterizerState.DepthBiasClamp = 0.1f;
@@ -183,8 +186,12 @@ void ShadowClass::BuildDescriptors(
 	mhCpuDescs[Descriptor::EUO_Shadow] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptor::EUO_Shadow] = hGpu.Offset(1, descSize);
 
-	mhCpuDsvs[Descriptor::DSV::EDS_ZDepth] = hCpuDsv.Offset(1, dsvDescSize);
-	mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube] = hCpuDsv.Offset(1, dsvDescSize);
+	mhCpuDsvs[Descriptor::DSV::EDS_ZDepth]		= hCpuDsv.Offset(1, dsvDescSize);
+	mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube]	= hCpuDsv.Offset(1, dsvDescSize);
+
+	mhCpuDescs[Descriptor::ESI_VSDepthCube]		= hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptor::ESI_VSDepthCube]		= hGpu.Offset(1, descSize);
+	mhCpuRtvs[Descriptor::RTV::ERT_VSDepthCube] = hCpuRtv.Offset(1, rtvDescSize);
 
 	mhCpuRtvs[Descriptor::RTV::ERT_FaceIDCube] = hCpuRtv.Offset(1, rtvDescSize);
 
@@ -258,6 +265,32 @@ void ShadowClass::BuildDescriptors() {
 
 		md3dDevice->CreateUnorderedAccessView(shadow, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Shadow]);
 		md3dDevice->CreateShaderResourceView(shadow, &srvDesc, mhCpuDescs[Descriptor::ESI_Shadow]);
+	}
+	// VS-depth cube
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Format = VSDepthCubeMapFormat;
+		srvDesc.Texture2DArray.ArraySize = 6;
+		srvDesc.Texture2DArray.FirstArraySlice = 0;
+		srvDesc.Texture2DArray.MipLevels = 1;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.PlaneSlice = 0;
+		srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+		rtvDesc.Format = VSDepthCubeMapFormat;
+		rtvDesc.Texture2DArray.ArraySize = 6;
+		rtvDesc.Texture2DArray.FirstArraySlice = 0;
+		rtvDesc.Texture2DArray.MipSlice = 0;
+		rtvDesc.Texture2DArray.PlaneSlice = 0;
+
+		const auto& vsDepthCube = mShadowMaps[Resource::E_VSDepthCube]->Resource();
+
+		md3dDevice->CreateRenderTargetView(vsDepthCube, &rtvDesc, mhCpuRtvs[Descriptor::RTV::ERT_VSDepthCube]);
+		md3dDevice->CreateShaderResourceView(vsDepthCube, &srvDesc, mhCpuDescs[Descriptor::ESI_VSDepthCube]);
 	}
 	// Face id cube
 	{
@@ -360,6 +393,26 @@ BOOL ShadowClass::BuildResources() {
 			L"Shadow_ZDepthCubeMap"
 		));
 	}
+	// Z-Depth map in view space
+	{
+		texDesc.Width = mTexWidth;
+		texDesc.Height = mTexHeight;
+		texDesc.Format = VSDepthCubeMapFormat;
+		texDesc.DepthOrArraySize = 6;
+		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+		CD3DX12_CLEAR_VALUE optClear(VSDepthCubeMapFormat, VSDepthCubeMapFormatClearValues);
+
+		CheckReturn(mShadowMaps[Resource::E_VSDepthCube]->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&texDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&optClear,
+			L"Shadow_VSDepthCubeMap"
+		));
+	}
 	// FaceID cube map
 	{
 		texDesc.Width = mTexWidth;
@@ -399,19 +452,27 @@ void ShadowClass::DrawZDepth(
 	cmdList->RSSetViewports(1, &mViewport);
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
+	auto& vsDepth = mShadowMaps[Resource::E_VSDepthCube];
 	auto& faceID = mShadowMaps[Resource::E_FaceIDCube];
 	auto& shadow = mShadowMaps[point ? Resource::E_ZDepthCube : Resource::E_ZDepth];
 
 	if (point) {
 		faceID->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		vsDepth->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-		auto& rtv = mhCpuRtvs[Descriptor::RTV::ERT_FaceIDCube];
+		auto& rtv_vs = mhCpuRtvs[Descriptor::RTV::ERT_VSDepthCube];
+		cmdList->ClearRenderTargetView(rtv_vs, VSDepthCubeMapFormatClearValues, 0, nullptr);
+
+		auto& rtv_face = mhCpuRtvs[Descriptor::RTV::ERT_FaceIDCube];
+		cmdList->ClearRenderTargetView(rtv_face, FaceIDCubeMapClearValues, 0, nullptr);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvs[Descriptor::RTV::Count] = { rtv_vs, rtv_face };
+
 		auto& dsv = mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube];
-		cmdList->ClearRenderTargetView(rtv, FaceIDCubeMapClearValues, 0, nullptr);
 		cmdList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-		cmdList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+		cmdList->OMSetRenderTargets(_countof(rtvs), rtvs, FALSE, &dsv);
 	}
 	else {
 		auto& shadow = mShadowMaps[point ? Resource::E_ZDepthCube : Resource::E_ZDepth];
@@ -448,7 +509,10 @@ void ShadowClass::DrawZDepth(
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
 
-	if (point) faceID->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	if (point) {
+		vsDepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		faceID->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
 	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
@@ -473,6 +537,7 @@ void ShadowClass::DrawShadow(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_Position, si_pos);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_ZDepth, mhGpuDescs[Descriptor::ESI_ZDepth]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_ZDepthCube, mhGpuDescs[Descriptor::ESI_ZDepthCube]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_VSDepthCube, mhGpuDescs[Descriptor::ESI_VSDepthCube]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_FaceIDCube, mhGpuDescs[Descriptor::ESI_FaceIDCube]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::EUO_Shadow, mhGpuDescs[Descriptor::EUO_Shadow]);
 

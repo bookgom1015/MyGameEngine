@@ -35,7 +35,6 @@ struct ConstantBuffer_Pass {
 	DirectX::XMFLOAT4X4	InvViewProj;
 	DirectX::XMFLOAT4X4 PrevViewProj;
 	DirectX::XMFLOAT4X4 ViewProjTex;
-	DirectX::XMFLOAT4X4 ShadowTransform;
 
 	DirectX::XMFLOAT3	EyePosW;
 	UINT				LightCount;
