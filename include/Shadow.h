@@ -47,6 +47,7 @@ namespace Shadow {
 				ESI_VSDepthCube,
 				ESI_FaceIDCube,
 				EUO_Shadow,
+				EUO_Debug,
 				Count
 			};
 
@@ -75,6 +76,7 @@ namespace Shadow {
 			E_VSDepthCube,
 			E_FaceIDCube,
 			E_Shadow,
+			E_Debug,
 			Count
 		};
 	}
@@ -87,6 +89,7 @@ namespace Shadow {
 			ESI_FaceIDCube,
 			ESI_Shadow,
 			EUO_Shadow,
+			EUO_Debug,
 			Count
 		};
 

@@ -29,7 +29,7 @@ void ShadowRayGen() {
 	float3 normal = gi_Normal[launchIndex].xyz;
 	float d = gi_Depth[launchIndex];
 
-	uint value = ~0;
+	uint value = 0;
 
 	if (d !=  GBuffer::InvalidDepthValue) {
 		float3 posW = gi_Position[launchIndex].xyz;

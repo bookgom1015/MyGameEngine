@@ -1246,10 +1246,10 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 
 			}
 			else if (light.Type == LightType::E_Point) {
-				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 1000.0f);
+				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 1000.0f);
 				XMStoreFloat4x4(&light.Proj, XMMatrixTranspose(proj));
 
-				auto pos = XMLoadFloat4(&XMFLOAT4(light.Position.x, light.Position.y, light.Position.z, 1.0f));
+				auto pos = XMLoadFloat3(&light.Position);
 				
 				// Positive +X
 				{

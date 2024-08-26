@@ -85,13 +85,14 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Shadow::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[6];
+		CD3DX12_DESCRIPTOR_RANGE texTables[7];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
 		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
 		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0);
 
 		slotRootParameter[RootSignature::Shadow::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::Shadow::EC_Consts].InitAsConstants(RootSignature::Shadow::RootConstant::Count, 1);
@@ -101,6 +102,7 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 		slotRootParameter[RootSignature::Shadow::ESI_VSDepthCube].InitAsDescriptorTable(1, &texTables[3]);
 		slotRootParameter[RootSignature::Shadow::ESI_FaceIDCube].InitAsDescriptorTable(1, &texTables[4]);
 		slotRootParameter[RootSignature::Shadow::EUO_Shadow].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[RootSignature::Shadow::EUO_Debug].InitAsDescriptorTable(1, &texTables[6]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -186,6 +188,9 @@ void ShadowClass::BuildDescriptors(
 	mhCpuDescs[Descriptor::EUO_Shadow] = hCpu.Offset(1, descSize);
 	mhGpuDescs[Descriptor::EUO_Shadow] = hGpu.Offset(1, descSize);
 
+	mhCpuDescs[Descriptor::EUO_Debug] = hCpu.Offset(1, descSize);
+	mhGpuDescs[Descriptor::EUO_Debug] = hGpu.Offset(1, descSize);
+
 	mhCpuDsvs[Descriptor::DSV::EDS_ZDepth]		= hCpuDsv.Offset(1, dsvDescSize);
 	mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube]	= hCpuDsv.Offset(1, dsvDescSize);
 
@@ -265,6 +270,16 @@ void ShadowClass::BuildDescriptors() {
 
 		md3dDevice->CreateUnorderedAccessView(shadow, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Shadow]);
 		md3dDevice->CreateShaderResourceView(shadow, &srvDesc, mhCpuDescs[Descriptor::ESI_Shadow]);
+	}
+	// Debug
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+		uavDesc.Format = DebugMapFormat;
+
+		const auto& debug = mShadowMaps[Resource::E_Debug]->Resource();
+
+		md3dDevice->CreateUnorderedAccessView(debug, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Debug]);
 	}
 	// VS-depth cube
 	{
@@ -346,6 +361,23 @@ BOOL ShadowClass::BuildResources() {
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			nullptr,
 			L"Shadow_ShadowMap"
+		));
+	}
+	// Debug map
+	{
+		texDesc.Width = mClientWidth;
+		texDesc.Height = mClientHeight;
+		texDesc.Format = DebugMapFormat;
+		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+		CheckReturn(mShadowMaps[Resource::E_Debug]->Initialize(
+			md3dDevice,
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&texDesc,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+			nullptr,
+			L"Shadow_DebugMap"
 		));
 	}
 	// Z-Depth map
@@ -540,6 +572,7 @@ void ShadowClass::DrawShadow(
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_VSDepthCube, mhGpuDescs[Descriptor::ESI_VSDepthCube]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_FaceIDCube, mhGpuDescs[Descriptor::ESI_FaceIDCube]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::EUO_Shadow, mhGpuDescs[Descriptor::EUO_Shadow]);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::EUO_Debug, mhGpuDescs[Descriptor::EUO_Debug]);
 
 	cmdList->Dispatch(
 		D3D12Util::CeilDivide(static_cast<UINT>(mClientWidth), Default::ThreadGroup::Width),

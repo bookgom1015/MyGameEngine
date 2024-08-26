@@ -69,7 +69,7 @@ float4 PS(VertexOut pin) : SV_Target {
 
 	float shadowFactor[MaxLights];
 	{
-		[loop]
+		[unroll]
 		for (uint i = 0; i < MaxLights; ++i) shadowFactor[i] = 1;
 	}
 

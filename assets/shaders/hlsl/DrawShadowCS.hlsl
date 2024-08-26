@@ -22,6 +22,7 @@ Texture2DArray<Shadow::VSDepthCubeMapFormat>	gi_VSDepthTexArray	: register(t3);
 Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray	: register(t4);
 
 RWTexture2D<Shadow::ShadowMapFormat>	guo_Shadow	: register(u0);
+RWTexture2D<Shadow::DebugMapFormat>		guo_Debug	: register(u1);
 
 float4x4 GetViewMatrix(Light light, float2 uv, uint index) {
 	uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
@@ -38,8 +39,7 @@ float4x4 GetViewMatrix(Light light, float2 uv, uint index) {
 
 [numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {
-	uint value = 255;
-	if (gLightIndex != 0) value = guo_Shadow[DTid];
+	uint value = gLightIndex != 0 ? guo_Shadow[DTid] : 0;
 
 	Light light = cb_Pass.Lights[gLightIndex];
 
@@ -55,7 +55,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		const float4x4 viewProj = mul(view, light.Proj);
 		const float shadowFactor = CalcShadowFactorTexArray(gi_ZDepthTexArray, gsamPointClamp, viewProj, posW.xyz, uv, index);
 
-		value = shadowFactor;
+		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}
 	else {
 		const float4 shadowPosH = mul(posW, light.Proj);

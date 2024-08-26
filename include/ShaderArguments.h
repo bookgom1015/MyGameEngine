@@ -91,6 +91,7 @@ namespace Shadow {
 #ifdef HLSL
 	typedef float	ZDepthMapFormat;
 	typedef uint	ShadowMapFormat;
+	typedef float4	DebugMapFormat;
 	typedef float	VSDepthCubeMapFormat;
 	typedef float	FaceIDCubeMapFormat;
 
@@ -99,6 +100,7 @@ namespace Shadow {
 #else 
 	static const DXGI_FORMAT ZDepthMapFormat		= DXGI_FORMAT_D32_FLOAT;
 	static const DXGI_FORMAT ShadowMapFormat		= DXGI_FORMAT_R16_UINT;
+	static const DXGI_FORMAT DebugMapFormat			= DXGI_FORMAT_R8G8B8A8_SNORM;
 	static const DXGI_FORMAT VSDepthCubeMapFormat	= DXGI_FORMAT_R16_FLOAT;
 	static const DXGI_FORMAT FaceIDCubeMapFormat	= DXGI_FORMAT_R16_FLOAT;
 

@@ -58,8 +58,6 @@ float CalcShadowFactorTexArray(Texture2DArray<float> shadowMap, SamplerState sam
 }
 
 uint CalcShiftedShadowValueF(float percent, uint value, uint index) {
-	if (index == 0) value = 0;
-
 	uint shadowFactor = percent < 0.5 ? 0 : 1;
 	uint shifted = shadowFactor << index;
 
@@ -67,8 +65,6 @@ uint CalcShiftedShadowValueF(float percent, uint value, uint index) {
 }
 
 uint CalcShiftedShadowValueB(bool isHit, uint value, uint index) {
-	if (index == 0) value = 0;
-
 	uint shadowFactor = isHit ? 0 : 1;
 	uint shifted = shadowFactor << index;
 
