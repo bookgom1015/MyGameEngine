@@ -55,9 +55,9 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		const float4x4 viewProj = mul(view, light.Proj);
 		const float shadowFactor = CalcShadowFactorTexArray(gi_ZDepthTexArray, gsamPointClamp, viewProj, posW.xyz, uv, index);
 
-		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
+		value = shadowFactor;// CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}
-	else {
+	else if (light.Type == LightType::E_Directional) {
 		const float4 shadowPosH = mul(posW, light.Proj);
 		const float shadowFactor = CalcShadowFactor(gi_ZDepth, gsamShadow, shadowPosH);
 
