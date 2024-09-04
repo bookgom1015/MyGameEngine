@@ -18,8 +18,7 @@ cbuffer cbRootConstants : register(b1) {
 Texture2D<GBuffer::PositionMapFormat>			gi_Position			: register(t0);
 Texture2D<Shadow::ZDepthMapFormat>				gi_ZDepth			: register(t1);
 Texture2DArray<Shadow::ZDepthMapFormat>			gi_ZDepthTexArray	: register(t2);
-Texture2DArray<Shadow::VSDepthCubeMapFormat>	gi_VSDepthTexArray	: register(t3);
-Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray	: register(t4);
+Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray	: register(t3);
 
 RWTexture2D<Shadow::ShadowMapFormat>	guo_Shadow	: register(u0);
 RWTexture2D<Shadow::DebugMapFormat>		guo_Debug	: register(u1);
@@ -53,13 +52,18 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 		const float4x4 view = GetViewMatrix(light, uv, index);
 		const float4x4 viewProj = mul(view, light.Proj);
-		const float shadowFactor = CalcShadowFactorTexArray(gi_ZDepthTexArray, gsamPointClamp, viewProj, posW.xyz, uv, index);
+		const float shadowFactor = CalcShadowFactorPointCS(gi_ZDepthTexArray, gsamPointClamp, viewProj, posW.xyz, uv, index);
 
-		value = shadowFactor;// CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
+		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
+	}
+	else if (light.Type == LightType::E_Spot) {
+		const float4x4 viewProj = mul(light.View0, light.Proj);
+		const float shadowFactor = CalcShadowFactorSpot(gi_ZDepth, gsamShadow, viewProj, posW.xyz);
+
+		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}
 	else if (light.Type == LightType::E_Directional) {
-		const float4 shadowPosH = mul(posW, light.Proj);
-		const float shadowFactor = CalcShadowFactor(gi_ZDepth, gsamShadow, shadowPosH);
+		const float shadowFactor = CalcShadowFactorDirectional(gi_ZDepth, gsamShadow, light.Proj, posW.xyz);
 
 		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}

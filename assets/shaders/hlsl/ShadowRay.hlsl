@@ -62,7 +62,7 @@ void ShadowRayGen() {
 					payload
 				);
 
-				value = payload.IsHit ? 0 : 1;// CalcShiftedShadowValueB(payload.IsHit, value, i);
+				value = CalcShiftedShadowValueB(payload.IsHit, value, i);
 			}
 			else if (light.Type == LightType::E_Directional) {
 				RayDesc ray;
@@ -85,7 +85,7 @@ void ShadowRayGen() {
 					payload
 				);
 
-				//value = CalcShiftedShadowValueB(payload.IsHit, value, i);
+				value = CalcShiftedShadowValueB(payload.IsHit, value, i);
 			}
 		}
 	}

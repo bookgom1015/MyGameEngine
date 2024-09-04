@@ -111,15 +111,18 @@ float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 no
 
 	[loop]
 	for (uint i = 0; i < lightCount; ++i) {
-		if (gLights[i].Type == LightType::E_Directional) {
-			float factor = shadowFactor[i];
-			result += factor * ComputeDirectionalLight(gLights[i], mat, normal, toEye);
+		Light light = gLights[i];
+		if (light.Type == LightType::E_Directional) {
+			const float factor = shadowFactor[i];
+			result += factor * ComputeDirectionalLight(light, mat, normal, toEye);
 		}
-		else if (gLights[i].Type == LightType::E_Point) {
-			result += ComputePointLight(gLights[i], mat, pos, normal, toEye);
+		else if (light.Type == LightType::E_Point) {
+			const float factor = shadowFactor[i];
+			result += factor * ComputePointLight(light, mat, pos, normal, toEye);
 		}
-		else if (gLights[i].Type == LightType::E_Spot) {
-			result += ComputeSpotLight(gLights[i], mat, pos, normal, toEye);
+		else if (light.Type == LightType::E_Spot) {
+			const float factor = shadowFactor[i];
+			result += factor * ComputeSpotLight(light, mat, pos, normal, toEye);
 		}
 	}
 

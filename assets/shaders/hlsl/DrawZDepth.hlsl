@@ -29,14 +29,8 @@ struct VertexOut {
 
 struct GeoOut {
 	float4	PosH		: SV_POSITION;
-	float4	PosV		: POSITION;
 	float2	TexC		: TEXCOORD;
 	uint	ArrayIndex	: SV_RenderTargetArrayIndex;
-};
-
-struct PixelOut {
-	Shadow::VSDepthCubeMapFormat	VSDepth	: SV_TARGET0;
-	Shadow::FaceIDCubeMapFormat		FaceID	: SV_TARGET1;
 };
 
 VertexOut VS(VertexIn vin) {
@@ -68,7 +62,9 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	
 	Light light = cb_Pass.Lights[gLightIndex];
 
+	// Point light
 	if (light.Type == LightType::E_Point) {
+		[loop]
 		for (int face = 0; face < 6; ++face) {
 			gout.ArrayIndex = face;
 
@@ -76,7 +72,6 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 
 			for (int i = 0; i < 3; ++i) {				
 				const float4 posV = mul(gin[i].PosW, view);
-				gout.PosV = posV;
 				gout.PosH = mul(posV, light.Proj);
 
 				gout.TexC = gin[i].TexC;
@@ -86,7 +81,20 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 			triStream.RestartStrip();
 		}
 	}
-	else {
+	// Spot light
+	else if (light.Type == LightType::E_Spot) {
+		[unroll]
+		for (int i = 0; i < 3; ++i) {
+			const float4 posV = mul(gin[i].PosW, light.View0);
+			gout.PosH = mul(posV, light.Proj);
+
+			gout.TexC = gin[i].TexC;
+
+			triStream.Append(gout);
+		}
+	}
+	// Directional light
+	else if (light.Type == LightType::E_Directional) {
 		[unroll]
 		for (int i = 0; i < 3; ++i) {
 			gout.PosH = mul(gin[i].PosW, light.View0);
@@ -99,9 +107,7 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	}
 }
 
-PixelOut PS(GeoOut pin) {
-	PixelOut ps = (PixelOut)0;
-
+Shadow::FaceIDCubeMapFormat PS(GeoOut pin) : SV_Target {
 	float4 albedo = cb_Mat.Albedo;
 	if (cb_Mat.DiffuseSrvIndex != -1) albedo *= gi_TexMaps[cb_Mat.DiffuseSrvIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
@@ -112,10 +118,7 @@ PixelOut PS(GeoOut pin) {
 	clip(albedo.a - 0.1f);
 #endif
 
-	ps.VSDepth = pin.PosV.z;
-	ps.FaceID = (float)pin.ArrayIndex;
-
-	return ps;
+	return (float)pin.ArrayIndex;
 }
 
 #endif // __DRAWZDEPTH_HLSL__

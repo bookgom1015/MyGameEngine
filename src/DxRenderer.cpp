@@ -278,10 +278,6 @@ DxRenderer::~DxRenderer() {
 }
 
 BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
-	Logln(std::to_string(sizeof(ConstantBuffer_Pass)));
-	Logln(std::to_string(D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Pass))));
-	Logln(std::to_string(sizeof(Light)));
-
 	mClientWidth = width;
 	mClientHeight = height;
 
@@ -294,7 +290,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	const auto shaderManager = mShaderManager.get();
-	
+		
 	CheckReturn(mShaderManager->Initialize());
 	CheckReturn(mImGui->Initialize(mhMainWnd, device, mCbvSrvUavHeap.Get(), SwapChainBufferCount, SwapChainBuffer::BackBufferFormat));
 	
@@ -1243,10 +1239,25 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 				XMStoreFloat3(&light.Position, lightPos);
 			}
 			else if (light.Type == LightType::E_Spot) {
+				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 50.0f);
+				XMStoreFloat4x4(&light.Proj, XMMatrixTranspose(proj));
 
+				auto pos = XMLoadFloat3(&light.Position);
+				auto direction = XMLoadFloat3(&light.Direction);
+
+				auto target = pos + direction;
+
+				XMVECTOR up = UnitVectors::UpVector;
+				if (fabs(XMVectorGetX(XMVector3Dot(direction, up))) > 0.99f) up = UnitVectors::ForwardVector;
+
+				XMVECTOR right = XMVector3Cross(direction, up);
+				up = XMVector3Cross(right, direction);
+				
+				auto view = XMMatrixLookAtLH(pos, target, up);
+				XMStoreFloat4x4(&light.View0, XMMatrixTranspose(view));
 			}
 			else if (light.Type == LightType::E_Point) {
-				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 1000.0f);
+				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 50.0f);
 				XMStoreFloat4x4(&light.Proj, XMMatrixTranspose(proj));
 
 				auto pos = XMLoadFloat3(&light.Position);

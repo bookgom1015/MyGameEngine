@@ -44,7 +44,6 @@ namespace Shadow {
 				ESI_Position,
 				ESI_ZDepth,
 				ESI_ZDepthCube,
-				ESI_VSDepthCube,
 				ESI_FaceIDCube,
 				EUO_Shadow,
 				EUO_Debug,
@@ -73,7 +72,6 @@ namespace Shadow {
 		enum Type {
 			E_ZDepth = 0,
 			E_ZDepthCube,
-			E_VSDepthCube,
 			E_FaceIDCube,
 			E_Shadow,
 			E_Debug,
@@ -85,7 +83,6 @@ namespace Shadow {
 		enum Type {
 			ESI_ZDepth = 0,
 			ESI_ZDepthCube,
-			ESI_VSDepthCube,
 			ESI_FaceIDCube,
 			ESI_Shadow,
 			EUO_Shadow,
@@ -103,8 +100,7 @@ namespace Shadow {
 
 		namespace RTV {
 			enum {
-				ERT_VSDepthCube = 0,
-				ERT_FaceIDCube,
+				ERT_FaceIDCube = 0,
 				Count
 			};
 		}
