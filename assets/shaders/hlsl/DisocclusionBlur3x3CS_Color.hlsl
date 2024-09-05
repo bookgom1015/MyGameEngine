@@ -16,10 +16,13 @@
 cbuffer cbRootConstants : register(b0) {
 	uint2	gTextureDim;
 	uint	gStep;
+	uint	gMaxStep;
 };
 
 Texture2D<GBuffer::DepthMapFormat>					gi_Depth		: register(t0);
 Texture2D<SVGF::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
+
+Texture2D<GBuffer::RMSMapFormat>					gi_RMS			: register(t0, space1);
 
 RWTexture2D<SVGF::ValueMapFormat_HDR>				gio_Value		: register(u0);
 
@@ -208,7 +211,16 @@ void FilterVertically(uint2 DTid, uint2 GTid, float blurStrength) {
 }
 
 [numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
-void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex) {
+void CS(uint2 Gid : SV_GroupID, uint2 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex, uint2 DTid : SV_DispatchThreadID) {
+	const float4 rms = gi_RMS[DTid];
+	const float var_x = rms.r;
+
+	const float exponent = 1.0 / 16.0;
+	const float numer = pow(log(var_x + 1), exponent) * (gMaxStep - 1);
+	const float denom = pow(log(2), exponent);
+	const float limit = numer / denom;
+	if (gStep > floor(limit)) return;
+
 	const uint2 sDTid = GetPixelIndex(Gid, GTid);
 	// Pass through if all pixels have 0 blur strength set.
 	float blurStrength;

@@ -289,17 +289,19 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// Disocclusion blur
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[3];
+		CD3DX12_DESCRIPTOR_RANGE texTables[4];
 		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
+		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DisocclusionBlur::Count];
 		slotRootParameter[RootSignature::DisocclusionBlur::EC_Consts].InitAsConstants(
 			RootSignature::DisocclusionBlur::RootConstant::Count, 0);
 		slotRootParameter[RootSignature::DisocclusionBlur::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::DisocclusionBlur::ESI_BlurStrength].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::DisocclusionBlur::EUIO_AOCoefficient].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::DisocclusionBlur::ESI_RMS].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::DisocclusionBlur::ESI_BlurStrength].InitAsDescriptorTable(1, &texTables[2]);
+		slotRootParameter[RootSignature::DisocclusionBlur::EUIO_AOCoefficient].InitAsDescriptorTable(1, &texTables[3]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -741,6 +743,7 @@ void SVGFClass::BlurDisocclusion(
 		ID3D12GraphicsCommandList4* const cmdList,
 		GpuResource* value,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 		D3D12_GPU_DESCRIPTOR_HANDLE uio_value,
 		UINT width, UINT height,
 		UINT lowTsppBlurPasses,
@@ -753,13 +756,15 @@ void SVGFClass::BlurDisocclusion(
 	cmdList->SetComputeRoot32BitConstants(RootSignature::DisocclusionBlur::EC_Consts, _countof(values), values, 0);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::DisocclusionBlur::ESI_Depth, si_depth);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::DisocclusionBlur::ESI_RMS, si_rms);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::DisocclusionBlur::ESI_BlurStrength, mhDisocclusionBlurStrengthGpuSrv);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::DisocclusionBlur::EUIO_AOCoefficient, uio_value);
 
 	UINT filterStep = 1;
 	for (UINT i = 0; i < lowTsppBlurPasses; ++i) {
-		cmdList->SetComputeRoot32BitConstant(
-			RootSignature::DisocclusionBlur::EC_Consts, filterStep, RootSignature::DisocclusionBlur::RootConstant::E_Step);
+		UINT values[2] = { i, lowTsppBlurPasses };
+		cmdList->SetComputeRoot32BitConstants(
+			RootSignature::DisocclusionBlur::EC_Consts, _countof(values), values, RootSignature::DisocclusionBlur::RootConstant::E_Step);
 
 		// Account for interleaved Group execution
 		UINT widthCS = filterStep * Default::ThreadGroup::Width * D3D12Util::CeilDivide(width, filterStep * Default::ThreadGroup::Width);

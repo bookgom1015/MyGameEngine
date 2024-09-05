@@ -16,10 +16,13 @@
 cbuffer cbRootConstants : register(b0) {
 	uint2	gTextureDim;
 	uint	gStep;
+	uint	gMaxStep;
 };
 
 Texture2D<GBuffer::DepthMapFormat>					gi_Depth		: register(t0);
 Texture2D<SVGF::DisocclusionBlurStrengthMapFormat>	gi_BlurStrength	: register(t1);
+
+Texture2D<GBuffer::RMSMapFormat>					gi_RMS			: register(t0, space1);
 
 RWTexture2D<SVGF::ValueMapFormat_Contrast>			gio_Value		: register(u0);
 

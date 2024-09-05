@@ -146,6 +146,7 @@ namespace SVGF {
 			enum {
 				EC_Consts = 0,
 				ESI_Depth,
+				ESI_RMS,
 				ESI_BlurStrength,
 				EUIO_AOCoefficient,
 				Count
@@ -156,6 +157,7 @@ namespace SVGF {
 					E_TextureDim_X = 0,
 					E_TextureDim_Y,
 					E_Step,
+					E_MaxStep,
 					Count
 				};
 			}
@@ -368,6 +370,7 @@ namespace SVGF {
 			ID3D12GraphicsCommandList4* const cmdList,
 			GpuResource* value,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_rms,
 			D3D12_GPU_DESCRIPTOR_HANDLE uio_value,
 			UINT width, UINT height,
 			UINT lowTsppBlurPasses,
