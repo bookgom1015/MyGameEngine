@@ -9,98 +9,82 @@
 #include "./../../../include/HlslCompaction.h"
 #include "BRDF.hlsli"
 
-float CalcAttenuation(float d, float falloffStart, float falloffEnd) {
-	// Linear falloff.
-	return saturate((falloffEnd - d) / (falloffEnd - falloffStart));
+static const float DEG2RAD = 3.14159265359 / 180.0;
+
+float CalcAttenuation(float d, float attenStart, float attenEnd) {
+	return saturate((attenEnd - d) / (attenEnd - attenStart));
 }
 
-//---------------------------------------------------------------------------------------
-// Evaluates the lighting equation for directional lights.
-//---------------------------------------------------------------------------------------
+float DegToRad(float degrees) {
+	return degrees * DEG2RAD;
+}
+
 float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye) {
-	// The light vector aims opposite the direction the light rays travel.
-	float3 lightVec = normalize(-L.Direction);
-
-	// Scale light down by Lambert's cosine law.
-	float ndotl = max(dot(lightVec, normal), 0);
-	float3 lightStrength = L.LightColor * L.Intensity;
+	const float3 lightDir = normalize(-L.Direction);
+	const float3 lightStrength = L.LightColor * L.Intensity;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(lightStrength, lightVec, normal, toEye, mat);
+	return CookTorrance(lightStrength, lightDir, normal, toEye, mat);
 #else
 	return 0;
 #endif
 }
 
-//---------------------------------------------------------------------------------------
-// Evaluates the lighting equation for point lights.
-//---------------------------------------------------------------------------------------
 float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye) {
-	// The vector from the surface to the light.
-	float3 lightVec = L.Position - pos;
+	const float3 lightVec = L.Position - pos;
+	const float d = length(lightVec);
 
-	// The distance from surface to light.
-	float d = length(lightVec);
-
-	// Range test.
-	if (d > L.FalloffEnd)
-		return 0;
-
-	// Normalize the light vector.
-	lightVec /= d;
-
-	// Scale light down by Lambert's cosine law.
-	float ndotl = max(dot(lightVec, normal), 0);
+	const float3 lightDir = lightVec / d;
 	float3 lightStrength = L.LightColor * L.Intensity;
 
-	// Attenuate light by distance.
-	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
+	const float _constant = 1.0;
+	const float _linear = 0.09;
+	const float _quadatric = 0.032;
+
+	const float att = 1.0 / (_constant + _linear * d + _quadatric * d * d);
 	lightStrength *= att;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(lightStrength, lightVec, normal, toEye, mat);
+	return CookTorrance(lightStrength, lightDir, normal, toEye, mat);
 #else
 	return 0;
 #endif
 }
 
-//---------------------------------------------------------------------------------------
-// Evaluates the lighting equation for spot lights.
-//---------------------------------------------------------------------------------------
 float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye) {
-	// The vector from the surface to the light.
-	float3 lightVec = L.Position - pos;
+	const float3 lightVec = L.Position - pos;
+	const float3 lightDir = normalize(lightVec);
 
-	// The distance from surface to light.
-	float d = length(lightVec);
+	const float theta = dot(-lightDir, L.Direction);
 
-	// Range test.
-	if (d > L.FalloffEnd)
-		return 0;
+	const float radOuter = DegToRad(L.OuterConeAngle);
+	const float cosOuter = cos(radOuter);
 
-	// Normalize the light vector.
-	lightVec /= d;
+	if (theta < cosOuter) return 0;
 
-	// Scale light down by Lambert's cosine law.
-	float ndotl = max(dot(lightVec, normal), 0);
-	float3 lightStrength = L.LightColor * L.Intensity;
+	const float radInner = DegToRad(L.InnerConeAngle);
+	const float cosInner = cos(radInner);
 
-	// Attenuate light by distance.
-	float att = CalcAttenuation(d, L.FalloffStart, L.FalloffEnd);
-	lightStrength *= att;
+	const float epsilon = cosInner - cosOuter;
+	const float factor = clamp((theta - cosOuter) / epsilon, 0, 1);
 
-	// Scale by spotlight
-	float spotFactor = pow(max(dot(-lightVec, L.Direction), 0), L.SpotPower);
-	lightStrength *= spotFactor;
+	const float d = length(lightVec);
+
+	const float _constant = 1.0;
+	const float _linear = 0.09;
+	const float _quadatric = 0.032;
+
+	const float att = 1.0 / (_constant + _linear * d + _quadatric * d * d);
+	const float3 lightStrength = L.LightColor * L.Intensity * factor * att;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
+	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(lightStrength, lightVec, normal, toEye, mat);
+	return CookTorrance(lightStrength, lightDir, normal, toEye, mat);
 #else
 	return 0;
 #endif
@@ -112,18 +96,10 @@ float3 ComputeBRDF(Light gLights[MaxLights], Material mat, float3 pos, float3 no
 	[loop]
 	for (uint i = 0; i < lightCount; ++i) {
 		Light light = gLights[i];
-		if (light.Type == LightType::E_Directional) {
-			const float factor = shadowFactor[i];
-			result += factor * ComputeDirectionalLight(light, mat, normal, toEye);
-		}
-		else if (light.Type == LightType::E_Point) {
-			const float factor = shadowFactor[i];
-			result += factor * ComputePointLight(light, mat, pos, normal, toEye);
-		}
-		else if (light.Type == LightType::E_Spot) {
-			const float factor = shadowFactor[i];
-			result += factor * ComputeSpotLight(light, mat, pos, normal, toEye);
-		}
+		const float factor = shadowFactor[i];
+		if (light.Type == LightType::E_Directional) result += factor * ComputeDirectionalLight(light, mat, normal, toEye);
+		else if (light.Type == LightType::E_Point) result += factor * ComputePointLight(light, mat, pos, normal, toEye);
+		else if (light.Type == LightType::E_Spot) result += factor * ComputeSpotLight(light, mat, pos, normal, toEye);
 	}
 
 	return result;

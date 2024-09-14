@@ -17,25 +17,24 @@ namespace LightType {
 }
 
 struct Light {
-	DirectX::XMFLOAT4X4 Proj;
-	DirectX::XMFLOAT4X4 View0;
-	DirectX::XMFLOAT4X4 View1;
-	DirectX::XMFLOAT4X4 View2;
-	DirectX::XMFLOAT4X4 View3;
-	DirectX::XMFLOAT4X4 View4;
-	DirectX::XMFLOAT4X4 View5;
+	DirectX::XMFLOAT4X4 Mat0;
+	DirectX::XMFLOAT4X4 Mat1;
+	DirectX::XMFLOAT4X4 Mat2;
+	DirectX::XMFLOAT4X4 Mat3;
+	DirectX::XMFLOAT4X4 Mat4;
+	DirectX::XMFLOAT4X4 Mat5;
 
 	DirectX::XMFLOAT3	LightColor;
-	FLOAT				FalloffStart;	// point/spot light only
-
-	DirectX::XMFLOAT3	Direction;		// directional/spot light only
-	FLOAT				FalloffEnd;		// point/spot light only
-
-	DirectX::XMFLOAT3	Position;		// point/spot light only
 	FLOAT				Intensity;
 
-	UINT				Type;
-	FLOAT				SpotPower;		// spot light only
+	DirectX::XMFLOAT3	Direction;			// directional/spot light only
 	FLOAT				ConstantPad0;
+
+	DirectX::XMFLOAT3	Position;			// point/spot light only
 	FLOAT				ConstantPad1;
+
+	UINT				Type;
+	FLOAT				InnerConeAngle;		// spot light only (degrees)
+	FLOAT				OuterConeAngle;		// spot light only (degrees)
+	FLOAT				AttenuationRadius;	// point/spot light only
 };

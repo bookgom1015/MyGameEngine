@@ -1231,72 +1231,58 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 				);
 
 				XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
-				XMStoreFloat4x4(&light.View0, XMMatrixTranspose(viewProj));
+				XMStoreFloat4x4(&light.Mat0, XMMatrixTranspose(viewProj));
 
 				XMMATRIX S = lightView * lightProj * T;
-				XMStoreFloat4x4(&light.Proj, XMMatrixTranspose(S));
+				XMStoreFloat4x4(&light.Mat1, XMMatrixTranspose(S));
 
 				XMStoreFloat3(&light.Position, lightPos);
 			}
-			else if (light.Type == LightType::E_Spot) {
+			else {
 				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 50.0f);
-				XMStoreFloat4x4(&light.Proj, XMMatrixTranspose(proj));
-
-				auto pos = XMLoadFloat3(&light.Position);
-				auto direction = XMLoadFloat3(&light.Direction);
-
-				auto target = pos + direction;
-
-				XMVECTOR up = UnitVectors::UpVector;
-				if (fabs(XMVectorGetX(XMVector3Dot(direction, up))) > 0.99f) up = UnitVectors::ForwardVector;
-
-				XMVECTOR right = XMVector3Cross(direction, up);
-				up = XMVector3Cross(right, direction);
-				
-				auto view = XMMatrixLookAtLH(pos, target, up);
-				XMStoreFloat4x4(&light.View0, XMMatrixTranspose(view));
-			}
-			else if (light.Type == LightType::E_Point) {
-				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 50.0f);
-				XMStoreFloat4x4(&light.Proj, XMMatrixTranspose(proj));
-
 				auto pos = XMLoadFloat3(&light.Position);
 				
 				// Positive +X
 				{
 					auto target = pos + XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 					auto view_px = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-					XMStoreFloat4x4(&light.View0, XMMatrixTranspose(view_px));
+					auto vp_px = view_px * proj;
+					XMStoreFloat4x4(&light.Mat0, XMMatrixTranspose(vp_px));
 				}
 				// Positive -X
 				{
 					auto target = pos + XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f);
 					auto view_nx = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-					XMStoreFloat4x4(&light.View1, XMMatrixTranspose(view_nx));
+					auto vp_nx = view_nx * proj;
+					XMStoreFloat4x4(&light.Mat1, XMMatrixTranspose(vp_nx));
 				}
 				// Positive +Y
 				{
 					auto target = pos + XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 					auto view_py = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f));
-					XMStoreFloat4x4(&light.View2, XMMatrixTranspose(view_py));
+					auto vp_py = view_py * proj;
+					XMStoreFloat4x4(&light.Mat2, XMMatrixTranspose(vp_py));
 				}
 				// Positive -Y
 				{
 					auto target = pos + XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
 					auto view_ny = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
-					XMStoreFloat4x4(&light.View3, XMMatrixTranspose(view_ny));
+					auto vp_ny = view_ny * proj;
+					XMStoreFloat4x4(&light.Mat3, XMMatrixTranspose(vp_ny));
 				}
 				// Positive +Z
 				{
 					auto target = pos + XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 					auto view_pz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-					XMStoreFloat4x4(&light.View4, XMMatrixTranspose(view_pz));
+					auto vp_pz = view_pz * proj;
+					XMStoreFloat4x4(&light.Mat4, XMMatrixTranspose(vp_pz));
 				}
 				// Positive -Z
 				{
 					auto target = pos + XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
 					auto view_nz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-					XMStoreFloat4x4(&light.View5, XMMatrixTranspose(view_nz));
+					auto vp_nz = view_nz * proj;
+					XMStoreFloat4x4(&light.Mat5, XMMatrixTranspose(vp_nz));
 				}
 			}
 
@@ -1798,7 +1784,7 @@ BOOL DxRenderer::DrawShadow() {
 			mGBuffer->PositionMapSrv(),
 			mhGpuDescForTexMaps,
 			mRitemRefs[RenderType::E_Opaque],
-			mLights[i].Type == LightType::E_Point,
+			(mLights[i].Type == LightType::E_Point) || mLights[i].Type == LightType::E_Spot,
 			i
 		);
 	}
@@ -2833,8 +2819,7 @@ BOOL DxRenderer::DrawImGui() {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat("Falloff Start", &light.FalloffStart, 0, 100.0f);
-					ImGui::SliderFloat("Falloff End", &light.FalloffEnd, 0, 100.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
 
 					ImGui::TreePop();
 				}
@@ -2843,15 +2828,15 @@ BOOL DxRenderer::DrawImGui() {
 				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					ImGui::SliderFloat("Spot Power", &light.SpotPower, 0, 10.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
 					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
 						XMVECTOR normalized = XMVector3Normalize(dir);
 						XMStoreFloat3(&light.Direction, normalized);
 					}
-					ImGui::SliderFloat("Falloff Start", &light.FalloffStart, 0, 100.0f);
-					ImGui::SliderFloat("Falloff End", &light.FalloffEnd, 0, 100.0f);
+					ImGui::SliderFloat("Inner Cone Angle", &light.InnerConeAngle, 0, 80.0f);
+					ImGui::SliderFloat("Outer Cone Angle", &light.OuterConeAngle, 0, 80.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
 
 					ImGui::TreePop();
 				}
@@ -2874,21 +2859,20 @@ BOOL DxRenderer::DrawImGui() {
 				light.Intensity = 1.0f;
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.LightColor = { 1.0f, 1.0f, 1.0f };
-				light.FalloffStart = 5.0f;
-				light.FalloffEnd = 10.0f;
+				light.AttenuationRadius = 50.0f;
 				++mLightCount;
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Spot")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Spot;
-				light.Intensity = 1.0f;
-				light.SpotPower = 1.0f;
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.Direction = { 0.0f, -1.0f, 0.0f };
 				light.LightColor = { 1.0f, 1.0f, 1.0f };
-				light.FalloffStart = 5.0f;
-				light.FalloffEnd = 10.0f;
+				light.Intensity = 1.0f;
+				light.InnerConeAngle = 1.0f;
+				light.OuterConeAngle = 45.0f;
+				light.AttenuationRadius = 50.0f;
 				++mLightCount;
 			}
 		}

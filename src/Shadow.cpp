@@ -423,7 +423,7 @@ void ShadowClass::DrawZDepth(
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 		UINT objCBByteSize, UINT matCBByteSize,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-		BOOL point, UINT index,
+		BOOL pointOrSpot, UINT index,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::EG_ZDepth].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ZDepth].Get());
@@ -432,9 +432,9 @@ void ShadowClass::DrawZDepth(
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
 	auto& faceID = mShadowMaps[Resource::E_FaceIDCube];
-	auto& shadow = mShadowMaps[point ? Resource::E_ZDepthCube : Resource::E_ZDepth];
+	auto& shadow = mShadowMaps[pointOrSpot ? Resource::E_ZDepthCube : Resource::E_ZDepth];
 
-	if (point) {
+	if (pointOrSpot) {
 		faceID->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
@@ -447,7 +447,6 @@ void ShadowClass::DrawZDepth(
 		cmdList->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
 	}
 	else {
-		auto& shadow = mShadowMaps[point ? Resource::E_ZDepthCube : Resource::E_ZDepth];
 		shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 		auto& dsv = mhCpuDsvs[Descriptor::DSV::EDS_ZDepth];
@@ -481,7 +480,7 @@ void ShadowClass::DrawZDepth(
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
 
-	if (point) faceID->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	if (pointOrSpot) faceID->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 

@@ -23,15 +23,15 @@ Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray	: register(t3);
 RWTexture2D<Shadow::ShadowMapFormat>	guo_Shadow	: register(u0);
 RWTexture2D<Shadow::DebugMapFormat>		guo_Debug	: register(u1);
 
-float4x4 GetViewMatrix(Light light, float2 uv, uint index) {
+float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
 	uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
 	switch (faceID) {
-	case 0: return light.View0;
-	case 1: return light.View1;
-	case 2: return light.View2;
-	case 3: return light.View3;
-	case 4: return light.View4;
-	case 5: return light.View5;
+	case 0: return light.Mat0;
+	case 1: return light.Mat1;
+	case 2: return light.Mat2;
+	case 3: return light.Mat3;
+	case 4: return light.Mat4;
+	case 5: return light.Mat5;
 	default: return (float4x4)0;
 	}
 }
@@ -44,26 +44,19 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	const float4 posW = gi_Position.Load(int3(DTid, 0));
 
-	if (light.Type == LightType::E_Point) {
+	if (light.Type == LightType::E_Directional) {
+		const float shadowFactor = CalcShadowFactorDirectional(gi_ZDepth, gsamShadow, light.Mat1, posW.xyz);
+
+		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
+	}
+	else {
 		const float3 direction = posW.xyz - light.Position;
 		const uint index = GetCubeFaceIndex(direction);
 		const float3 normalized = normalize(direction);
 		const float2 uv = ConvertDirectionToUV(normalized);
 
-		const float4x4 view = GetViewMatrix(light, uv, index);
-		const float4x4 viewProj = mul(view, light.Proj);
+		const float4x4 viewProj = GetViewProjMatrix(light, uv, index);
 		const float shadowFactor = CalcShadowFactorPointCS(gi_ZDepthTexArray, gsamPointClamp, viewProj, posW.xyz, uv, index);
-
-		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
-	}
-	else if (light.Type == LightType::E_Spot) {
-		const float4x4 viewProj = mul(light.View0, light.Proj);
-		const float shadowFactor = CalcShadowFactorSpot(gi_ZDepth, gsamShadow, viewProj, posW.xyz);
-
-		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
-	}
-	else if (light.Type == LightType::E_Directional) {
-		const float shadowFactor = CalcShadowFactorDirectional(gi_ZDepth, gsamShadow, light.Proj, posW.xyz);
 
 		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}

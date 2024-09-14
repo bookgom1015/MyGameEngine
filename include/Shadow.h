@@ -166,7 +166,7 @@ namespace Shadow {
 			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 			UINT objCBByteSize, UINT matCBByteSize,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-			BOOL point, UINT index,
+			BOOL pointOrSpot, UINT index,
 			const std::vector<RenderItem*>& ritems);
 
 		void DrawShadow(

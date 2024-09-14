@@ -44,14 +44,14 @@ VertexOut VS(VertexIn vin) {
 	return vout;
 }
 
-float4x4 GetViewMatrix(Light light, int face) {
+float4x4 GetViewProjMatrix(Light light, int face) {
 	switch (face) {
-	case 0: return light.View0;
-	case 1: return light.View1;
-	case 2: return light.View2;
-	case 3: return light.View3;
-	case 4: return light.View4;
-	case 5: return light.View5;
+	case 0: return light.Mat0;
+	case 1: return light.Mat1;
+	case 2: return light.Mat2;
+	case 3: return light.Mat3;
+	case 4: return light.Mat4;
+	case 5: return light.Mat5;
 	default: return (float4x4)0;
 	}
 }
@@ -62,42 +62,11 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	
 	Light light = cb_Pass.Lights[gLightIndex];
 
-	// Point light
-	if (light.Type == LightType::E_Point) {
-		[loop]
-		for (int face = 0; face < 6; ++face) {
-			gout.ArrayIndex = face;
-
-			const float4x4 view = GetViewMatrix(light, face);
-
-			for (int i = 0; i < 3; ++i) {				
-				const float4 posV = mul(gin[i].PosW, view);
-				gout.PosH = mul(posV, light.Proj);
-
-				gout.TexC = gin[i].TexC;
-
-				triStream.Append(gout);
-			}
-			triStream.RestartStrip();
-		}
-	}
-	// Spot light
-	else if (light.Type == LightType::E_Spot) {
-		[unroll]
-		for (int i = 0; i < 3; ++i) {
-			const float4 posV = mul(gin[i].PosW, light.View0);
-			gout.PosH = mul(posV, light.Proj);
-
-			gout.TexC = gin[i].TexC;
-
-			triStream.Append(gout);
-		}
-	}
 	// Directional light
-	else if (light.Type == LightType::E_Directional) {
+	if (light.Type == LightType::E_Directional) {
 		[unroll]
 		for (int i = 0; i < 3; ++i) {
-			gout.PosH = mul(gin[i].PosW, light.View0);
+			gout.PosH = mul(gin[i].PosW, light.Mat0);
 
 			float4 texC = mul(float4(gin[i].TexC, 0, 1), cb_Obj.TexTransform);
 			gout.TexC = mul(texC, cb_Mat.MatTransform).xy;
@@ -105,6 +74,25 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 			triStream.Append(gout);
 		}
 	}
+	// Point light or Spot light
+	else {
+		[loop]
+		for (int face = 0; face < 6; ++face) {
+			gout.ArrayIndex = face;
+
+			const float4x4 viewProj = GetViewProjMatrix(light, face);
+
+			[unroll]
+			for (int i = 0; i < 3; ++i) {				
+				gout.PosH = mul(gin[i].PosW, viewProj);
+				gout.TexC = gin[i].TexC;
+
+				triStream.Append(gout);
+			}
+
+			triStream.RestartStrip();
+		}
+	}	
 }
 
 Shadow::FaceIDCubeMapFormat PS(GeoOut pin) : SV_Target {

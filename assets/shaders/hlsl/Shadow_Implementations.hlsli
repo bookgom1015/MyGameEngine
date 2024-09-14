@@ -35,17 +35,29 @@ float CalcShadowFactorDirectional(Texture2D<float> shadowMap, SamplerComparisonS
 	return shadowMap.SampleCmpLevelZero(sampComp, shadowPosH.xy, depth);
 }
 
-float CalcShadowFactorSpot(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4x4 viewProj, float3 fragPosW) {
-	float4 shadowPosH = mul(float4(fragPosW, 1), viewProj);
-	shadowPosH.xyz /= shadowPosH.w;
-
-	const float depth = shadowPosH.z;
-
-	float2 texc = shadowPosH.xy * 0.5 + (float2)0.5;
-	texc.y = 1 - texc.y;
-
-	return shadowMap.SampleCmpLevelZero(sampComp, texc, depth);
-}
+//float CalcShadowFactorSpot(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4x4 shadowViewProj float4x4 cubeViewProj, float3 fragPosW, float3 lightPosW) {
+//	const float3 direction = normalize(fragPosW - lightPosW);
+//
+//	const float closestDepth = shadowMap.Sample(samp, direction);
+//
+//	float4 shadowPosH = mul(float4(fragPosW, 1), viewProj);
+//	shadowPosH /= shadowPosH.w;
+//
+//	const float depth = shadowPosH.z;
+//
+//	return depth < closestDepth;
+//
+//
+//	float4 shadowPosH = mul(float4(fragPosW, 1), viewProj);
+//	shadowPosH.xyz /= shadowPosH.w;
+//
+//	const float depth = shadowPosH.z;
+//
+//	float2 texc = shadowPosH.xy * 0.5 + (float2)0.5;
+//	texc.y = 1 - texc.y;
+//
+//	return shadowMap.SampleCmpLevelZero(sampComp, texc, depth);
+//}
 
 float CalcShadowFactorPoint(TextureCube<float> shadowMap, SamplerState samp, float4x4 viewProj, float3 fragPosW, float3 lightPosW) {
 	const float3 direction = normalize(fragPosW - lightPosW);

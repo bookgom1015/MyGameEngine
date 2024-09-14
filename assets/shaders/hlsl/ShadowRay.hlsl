@@ -38,15 +38,12 @@ void ShadowRayGen() {
 		for (uint i = 0; i < cb_Pass.LightCount; ++i) {
 			Light light = cb_Pass.Lights[i];
 
-			if (light.Type == LightType::E_Point) {
-				float3 direction = normalize(light.Position - posW);
-				float dist = distance(posW, light.Position);
-
+			if (light.Type == LightType::E_Directional) {
 				RayDesc ray;
-				ray.Origin = posW + 0.1 * direction;
-				ray.Direction = direction;
+				ray.Origin = posW + 0.1 * normal;
+				ray.Direction = -light.Direction;
 				ray.TMin = 0;
-				ray.TMax = dist;
+				ray.TMax = 1000;
 
 				ShadowHitInfo payload;
 				payload.IsHit = false;
@@ -63,13 +60,16 @@ void ShadowRayGen() {
 				);
 
 				value = CalcShiftedShadowValueB(payload.IsHit, value, i);
-			}
-			else if (light.Type == LightType::E_Directional) {
+			}			
+			else {
+				float3 direction = normalize(light.Position - posW);
+				float dist = distance(posW, light.Position);
+
 				RayDesc ray;
-				ray.Origin = posW + 0.1 * normal;
-				ray.Direction = -light.Direction;
+				ray.Origin = posW + 0.1 * direction;
+				ray.Direction = direction;
 				ray.TMin = 0;
-				ray.TMax = 1000;
+				ray.TMax = dist;
 
 				ShadowHitInfo payload;
 				payload.IsHit = false;
