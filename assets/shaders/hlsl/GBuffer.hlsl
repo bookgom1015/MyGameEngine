@@ -101,7 +101,7 @@ PixelOut PS(VertexOut pin) {
 	pout.Color = albedo;
 	pout.Normal = float4(normal, 0);
 	pout.NormalDepth = EncodeNormalDepth(normal, pin.NonJitPosH.z);
-	pout.RoughnessMetalicSpecular = float4(cb_Mat.Roughness, cb_Mat.Metalic, cb_Mat.Specular, 0);
+	pout.RoughnessMetalicSpecular = float4(clamp(cb_Mat.Roughness, 0.015, 0.985), cb_Mat.Metalic, cb_Mat.Specular, 0);
 	pout.Velocity = velocity;
 	pout.ReprojNormalDepth = EncodeNormalDepth(pin.PrevNormalW, pin.PrevPosH.z);
 	pout.Position = float4(pin.PosW, 1);

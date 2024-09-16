@@ -34,17 +34,16 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 
 float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye) {
 	const float3 lightVec = L.Position - pos;
-	const float d = length(lightVec);
+	const float distance = length(lightVec);
 
-	const float3 lightDir = lightVec / d;
-	float3 lightStrength = L.LightColor * L.Intensity;
+	const float3 lightDir = lightVec / distance;
 
-	const float _constant = 1.0;
-	const float _linear = 0.09;
-	const float _quadatric = 0.032;
+	const float X = pow(distance / L.AttenuationRadius, 4);
+	const float numer = pow(saturate(1 - X), 2);
+	const float denom = distance * distance + 1;
 
-	const float att = 1.0 / (_constant + _linear * d + _quadatric * d * d);
-	lightStrength *= att;
+	const float falloff = numer / denom;
+	float3 lightStrength = L.LightColor * L.Intensity * falloff;
 
 #if defined(BLINN_PHONG)
 	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
@@ -72,14 +71,14 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 	const float epsilon = cosInner - cosOuter;
 	const float factor = clamp((theta - cosOuter) / epsilon, 0, 1);
 
-	const float d = length(lightVec);
+	const float distance = length(lightVec);
 
-	const float _constant = 1.0;
-	const float _linear = 0.09;
-	const float _quadatric = 0.032;
+	const float X = pow(distance / L.AttenuationRadius, 4);
+	const float numer = pow(saturate(1 - X), 2);
+	const float denom = distance * distance + 1;
 
-	const float att = 1.0 / (_constant + _linear * d + _quadatric * d * d);
-	const float3 lightStrength = L.LightColor * L.Intensity * factor * att;
+	const float falloff = numer / denom;
+	const float3 lightStrength = L.LightColor * L.Intensity * factor * falloff;
 
 #if defined(BLINN_PHONG)
 	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);

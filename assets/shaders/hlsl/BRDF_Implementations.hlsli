@@ -2,12 +2,12 @@
 #define __BRDF_IMPLEMENTATIONS_HLSLI__
 
 float DistributionGGX(float3 N, float3 H, float roughness) {
-	float a = roughness * roughness;
-	float a2 = a * a;
-	float NdotH = max(dot(N, H), 0);
-	float NdotH2 = NdotH * NdotH;
+	const float a = roughness * roughness;
+	const float a2 = a * a;
+	const float NdotH = max(dot(N, H), 0);
+	const float NdotH2 = NdotH * NdotH;
 
-	float num = a2;
+	const float num = a2;
 	float denom = (NdotH2 * (a2 - 1) + 1);
 	denom = PI * denom * denom;
 
@@ -15,41 +15,41 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
 }
 
 float GeometryShlickGGX(float NdotV, float roughness) {
-	float a = (roughness + 1);
-	float k = (a * a) / 8;
+	const float a = (roughness + 1);
+	const float k = (a * a) / 8;
 
-	float num = NdotV;
-	float denom = NdotV * (1 - k) + k;
+	const float num = NdotV;
+	const float denom = NdotV * (1 - k) + k;
 
 	return num / denom;
 }
 
 float GeometryShlickGGX_IBL(float NdotV, float roughness) {
-	float a = roughness;
-	float k = (a * a) / 2;
+	const float a = roughness;
+	const float k = (a * a) / 2;
 
-	float num = NdotV;
-	float denom = NdotV * (1 - k) + k;
+	const float num = NdotV;
+	const float denom = NdotV * (1 - k) + k;
 
 	return num / denom;
 }
 
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
-	float NdotV = max(dot(N, V), 0);
-	float NdotL = max(dot(N, L), 0);
+	const float NdotV = max(dot(N, V), 0);
+	const float NdotL = max(dot(N, L), 0);
 
-	float ggx1 = GeometryShlickGGX(NdotV, roughness);
-	float ggx2 = GeometryShlickGGX(NdotL, roughness);
+	const float ggx1 = GeometryShlickGGX(NdotV, roughness);
+	const float ggx2 = GeometryShlickGGX(NdotL, roughness);
 
 	return ggx1 * ggx2;
 }
 
 float GeometrySmith_IBL(float3 N, float3 V, float3 L, float roughness) {
-	float NdotV = max(dot(N, V), 0);
-	float NdotL = max(dot(N, L), 0);
+	const float NdotV = max(dot(N, V), 0);
+	const float NdotL = max(dot(N, L), 0);
 
-	float ggx1 = GeometryShlickGGX_IBL(NdotV, roughness);
-	float ggx2 = GeometryShlickGGX_IBL(NdotL, roughness);
+	const float ggx1 = GeometryShlickGGX_IBL(NdotV, roughness);
+	const float ggx2 = GeometryShlickGGX_IBL(NdotL, roughness);
 
 	return ggx1 * ggx2;
 }
