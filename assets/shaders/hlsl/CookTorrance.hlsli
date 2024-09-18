@@ -3,7 +3,7 @@
 
 #include "ShadingHelpers.hlsli"
 
-float3 CookTorrance(float3 radiance, float3 L, float3 N, float3 V, Material mat) {
+float3 CookTorrance(Material mat, float3 Li, float3 L, float3 N, float3 V) {
 	const float3 H = normalize(V + L);
 	const float roughness = 1 - mat.Shininess;
 
@@ -23,7 +23,7 @@ float3 CookTorrance(float3 radiance, float3 L, float3 N, float3 V, Material mat)
 	float3 kD = 1 - kS;
 	kD *= (1 - mat.Metalic);
 
-	return (kD * diffuse / PI + specular) * radiance * NdotL;
+	return (kD * diffuse / PI + specular) * Li * NdotL;
 }
 
 #endif // __COOKTORRANCE_HLSLI__

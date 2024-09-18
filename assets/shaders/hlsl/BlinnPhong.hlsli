@@ -3,7 +3,7 @@
 
 #include "ShadingHelpers.hlsli"
 
-float3 BlinnPhong(float3 radiance, float3 L, float3 N, float3 V, Material mat) {
+float3 BlinnPhong(Material mat, float3 radiance, float3 L, float3 N, float3 V) {
 	const float M = mat.Shininess * 256;
 
 	const float3 H = normalize(V + L);

@@ -24,9 +24,9 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 	const float3 lightStrength = L.LightColor * L.Intensity;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
+	return BlinnPhong(mat, lightStrength, lightDir, normal, toEye);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(lightStrength, lightDir, normal, toEye, mat);
+	return CookTorrance(mat, lightStrength, lightDir, normal, toEye);
 #else
 	return 0;
 #endif
@@ -46,9 +46,9 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 	float3 lightStrength = L.LightColor * L.Intensity * falloff;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
+	return BlinnPhong(mat, lightStrength, lightDir, normal, toEye);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(lightStrength, lightDir, normal, toEye, mat);
+	return CookTorrance(mat, lightStrength, lightDir, normal, toEye);
 #else
 	return 0;
 #endif
@@ -81,9 +81,9 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 	const float3 lightStrength = L.LightColor * L.Intensity * factor * falloff;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(lightStrength, lightDir, normal, toEye, mat);
+	return BlinnPhong(mat, lightStrength, lightDir, normal, toEye);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(lightStrength, lightDir, normal, toEye, mat);
+	return CookTorrance(mat, lightStrength, lightDir, normal, toEye);
 #else
 	return 0;
 #endif
