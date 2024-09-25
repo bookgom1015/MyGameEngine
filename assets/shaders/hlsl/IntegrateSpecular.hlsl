@@ -49,9 +49,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float4 PS(VertexOut pin) : SV_Target{
 	const float4 posW = gi_Position.Sample(gsamLinearClamp, pin.TexC);
-	const float3 radiance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
+	const float3 luminance = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
 
-	if (posW.w == GBuffer::InvalidPositionValueW) return float4(radiance, 1);
+	if (posW.w == GBuffer::InvalidPositionValueW) return float4(luminance, 1);
 
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 
@@ -80,16 +80,15 @@ float4 PS(VertexOut pin) : SV_Target{
 
 	const float2 envBRDF = gi_BRDF_LUT.Sample(gsamLinearClamp, float2(NdotV, roughness));
 	const float3 specBias = (kS * envBRDF.x + envBRDF.y);
-	const float3 specRadiance = prefilteredColor;
-	const float3 reflectionRadiance = reflection.rgb;
-	const float specAlpha = reflection.a;
+	const float3 prefiltered = prefilteredColor;
+	const float alpha = reflection.a;
 
-	float3 integratedSpecRadiance = (1 - specAlpha) * specRadiance + specAlpha * reflectionRadiance;
-	integratedSpecRadiance *= specBias;
+	float3 spec = (1 - alpha) * prefiltered + alpha * reflection.rgb;
+	spec *= specBias;
 
 	const float aoCoeff = gi_AOCoeiff.Sample(gsamLinearClamp, pin.TexC);
 
-	return float4(radiance + aoCoeff * integratedSpecRadiance, 1);
+	return float4(luminance + aoCoeff * spec, 1);
 }
 
 #endif // __INTEGRATESPECULAR_HLSL__

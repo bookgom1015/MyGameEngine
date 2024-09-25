@@ -2819,6 +2819,7 @@ BOOL DxRenderer::DrawImGui() {
 					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat("Light Radius", &light.LightRadius, 0, 100.0f);
 					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
 
 					ImGui::TreePop();
@@ -2859,6 +2860,7 @@ BOOL DxRenderer::DrawImGui() {
 				light.Intensity = 1.0f;
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.LightColor = { 1.0f, 1.0f, 1.0f };
+				light.LightRadius = 1.0f;
 				light.AttenuationRadius = 50.0f;
 				++mLightCount;
 			}

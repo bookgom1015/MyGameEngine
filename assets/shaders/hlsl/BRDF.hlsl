@@ -93,12 +93,12 @@ float4 PS(VertexOut pin) : SV_Target {
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
 	const float3 kD = 1 - kS;
 
-	const float3 diffIrradSamp = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).rgb;
-	const float3 diffuseIrradiance = diffIrradSamp * albedo.rgb;
+	const float3 diffIrrad = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).rgb;
+	const float3 diffuse = diffIrrad * albedo.rgb;
 
 	const float aoCoeiff = gi_AOCoeiff.SampleLevel(gsamLinearClamp, pin.TexC, 0);
 
-	const float3 ambient = (kD * diffuseIrradiance) * aoCoeiff;
+	const float3 ambient = (kD * diffuse) * aoCoeiff;
 
 	return float4(radiance + ambient, albedo.a);
 }

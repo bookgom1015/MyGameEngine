@@ -19,53 +19,51 @@ float DegToRad(float degrees) {
 	return degrees * DEG2RAD;
 }
 
-float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye) {
-	const float3 lightDir = normalize(-L.Direction);
-	const float3 lightStrength = L.LightColor * L.Intensity;
+float3 ComputeDirectionalLight(Light light, Material mat, float3 normal, float3 toEye) {
+	const float3 lightVec = -light.Direction;
+	const float3 luminosity = light.LightColor * light.Intensity;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(mat, lightStrength, lightDir, normal, toEye);
+	return BlinnPhong(mat, luminosity, lightVec, normal, toEye);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(mat, lightStrength, lightDir, normal, toEye);
+	return CookTorrance(mat, luminosity, lightVec, normal, toEye);
 #else
 	return 0;
 #endif
 }
 
-float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye) {
-	const float3 lightVec = L.Position - pos;
+float3 ComputePointLight(Light light, Material mat, float3 pos, float3 normal, float3 toEye) {
+	const float3 lightVec = light.Position - pos;
 	const float distance = length(lightVec);
 
-	const float3 lightDir = lightVec / distance;
-
-	const float X = pow(distance / L.AttenuationRadius, 4);
+	const float X = pow(distance / light.AttenuationRadius, 4);
 	const float numer = pow(saturate(1 - X), 2);
 	const float denom = distance * distance + 1;
 
 	const float falloff = numer / denom;
-	float3 lightStrength = L.LightColor * L.Intensity * falloff;
+	float3 luminosity = light.LightColor * light.Intensity * falloff;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(mat, lightStrength, lightDir, normal, toEye);
+	return BlinnPhong(mat, luminosity, lightVec, normal, toEye);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(mat, lightStrength, lightDir, normal, toEye);
+	return CookTorrance_Bulb(mat, luminosity, lightVec, normal, toEye, pos, light.LightRadius);
 #else
 	return 0;
 #endif
 }
 
-float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye) {
-	const float3 lightVec = L.Position - pos;
+float3 ComputeSpotLight(Light light, Material mat, float3 pos, float3 normal, float3 toEye) {
+	const float3 lightVec = light.Position - pos;
 	const float3 lightDir = normalize(lightVec);
 
-	const float theta = dot(-lightDir, L.Direction);
+	const float theta = dot(-lightDir, light.Direction);
 
-	const float radOuter = DegToRad(L.OuterConeAngle);
+	const float radOuter = DegToRad(light.OuterConeAngle);
 	const float cosOuter = cos(radOuter);
 
 	if (theta < cosOuter) return 0;
 
-	const float radInner = DegToRad(L.InnerConeAngle);
+	const float radInner = DegToRad(light.InnerConeAngle);
 	const float cosInner = cos(radInner);
 
 	const float epsilon = cosInner - cosOuter;
@@ -73,17 +71,17 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
 
 	const float distance = length(lightVec);
 
-	const float X = pow(distance / L.AttenuationRadius, 4);
+	const float X = pow(distance / light.AttenuationRadius, 4);
 	const float numer = pow(saturate(1 - X), 2);
 	const float denom = distance * distance + 1;
 
 	const float falloff = numer / denom;
-	const float3 lightStrength = L.LightColor * L.Intensity * factor * falloff;
+	const float3 luminosity = light.LightColor * light.Intensity * factor * falloff;
 
 #if defined(BLINN_PHONG)
-	return BlinnPhong(mat, lightStrength, lightDir, normal, toEye);
+	return BlinnPhong(mat, luminosity, lightVec, normal, toEye);
 #elif defined(COOK_TORRANCE)
-	return CookTorrance(mat, lightStrength, lightDir, normal, toEye);
+	return CookTorrance(mat, luminosity, lightVec, normal, toEye);
 #else
 	return 0;
 #endif

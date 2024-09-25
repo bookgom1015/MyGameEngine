@@ -14,6 +14,21 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
 	return num / denom;
 }
 
+float DistributionGGX_Modified(float3 N, float3 H, float roughness, float d, float radius) {
+	const float a = roughness * roughness;
+	const float a_ = saturate(a + radius / 2 * d);
+	const float a2 = a * a;
+	const float a_2 = a_ * a_;
+	const float NdotH = max(dot(N, H), 0);
+	const float NdotH2 = NdotH * NdotH;
+
+	const float num = a2 * a_2;
+	float denom = (NdotH2 * (a2 - 1) + 1);
+	denom = PI * denom * denom;
+
+	return num / denom;
+}
+
 float GeometryShlickGGX(float NdotV, float roughness) {
 	const float a = (roughness + 1);
 	const float k = (a * a) / 8;

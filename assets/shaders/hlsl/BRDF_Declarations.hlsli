@@ -3,6 +3,7 @@
 
 // Trowbridge-Reitz GGX 
 float DistributionGGX(float3 N, float3 H, float roughness);
+float DistributionGGX_Modified(float3 N, float3 H, float roughness, float d, float radius);
 
 // Smith's method with Schlick-GGX 
 // 

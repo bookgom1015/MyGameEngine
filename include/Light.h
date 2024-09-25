@@ -31,7 +31,7 @@ struct Light {
 	FLOAT				ConstantPad0;
 
 	DirectX::XMFLOAT3	Position;			// point/spot light only
-	FLOAT				ConstantPad1;
+	FLOAT				LightRadius;
 
 	UINT				Type;
 	FLOAT				InnerConeAngle;		// spot light only (degrees)
