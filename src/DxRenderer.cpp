@@ -357,7 +357,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		Light light;
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.577f, -0.577f, 0.577f };
-		light.LightColor = { 240.0f / 255.0f, 235.0f / 255.0f, 223.0f / 255.0f };
+		light.Color = { 240.0f / 255.0f, 235.0f / 255.0f, 223.0f / 255.0f };
 		light.Intensity = 1.802f;
 
 		mLights[mLightCount] = light;
@@ -367,7 +367,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		Light light;
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.067f, -0.701f, -0.836f };
-		light.LightColor = { 149.0f / 255.0f, 142.0f/ 255.0f, 100.0f / 255.0f };
+		light.Color = { 149.0f / 255.0f, 142.0f/ 255.0f, 100.0f / 255.0f };
 		light.Intensity = 1.534f;
 
 		mLights[mLightCount] = light;
@@ -1238,7 +1238,7 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 
 				XMStoreFloat3(&light.Position, lightPos);
 			}
-			else {
+			else if (light.Type == LightType::E_Point || light.Type == LightType::E_Spot || light.Type == LightType::E_Tube) {
 				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 50.0f);
 				auto pos = XMLoadFloat3(&light.Position);
 				
@@ -2803,7 +2803,7 @@ BOOL DxRenderer::DrawImGui() {
 			auto& light = mLights[i];
 			if (light.Type == LightType::E_Directional) {
 				if (ImGui::TreeNode((std::to_string(i) + " Directional Light").c_str())) {
-					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
@@ -2816,10 +2816,10 @@ BOOL DxRenderer::DrawImGui() {
 			}
 			else if (light.Type == LightType::E_Point) {
 				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
-					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat("Light Radius", &light.LightRadius, 0, 100.0f);
+					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
 					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
 
 					ImGui::TreePop();
@@ -2827,7 +2827,7 @@ BOOL DxRenderer::DrawImGui() {
 			}
 			else if (light.Type == LightType::E_Spot) {
 				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
-					ImGui::ColorPicker3("Light Color", reinterpret_cast<FLOAT*>(&light.LightColor));
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
 					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
 					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
@@ -2842,6 +2842,18 @@ BOOL DxRenderer::DrawImGui() {
 					ImGui::TreePop();
 				}
 			}
+			else if (light.Type == LightType::E_Tube) {
+				if (ImGui::TreeNode((std::to_string(i) + " Tube Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat3("Position0", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat3("Position1", reinterpret_cast<FLOAT*>(&light.Position1), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
 		}
 
 		if (mLightCount < MaxLights) {
@@ -2850,7 +2862,7 @@ BOOL DxRenderer::DrawImGui() {
 				light.Type = LightType::E_Directional;
 				light.Intensity = 1.0f;
 				light.Direction = { 0.0f, -1.0f, 0.0f };
-				light.LightColor = { 1.0f, 1.0f, 1.0f };
+				light.Color = { 1.0f, 1.0f, 1.0f };
 				++mLightCount;
 			}
 			ImGui::SameLine();
@@ -2859,8 +2871,8 @@ BOOL DxRenderer::DrawImGui() {
 				light.Type = LightType::E_Point;
 				light.Intensity = 1.0f;
 				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.LightColor = { 1.0f, 1.0f, 1.0f };
-				light.LightRadius = 1.0f;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Radius = 1.0f;
 				light.AttenuationRadius = 50.0f;
 				++mLightCount;
 			}
@@ -2870,10 +2882,21 @@ BOOL DxRenderer::DrawImGui() {
 				light.Type = LightType::E_Spot;
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.Direction = { 0.0f, -1.0f, 0.0f };
-				light.LightColor = { 1.0f, 1.0f, 1.0f };
+				light.Color = { 1.0f, 1.0f, 1.0f };
 				light.Intensity = 1.0f;
 				light.InnerConeAngle = 1.0f;
 				light.OuterConeAngle = 45.0f;
+				light.AttenuationRadius = 50.0f;
+				++mLightCount;
+			}
+			if (ImGui::Button("Tube")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Tube;
+				light.Intensity = 1.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Position1 = { 1.0f, 0.0f, 0.0f };
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Radius = 1.0f;
 				light.AttenuationRadius = 50.0f;
 				++mLightCount;
 			}
@@ -2881,7 +2904,7 @@ BOOL DxRenderer::DrawImGui() {
 
 		ImGui::End();
 	}
-	// Reference Panel
+	;// Reference Panel
 	{
 		ImGui::Begin("Reference Panel");
 		ImGui::NewLine();

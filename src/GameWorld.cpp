@@ -445,6 +445,11 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 			mRenderer->EnableDepthOfField(!state);
 			return;
 		}
+		case VK_3: {
+			auto state = mRenderer->BloomEnabled();
+			mRenderer->EnableBloom(!state);
+			return;
+		}
 		}
 	}
 }

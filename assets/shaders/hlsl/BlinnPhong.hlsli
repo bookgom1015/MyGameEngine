@@ -3,7 +3,7 @@
 
 #include "ShadingHelpers.hlsli"
 
-float3 BlinnPhong(Material mat, float3 luminosity, float3 L, float3 N, float3 V) {
+float3 BlinnPhong(Material mat, float3 Li, float3 L, float3 N, float3 V) {
 	const float3 lightDir = normalize(L);
 	const float M = mat.Shininess * 256;
 
@@ -22,7 +22,7 @@ float3 BlinnPhong(Material mat, float3 luminosity, float3 L, float3 N, float3 V)
 
 	float NdotL = max(dot(N, lightDir), 0);
 
-	return (kD * diffuse / PI + kS * specular) * luminosity * NdotL;
+	return (kD * diffuse / PI + kS * specular) * Li * NdotL;
 }
 
 #endif // __BLINNPHONG_HLSLI__

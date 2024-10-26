@@ -12,7 +12,9 @@ namespace LightType {
 		E_None			= 0,
 		E_Directional	= 1,
 		E_Point			= 2,
-		E_Spot			= 3
+		E_Spot			= 3,
+		E_Tube			= 4,
+		E_Rect			= 5
 	};
 }
 
@@ -24,17 +26,34 @@ struct Light {
 	DirectX::XMFLOAT4X4 Mat4;
 	DirectX::XMFLOAT4X4 Mat5;
 
-	DirectX::XMFLOAT3	LightColor;
+	DirectX::XMFLOAT3	Color;
 	FLOAT				Intensity;
 
 	DirectX::XMFLOAT3	Direction;			// directional/spot light only
-	FLOAT				ConstantPad0;
+	FLOAT				Radius;				// point/tube light only
 
 	DirectX::XMFLOAT3	Position;			// point/spot light only
-	FLOAT				LightRadius;
-
 	UINT				Type;
+
+	DirectX::XMFLOAT3	Position1;			// tube light only (End Point)
 	FLOAT				InnerConeAngle;		// spot light only (degrees)
+
+	DirectX::XMFLOAT3	Position2;			// tube light only (End Point)
 	FLOAT				OuterConeAngle;		// spot light only (degrees)
+
+	DirectX::XMFLOAT3	Position3;			// tube light only (End Point)
 	FLOAT				AttenuationRadius;	// point/spot light only
+
+	DirectX::XMFLOAT2	Size;				// rectangle light only
+	FLOAT				ConstantPad0;
+	FLOAT				ConstantPad1;
+
+	DirectX::XMFLOAT3	Up;					// rentangle light only
+	FLOAT				ConstantPad2;
+
+	DirectX::XMFLOAT3	Right;				// rentangle light only
+	FLOAT				ConstantPad3;
+
+	DirectX::XMFLOAT3	Center;				// rentangle light only
+	FLOAT				ConstantPad4;
 };

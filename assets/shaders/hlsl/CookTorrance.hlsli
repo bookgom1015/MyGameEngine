@@ -3,7 +3,7 @@
 
 #include "ShadingHelpers.hlsli"
 
-float3 CookTorrance(Material mat, float3 luminosity, float3 L, float3 N, float3 V) {
+float3 CookTorrance(Material mat, float3 Li, float3 L, float3 N, float3 V) {
 	const float3 lightDir = normalize(L);
 
 	const float3 H = normalize(V + lightDir);
@@ -25,23 +25,18 @@ float3 CookTorrance(Material mat, float3 luminosity, float3 L, float3 N, float3 
 	float3 kD = 1 - kS;
 	kD *= (1 - mat.Metalic);
 
-	return (kD * diffuse / PI + specular) * luminosity * NdotL;
+	return (kD * diffuse / PI + specular) * Li * NdotL;
 }
 
-float3 CookTorrance_Bulb(Material mat, float3 luminosity, float3 L, float3 N, float3 V, float3 pos, float radius) {
-	const float d = length(L);
-	const float3 r = reflect(-V, N);
-	const float3 centerToRay = dot(L, r) * r - L;
-	const float3 closestPoint = L + centerToRay * saturate(radius / length(centerToRay));
-	const float3 l = normalize(closestPoint);
-	const float3 H = normalize(V + l);
+float3 CookTorrance_GGXModified(Material mat, float3 Li, float3 L, float3 N, float3 V, float d, float radius) {
+	const float3 H = normalize(V + L);
 	const float roughness = 1 - mat.Shininess;
 
 	const float NDF = DistributionGGX_Modified(N, H, roughness, d, radius);
-	const float G = GeometrySmith(N, V, l, roughness);
+	const float G = GeometrySmith(N, V, L, roughness);
 	const float3 F = FresnelSchlick(saturate(dot(H, V)), mat.FresnelR0);
 
-	const float NdotL = max(dot(N, l), 0);
+	const float NdotL = max(dot(N, L), 0);
 
 	const float3 diffuse = mat.Albedo.rgb;
 
@@ -53,7 +48,7 @@ float3 CookTorrance_Bulb(Material mat, float3 luminosity, float3 L, float3 N, fl
 	float3 kD = 1 - kS;
 	kD *= (1 - mat.Metalic);
 
-	return (kD * (diffuse / PI) + specular) * luminosity * NdotL;
+	return (kD * (diffuse / PI) + specular) * Li * NdotL;
 }
 
 #endif // __COOKTORRANCE_HLSLI__
