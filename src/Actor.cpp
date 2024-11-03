@@ -126,17 +126,17 @@ void Actor::AddRotation(const DirectX::XMVECTOR& rot) {
 
 void Actor::AddRotationPitch(FLOAT rad) {
 	bNeedToUpdate = true;
-	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVectors::RightVector, rad));
+	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVector::RightVector, rad));
 }
 
 void Actor::AddRotationYaw(FLOAT rad) {
 	bNeedToUpdate = true;
-	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVectors::UpVector, rad));
+	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVector::UpVector, rad));
 }
 
 void Actor::AddRotationRoll(FLOAT rad) {
 	bNeedToUpdate = true;
-	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVectors::ForwardVector, rad));
+	mTransform.Rotation = XMQuaternionMultiply(mTransform.Rotation, XMQuaternionRotationAxis(UnitVector::ForwardVector, rad));
 }
 
 void Actor::SetScale(const XMFLOAT3& scale) {

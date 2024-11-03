@@ -113,4 +113,30 @@ DirectX::PackedVector::XMFLOAT3PK MathHelper::PackXMFLOAT3(const DirectX::XMFLOA
 	return DirectX::PackedVector::XMFLOAT3PK(v.x, v.y, v.z);
 }
 
+DirectX::XMVECTOR MathHelper::CalcUpVector(const DirectX::XMFLOAT3& dir) {
+	const DirectX::XMVECTOR dirVec = XMLoadFloat3(&dir);
+	DirectX::XMVECTOR up = UnitVector::UpVector;
+	if (fabs(DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up))) > 0.99f) {
+		up = UnitVector::BackwardVector;
+	}
+	
+	DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, dirVec));
+	up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(dirVec, right));
+
+	return up;
+}
+
+void MathHelper::CalcUpVector(DirectX::XMFLOAT3& dst, const DirectX::XMFLOAT3& dir) {
+	const DirectX::XMVECTOR dirVec = XMLoadFloat3(&dir);
+	DirectX::XMVECTOR up = UnitVector::UpVector;
+	if (fabs(DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up))) > 0.99f) {
+		up = UnitVector::BackwardVector;
+	}
+
+	DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, dirVec));
+	up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(dirVec, right));
+
+	XMStoreFloat3(&dst, up);
+}
+
 #endif // __MATHHELPER_INL__

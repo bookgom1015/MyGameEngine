@@ -32,28 +32,28 @@ struct Light {
 	DirectX::XMFLOAT3	Direction;			// directional/spot light only
 	FLOAT				Radius;				// point/tube light only
 
-	DirectX::XMFLOAT3	Position;			// point/spot light only
+	DirectX::XMFLOAT3	Position;			// point/spot/tube/rectangle light only
 	UINT				Type;
 
-	DirectX::XMFLOAT3	Position1;			// tube light only (End Point)
-	FLOAT				InnerConeAngle;		// spot light only (degrees)
-
-	DirectX::XMFLOAT3	Position2;			// tube light only (End Point)
-	FLOAT				OuterConeAngle;		// spot light only (degrees)
-
-	DirectX::XMFLOAT3	Position3;			// tube light only (End Point)
+	DirectX::XMFLOAT3	Position1;			// tube/rectangle light only (End Point)
 	FLOAT				AttenuationRadius;	// point/spot light only
 
-	DirectX::XMFLOAT2	Size;				// rectangle light only
-	FLOAT				ConstantPad0;
-	FLOAT				ConstantPad1;
+	DirectX::XMFLOAT3	Position2;			// rectangle light only (End Point)
+	FLOAT				InnerConeAngle;		// spot light only (degrees)
 
-	DirectX::XMFLOAT3	Up;					// rentangle light only
+	DirectX::XMFLOAT3	Position3;			// rectangle light only (End Point)
+	FLOAT				OuterConeAngle;		// spot light only (degrees)
+
+	DirectX::XMFLOAT2	Size;				// rectangle light only
+	FLOAT				ConstantPad1;
 	FLOAT				ConstantPad2;
 
-	DirectX::XMFLOAT3	Right;				// rentangle light only
+	DirectX::XMFLOAT3	Up;					// rentangle light only
 	FLOAT				ConstantPad3;
 
-	DirectX::XMFLOAT3	Center;				// rentangle light only
+	DirectX::XMFLOAT3	Right;				// rentangle light only
 	FLOAT				ConstantPad4;
+
+	DirectX::XMFLOAT3	Center;				// rentangle light only
+	FLOAT				ConstantPad5;
 };

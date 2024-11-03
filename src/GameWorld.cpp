@@ -479,7 +479,7 @@ BOOL GameWorld::LoadData() {
 	CheckReturn(mRenderer->SetEquirectangularMap("./../../assets/textures/forest_hdr.dds"));
 
 	XMFLOAT4 rot;
-	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVectors::UpVector, XM_PI));
+	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVector::UpVector, XM_PI));
 
 	new FreeLookActor("free_look_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -5.0f));
 	new RotatingMonkey("monkey_1", XM_PIDIV2, DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f), rot);

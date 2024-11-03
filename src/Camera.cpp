@@ -10,9 +10,9 @@ Camera::Camera(FLOAT nearZ, FLOAT farZ, FLOAT fovY) : bViewDirty(true) {
 	mFarZ = farZ;
 	mFovY = fovY;
 	mPosition = XMVectorZero();
-	mRight = UnitVectors::RightVector;
-	mUp = UnitVectors::UpVector;
-	mForward = UnitVectors::ForwardVector;
+	mRight = UnitVector::RightVector;
+	mUp = UnitVector::UpVector;
+	mForward = UnitVector::ForwardVector;
 }
 
 void Camera::UpdateViewMatrix() {
@@ -49,7 +49,7 @@ void Camera::Pitch(FLOAT rad) {
 }
 
 void Camera::Yaw(FLOAT rad) {
-	auto quat = XMQuaternionRotationAxis(UnitVectors::UpVector, rad);
+	auto quat = XMQuaternionRotationAxis(UnitVector::UpVector, rad);
 	
 	mRight = XMVector3Rotate(mRight, quat);
 	mUp = XMVector3Rotate(mUp, quat);
@@ -106,7 +106,7 @@ const XMVECTOR& Camera::GetForwardVector() const {
 XMVECTOR Camera::GetRotation() const {
 	return XMQuaternionRotationMatrix(XMMatrixLookAtLH(
 		XMVectorZero(),
-		UnitVectors::ForwardVector,
+		UnitVector::ForwardVector,
 		mUp
 	));
 }

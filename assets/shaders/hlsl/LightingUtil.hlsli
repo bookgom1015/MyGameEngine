@@ -137,7 +137,6 @@ float3 ComputeTubeLight(Light light, Material mat, float3 pos, float3 normal, fl
 }
 
 float3 ComputeRectLight(Light light, Material mat, float3 pos, float3 normal, float3 toEye) {
-	return 0;
 	const float3 L0 = light.Position - pos;
 	const float3 L1 = light.Position1 - pos;
 	const float3 L2 = light.Position2 - pos;
@@ -181,14 +180,16 @@ float3 ComputeRectLight(Light light, Material mat, float3 pos, float3 normal, fl
 
 	const float3 nearestPoint = light.Center + (light.Right * nearest2DPoint.x + light.Up * nearest2DPoint.y);
 	const float dist = distance(pos, nearestPoint);
-	const float falloff = 1 - saturate(dist / light.Radius);
+	const float falloff = 1 - saturate(dist / light.AttenuationRadius);
+
+	const float3 lightVec = nearestPoint - pos;
 	
 	const float3 Li = light.Color * light.Intensity * falloff * (specularFactor/**/);
 
 #if defined(BLINN_PHONG)
 	return 0;
 #elif defined(COOK_TORRANCE)
-	return 0;
+	return CookTorrance(mat, Li, lightVec, normal, toEye);
 #else
 	return 0;
 #endif

@@ -7,10 +7,13 @@
 #include <DirectXColors.h>
 #include <Windows.h>
 
-namespace UnitVectors {
-	const DirectX::XMVECTOR RightVector = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-	const DirectX::XMVECTOR UpVector = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	const DirectX::XMVECTOR ForwardVector = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+namespace UnitVector {
+	const DirectX::XMVECTOR RightVector		= DirectX::XMVectorSet( 1.0f,  0.0f,  0.0f, 0.0f);
+	const DirectX::XMVECTOR UpVector		= DirectX::XMVectorSet( 0.0f,  1.0f,  0.0f, 0.0f);
+	const DirectX::XMVECTOR ForwardVector	= DirectX::XMVectorSet( 0.0f,  0.0f,  1.0f, 0.0f);
+	const DirectX::XMVECTOR LeftVector		= DirectX::XMVectorSet(-1.0f,  0.0f,  0.0f, 0.0f);
+	const DirectX::XMVECTOR DownVector		= DirectX::XMVectorSet( 0.0f, -1.0f,  0.0f, 0.0f);
+	const DirectX::XMVECTOR BackwardVector	= DirectX::XMVectorSet( 0.0f,  0.0f, -1.0f, 0.0f);
 }
 
 namespace MathHelper {
@@ -60,6 +63,9 @@ namespace MathHelper {
 	__forceinline BOOL IsNotEqual(const DirectX::XMFLOAT4& lhs, const DirectX::XMFLOAT4& rhs);
 
 	__forceinline DirectX::PackedVector::XMFLOAT3PK PackXMFLOAT3(const DirectX::XMFLOAT3& v);
+
+	__forceinline DirectX::XMVECTOR CalcUpVector(const DirectX::XMFLOAT3& dir);
+	__forceinline void CalcUpVector(DirectX::XMFLOAT3& dst, const DirectX::XMFLOAT3& dir);
 
 	// Returns the polar angle of the point (x,y) in [0, 2*PI).
 	FLOAT AngleFromXY(FLOAT x, FLOAT y);

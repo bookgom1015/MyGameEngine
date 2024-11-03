@@ -1205,7 +1205,7 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
 				XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
 				XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
-				XMVECTOR lightUp = UnitVectors::UpVector;
+				XMVECTOR lightUp = UnitVector::UpVector;
 				XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
 
 				// Transform bounding sphere to light space.
@@ -1284,6 +1284,17 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 					auto vp_nz = view_nz * proj;
 					XMStoreFloat4x4(&light.Mat5, XMMatrixTranspose(vp_nz));
 				}
+			}
+			else if (light.Type == LightType::E_Rect) {
+				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
+				XMVECTOR lightPos = XMLoadFloat3(&light.Position);
+				XMVECTOR targetPos = lightPos + lightDir;
+				XMVECTOR lightUp = MathHelper::CalcUpVector(light.Direction);
+				XMVECTOR lightRight = XMVector3Cross(lightUp, lightDir);
+				XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+
+				XMStoreFloat3(&light.Up, lightUp);
+				XMStoreFloat3(&light.Right, lightRight);
 			}
 
 			mMainPassCB->Lights[i] = light;
@@ -2854,50 +2865,77 @@ BOOL DxRenderer::DrawImGui() {
 					ImGui::TreePop();
 				}
 			}
+			else if (light.Type == LightType::E_Rect) {
+				if (ImGui::TreeNode((std::to_string(i) + " Rect Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Center), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f);
+					ImGui::SliderFloat2("Size", reinterpret_cast<FLOAT*>(&light.Size), 0.0f, 100.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
 		}
 
 		if (mLightCount < MaxLights) {
 			if (ImGui::Button("Directional")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Directional;
+				light.Color = { 1.0f, 1.0f, 1.0f };
 				light.Intensity = 1.0f;
 				light.Direction = { 0.0f, -1.0f, 0.0f };
-				light.Color = { 1.0f, 1.0f, 1.0f };
 				++mLightCount;
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Point")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Point;
-				light.Intensity = 1.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Radius = 1.0f;
+				light.Intensity = 1.0f;
 				light.AttenuationRadius = 50.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Radius = 1.0f;
 				++mLightCount;
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Spot")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Spot;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Direction = { 0.0f, -1.0f, 0.0f };
 				light.Color = { 1.0f, 1.0f, 1.0f };
 				light.Intensity = 1.0f;
+				light.AttenuationRadius = 50.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Direction = { 0.0f, -1.0f, 0.0f };
 				light.InnerConeAngle = 1.0f;
 				light.OuterConeAngle = 45.0f;
-				light.AttenuationRadius = 50.0f;
 				++mLightCount;
 			}
 			if (ImGui::Button("Tube")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Tube;
+				light.Color = { 1.0f, 1.0f, 1.0f };
 				light.Intensity = 1.0f;
+				light.AttenuationRadius = 50.0f;
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.Position1 = { 1.0f, 0.0f, 0.0f };
-				light.Color = { 1.0f, 1.0f, 1.0f };
 				light.Radius = 1.0f;
+				++mLightCount;
+			}
+			if (ImGui::Button("Rect")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Rect;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Intensity = 1.0f;
 				light.AttenuationRadius = 50.0f;
+				light.Center    = {  0.0f,  2.0f,  0.0f };
+				light.Position  = { -0.5f,  2.0f, -0.5f };
+				light.Position1 = {  0.5f,  2.0f, -0.5f };
+				light.Position2 = {  0.5f,  2.0f,  0.5f };
+				light.Position3 = { -0.5f,  2.0f,  0.5f };
+				light.Direction = {  0.0f, -1.0f,  0.0f };
+				light.Size = { 1.0f, 1.0f };
 				++mLightCount;
 			}
 		}
