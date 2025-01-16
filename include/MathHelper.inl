@@ -115,9 +115,19 @@ DirectX::PackedVector::XMFLOAT3PK MathHelper::PackXMFLOAT3(const DirectX::XMFLOA
 
 DirectX::XMVECTOR MathHelper::CalcUpVector(const DirectX::XMFLOAT3& dir) {
 	const DirectX::XMVECTOR dirVec = XMLoadFloat3(&dir);
+
 	DirectX::XMVECTOR up = UnitVector::UpVector;
-	if (fabs(DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up))) > 0.99f) {
-		up = UnitVector::BackwardVector;
+	if (dir.z >= 0.0f) {
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up));
+		if (dot > 0.99f) up = UnitVector::BackwardVector;
+		else if (dot < -0.99f) up = UnitVector::ForwardVector;
+	}
+	else {
+		up = UnitVector::DownVector;
+
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up));
+		if (dot > 0.99f) up = UnitVector::ForwardVector;
+		else if (dot < -0.99f) up = UnitVector::BackwardVector;
 	}
 	
 	DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, dirVec));
@@ -126,15 +136,73 @@ DirectX::XMVECTOR MathHelper::CalcUpVector(const DirectX::XMFLOAT3& dir) {
 	return up;
 }
 
+DirectX::XMVECTOR MathHelper::CalcUpVector(const DirectX::XMVECTOR& dir) {
+	DirectX::XMFLOAT3 dirf;
+	XMStoreFloat3(&dirf, dir);
+
+	DirectX::XMVECTOR up = UnitVector::UpVector;
+	if (dirf.z >= 0.0f) {
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dir, up));
+		if (dot > 0.99f) up = UnitVector::BackwardVector;
+		else if (dot < -0.99f) up = UnitVector::ForwardVector;
+	}
+	else {
+		up = UnitVector::DownVector;
+
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dir, up));
+		if (dot > 0.99f) up = UnitVector::ForwardVector;
+		else if (dot < -0.99f) up = UnitVector::BackwardVector;
+	}
+
+	DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, dir));
+	up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(dir, right));
+
+	return up;
+}
+
 void MathHelper::CalcUpVector(DirectX::XMFLOAT3& dst, const DirectX::XMFLOAT3& dir) {
 	const DirectX::XMVECTOR dirVec = XMLoadFloat3(&dir);
+
 	DirectX::XMVECTOR up = UnitVector::UpVector;
-	if (fabs(DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up))) > 0.99f) {
-		up = UnitVector::BackwardVector;
+	if (dir.z >= 0.0f) {
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up));
+		if (dot > 0.99f) up = UnitVector::BackwardVector;
+		else if (dot < -0.99f) up = UnitVector::ForwardVector;
+	}
+	else {
+		up = UnitVector::DownVector;
+
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dirVec, up));
+		if (dot > 0.99f) up = UnitVector::ForwardVector;
+		else if (dot < -0.99f) up = UnitVector::BackwardVector;
 	}
 
 	DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, dirVec));
 	up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(dirVec, right));
+
+	XMStoreFloat3(&dst, up);
+}
+
+void MathHelper::CalcUpVector(DirectX::XMFLOAT3& dst, const DirectX::XMVECTOR& dir) {
+	DirectX::XMFLOAT3 dirf;
+	XMStoreFloat3(&dirf, dir);
+
+	DirectX::XMVECTOR up = UnitVector::UpVector;
+	if (dirf.z >= 0.0f) {
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dir, up));
+		if (dot > 0.99f) up = UnitVector::BackwardVector;
+		else if (dot < -0.99f) up = UnitVector::ForwardVector;
+	}
+	else {
+		up = UnitVector::DownVector;
+
+		const FLOAT dot = DirectX::XMVectorGetX(DirectX::XMVector3Dot(dir, up));
+		if (dot > 0.99f) up = UnitVector::ForwardVector;
+		else if (dot < -0.99f) up = UnitVector::BackwardVector;
+	}
+
+	DirectX::XMVECTOR right = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(up, dir));
+	up = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(dir, right));
 
 	XMStoreFloat3(&dst, up);
 }

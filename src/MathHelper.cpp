@@ -98,6 +98,22 @@ XMVECTOR MathHelper::RandHemisphereUnitVec3(XMVECTOR n) {
 	}
 }
 
+std::string MathHelper::to_string(DirectX::XMFLOAT2 vec) {
+	std::stringstream sstream;
+
+	sstream << "[ " << vec.x << ", " << vec.y << " ]";
+
+	return sstream.str();
+}
+
+std::string MathHelper::to_string(DirectX::XMFLOAT3 vec) {
+	std::stringstream sstream;
+
+	sstream << "[ " << vec.x << ", " << vec.y << ", " << vec.z << " ]";
+
+	return sstream.str();
+}
+
 std::string MathHelper::to_string(DirectX::XMFLOAT4 vec) {
 	std::stringstream sstream;
 

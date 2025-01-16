@@ -374,6 +374,32 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		++mLightCount;
 	}
 
+	//{
+	//	XMFLOAT3 right;
+	//	MathHelper::CalcUpVector(right, UnitVector::RightVector);
+	//	Logln("right vector's up vector: ", MathHelper::to_string(right));
+	//
+	//	XMFLOAT3 up;
+	//	MathHelper::CalcUpVector(up, UnitVector::UpVector);
+	//	Logln("up vector's up vector: ", MathHelper::to_string(up));
+	//
+	//	XMFLOAT3 forward;
+	//	MathHelper::CalcUpVector(forward, UnitVector::ForwardVector);
+	//	Logln("forward vector's up vector: ", MathHelper::to_string(forward));
+	//
+	//	XMFLOAT3 left;
+	//	MathHelper::CalcUpVector(left, UnitVector::LeftVector);
+	//	Logln("left vector's up vector: ", MathHelper::to_string(left));
+	//
+	//	XMFLOAT3 down;
+	//	MathHelper::CalcUpVector(down, UnitVector::DownVector);
+	//	Logln("down vector's up vector: ", MathHelper::to_string(down));
+	//
+	//	XMFLOAT3 backward;
+	//	MathHelper::CalcUpVector(backward, UnitVector::BackwardVector);
+	//	Logln("backward vector's up vector: ", MathHelper::to_string(backward));
+	//}
+
 	return TRUE;
 }
 
@@ -1287,14 +1313,25 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 			}
 			else if (light.Type == LightType::E_Rect) {
 				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
-				XMVECTOR lightPos = XMLoadFloat3(&light.Position);
-				XMVECTOR targetPos = lightPos + lightDir;
 				XMVECTOR lightUp = MathHelper::CalcUpVector(light.Direction);
 				XMVECTOR lightRight = XMVector3Cross(lightUp, lightDir);
-				XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
-
 				XMStoreFloat3(&light.Up, lightUp);
 				XMStoreFloat3(&light.Right, lightRight);
+
+				XMVECTOR lightCenter = XMLoadFloat3(&light.Center);
+				FLOAT halfSizeX = light.Size.x * 0.5f;
+				FLOAT halfSizeY = light.Size.y * 0.5f;
+				XMVECTOR lightPos0 = lightCenter + lightUp * halfSizeY + lightRight * halfSizeX;
+				XMVECTOR lightPos1 = lightCenter + lightUp * halfSizeY - lightRight * halfSizeX;
+				XMVECTOR lightPos2 = lightCenter - lightUp * halfSizeY - lightRight * halfSizeX;
+				XMVECTOR lightPos3 = lightCenter - lightUp * halfSizeY + lightRight * halfSizeX;
+				XMStoreFloat3(&light.Position,  lightPos0);
+				XMStoreFloat3(&light.Position1, lightPos1);
+				XMStoreFloat3(&light.Position2, lightPos2);
+				XMStoreFloat3(&light.Position3, lightPos3);
+
+				XMVECTOR targetPos = lightCenter + lightDir;
+				XMMATRIX lightView = XMMatrixLookAtLH(lightCenter, targetPos, lightUp);
 			}
 
 			mMainPassCB->Lights[i] = light;
@@ -2828,7 +2865,7 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Point) {
 				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
 					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
 					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
@@ -2839,7 +2876,7 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Spot) {
 				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
 					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
 					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
@@ -2856,7 +2893,7 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Tube) {
 				if (ImGui::TreeNode((std::to_string(i) + " Tube Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
 					ImGui::SliderFloat3("Position0", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
 					ImGui::SliderFloat3("Position1", reinterpret_cast<FLOAT*>(&light.Position1), -100.0f, 100.0f, "%.3f");
 					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
@@ -2868,9 +2905,13 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Rect) {
 				if (ImGui::TreeNode((std::to_string(i) + " Rect Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Center), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f);
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
+					ImGui::SliderFloat3("Center", reinterpret_cast<FLOAT*>(&light.Center), -100.0f, 100.0f, "%.3f");
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+						XMVECTOR dir = XMLoadFloat3(&light.Direction);
+						XMVECTOR normalized = XMVector3Normalize(dir);
+						XMStoreFloat3(&light.Direction, normalized);
+					}
 					ImGui::SliderFloat2("Size", reinterpret_cast<FLOAT*>(&light.Size), 0.0f, 100.0f);
 					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
 
@@ -2923,6 +2964,7 @@ BOOL DxRenderer::DrawImGui() {
 				light.Radius = 1.0f;
 				++mLightCount;
 			}
+			ImGui::SameLine();
 			if (ImGui::Button("Rect")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Rect;

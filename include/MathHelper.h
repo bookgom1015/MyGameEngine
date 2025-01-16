@@ -65,7 +65,9 @@ namespace MathHelper {
 	__forceinline DirectX::PackedVector::XMFLOAT3PK PackXMFLOAT3(const DirectX::XMFLOAT3& v);
 
 	__forceinline DirectX::XMVECTOR CalcUpVector(const DirectX::XMFLOAT3& dir);
+	__forceinline DirectX::XMVECTOR CalcUpVector(const DirectX::XMVECTOR& dir);
 	__forceinline void CalcUpVector(DirectX::XMFLOAT3& dst, const DirectX::XMFLOAT3& dir);
+	__forceinline void CalcUpVector(DirectX::XMFLOAT3& dst, const DirectX::XMVECTOR& dir);
 
 	// Returns the polar angle of the point (x,y) in [0, 2*PI).
 	FLOAT AngleFromXY(FLOAT x, FLOAT y);
@@ -76,6 +78,8 @@ namespace MathHelper {
 	DirectX::XMVECTOR RandUnitVec3();
 	DirectX::XMVECTOR RandHemisphereUnitVec3(DirectX::XMVECTOR n);
 
+	std::string to_string(DirectX::XMFLOAT2 vec);
+	std::string to_string(DirectX::XMFLOAT3 vec);
 	std::string to_string(DirectX::XMFLOAT4 vec);
 	std::string to_string(DirectX::XMFLOAT4X4 mat);
 };

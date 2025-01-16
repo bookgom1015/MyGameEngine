@@ -1543,7 +1543,7 @@ BOOL VkRenderer::UpdateUniformBuffer(FLOAT delta) {
 		XMVECTOR lightDir = XMLoadFloat3(&mLightDir);
 		XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
 		XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
-		XMVECTOR lightUp = UnitVectors::UpVector;
+		XMVECTOR lightUp = UnitVector::UpVector;
 		XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
 
 		// Transform bounding sphere to light space.
