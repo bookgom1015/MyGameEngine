@@ -9,9 +9,9 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
-#include "Rtao.hlsli"
+#include "RTAO.hlsli"
+#include "SVGF.hlsli"
 #include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame> cb_Blend : register(b0);

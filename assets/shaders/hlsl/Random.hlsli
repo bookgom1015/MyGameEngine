@@ -1,5 +1,22 @@
-#ifndef __RANDGENERATOR_HLSLI__
-#define __RANDGENERATOR_HLSLI__
+#ifndef __RANDOM_HLSLI__
+#define __RANDOM_HLSLI__
+
+float rand_1_05(in float2 uv) {
+	float2 noise = frac(sin(dot(uv, float2(12.9898, 78.233) * 2)) * 43758.5453);
+	return abs(noise.x + noise.y) * 0.5;
+}
+
+float2 rand_2_10(in float2 uv) {
+	float noiseX = frac(sin(dot(uv, float2(12.9898, 78.233) * 2)) * 43758.5453);
+	float noiseY = sqrt(1 - noiseX * noiseX);
+	return float2(noiseX, noiseY);
+}
+
+float2 rand_2_0004(in float2 uv) {
+	float noiseX = frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+	float noiseY = frac(sin(dot(uv, float2(12.9898, 78.233) * 2)) * 43758.5453);
+	return float2(noiseX, noiseY) * 0.004;
+}
 
 // Generates a seed for a random number generator from 2 inputs plus a backoff
 uint InitRand(uint val0, uint val1, uint backoff = 16) {
@@ -48,4 +65,4 @@ float3 CosHemisphereSample(inout uint seed, float3 hitNorm) {
 	return tangent * (r * cos(phi).x) + bitangent * (r * sin(phi)) + hitNorm.xyz * sqrt(1 - randVal.x);
 }
 
-#endif // __RANDGENERATOR_HLSLI__
+#endif // __RANDOM_HLSLI__

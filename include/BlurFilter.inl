@@ -1,6 +1,7 @@
-#include "Blur.h"
+#ifndef __BLURFILTER_INL__
+#define __BLURFILTER_INL__
 
-FLOAT* Blur::CalcGaussWeights(FLOAT sigma) {
+FLOAT* BlurFilter::CalcGaussWeights(FLOAT sigma) {
 	FLOAT twoSigma2 = 2.0f * sigma * sigma;
 
 	// Estimate the blur radius based on sigma since sigma controls the "width" of the bell curve.
@@ -27,3 +28,5 @@ FLOAT* Blur::CalcGaussWeights(FLOAT sigma) {
 
 	return weights;
 }
+
+#endif // __BLURFILTER_INL__

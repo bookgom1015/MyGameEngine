@@ -6,8 +6,8 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+#include "BRDF.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b0);
 

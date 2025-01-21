@@ -10,10 +10,10 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 #include "CrossBilateralWeights.hlsli"
 #include "RTAO.hlsli"
+#include "ValuePackaging.hlsli"
 #include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_CrossBilateralFilter> cb_Reproject : register (b0);

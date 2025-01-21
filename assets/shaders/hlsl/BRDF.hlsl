@@ -7,9 +7,8 @@
 
 #include "Samplers.hlsli"
 #include "LightingUtil.hlsli"
-#include "ShadingHelpers.hlsli"
-
 #include "BRDF.hlsli"
+#include "Shadow.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass> cb_Pass	: register(b0);
 

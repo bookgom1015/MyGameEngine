@@ -21,7 +21,7 @@
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 #include "DXR_ShadingHelpers.hlsli"
-#include "RandGenerator.hlsli"
+#include "Random.hlsli"
 #include "Samplers.hlsli"
 #include "RaytracedReflection.hlsli"
 

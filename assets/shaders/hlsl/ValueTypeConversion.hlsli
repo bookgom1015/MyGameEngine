@@ -1,5 +1,5 @@
-#ifndef __CONVERSION_IMPLEMENTATION_HSLLI__
-#define __CONVERSION_IMPLEMENTATION_HSLLI__
+#ifndef __VALUETYPECONVERSION_HSLLI__
+#define __VALUETYPECONVERSION_HSLLI__
 
 uint FloatToByte(float value) {
 	value = clamp(value, 0.0, 1.0);
@@ -35,4 +35,4 @@ float3 YuvToRgb(float3 yuv) {
 		);
 }
 
-#endif // __CONVERSION_IMPLEMENTATION_HSLLI__
+#endif // __VALUETYPECONVERSION_HSLLI__

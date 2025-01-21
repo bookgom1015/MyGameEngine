@@ -42,7 +42,7 @@ BOOL ShadowClass::Initialize(ID3D12Device* device, ShaderManager*const manager, 
 
 BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 	{
-		const std::wstring actualPath = filePath + L"DrawZDepth.hlsl";
+		const std::wstring actualPath = filePath + L"ZDepth.hlsl";
 		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
 		auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
 		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
@@ -51,7 +51,7 @@ BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ZDepth));
 	}
 	{
-		const std::wstring actualPath = filePath + L"DrawShadowCS.hlsl";
+		const std::wstring actualPath = filePath + L"ShadowCS.hlsl";
 		auto csInfo = D3D12ShaderInfo(actualPath.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(csInfo, CS_Shadow));
 	}

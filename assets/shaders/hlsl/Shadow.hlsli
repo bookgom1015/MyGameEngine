@@ -1,5 +1,5 @@
-#ifndef __SHADOW_IMPLEMENTATIONS_HLSLI__
-#define __SHADOW_IMPLEMENTATIONS_HLSLI__
+#ifndef __SHADOW_HLSLI__
+#define __SHADOW_HLSLI__
 
 float CalcShadowFactorPCF(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
@@ -102,4 +102,4 @@ uint GetShiftedShadowValue(uint value, uint index) {
 	return (value >> index) & 1;
 }
 
-#endif // __SHADOW_IMPLEMENTATIONS_HLSLI__
+#endif // __SHADOW_HLSLI__

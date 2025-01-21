@@ -9,6 +9,8 @@
 #include "./../../../include/Vertex.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+#include "ValuePackaging.hlsli"
+#include "ValueTypeConversion.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);

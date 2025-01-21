@@ -8,7 +8,6 @@
 #include "Shadow.h"
 #include "GBuffer.h"
 #include "SSAO.h"
-#include "Blur.h"
 #include "TemporalAA.h"
 #include "MotionBlur.h"
 #include "DepthOfField.h"
@@ -21,7 +20,6 @@
 #include "ImGuiManager.h"
 #include "DXR_Shadow.h"
 #include "DXR_GeometryBuffer.h"
-#include "BlurFilterCS.h"
 #include "RTAO.h"
 #include "DebugCollision.h"
 #include "GammaCorrection.h"
@@ -224,6 +222,7 @@ DxRenderer::DxRenderer() {
 	mShadow = std::make_unique<Shadow::ShadowClass>();
 	mSSAO = std::make_unique<SSAO::SSAOClass>();
 	mBlurFilter = std::make_unique<BlurFilter::BlurFilterClass>();
+	mBlurFilterCS = std::make_unique<BlurFilter::CS::BlurFilterCSClass>();
 	mBloom = std::make_unique<Bloom::BloomClass>();
 	mSSR = std::make_unique<SSR::SSRClass>();
 	mDoF = std::make_unique<DepthOfField::DepthOfFieldClass>();
@@ -240,13 +239,12 @@ DxRenderer::DxRenderer() {
 	mGaussianFilter = std::make_unique<GaussianFilter::GaussianFilterClass>();
 	mTLAS = std::make_unique<AccelerationStructureBuffer>();
 	mDxrShadow = std::make_unique<DXR_Shadow::DXR_ShadowClass>();
-	mBlurFilterCS = std::make_unique<BlurFilterCS::BlurFilterCSClass>();
 	mRTAO = std::make_unique<RTAO::RTAOClass>();
 	mRR = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
 	mSVGF = std::make_unique<SVGF::SVGFClass>();
 	mEquirectangularConverter = std::make_unique<EquirectangularConverter::EquirectangularConverterClass>();
 
-	auto blurWeights = Blur::CalcGaussWeights(2.5f);
+	auto blurWeights = BlurFilter::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
 	mBlurWeights[1] = XMFLOAT4(&blurWeights[4]);
 	mBlurWeights[2] = XMFLOAT4(&blurWeights[8]);
@@ -2045,7 +2043,7 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
-	mIrradianceMap->DrawCubeMap(
+	mIrradianceMap->DebugCubeMap(
 		cmdList,
 		mScreenViewport,
 		mScissorRect,
@@ -2705,19 +2703,19 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::RadioButton(
 					"Environment CubeMap", 
 					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DrawCube::E_EnvironmentCube);
+					IrradianceMap::DebugCube::E_EnvironmentCube);
 				ImGui::RadioButton(
 					"Equirectangular Map", 
 					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DrawCube::E_Equirectangular);
+					IrradianceMap::DebugCube::E_Equirectangular);
 				ImGui::RadioButton(
 					"Diffuse Irradiance CubeMap",
 					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DrawCube::E_DiffuseIrradianceCube);
+					IrradianceMap::DebugCube::E_DiffuseIrradianceCube);
 				ImGui::RadioButton(
 					"Prefiltered Irradiance CubeMap",
 					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DrawCube::E_PrefilteredIrradianceCube);
+					IrradianceMap::DebugCube::E_PrefilteredIrradianceCube);
 				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel - 1);
 			}
 		}

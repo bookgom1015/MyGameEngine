@@ -1,5 +1,5 @@
-#ifndef __SHADOWRAY_HLSL__
-#define __SHADOWRAY_HLSL__
+#ifndef __DXR_SHADOW_HLSL__
+#define __DXR_SHADOW_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -7,8 +7,9 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
-#include "Samplers.hlsli"
 #include "DXR_ShadingHelpers.hlsli"
+#include "Samplers.hlsli"
+#include "Shadow.hlsli"
 
 struct ShadowHitInfo {
 	bool IsHit;
@@ -103,4 +104,4 @@ void ShadowMiss(inout ShadowHitInfo payload) {
 	payload.IsHit = false;
 }
 
-#endif // __SHADOWRAY_HLSL__
+#endif // __DXR_SHADOW_HLSL__

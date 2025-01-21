@@ -1,5 +1,5 @@
-#ifndef __DRAWSHADOWCS_HLSL__
-#define __DRAWSHADOWCS_HLSL__
+#ifndef __SHADOWCS_HLSL__
+#define __SHADOWCS_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -8,6 +8,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+#include "Shadow.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 
@@ -64,4 +65,4 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 	guo_Shadow[DTid] = value;
 }
 
-#endif // __DRAWSHADOWCS_HLSL__
+#endif // __SHADOWCS_HLSL__

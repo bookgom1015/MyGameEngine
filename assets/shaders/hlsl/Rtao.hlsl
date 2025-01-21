@@ -8,9 +8,10 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "DXR_ShadingHelpers.hlsli"
-#include "RandGenerator.hlsli"
+#include "Random.hlsli"
 #include "Samplers.hlsli"
 #include "RTAO.hlsli"
+#include "ValuePackaging.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 

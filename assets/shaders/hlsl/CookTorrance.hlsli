@@ -1,8 +1,6 @@
 #ifndef __COOKTORRANCE_HLSLI__
 #define __COOKTORRANCE_HLSLI__
 
-#include "ShadingHelpers.hlsli"
-
 float3 CookTorrance(Material mat, float3 Li, float3 L, float3 N, float3 V, float NoL) {
 	const float3 H = normalize(V + L);
 	const float roughness = 1 - mat.Shininess;

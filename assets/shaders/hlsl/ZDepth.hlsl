@@ -1,5 +1,5 @@
-#ifndef __DRAWZDEPTH_HLSL__
-#define __DRAWZDEPTH_HLSL__
+#ifndef __ZDEPTH_HLSL__
+#define __ZDEPTH_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -109,4 +109,4 @@ Shadow::FaceIDCubeMapFormat PS(GeoOut pin) : SV_Target {
 	return (float)pin.ArrayIndex;
 }
 
-#endif // __DRAWZDEPTH_HLSL__
+#endif // __ZDEPTH_HLSL__

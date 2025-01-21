@@ -27,7 +27,7 @@ struct Material {
 };
 #endif
 
-#include "ShaderArguments.h"
+#include "ShadingConvention.h"
 #include "ConstantsBufferDeclarations.h"
 
 #endif // __HLSLCOMPACTION_HLSL__

@@ -1,5 +1,5 @@
-#ifndef __PACKAGING_IMPLEMENTATIONS_HLSLI__
-#define __PACKAGING_IMPLEMENTATIONS_HLSLI__
+#ifndef __VALUEPACKAGING_HLSLI__
+#define __VALUEPACKAGING_HLSLI__
 
 uint Float2ToHalf(float2 val) {
 	uint result = 0;
@@ -33,10 +33,14 @@ float4 UintToFloat4(uint val) {
 	return result;
 }
 
+/***************************************************************/
+// Normal encoding
+// Ref: https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 float2 OctWrap(float2 v) {
 	return (1.0 - abs(v.yx)) * (v.xy >= 0.0 ? 1.0 : -1.0);
 }
 
+// Converts a 3D unit vector to a 2D vector with <0,1> range. 
 float2 EncodeNormal(float3 n) {
 	n /= (abs(n.x) + abs(n.y) + abs(n.z));
 	n.xy = n.z >= 0.0 ? n.xy : OctWrap(n.xy);
@@ -54,6 +58,7 @@ float3 DecodeNormal(float2 f) {
 	return normalize(n);
 }
 
+// Pack [0.0, 1.0] float to 8 bit uint. 
 uint Pack_R8_FLOAT(float r) {
 	return clamp(round(r * 255), 0, 255);
 }
@@ -62,6 +67,7 @@ float Unpack_R8_FLOAT(uint r) {
 	return (r & 0xFF) / 255.0;
 }
 
+// pack two 8 bit uint2 into a 16 bit uint.
 uint Pack_R8G8_to_R16_UINT(uint r, uint g) {
 	return (r & 0xff) | ((g & 0xff) << 8);
 }
@@ -71,6 +77,9 @@ void Unpack_R16_to_R8G8_UINT(uint v, out uint r, out uint g) {
 	g = (v >> 8) & 0xFF;
 }
 
+// Pack unsigned floating point, where 
+// - rgb.rg are in [0, 1] range stored as two 8 bit uints.
+// - rgb.b in [0, FLT_16_BIT_MAX] range stored as a 16bit float.
 uint Pack_R8G8B16_FLOAT(float3 rgb) {
 	uint r = Pack_R8_FLOAT(rgb.r);
 	uint g = Pack_R8_FLOAT(rgb.g) << 8;
@@ -99,11 +108,13 @@ float3 Byte3ToNormalizedFloat3(uint v) {
 		v & 0xff) / 255;
 }
 
+// Encode normal and depth with 16 bits allocated for each.
 uint EncodeNormalDepth_N16D16(float3 normal, float depth) {
 	float3 encodedNormalDepth = float3(EncodeNormal(normal), depth);
 	return Pack_R8G8B16_FLOAT(encodedNormalDepth);
 }
 
+// Decoded 16 bit normal and 16bit depth.
 void DecodeNormalDepth_N16D16(uint packedEncodedNormalAndDepth, out float3 normal, out float depth) {
 	float3 encodedNormalDepth = Unpack_R8G8B16_FLOAT(packedEncodedNormalAndDepth);
 	normal = DecodeNormal(encodedNormalDepth.xy);
@@ -134,4 +145,4 @@ void UnpackEncodedNormalDepth(uint packedEncodedNormalDepth, out float2 encodedN
 	depth = encodedNormalDepth.z;
 }
 
-#endif // __PACKAGING_IMPLEMENTATIONS_HLSLI__
+#endif // __VALUEPACKAGING_HLSLI__

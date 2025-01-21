@@ -5,6 +5,7 @@ namespace GBuffer { class GBufferClass; }
 namespace Shadow { class ShadowClass; }
 namespace SSAO { class SSAOClass; }
 namespace BlurFilter { class BlurFilterClass; }
+namespace BlurFilter::CS { class BlurFilterCSClass; }
 namespace Bloom { class BloomClass; }
 namespace SSR { class SSRClass; }
 namespace DepthOfField { class DepthOfFieldClass; }
@@ -13,7 +14,6 @@ namespace TemporalAA { class TemporalAAClass; }
 namespace DebugMap { class DebugMapClass; }
 namespace DXR_Shadow { class DXR_ShadowClass; }
 namespace DXR_GeometryBuffer { class DXR_GeometryBufferClass; }
-namespace BlurFilterCS { class BlurFilterCSClass; }
 namespace RTAO { class RTAOClass; }
 namespace DebugCollision { class DebugCollisionClass; }
 namespace GammaCorrection { class GammaCorrectionClass; }

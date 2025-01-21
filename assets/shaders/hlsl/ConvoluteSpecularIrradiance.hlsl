@@ -7,8 +7,8 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
-#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+#include "BRDF.hlsli"
 
 ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
 

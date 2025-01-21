@@ -159,9 +159,7 @@
     <ClCompile Include="..\..\src\Actor.cpp" />
     <ClCompile Include="..\..\src\ActorManager.cpp" />
     <ClCompile Include="..\..\src\Bloom.cpp" />
-    <ClCompile Include="..\..\src\Blur.cpp" />
     <ClCompile Include="..\..\src\BlurFilter.cpp" />
-    <ClCompile Include="..\..\src\BlurFilterCS.cpp" />
     <ClCompile Include="..\..\src\BoxActor.cpp" />
     <ClCompile Include="..\..\src\BRDF.cpp" />
     <ClCompile Include="..\..\src\Camera.cpp" />
@@ -222,15 +220,14 @@
     <ClCompile Include="..\..\src\Transform.cpp" />
     <ClCompile Include="..\..\src\UploadBuffer.cpp" />
     <ClCompile Include="..\..\src\Vertex.cpp" />
+    <ClCompile Include="..\..\src\VolumetricLight.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\AccelerationStructure.h" />
     <ClInclude Include="..\..\include\Actor.h" />
     <ClInclude Include="..\..\include\ActorManager.h" />
     <ClInclude Include="..\..\include\Bloom.h" />
-    <ClInclude Include="..\..\include\Blur.h" />
     <ClInclude Include="..\..\include\BlurFilter.h" />
-    <ClInclude Include="..\..\include\BlurFilterCS.h" />
     <ClInclude Include="..\..\include\BoxActor.h" />
     <ClInclude Include="..\..\include\BRDF.h" />
     <ClInclude Include="..\..\include\Camera.h" />
@@ -284,7 +281,7 @@
     <ClInclude Include="..\..\include\RotatingMonkey.h" />
     <ClInclude Include="..\..\include\RTAO.h" />
     <ClInclude Include="..\..\include\Samplers.h" />
-    <ClInclude Include="..\..\include\ShaderArguments.h" />
+    <ClInclude Include="..\..\include\ShadingConvention.h" />
     <ClInclude Include="..\..\include\ShaderManager.h" />
     <ClInclude Include="..\..\include\ShaderTable.h" />
     <ClInclude Include="..\..\include\Shadow.h" />
@@ -299,41 +296,40 @@
     <ClInclude Include="..\..\include\Transform.h" />
     <ClInclude Include="..\..\include\UploadBuffer.h" />
     <ClInclude Include="..\..\include\Vertex.h" />
+    <ClInclude Include="..\..\include\VolumetricLight.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Color.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Contrast.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\BRDF_Declarations.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\BRDF_Implementations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Conversion_Declarations.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Conversion_Implementations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\ValueTypeConversion.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\DXR_ShadingHelpers.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Declarations.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Implementations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\FloatPrecision.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HardcodedCubeVertices.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Kernels.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Packaging_Declarations.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Packaging_Implementations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\SVGF.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\ValuePackaging.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\PhaseFunction.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Random_Declarations.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Random_Implementations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Random.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\ShadingConstants.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Shadow_Declarations.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\Shadow_Implementations.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Shadow.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\SsrCommon.hlsli" />
     <None Include="..\..\include\Actor.inl" />
     <None Include="..\..\include\Bloom.inl" />
+    <None Include="..\..\include\BlurFilter.inl" />
     <None Include="..\..\include\DebugMap.inl" />
     <None Include="..\..\include\DepthOfField.inl" />
     <None Include="..\..\include\DxLowRenderer.inl" />
@@ -343,7 +339,7 @@
     <None Include="..\..\include\RaytracedReflection.inl" />
     <None Include="..\..\include\Renderer.inl" />
     <None Include="..\..\include\RTAO.inl" />
-    <None Include="..\..\include\ShaderArguments.inl" />
+    <None Include="..\..\include\ShadingConvention.inl" />
     <None Include="..\..\include\Shadow.inl" />
     <None Include="..\..\include\SSAO.inl" />
     <None Include="..\..\include\SSR.inl" />
@@ -403,10 +399,10 @@
     <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawCubeMap.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DebugCubeMap.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DrawZDepth.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ZDepth.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\EdgeStoppingFilter_Gaussian3x3CS.hlsl">
@@ -460,7 +456,7 @@
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ShadowRay.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DXR_Shadow.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\Sharpen.hlsl">
@@ -498,7 +494,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\assets\shaders\hlsl\DrawShadowCS.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ShadowCS.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

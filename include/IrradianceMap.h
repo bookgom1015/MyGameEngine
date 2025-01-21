@@ -22,12 +22,12 @@ namespace IrradianceMap {
 			E_ConvoluteDiffuseIrradiance = 0,
 			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBRDF,
-			E_DrawCube,
+			E_DebugCube,
 			E_DrawSkySphere,
 			Count
 		};
 
-		namespace DrawCube {
+		namespace DebugCube {
 			enum {
 				ECB_Pass = 0,
 				EC_Consts,
@@ -102,14 +102,14 @@ namespace IrradianceMap {
 			E_ConvoluteDiffuseIrradiance,
 			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBRDF,
-			E_DrawCube,
-			E_DrawEquirectangular,
+			E_DebugCube,
+			E_DebugEquirectangular,
 			E_DrawSkySphere,
 			Count
 		};
 	}
 
-	namespace DrawCube {
+	namespace DebugCube {
 		enum Type {
 			E_Equirectangular = 0,
 			E_EnvironmentCube,
@@ -184,7 +184,7 @@ namespace IrradianceMap {
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			MipmapGenerator::MipmapGeneratorClass* const generator);
-		BOOL DrawCubeMap(
+		BOOL DebugCubeMap(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
@@ -228,7 +228,7 @@ namespace IrradianceMap {
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass);
 
 	public:
-		DrawCube::Type DrawCubeType = DrawCube::E_EnvironmentCube;
+		DebugCube::Type DrawCubeType = DebugCube::E_EnvironmentCube;
 
 	private:
 		ID3D12Device* md3dDevice;

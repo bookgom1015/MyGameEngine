@@ -1,5 +1,5 @@
-#ifndef __DRAWCUBEMAP_HLSL__
-#define __DRAWCUBEMAP_HLSL__
+#ifndef __DEBUGCUBEMAP_HLSL__
+#define __DEBUGCUBEMAP_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -7,7 +7,7 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
-#include "ShadingHelpers.hlsli"
+#include "ValueTypeConversion.hlsli"
 #include "Samplers.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
@@ -62,4 +62,4 @@ float4 PS(VertexOut pin) : SV_Target{
 	return gammaEncoded;
 }
 
-#endif // __DRAWCUBEMAP_HLSL__
+#endif // __DEBUGCUBEMAP_HLSL__

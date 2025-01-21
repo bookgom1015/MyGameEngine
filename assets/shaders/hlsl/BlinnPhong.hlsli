@@ -1,8 +1,6 @@
 #ifndef __BLINNPHONG_HLSLI__
 #define __BLINNPHONG_HLSLI__
 
-#include "ShadingHelpers.hlsli"
-
 float3 BlinnPhong(Material mat, float3 Li, float3 L, float3 N, float3 V, float NoL) {
 	const float M = mat.Shininess * 256;
 

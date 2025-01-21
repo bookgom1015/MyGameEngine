@@ -6,8 +6,8 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+#include "SVGF.hlsli"
 
 cbuffer cbRootConstants : register (b0) {
 	float2 gInvTextureDim;

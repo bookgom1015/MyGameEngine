@@ -39,7 +39,7 @@ BOOL DXR_ShadowClass::Initialize(
 }
 
 BOOL DXR_ShadowClass::CompileShaders(const std::wstring& filePath) {
-	const auto fullPath = filePath + L"ShadowRay.hlsl";
+	const auto fullPath = filePath + L"DXR_Shadow.hlsl";
 	auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"", L"lib_6_3");
 	CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_ShadowRay));
 

@@ -8,6 +8,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 #include "ShadingHelpers.hlsli"
+#include "Random.hlsli"
 
 ConstantBuffer<ConstantBuffer_SSR> cb_SSR	: register(b0);
 

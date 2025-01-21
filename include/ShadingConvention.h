@@ -77,13 +77,13 @@ namespace GBuffer {
 	static const DXGI_FORMAT VelocityMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
 	static const DXGI_FORMAT PositionMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-	const FLOAT AlbedoMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT NormalMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, -1.0f };
-	const FLOAT NormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT RMSMapClearValues[4]				= { 0.5f, 0.0f, 0.5f, 0.0f };
-	const FLOAT VelocityMapClearValues[2]			= { InvalidVelocityValue, InvalidVelocityValue };
-	const FLOAT ReprojNormalDepthMapClearValues[4]	= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT PositionMapClearValues[4]			= { 0.0f, 0.0f, 0.0f, -1.0f };
+	const FLOAT AlbedoMapClearValues[4]					= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT NormalMapClearValues[4]					= { 0.0f, 0.0f, 0.0f, -1.0f };
+	const FLOAT NormalDepthMapClearValues[4]			= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT RMSMapClearValues[4]					= { 0.5f, 0.0f, 0.5f, 0.0f };
+	const FLOAT VelocityMapClearValues[2]				= { InvalidVelocityValue, InvalidVelocityValue };
+	const FLOAT ReprojNormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT PositionMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, -1.0f };
 #endif 
 }
 
@@ -356,6 +356,14 @@ namespace RaytracedReflection {
 	}
 }
 
+namespace VolumetricLight {
+#ifdef HLSL
+	typedef float4 VolumetricLightMapFormat;
+#else
+	const DXGI_FORMAT VolumetricLightMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+#endif
+}
+
 namespace MipmapGenerator {
 	namespace ThreadGroup {
 		enum {
@@ -378,4 +386,4 @@ namespace CubeMapFace {
 	};
 }
 
-#include "ShaderArguments.inl"
+#include "ShadingConvention.inl"

@@ -6,8 +6,8 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "ShadingHelpers.hlsli"
 #include "RTAO.hlsli"
+#include "SVGF.hlsli"
 #include "RaytracedReflection.hlsli"
 
 #define GAUSSIAN_KERNEL_3X3

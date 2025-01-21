@@ -232,7 +232,7 @@ private:
 	BOOL bNeedToRebuildShaderTables = true;
 
 	std::unique_ptr<DXR_Shadow::DXR_ShadowClass> mDxrShadow;
-	std::unique_ptr<BlurFilterCS::BlurFilterCSClass> mBlurFilterCS;
+	std::unique_ptr<BlurFilter::CS::BlurFilterCSClass> mBlurFilterCS;
 	std::unique_ptr<RTAO::RTAOClass> mRTAO;
 
 	Light mLights[MaxLights];
