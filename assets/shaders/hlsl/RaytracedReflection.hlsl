@@ -1,5 +1,5 @@
-#ifndef __REFLECTIONRAY_HLSL__
-#define __REFLECTIONRAY_HLSL__
+#ifndef __RAYTRACEDREFLECTION_HLSL__
+#define __RAYTRACEDREFLECTION_HLSL__
 
 #ifndef NUM_DIR_LIGHTS
 #define NUM_DIR_LIGHTS 1
@@ -219,4 +219,4 @@ void ShadowMiss(inout RayPayload payload) {
 	payload.IsHit = false;
 }
 
-#endif // __REFLECTIONRAY_HLSL__
+#endif // __RAYTRACEDREFLECTION_HLSL__

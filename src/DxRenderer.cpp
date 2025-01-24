@@ -6,6 +6,7 @@
 #include "GeometryGenerator.h"
 #include "ShaderManager.h"
 #include "Shadow.h"
+#include "ZDepth.h"
 #include "GBuffer.h"
 #include "SSAO.h"
 #include "TemporalAA.h"
@@ -33,6 +34,7 @@
 #include "AccelerationStructure.h"
 #include "SVGF.h"
 #include "EquirectangularConverter.h"
+#include "VolumetricLight.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -220,6 +222,7 @@ DxRenderer::DxRenderer() {
 	mBRDF = std::make_unique<BRDF::BRDFClass>();
 	mGBuffer = std::make_unique<GBuffer::GBufferClass>();
 	mShadow = std::make_unique<Shadow::ShadowClass>();
+	mZDepth = std::make_unique<ZDepth::ZDepthClass>();
 	mSSAO = std::make_unique<SSAO::SSAOClass>();
 	mBlurFilter = std::make_unique<BlurFilter::BlurFilterClass>();
 	mBlurFilterCS = std::make_unique<BlurFilter::CS::BlurFilterCSClass>();
@@ -243,6 +246,7 @@ DxRenderer::DxRenderer() {
 	mRR = std::make_unique<RaytracedReflection::RaytracedReflectionClass>();
 	mSVGF = std::make_unique<SVGF::SVGFClass>();
 	mEquirectangularConverter = std::make_unique<EquirectangularConverter::EquirectangularConverterClass>();
+	mVolumetricLight = std::make_unique<VolumetricLight::VolumetricLightClass>();
 
 	auto blurWeights = BlurFilter::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
@@ -298,6 +302,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
 	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 4096, 4096));
+	CheckReturn(mZDepth->Initialize(device, 4096, 4096));
 	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_OneSixteenth));
@@ -320,6 +325,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	CheckReturn(mRR->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mEquirectangularConverter->Initialize(device, shaderManager));
+	CheckReturn(mVolumetricLight->Initialize(device, shaderManager, 160, 90, 128));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -359,7 +365,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		light.Intensity = 1.802f;
 
 		mLights[mLightCount] = light;
-		++mLightCount;
+		mZDepth->AddLight(light.Type, mLightCount++);
 	}
 	{
 		Light light;
@@ -369,7 +375,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		light.Intensity = 1.534f;
 
 		mLights[mLightCount] = light;
-		++mLightCount;
+		mZDepth->AddLight(light.Type, mLightCount++);
 	}
 
 	//{
@@ -670,7 +676,9 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 1 + Shadow::NumDepthStenciles;
+	dsvHeapDesc.NumDescriptors = 1
+		+ Shadow::NumDepthStenciles 
+		+ ZDepth::NumDepthStenciles;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -715,6 +723,7 @@ BOOL DxRenderer::CompileShaders() {
 	CheckReturn(mRR->CompileShaders(ShaderFilePath));
 	CheckReturn(mSVGF->CompileShaders(ShaderFilePath));
 	CheckReturn(mEquirectangularConverter->CompileShaders(ShaderFilePath));
+	CheckReturn(mVolumetricLight->CompileShaders(ShaderFilePath));
 
 #ifdef _DEBUG
 	WLogln(L"Finished compiling shaders \n");
@@ -846,8 +855,11 @@ BOOL DxRenderer::BuildGeometries() {
 BOOL DxRenderer::BuildFrameResources() {
 	for (INT i = 0; i < gNumFrameResources; i++) {
 		mFrameResources.push_back(std::make_unique<FrameResource>(
-			md3dDevice.Get(), 1, MaxLights /* Shadows */,
-			32 /* Objects */, 32 /* Materials */));
+			md3dDevice.Get(), 
+			1, 
+			MaxLights,	// Shadows
+			32,			// Objects
+			32));		// Materials
 		CheckReturn(mFrameResources.back()->Initialize());
 	}
 
@@ -879,6 +891,7 @@ void DxRenderer::BuildDescriptors() {
 	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
 	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mShadow->BuildDescriptors(hCpu, hGpu, hCpuDsv, hCpuRtv, descSize, dsvDescSize, rtvDescSize);
+	mZDepth->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
 	mSSAO->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
@@ -890,11 +903,11 @@ void DxRenderer::BuildDescriptors() {
 	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 	mPixelation->BuildDescriptors(hCpu, hGpu, descSize);
 	mSharpen->BuildDescriptors(hCpu, hGpu, descSize);
-
 	mDxrShadow->BuildDescriptors(hCpu, hGpu, descSize);
 	mRTAO->BuildDescriptors(hCpu, hGpu, descSize);
 	mRR->BuildDesscriptors(hCpu, hGpu, descSize);
 	mSVGF->BuildDescriptors(hCpu, hGpu, descSize);
+	mVolumetricLight->BuildDescriptors(hCpu, hGpu, descSize);
 
 	mhCpuDescForTexMaps = hCpu.Offset(1, descSize);
 	mhGpuDescForTexMaps = hGpu.Offset(1, descSize);
@@ -931,6 +944,7 @@ BOOL DxRenderer::BuildRootSignatures() {
 	CheckReturn(mRR->BuildRootSignatures(staticSamplers));
 	CheckReturn(mSVGF->BuildRootSignatures(staticSamplers));
 	CheckReturn(mEquirectangularConverter->BuildRootSignature(staticSamplers));
+	CheckReturn(mVolumetricLight->BuildRootSignature(staticSamplers));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -969,6 +983,7 @@ BOOL DxRenderer::BuildPSOs() {
 	CheckReturn(mRR->BuildPSO());
 	CheckReturn(mSVGF->BuildPSO());
 	CheckReturn(mEquirectangularConverter->BuildPSO());
+	CheckReturn(mVolumetricLight->BuildPSO());
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
@@ -1221,8 +1236,6 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 		mMainPassCB->LightCount = mLightCount;
 
 		for (UINT i = 0; i < mLightCount; ++i) {
-			if (i >= MaxLights) continue;
-
 			auto& light = mLights[i];
 
 			if (light.Type == LightType::E_Directional) {
@@ -1818,8 +1831,6 @@ BOOL DxRenderer::DrawShadow() {
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 	for (UINT i = 0; i < mLightCount; ++i) {
-		if (i >= MaxLights) continue;
-
 		mShadow->Run(
 			cmdList,
 			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
@@ -1830,7 +1841,8 @@ BOOL DxRenderer::DrawShadow() {
 			mGBuffer->PositionMapSrv(),
 			mhGpuDescForTexMaps,
 			mRitemRefs[RenderType::E_Opaque],
-			(mLights[i].Type == LightType::E_Point) || mLights[i].Type == LightType::E_Spot,
+			mZDepth->ZDepthMap(i),
+			mLights[i].Type,
 			i
 		);
 	}
@@ -2925,7 +2937,8 @@ BOOL DxRenderer::DrawImGui() {
 				light.Color = { 1.0f, 1.0f, 1.0f };
 				light.Intensity = 1.0f;
 				light.Direction = { 0.0f, -1.0f, 0.0f };
-				++mLightCount;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Point")) {
@@ -2936,7 +2949,8 @@ BOOL DxRenderer::DrawImGui() {
 				light.AttenuationRadius = 50.0f;
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.Radius = 1.0f;
-				++mLightCount;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Spot")) {
@@ -2949,7 +2963,8 @@ BOOL DxRenderer::DrawImGui() {
 				light.Direction = { 0.0f, -1.0f, 0.0f };
 				light.InnerConeAngle = 1.0f;
 				light.OuterConeAngle = 45.0f;
-				++mLightCount;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
 			}
 			if (ImGui::Button("Tube")) {
 				auto& light = mLights[mLightCount];
@@ -2960,7 +2975,8 @@ BOOL DxRenderer::DrawImGui() {
 				light.Position = { 0.0f, 0.0f, 0.0f };
 				light.Position1 = { 1.0f, 0.0f, 0.0f };
 				light.Radius = 1.0f;
-				++mLightCount;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Rect")) {
@@ -2976,7 +2992,8 @@ BOOL DxRenderer::DrawImGui() {
 				light.Position3 = { -0.5f,  2.0f,  0.5f };
 				light.Direction = {  0.0f, -1.0f,  0.0f };
 				light.Size = { 1.0f, 1.0f };
-				++mLightCount;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
 			}
 		}
 

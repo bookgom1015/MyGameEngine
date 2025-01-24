@@ -3,6 +3,7 @@
 namespace BRDF { class BRDFClass; }
 namespace GBuffer { class GBufferClass; }
 namespace Shadow { class ShadowClass; }
+namespace ZDepth { class ZDepthClass; }
 namespace SSAO { class SSAOClass; }
 namespace BlurFilter { class BlurFilterClass; }
 namespace BlurFilter::CS { class BlurFilterCSClass; }
@@ -26,3 +27,4 @@ namespace GaussianFilter { class GaussianFilterClass; }
 namespace RaytracedReflection { class RaytracedReflectionClass; }
 namespace SVGF { class SVGFClass; }
 namespace EquirectangularConverter { class EquirectangularConverterClass; }
+namespace VolumetricLight { class VolumetricLightClass; }

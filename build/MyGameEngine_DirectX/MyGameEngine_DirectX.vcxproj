@@ -221,6 +221,7 @@
     <ClCompile Include="..\..\src\UploadBuffer.cpp" />
     <ClCompile Include="..\..\src\Vertex.cpp" />
     <ClCompile Include="..\..\src\VolumetricLight.cpp" />
+    <ClCompile Include="..\..\src\ZDepth.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\AccelerationStructure.h" />
@@ -297,6 +298,7 @@
     <ClInclude Include="..\..\include\UploadBuffer.h" />
     <ClInclude Include="..\..\include\Vertex.h" />
     <ClInclude Include="..\..\include\VolumetricLight.h" />
+    <ClInclude Include="..\..\include\ZDepth.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\AtrousWaveletTransformFilterCS_Color.hlsli" />
@@ -309,7 +311,6 @@
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CrossBilateralWeights.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\DXR_ShadingHelpers.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Declarations.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\FloatPrecision.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HardcodedCubeVertices.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli" />
@@ -317,8 +318,7 @@
     <None Include="..\..\assets\shaders\hlsl\LightingUtil.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\SVGF.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\ValuePackaging.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\PhaseFunction.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\VolumetricLight.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Random.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli" />
@@ -450,7 +450,7 @@
     <None Include="..\..\assets\shaders\hlsl\Pixelate.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsl">
@@ -495,6 +495,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\ShadowCS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\CalculateScatteringAndDensityCS.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

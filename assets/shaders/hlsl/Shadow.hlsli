@@ -26,9 +26,19 @@ float CalcShadowFactorPCF(Texture2D<float> shadowMap, SamplerComparisonState sam
 	return percentLit / 9.0f;
 }
 
+float CalcShadowFactor(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4x4 viewProj, float3 fragPosW) {
+	float4 shadowPosH = mul(float4(fragPosW, 1), viewProj);
+	shadowPosH /= shadowPosH.w;
+
+	const float depth = shadowPosH.z;
+	const float2 texc = shadowPosH.xy * float2(0.5, -0.5) + (float2)0.5;
+
+	return shadowMap.SampleCmpLevelZero(sampComp, texc, depth);
+}
+
 float CalcShadowFactorDirectional(Texture2D<float> shadowMap, SamplerComparisonState sampComp, float4x4 viewProjTex, float3 fragPosW) {
 	float4 shadowPosH = mul(float4(fragPosW, 1), viewProjTex);
-	shadowPosH.xyz /= shadowPosH.w;
+	shadowPosH /= shadowPosH.w;
 
 	const float depth = shadowPosH.z;
 
@@ -59,29 +69,24 @@ float CalcShadowFactorDirectional(Texture2D<float> shadowMap, SamplerComparisonS
 //	return shadowMap.SampleCmpLevelZero(sampComp, texc, depth);
 //}
 
-float CalcShadowFactorPoint(TextureCube<float> shadowMap, SamplerState samp, float4x4 viewProj, float3 fragPosW, float3 lightPosW) {
+float CalcShadowFactorCube(TextureCube<float> shadowMap, SamplerComparisonState sampComp, float4x4 viewProj, float3 fragPosW, float3 lightPosW) {
 	const float3 direction = normalize(fragPosW - lightPosW);
 
-	const float closestDepth = shadowMap.Sample(samp, direction);
-
 	float4 shadowPosH = mul(float4(fragPosW, 1), viewProj);
 	shadowPosH /= shadowPosH.w;
 
 	const float depth = shadowPosH.z;
 
-	return depth < closestDepth;
+	return shadowMap.SampleCmpLevelZero(sampComp, direction, depth);
 }
 
-float CalcShadowFactorPointCS(Texture2DArray<float> shadowMap, SamplerState samp, float4x4 viewProj, float3 fragPosW, float2 uv, uint index) {
-	const float closestDepth = shadowMap.SampleLevel(samp, float3(uv, index), 0);
-	if (closestDepth == 1) return 1;
-
+float CalcShadowFactorCubeCS(Texture2DArray<float> shadowMap, SamplerComparisonState sampComp, float4x4 viewProj, float3 fragPosW, float2 uv, uint index) {
 	float4 shadowPosH = mul(float4(fragPosW, 1), viewProj);
 	shadowPosH /= shadowPosH.w;
 
 	const float depth = shadowPosH.z;
 
-	return depth < closestDepth;
+	return shadowMap.SampleCmpLevelZero(sampComp, float3(uv, index), depth);
 }
 
 uint CalcShiftedShadowValueF(float percent, uint value, uint index) {

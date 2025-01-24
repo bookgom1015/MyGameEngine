@@ -1,6 +1,12 @@
 #include "VolumetricLight.h"
+#include "Logger.h"
+#include "ShaderManager.h"
 
 using namespace VolumetricLight;
+
+namespace {
+	const CHAR* const CS_CalcScatteringAndDensity = "CS_CalcScatteringAndDensity";
+}
 
 VolumetricLightClass::VolumetricLightClass() {
 	mVolumetricLightMap = std::make_unique<GpuResource>();
@@ -20,6 +26,12 @@ BOOL VolumetricLightClass::Initialize(
 }
 
 BOOL VolumetricLightClass::CompileShaders(const std::wstring& filePath) {
+	{
+		const std::wstring actualPath = filePath + L"CalculateScatteringAndDensityCS.hlsl";
+		auto csInfo = D3D12ShaderInfo(actualPath.c_str(), L"CS", L"cs_6_3");
+		CheckReturn(mShaderManager->CompileShader(csInfo, CS_CalcScatteringAndDensity));
+	}
+
 	return TRUE;
 }
 
@@ -34,12 +46,10 @@ BOOL VolumetricLightClass::BuildPSO() {
 void VolumetricLightClass::BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuUav,
-		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuUav,
-		UINT descSize, UINT uavDescSize) {
+		UINT descSize) {
 	mhVolumetricLightMapCpuSrv = hCpu.Offset(1, descSize);
 	mhVolumetricLightMapGpuSrv = hGpu.Offset(1, descSize);
 
-	mhVolumetricLightMapCpuUav = hCpuUav.Offset(1, uavDescSize);
-	mhVolumetricLightMapGpuUav = hGpuUav.Offset(1, uavDescSize);
+	mhVolumetricLightMapCpuUav = hCpu.Offset(1, descSize);
+	mhVolumetricLightMapGpuUav = hGpu.Offset(1, descSize);
 }

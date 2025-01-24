@@ -28,9 +28,7 @@ namespace VolumetricLight {
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
-			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuUav,
-			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuUav,
-			UINT descSize, UINT uavDescSize);
+			UINT descSize);
 
 	private:
 		ID3D12Device* md3dDevice;

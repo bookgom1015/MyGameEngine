@@ -181,6 +181,7 @@ private:
 	std::unique_ptr<BRDF::BRDFClass> mBRDF;
 	std::unique_ptr<GBuffer::GBufferClass> mGBuffer;
 	std::unique_ptr<Shadow::ShadowClass> mShadow;
+	std::unique_ptr<ZDepth::ZDepthClass> mZDepth;
 	std::unique_ptr<SSAO::SSAOClass> mSSAO;
 	std::unique_ptr<BlurFilter::BlurFilterClass> mBlurFilter;
 	std::unique_ptr<Bloom::BloomClass> mBloom;
@@ -200,6 +201,7 @@ private:
 	std::unique_ptr<RaytracedReflection::RaytracedReflectionClass> mRR;
 	std::unique_ptr<SVGF::SVGFClass> mSVGF;
 	std::unique_ptr<EquirectangularConverter::EquirectangularConverterClass> mEquirectangularConverter;
+	std::unique_ptr<VolumetricLight::VolumetricLightClass> mVolumetricLight;
 
 	std::array<DirectX::XMFLOAT4, 3> mBlurWeights;
 

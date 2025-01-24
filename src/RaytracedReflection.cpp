@@ -15,7 +15,7 @@ using namespace RaytracedReflection;
 using namespace DirectX;
 
 namespace {
-	const CHAR* const CS_ReflectionRay			= "CS_ReflectionRay";
+	const CHAR* const CS_ReflectionRay			= "CS_RaytracedReflection";
 
 	const WCHAR* const RadianceRayGenName		= L"RadianceRayGen";
 	const WCHAR* const RadianceClosestHitName	= L"RadianceClosestHit";
@@ -61,7 +61,7 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 			{ L"COOK_TORRANCE", L"1" }
 		};
 
-		const auto path = filePath + L"ReflectionRay.hlsl";
+		const auto path = filePath + L"RaytracedReflection.hlsl";
 		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3", defines, _countof(defines));
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_ReflectionRay));
 	}

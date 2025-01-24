@@ -129,14 +129,14 @@ namespace Shadow {
 
 	public:
 		BOOL Initialize(
-			ID3D12Device* device, ShaderManager*const manager, 
+			ID3D12Device* const device, ShaderManager* const manager, 
 			UINT clientW, UINT clientH,
 			UINT texW, UINT texH);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
@@ -145,7 +145,8 @@ namespace Shadow {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 			const std::vector<RenderItem*>& ritems,
-			BOOL point,
+			GpuResource* const zdepth,
+			UINT lightType,
 			UINT index);
 
 		void BuildDescriptors(
@@ -160,15 +161,18 @@ namespace Shadow {
 		BOOL BuildResources();
 
 		void DrawZDepth(
-			ID3D12GraphicsCommandList* cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_obj, 
 			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 			UINT objCBByteSize, UINT matCBByteSize,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-			BOOL pointOrSpot, UINT index,
+			BOOL needCubemap, UINT index,
 			const std::vector<RenderItem*>& ritems);
-
+		void CopyZDepth(
+			ID3D12GraphicsCommandList* const cmdList,
+			GpuResource*const dst, 
+			BOOL needCubemap);
 		void DrawShadow(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,

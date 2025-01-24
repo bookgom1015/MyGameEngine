@@ -205,6 +205,12 @@
     <Filter Include="Shader Files\Volumetric-Light">
       <UniqueIdentifier>{158fb4df-4b56-4692-abcc-2120fac79860}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\Shadow">
+      <UniqueIdentifier>{68d03efd-b721-4d11-b5fb-278578789278}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Shading\Rasterization\Shadow">
+      <UniqueIdentifier>{539520c6-2a90-45d1-9a7e-5998f9133d00}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\externals\imgui\imgui.cpp">
@@ -384,9 +390,6 @@
     <ClCompile Include="..\..\src\IrradianceMap.cpp">
       <Filter>Source Files\Shading\Rasterization</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Shadow.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Sharpen.cpp">
       <Filter>Source Files\Shading\Rasterization</Filter>
     </ClCompile>
@@ -422,6 +425,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\GaussianFilter.cpp">
       <Filter>Source Files\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Shadow.cpp">
+      <Filter>Source Files\Shading\Rasterization\Shadow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ZDepth.cpp">
+      <Filter>Source Files\Shading\Rasterization\Shadow</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -557,9 +566,6 @@
     <ClInclude Include="..\..\include\Sharpen.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Shadow.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\TemporalAA.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
@@ -647,6 +653,12 @@
     <ClInclude Include="..\..\include\GaussianFilter.h">
       <Filter>Header Files\Shading</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\Shadow.h">
+      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ZDepth.h">
+      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -677,9 +689,6 @@
       <Filter>Header Files\Shading\Rasterization</Filter>
     </None>
     <None Include="..\..\include\SSR.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\Shadow.inl">
       <Filter>Header Files\Shading\Rasterization</Filter>
     </None>
     <None Include="..\..\include\TemporalAA.inl">
@@ -793,7 +802,7 @@
     <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli">
       <Filter>Shader Files\Raytracing\RaytracedReflection</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\ReflectionRay.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsl">
       <Filter>Shader Files\Raytracing\RaytracedReflection</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\TemporalAA.hlsl">
@@ -827,9 +836,6 @@
       <Filter>Shader Files\Util</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\HlslCompaction.hlsli">
-      <Filter>Shader Files\Util</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\RandGenerator.hlsli">
       <Filter>Shader Files\Util</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli">
@@ -913,16 +919,13 @@
     <None Include="..\..\assets\shaders\hlsl\ValuePackaging.hlsli">
       <Filter>Shader Files\Util</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\FloatPrecision_Declarations.hlsli">
-      <Filter>Shader Files\Util</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\FloatPrecision.hlsli">
       <Filter>Shader Files\Util</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ShadowCS.hlsl">
       <Filter>Shader Files\Shadow</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\PhaseFunction.hlsli">
+    <None Include="..\..\assets\shaders\hlsl\VolumetricLight.hlsli">
       <Filter>Shader Files\Volumetric-Light</Filter>
     </None>
     <None Include="..\..\include\BlurFilter.inl">
@@ -936,6 +939,12 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\SVGF.hlsli">
       <Filter>Shader Files\Raytracing\SVGF</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\CalculateScatteringAndDensityCS.hlsl">
+      <Filter>Shader Files\Volumetric-Light</Filter>
+    </None>
+    <None Include="..\..\include\Shadow.inl">
+      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
     </None>
   </ItemGroup>
 </Project>

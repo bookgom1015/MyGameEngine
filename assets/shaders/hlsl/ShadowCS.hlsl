@@ -45,19 +45,26 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	const float4 posW = gi_Position.Load(int3(DTid, 0));
 
-	if (light.Type == LightType::E_Directional) {
-		const float shadowFactor = CalcShadowFactorDirectional(gi_ZDepth, gsamShadow, light.Mat1, posW.xyz);
+	const bool needCube = light.Type == LightType::E_Point || light.Type == LightType::E_Spot;
 
-		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
-	}
-	else {
+	if (needCube) {
 		const float3 direction = posW.xyz - light.Position;
 		const uint index = GetCubeFaceIndex(direction);
 		const float3 normalized = normalize(direction);
 		const float2 uv = ConvertDirectionToUV(normalized);
 
 		const float4x4 viewProj = GetViewProjMatrix(light, uv, index);
-		const float shadowFactor = CalcShadowFactorPointCS(gi_ZDepthTexArray, gsamPointClamp, viewProj, posW.xyz, uv, index);
+		const float shadowFactor = CalcShadowFactorCubeCS(gi_ZDepthTexArray, gsamShadow, viewProj, posW.xyz, uv, index);
+
+		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
+	}
+	else if (light.Type == LightType::E_Directional) {
+		const float shadowFactor = CalcShadowFactorDirectional(gi_ZDepth, gsamShadow, light.Mat1, posW.xyz);
+
+		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
+	}
+	else {
+		const float shadowFactor = CalcShadowFactorDirectional(gi_ZDepth, gsamShadow, light.Mat0, posW.xyz);
 
 		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}

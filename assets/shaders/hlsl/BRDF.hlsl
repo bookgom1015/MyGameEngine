@@ -76,7 +76,9 @@ float4 PS(VertexOut pin) : SV_Target {
 		uint2 size;
 		gi_Shadow.GetDimensions(size.x, size.y);
 
-		uint value = gi_Shadow.Load(int3(size * pin.TexC, 0));
+		uint2 id = pin.TexC * size - 0.5;
+
+		uint value = gi_Shadow.Load(uint3(id, 0));
 
 		[loop]
 		for (uint i = 0; i < cb_Pass.LightCount; ++i) {

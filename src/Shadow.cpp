@@ -22,7 +22,7 @@ ShadowClass::ShadowClass() {
 		mShadowMaps[i] = std::make_unique<GpuResource>();
 }
 
-BOOL ShadowClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT clientW, UINT clientH,	UINT texW, UINT texH) {
+BOOL ShadowClass::Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT clientW, UINT clientH, UINT texW, UINT texH) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -150,7 +150,7 @@ BOOL ShadowClass::BuildPSO() {
 }
 
 void ShadowClass::Run(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
@@ -159,9 +159,15 @@ void ShadowClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 		const std::vector<RenderItem*>& ritems,
-		BOOL point,
+		GpuResource* const zdepth,
+		UINT lightType,
 		UINT index) {
-	DrawZDepth(cmdList, cb_pass, cb_obj, cb_mat, objCBByteSize, matCBByteSize, si_texMaps, point, index, ritems);
+	if (lightType == LightType::E_Tube || lightType == LightType::E_Rect) return;
+
+	BOOL needCubemap = lightType == LightType::E_Point || lightType == LightType::E_Spot;
+
+	DrawZDepth(cmdList, cb_pass, cb_obj, cb_mat, objCBByteSize, matCBByteSize, si_texMaps, needCubemap, index, ritems);
+	CopyZDepth(cmdList, zdepth, needCubemap);
 	DrawShadow(cmdList, cb_pass, si_pos, index);
 }
 
@@ -417,13 +423,13 @@ BOOL ShadowClass::BuildResources() {
 }
 
 void ShadowClass::DrawZDepth(
-		ID3D12GraphicsCommandList* cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 		UINT objCBByteSize, UINT matCBByteSize,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
-		BOOL pointOrSpot, UINT index,
+		BOOL needCubemap, UINT index,
 		const std::vector<RenderItem*>& ritems) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::EG_ZDepth].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ZDepth].Get());
@@ -432,9 +438,9 @@ void ShadowClass::DrawZDepth(
 	cmdList->RSSetScissorRects(1, &mScissorRect);
 
 	auto& faceID = mShadowMaps[Resource::E_FaceIDCube];
-	auto& shadow = mShadowMaps[pointOrSpot ? Resource::E_ZDepthCube : Resource::E_ZDepth];
+	auto& shadow = mShadowMaps[needCubemap ? Resource::E_ZDepthCube : Resource::E_ZDepth];
 
-	if (pointOrSpot) {
+	if (needCubemap) {
 		faceID->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
@@ -480,8 +486,20 @@ void ShadowClass::DrawZDepth(
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
 
-	if (pointOrSpot) faceID->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	if (needCubemap) faceID->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+}
+
+void ShadowClass::CopyZDepth(ID3D12GraphicsCommandList* const cmdList, GpuResource* const dst, BOOL needCubemap) {
+	GpuResource* const src = mShadowMaps[needCubemap ? Resource::E_ZDepthCube : Resource::E_ZDepth].get();
+
+	src->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	dst->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+	cmdList->CopyResource(dst->Resource(), src->Resource());
+
+	src->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+	dst->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
 void ShadowClass::DrawShadow(
