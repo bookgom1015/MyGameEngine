@@ -13,6 +13,16 @@ public:
 	virtual ~CameraComponent();
 
 public:
+	const DirectX::XMVECTOR& Position() const;
+	DirectX::XMVECTOR Rotation() const;
+
+	const DirectX::XMFLOAT4X4& View() const;
+
+	const DirectX::XMVECTOR& RightVector() const;
+	const DirectX::XMVECTOR& UpVector() const;
+	const DirectX::XMVECTOR& ForwardVector() const;
+
+public:
 	virtual BOOL OnInitialzing() override;
 
 	virtual BOOL ProcessInput(const InputState& input) override;
@@ -24,16 +34,7 @@ public:
 	void Roll(FLOAT rad);
 
 	void AddPosition(const DirectX::XMVECTOR& pos);
-	const DirectX::XMVECTOR& GetPosition() const;
 	void SetPosition(const DirectX::XMVECTOR& pos);
-
-	const DirectX::XMFLOAT4X4& GetView() const;
-
-	const DirectX::XMVECTOR& GetRightVector() const;
-	const DirectX::XMVECTOR& GetUpVector() const;
-	const DirectX::XMVECTOR& GetForwardVector() const;
-
-	DirectX::XMVECTOR GetRotation() const;
 
 private:
 	std::unique_ptr<Camera> mCamera;

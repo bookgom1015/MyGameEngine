@@ -1,11 +1,12 @@
 #include "Shadow.h"
 #include "Logger.h"
 #include "ShaderManager.h"
-#include "RenderItem.h"
-#include "DxMesh.h"
-#include "MathHelper.h"
 #include "D3D12Util.h"
+#include "HlslCompaction.h"
+#include "MathHelper.h"
 #include "Vertex.h"
+#include "DxMesh.h"
+#include "RenderItem.h"
 
 using namespace Shadow;
 
@@ -159,7 +160,8 @@ void ShadowClass::Run(
 		D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 		const std::vector<RenderItem*>& ritems,
-		GpuResource* const zdepth,
+		GpuResource* const dst_zdepth,
+		GpuResource* const dst_faceIDCube,
 		UINT lightType,
 		UINT index) {
 	if (lightType == LightType::E_Tube || lightType == LightType::E_Rect) return;
@@ -167,7 +169,7 @@ void ShadowClass::Run(
 	BOOL needCubemap = lightType == LightType::E_Point || lightType == LightType::E_Spot;
 
 	DrawZDepth(cmdList, cb_pass, cb_obj, cb_mat, objCBByteSize, matCBByteSize, si_texMaps, needCubemap, index, ritems);
-	CopyZDepth(cmdList, zdepth, needCubemap);
+	CopyZDepth(cmdList, dst_zdepth, dst_faceIDCube, needCubemap);
 	DrawShadow(cmdList, cb_pass, si_pos, index);
 }
 
@@ -490,16 +492,39 @@ void ShadowClass::DrawZDepth(
 	shadow->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
 }
 
-void ShadowClass::CopyZDepth(ID3D12GraphicsCommandList* const cmdList, GpuResource* const dst, BOOL needCubemap) {
-	GpuResource* const src = mShadowMaps[needCubemap ? Resource::E_ZDepthCube : Resource::E_ZDepth].get();
+void ShadowClass::CopyZDepth(
+		ID3D12GraphicsCommandList* const cmdList,
+		GpuResource* const dst_zdepth,
+		GpuResource* const dst_faceIDCube,
+		BOOL needCubemap) {
+	static const auto copy = [&](GpuResource* const src) {
+		src->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		dst_zdepth->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 
-	src->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	dst->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+		cmdList->CopyResource(dst_zdepth->Resource(), src->Resource());
 
-	cmdList->CopyResource(dst->Resource(), src->Resource());
+		src->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+		dst_zdepth->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	};
 
-	src->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
-	dst->Transite(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+	if (needCubemap) {
+		GpuResource* const src_zdepth = mShadowMaps[Resource::E_ZDepthCube].get();
+		copy(src_zdepth);
+
+		GpuResource* const src_faceIDCube = mShadowMaps[Resource::E_FaceIDCube].get();
+
+		src_faceIDCube->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		dst_faceIDCube->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+		cmdList->CopyResource(dst_faceIDCube->Resource(), src_faceIDCube->Resource());
+
+		src_faceIDCube->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		dst_faceIDCube->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+	else {
+		GpuResource* const src_zdepth = mShadowMaps[Resource::E_ZDepth].get();
+		copy(src_zdepth);
+	}
 }
 
 void ShadowClass::DrawShadow(

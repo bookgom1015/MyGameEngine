@@ -126,9 +126,6 @@
     <ClCompile Include="..\..\src\Transform.cpp">
       <Filter>Common Files\Source Files\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Blur.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\GameTimer.cpp">
       <Filter>Common Files\Source Files</Filter>
     </ClCompile>
@@ -229,9 +226,6 @@
     </ClInclude>
     <ClInclude Include="..\..\include\Transform.h">
       <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Blur.h">
-      <Filter>Common Files\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\GameTimer.h">
       <Filter>Common Files\Header Files</Filter>

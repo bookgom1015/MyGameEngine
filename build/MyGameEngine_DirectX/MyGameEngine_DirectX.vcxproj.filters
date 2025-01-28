@@ -946,5 +946,14 @@
     <None Include="..\..\include\Shadow.inl">
       <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
     </None>
+    <None Include="..\..\include\D3D12Util.inl">
+      <Filter>Header Files\Util</Filter>
+    </None>
+    <None Include="..\..\include\Camera.inl">
+      <Filter>Common Files\Header Files\Camera</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\AccumulateScattering.hlsl">
+      <Filter>Shader Files\Volumetric-Light</Filter>
+    </None>
   </ItemGroup>
 </Project>

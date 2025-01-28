@@ -487,6 +487,8 @@ BOOL DxRenderer::Draw() {
 		else { CheckReturn(ApplySSR()); }
 	
 		CheckReturn(IntegrateSpecIrrad());
+
+		CheckReturn(ApplyVolumetricLight());
 		if (bBloomEnabled) CheckReturn(ApplyBloom());
 		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
 		
@@ -620,7 +622,7 @@ BOOL DxRenderer::SetEquirectangularMap(const std::string& file) {
 }
 
 void DxRenderer::Pick(FLOAT x, FLOAT y) {
-	const auto& P = mCamera->GetProj();
+	const auto& P = mCamera->Proj();
 
 	// Compute picking ray in vew space.
 	FLOAT vx = (2.0f * x / mClientWidth - 1.0f) / P(0, 0);
@@ -630,7 +632,7 @@ void DxRenderer::Pick(FLOAT x, FLOAT y) {
 	auto origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	auto dir = XMVectorSet(vx, vy, 1.0f, 0.0f);
 
-	const auto V = XMLoadFloat4x4(&mCamera->GetView());
+	const auto V = XMLoadFloat4x4(&mCamera->View());
 	const auto InvView = XMMatrixInverse(&XMMatrixDeterminant(V), V);
 
 	FLOAT closestT = std::numeric_limits<FLOAT>().max();
@@ -677,8 +679,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
 	dsvHeapDesc.NumDescriptors = 1
-		+ Shadow::NumDepthStenciles 
-		+ ZDepth::NumDepthStenciles;
+		+ Shadow::NumDepthStenciles;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -1350,8 +1351,8 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	}
 	// Main
 	{
-		XMMATRIX view = XMLoadFloat4x4(&mCamera->GetView());
-		XMMATRIX proj = XMLoadFloat4x4(&mCamera->GetProj());
+		XMMATRIX view = XMLoadFloat4x4(&mCamera->View());
+		XMMATRIX proj = XMLoadFloat4x4(&mCamera->Proj());
 		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 
 		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
@@ -1377,7 +1378,7 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 		XMStoreFloat4x4(&mMainPassCB->ViewProj, XMMatrixTranspose(viewProj));
 		XMStoreFloat4x4(&mMainPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
 		XMStoreFloat4x4(&mMainPassCB->ViewProjTex, XMMatrixTranspose(viewProjTex));
-		XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->GetPosition());
+		XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->Position());
 		mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.0f, 0.0f);
 
 		auto& currCB = mCurrFrameResource->CB_Pass;
@@ -1393,7 +1394,7 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	ssaoCB.Proj = mMainPassCB->Proj;
 	ssaoCB.InvProj = mMainPassCB->InvProj;
 
-	XMMATRIX P = XMLoadFloat4x4(&mCamera->GetProj());
+	XMMATRIX P = XMLoadFloat4x4(&mCamera->Proj());
 	// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
 	XMMATRIX T(
 		0.5f, 0.0f, 0.0f, 0.0f,
@@ -1453,7 +1454,7 @@ BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
 	ssrCB.InvView = mMainPassCB->InvView;
 	ssrCB.Proj = mMainPassCB->Proj;
 	ssrCB.InvProj = mMainPassCB->InvProj;
-	XMStoreFloat3(&ssrCB.EyePosW, mCamera->GetPosition());
+	XMStoreFloat3(&ssrCB.EyePosW, mCamera->Position());
 	ssrCB.MaxDistance = ShaderArgs::SSR::MaxDistance;
 	ssrCB.RayLength = ShaderArgs::SSR::View::RayLength;
 	ssrCB.NoiseIntensity = ShaderArgs::SSR::View::NoiseIntensity;
@@ -1842,6 +1843,7 @@ BOOL DxRenderer::DrawShadow() {
 			mhGpuDescForTexMaps,
 			mRitemRefs[RenderType::E_Opaque],
 			mZDepth->ZDepthMap(i),
+			mZDepth->FaceIDCubeMap(i),
 			mLights[i].Type,
 			i
 		);
@@ -2388,646 +2390,23 @@ BOOL DxRenderer::ApplyPixelation() {
 	return TRUE;
 }
 
-BOOL DxRenderer::DrawDebuggingInfo() {
+BOOL DxRenderer::ApplyVolumetricLight() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
-
+	
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
-	mDebugMap->Run(
+	mVolumetricLight->Run(
 		cmdList,
-		mScreenViewport,
-		mScissorRect,
-		mSwapChainBuffer->CurrentBackBuffer(),
-		mCurrFrameResource->CB_DebugMap.Resource()->GetGPUVirtualAddress(),
-		mSwapChainBuffer->CurrentBackBufferRtv(),
-		DepthStencilView()
+		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
+		mZDepth->ZDepthSrv(),
+		mZDepth->ZDepthCubeSrv(),
+		mZDepth->FaceIDCubeSrv(),
+		mCamera->NearZ(),
+		mCamera->FarZ()
 	);
-
-	if (ShaderArgs::Debug::ShowCollisionBox) {
-		mDebugCollision->Run(
-			cmdList,
-			mScreenViewport,
-			mScissorRect,
-			mSwapChainBuffer->CurrentBackBuffer(),
-			mSwapChainBuffer->CurrentBackBufferRtv(),
-			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
-			mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
-			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
-			mRitemRefs[RenderType::E_Opaque]
-		);
-	}
-
-	CheckHRESULT(cmdList->Close());
-	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
-
-	return TRUE;
-}
-
-BOOL DxRenderer::DrawImGui() {
-	const auto cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
-	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	cmdList->RSSetViewports(1, &mScreenViewport);
-	cmdList->RSSetScissorRects(1, &mScissorRect);
-
-	const auto backBuffer = mSwapChainBuffer->CurrentBackBuffer();
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	const auto backBufferRtv = mSwapChainBuffer->CurrentBackBufferRtv();
-	cmdList->OMSetRenderTargets(1, &backBufferRtv, true, nullptr);
-
-	ImGui_ImplDX12_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
-	static const auto BuildDebugMap = [&](BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type) {
-		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = FALSE; }
-		else { mDebugMap->RemoveDebugMap(handle); }
-	};
-	static const auto BuildDebugMapWithSampleDesc = [&](
-			BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type, DebugMapSampleDesc desc) {
-		if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = FALSE; }
-		else { mDebugMap->RemoveDebugMap(handle); }
-	};
-
-	// Main Panel
-	{
-		ImGui::Begin("Main Panel");
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::NewLine();
-
-		if (ImGui::CollapsingHeader("Debug")) {
-			if (ImGui::TreeNode("Texture Maps")) {
-				if (ImGui::TreeNode("G-Buffer")) {
-					if (ImGui::Checkbox("Albedo", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Albedo]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_Albedo],
-							mGBuffer->AlbedoMapSrv(),
-							DebugMap::SampleMask::RGB);
-					}
-					if (ImGui::Checkbox("Normal", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Normal]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_Normal],
-							mGBuffer->NormalMapSrv(),
-							DebugMap::SampleMask::RGB);
-					}
-					if (ImGui::Checkbox("Depth", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Depth]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_Depth],
-							mGBuffer->DepthMapSrv(),
-							DebugMap::SampleMask::RRR);
-					}
-					if (ImGui::Checkbox("RoughnessMetalicSpecular", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RMS]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_RMS],
-							mGBuffer->RMSMapSrv(),
-							DebugMap::SampleMask::RGB);
-					}
-					if (ImGui::Checkbox("Velocity", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Velocity]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_Velocity],
-							mGBuffer->VelocityMapSrv(),
-							DebugMap::SampleMask::RG);
-					}
-					ImGui::TreePop();
-				} // ImGui::TreeNode("G-Buffer")
-				if (ImGui::TreeNode("Irradiance")) {
-					if (ImGui::Checkbox("Equirectangular Map",
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Equirectangular]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_Equirectangular],
-							mIrradianceMap->EquirectangularMapSrv(),
-							DebugMap::SampleMask::RGB);
-					}
-					if (ImGui::Checkbox("Temporary Equirectangular Map",
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
-							mIrradianceMap->TemporaryEquirectangularMapSrv(),
-							DebugMap::SampleMask::RGB);
-					}
-					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map",
-						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
-							mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
-							DebugMap::SampleMask::RGB);
-					}
-					ImGui::TreePop(); // ImGui::TreeNode("Irradiance")
-				} 
-				if (ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Bloom]))) {
-					BuildDebugMap(
-						mDebugMapStates[DebugMapLayout::E_Bloom],
-						mBloom->BloomMapSrv(0),
-						DebugMap::SampleMask::RGB);
-				}
-
-				if (ImGui::TreeNode("Rasterization")) {
-					if (ImGui::TreeNode("Shadow")) {
-						auto debug = mShadow->DebugShadowMap();
-						if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(debug))) {
-							BuildDebugMap(
-								*debug,
-								mShadow->Srv(Shadow::Descriptor::ESI_Shadow),
-								DebugMap::SampleMask::RRR);
-						}
-
-						ImGui::TreePop();
-					}
-					if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_SSAO],
-							mSSAO->AOCoefficientMapSrv(0),
-							DebugMap::SampleMask::RRR);
-					}
-					if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_SSR],
-							mSSR->SSRMapSrv(0),
-							DebugMap::SampleMask::RGB);
-					}
-
-					ImGui::TreePop();
-				}								
-				if (ImGui::TreeNode("Raytracing")) {
-					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
-						BuildDebugMap(
-							mDebugMapStates[DebugMapLayout::E_DxrShadow],
-							mDxrShadow->Descriptor(),
-							DebugMap::SampleMask::RRR);
-					}
-					if (ImGui::TreeNode("RTAO")) {
-						auto index = mRTAO->TemporalCurrentFrameResourceIndex();
-
-						if (ImGui::Checkbox("AO Coefficients", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_AOCoeff]))) {
-							BuildDebugMap(
-								mDebugMapStates[DebugMapLayout::E_AOCoeff],
-								mRTAO->AOResourceGpuDescriptors()[RTAO::Descriptor::AO::ES_AmbientCoefficient],
-								DebugMap::SampleMask::RRR);
-						}
-						if (ImGui::Checkbox("Temporal AO Coefficients",
-							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff]))) {
-							BuildDebugMap(
-								mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
-								mRTAO->TemporalAOCoefficientGpuDescriptors()[index][RTAO::Descriptor::TemporalAOCoefficient::Srv],
-								DebugMap::SampleMask::RRR);
-						}
-						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
-							DebugMapSampleDesc desc;
-							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-							desc.Denominator = 22.0f;
-
-							BuildDebugMapWithSampleDesc(
-								mDebugMapStates[DebugMapLayout::E_Tspp],
-								mRTAO->TemporalCacheGpuDescriptors()[index][RTAO::Descriptor::TemporalCache::ES_Tspp],
-								DebugMap::SampleMask::UINT,
-								desc);
-						}
-						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RayHitDist]))) {
-							DebugMapSampleDesc desc;
-							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
-
-							BuildDebugMapWithSampleDesc(
-								mDebugMapStates[DebugMapLayout::E_RayHitDist],
-								mRTAO->AOResourceGpuDescriptors()[RTAO::Descriptor::AO::ES_RayHitDistance],
-								DebugMap::SampleMask::FLOAT,
-								desc);
-						}
-						if (ImGui::Checkbox("Temporal Ray Hit Distance",
-							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist]))) {
-							DebugMapSampleDesc desc;
-							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
-							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
-
-							BuildDebugMapWithSampleDesc(
-								mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
-								mRTAO->TemporalCacheGpuDescriptors()[index][RTAO::Descriptor::TemporalCache::ES_RayHitDistance],
-								DebugMap::SampleMask::FLOAT,
-								desc);
-						}
-
-						ImGui::TreePop(); // ImGui::TreeNode("RTAO")
-					}
-					if (ImGui::TreeNode("Raytraced Reflection")) {
-						auto index = mRR->TemporalCurrentFrameResourceIndex();
-
-						if (ImGui::Checkbox("Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_Reflection]))) {
-							BuildDebugMap(
-								mDebugMapStates[DebugMapLayout::E_RR_Reflection],
-								mRR->ReflectionMapSrv(),
-								DebugMap::SampleMask::RGB);
-						}
-						if (ImGui::Checkbox("Temporal Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_TemporalReflection]))) {
-							BuildDebugMap(
-								mDebugMapStates[DebugMapLayout::E_RR_TemporalReflection],
-								mRR->ResolvedReflectionSrv(),
-								DebugMap::SampleMask::RGB);
-						}
-						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_Tspp]))) {
-							DebugMapSampleDesc desc;
-							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-							desc.Denominator = 22.0f;
-
-							BuildDebugMapWithSampleDesc(
-								mDebugMapStates[DebugMapLayout::E_RR_Tspp],
-								mRR->TemporalCacheGpuDescriptors()[index][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
-								DebugMap::SampleMask::UINT,
-								desc);
-						}
-						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_RayHitDist]))) {
-							DebugMapSampleDesc desc;
-							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
-
-							BuildDebugMapWithSampleDesc(
-								mDebugMapStates[DebugMapLayout::E_RR_RayHitDist],
-								mRR->ReflectionGpuDescriptors()[RaytracedReflection::Descriptor::Reflection::ES_RayHitDistance],
-								DebugMap::SampleMask::FLOAT,
-								desc);
-						}
-						if (ImGui::Checkbox("Temporal Ray Hit Distance",
-							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_TemporalRayHitDist]))) {
-							DebugMapSampleDesc desc;
-							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
-							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
-
-							BuildDebugMapWithSampleDesc(
-								mDebugMapStates[DebugMapLayout::E_RR_TemporalRayHitDist],
-								mRR->TemporalCacheGpuDescriptors()[index][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
-								DebugMap::SampleMask::FLOAT,
-								desc);
-						}
-
-						ImGui::TreePop(); // ImGui::TreeNode("Raytraced Reflection")
-					}
-				
-					ImGui::TreePop(); // ImGui::TreeNode("RTAO")
-				}				
-
-				ImGui::TreePop(); // ImGui::TreeNode("Texture Maps")
-			} 
-
-			ImGui::Checkbox("Show Collision Box", reinterpret_cast<bool*>(&ShaderArgs::Debug::ShowCollisionBox));
-		}
-		if (ImGui::CollapsingHeader("Effects")) {
-			ImGui::Checkbox("TAA", reinterpret_cast<bool*>(&bTaaEnabled));
-			ImGui::Checkbox("Motion Blur", reinterpret_cast<bool*>(&bMotionBlurEnabled));
-			ImGui::Checkbox("Depth of Field", reinterpret_cast<bool*>(&bDepthOfFieldEnabled));
-			ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&bBloomEnabled));
-			ImGui::Checkbox("Gamma Correction", reinterpret_cast<bool*>(&bGammaCorrectionEnabled));
-			ImGui::Checkbox("Tone Mapping", reinterpret_cast<bool*>(&bToneMappingEnabled));
-			ImGui::Checkbox("Pixelation", reinterpret_cast<bool*>(&bPixelationEnabled));
-			ImGui::Checkbox("Sharpen", reinterpret_cast<bool*>(&bSharpenEnabled));
-
-			if (ImGui::TreeNode("Rasterization")) {
-				ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&bShadowEnabled));
-				ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&bSsaoEnabled));
-				ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&bSsrEnabled));
-
-				ImGui::TreePop();
-			}
-
-			if (ImGui::TreeNode("Raytracing")) {
-
-				ImGui::TreePop();
-			}
-		}
-		if (ImGui::CollapsingHeader("BRDF")) {
-			ImGui::RadioButton("Blinn-Phong", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_BlinnPhong); ImGui::SameLine();
-			ImGui::RadioButton("Cook-Torrance", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_CookTorrance);
-			
-		}
-		if (ImGui::CollapsingHeader("Environment")) {
-			ImGui::Checkbox("Show Irradiance CubeMap", reinterpret_cast<bool*>(&ShaderArgs::IrradianceMap::ShowIrradianceCubeMap));
-			if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
-				ImGui::RadioButton(
-					"Environment CubeMap", 
-					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DebugCube::E_EnvironmentCube);
-				ImGui::RadioButton(
-					"Equirectangular Map", 
-					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DebugCube::E_Equirectangular);
-				ImGui::RadioButton(
-					"Diffuse Irradiance CubeMap",
-					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DebugCube::E_DiffuseIrradianceCube);
-				ImGui::RadioButton(
-					"Prefiltered Irradiance CubeMap",
-					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
-					IrradianceMap::DebugCube::E_PrefilteredIrradianceCube);
-				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel - 1);
-			}
-		}
-
-		ImGui::End();
-	}
-	;// Sub Panel
-	{
-		ImGui::Begin("Sub Panel");
-		ImGui::NewLine();
-
-		if (ImGui::CollapsingHeader("Pre Pass")) {
-			if (ImGui::TreeNode("SSAO")) {
-				ImGui::SliderInt("Sample Count", &ShaderArgs::SSAO::SampleCount, 1, 32);
-				ImGui::SliderInt("Number of Blurs", &ShaderArgs::SSAO::BlurCount, 0, 8);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("SVGF")) {
-				ImGui::Checkbox("Clamp Cached Values", reinterpret_cast<bool*>(&ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping));
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("RTAO")) {
-				ImGui::SliderInt("Sample Count", reinterpret_cast<int*>(&ShaderArgs::RTAO::SampleCount), 1, 4);
-				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::UseSmoothingVariance));
-				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::DisocclusionBlur));
-				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::FullscreenBlur));
-				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RTAO::Denoiser::LowTsppBlurPasses), 1, 8);
-
-				ImGui::TreePop();
-			}
-		}
-		if (ImGui::CollapsingHeader("Main Pass")) {
-			if (ImGui::TreeNode("Dithering Transparency")) {
-				ImGui::SliderFloat("Max Distance", &ShaderArgs::GBuffer::Dither::MaxDistance, 0.1f, 10.0f);
-				ImGui::SliderFloat("Min Distance", &ShaderArgs::GBuffer::Dither::MinDistance, 0.01f, 1.0f);
-
-				ImGui::TreePop();
-			}
-		}
-		if (ImGui::CollapsingHeader("Post Pass")) {
-			if (ImGui::TreeNode("TAA")) {
-				ImGui::SliderFloat("Modulation Factor", &ShaderArgs::TemporalAA::ModulationFactor, 0.1f, 0.9f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Motion Blur")) {
-				ImGui::SliderFloat("Intensity", &ShaderArgs::MotionBlur::Intensity, 0.01f, 0.1f);
-				ImGui::SliderFloat("Limit", &ShaderArgs::MotionBlur::Limit, 0.001f, 0.01f);
-				ImGui::SliderFloat("Depth Bias", &ShaderArgs::MotionBlur::DepthBias, 0.001f, 0.01f);
-				ImGui::SliderInt("Sample Count", &ShaderArgs::MotionBlur::SampleCount, 1, 32);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Depth of Field")) {
-				ImGui::SliderFloat("Focus Range", &ShaderArgs::DepthOfField::FocusRange, 0.1f, 100.0f);
-				ImGui::SliderFloat("Focusing Speed", &ShaderArgs::DepthOfField::FocusingSpeed, 1.0f, 10.0f);
-				ImGui::SliderFloat("Bokeh Radius", &ShaderArgs::DepthOfField::BokehRadius, 1.0f, 8.0f);
-				ImGui::SliderFloat("CoC Max Deviation Tolerance", &ShaderArgs::DepthOfField::CoCMaxDevTolerance, 0.1f, 0.9f);
-				ImGui::SliderFloat("Highlight Power", &ShaderArgs::DepthOfField::HighlightPower, 1.0f, 32.0f);
-				ImGui::SliderInt("Sample Count", &ShaderArgs::DepthOfField::SampleCount, 1, 8);
-				ImGui::SliderInt("Blur Count", &ShaderArgs::DepthOfField::BlurCount, 0, 8);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Bloom")) {
-				ImGui::SliderInt("Blur Count", &ShaderArgs::Bloom::BlurCount, 0, 8);
-				ImGui::SliderFloat("Highlight Threshold", &ShaderArgs::Bloom::HighlightThreshold, 0.1f, 0.99f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("SSR")) {
-				ImGui::RadioButton("Screen Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ScreenSpace); ImGui::SameLine();
-				ImGui::RadioButton("View Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ViewSpace);
-
-				ImGui::SliderFloat("Max Distance", &ShaderArgs::SSR::MaxDistance, 1.0f, 100.0f);
-				ImGui::SliderInt("Blur Count", &ShaderArgs::SSR::BlurCount, 0, 8);
-
-				ImGui::Text("View");
-				ImGui::SliderFloat("Ray Length", &ShaderArgs::SSR::View::RayLength, 1.0f, 64.0f);
-				ImGui::SliderFloat("Noise Intensity", &ShaderArgs::SSR::View::NoiseIntensity, 0.1f, 0.001f);
-				ImGui::SliderInt("Step Count", &ShaderArgs::SSR::View::StepCount, 1, 32);
-				ImGui::SliderInt("Back Step Count", &ShaderArgs::SSR::View::BackStepCount, 1, 16);
-				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::SSR::View::DepthThreshold, 0.1f, 10.0f);
-
-				ImGui::Text("Screen");
-				ImGui::SliderFloat("Thickness", &ShaderArgs::SSR::Screen::Thickness, 0.01f, 1.0f);
-				ImGui::SliderFloat("Resolution", &ShaderArgs::SSR::Screen::Resolution, 0.0f, 1.0f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Tone Mapping")) {
-				ImGui::SliderFloat("Exposure", &ShaderArgs::ToneMapping::Exposure, 0.1f, 10.0f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Gamma Correction")) {
-				ImGui::SliderFloat("Gamma", &ShaderArgs::GammaCorrection::Gamma, 0.1f, 10.0f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Pixelization")) {
-				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.0f, 20.0f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Sharpen")) {
-				ImGui::SliderFloat("Amount", &ShaderArgs::Sharpen::Amount, 0.0f, 10.0f);
-
-				ImGui::TreePop();
-			}
-			if (ImGui::TreeNode("Raytraced Reflection")) {
-				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::UseSmoothingVariance));
-				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur));
-				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur));
-				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RaytracedReflection::Denoiser::LowTsppBlurPasses), 1, 8);
-
-				ImGui::TreePop();
-			}
-		}
-
-		ImGui::End();
-	}
-	;// Light Panel
-	{
-		ImGui::Begin("Light Panel");
-		ImGui::NewLine();
-
-		for (UINT i = 0; i < mLightCount; ++i) {
-			auto& light = mLights[i];
-			if (light.Type == LightType::E_Directional) {
-				if (ImGui::TreeNode((std::to_string(i) + " Directional Light").c_str())) {
-					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
-						XMVECTOR dir = XMLoadFloat3(&light.Direction);
-						XMVECTOR normalized = XMVector3Normalize(dir);
-						XMStoreFloat3(&light.Direction, normalized);
-					}
-
-					ImGui::TreePop();
-				}
-			}
-			else if (light.Type == LightType::E_Point) {
-				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
-					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
-
-					ImGui::TreePop();
-				}
-			}
-			else if (light.Type == LightType::E_Spot) {
-				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
-					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
-						XMVECTOR dir = XMLoadFloat3(&light.Direction);
-						XMVECTOR normalized = XMVector3Normalize(dir);
-						XMStoreFloat3(&light.Direction, normalized);
-					}
-					ImGui::SliderFloat("Inner Cone Angle", &light.InnerConeAngle, 0, 80.0f);
-					ImGui::SliderFloat("Outer Cone Angle", &light.OuterConeAngle, 0, 80.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
-
-					ImGui::TreePop();
-				}
-			}
-			else if (light.Type == LightType::E_Tube) {
-				if (ImGui::TreeNode((std::to_string(i) + " Tube Light").c_str())) {
-					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Position0", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat3("Position1", reinterpret_cast<FLOAT*>(&light.Position1), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
-
-					ImGui::TreePop();
-				}
-			}
-			else if (light.Type == LightType::E_Rect) {
-				if (ImGui::TreeNode((std::to_string(i) + " Rect Light").c_str())) {
-					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Center", reinterpret_cast<FLOAT*>(&light.Center), -100.0f, 100.0f, "%.3f");
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
-						XMVECTOR dir = XMLoadFloat3(&light.Direction);
-						XMVECTOR normalized = XMVector3Normalize(dir);
-						XMStoreFloat3(&light.Direction, normalized);
-					}
-					ImGui::SliderFloat2("Size", reinterpret_cast<FLOAT*>(&light.Size), 0.0f, 100.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
-
-					ImGui::TreePop();
-				}
-			}
-		}
-
-		if (mLightCount < MaxLights) {
-			if (ImGui::Button("Directional")) {
-				auto& light = mLights[mLightCount];
-				light.Type = LightType::E_Directional;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.Direction = { 0.0f, -1.0f, 0.0f };
-
-				mZDepth->AddLight(light.Type, mLightCount++);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Point")) {
-				auto& light = mLights[mLightCount];
-				light.Type = LightType::E_Point;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Radius = 1.0f;
-
-				mZDepth->AddLight(light.Type, mLightCount++);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Spot")) {
-				auto& light = mLights[mLightCount];
-				light.Type = LightType::E_Spot;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Direction = { 0.0f, -1.0f, 0.0f };
-				light.InnerConeAngle = 1.0f;
-				light.OuterConeAngle = 45.0f;
-
-				mZDepth->AddLight(light.Type, mLightCount++);
-			}
-			if (ImGui::Button("Tube")) {
-				auto& light = mLights[mLightCount];
-				light.Type = LightType::E_Tube;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Position1 = { 1.0f, 0.0f, 0.0f };
-				light.Radius = 1.0f;
-
-				mZDepth->AddLight(light.Type, mLightCount++);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Rect")) {
-				auto& light = mLights[mLightCount];
-				light.Type = LightType::E_Rect;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Center    = {  0.0f,  2.0f,  0.0f };
-				light.Position  = { -0.5f,  2.0f, -0.5f };
-				light.Position1 = {  0.5f,  2.0f, -0.5f };
-				light.Position2 = {  0.5f,  2.0f,  0.5f };
-				light.Position3 = { -0.5f,  2.0f,  0.5f };
-				light.Direction = {  0.0f, -1.0f,  0.0f };
-				light.Size = { 1.0f, 1.0f };
-
-				mZDepth->AddLight(light.Type, mLightCount++);
-			}
-		}
-
-		ImGui::End();
-	}
-	;// Reference Panel
-	{
-		ImGui::Begin("Reference Panel");
-		ImGui::NewLine();
-
-		if (mPickedRitem != nullptr) {
-			auto mat = mPickedRitem->Material;
-			ImGui::Text(mPickedRitem->Geometry->Name.c_str());
-
-			FLOAT albedo[4] = { mat->Albedo.x, mat->Albedo.y, mat->Albedo.z, mat->Albedo.w };
-			if (ImGui::ColorPicker4("Albedo", albedo)) {
-				mat->Albedo.x = albedo[0];
-				mat->Albedo.y = albedo[1];
-				mat->Albedo.z = albedo[2];
-				mat->Albedo.w = albedo[3];
-			}			
-			ImGui::SliderFloat("Roughness", &mat->Roughness, 0.001f, 0.999f);
-			ImGui::SliderFloat("Metalic", &mat->Metailic, 0.0f, 1.0f);
-			ImGui::SliderFloat("Specular", &mat->Specular, 0.0f, 1.0f);
-		}
-
-		ImGui::End();
-	}
-
-	ImGui::Render();
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList);
-
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-
+	
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
 
@@ -3537,6 +2916,652 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 			}
 		}
 	}
+
+	CheckHRESULT(cmdList->Close());
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
+
+	return TRUE;
+}
+
+BOOL DxRenderer::DrawDebuggingInfo() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	mDebugMap->Run(
+		cmdList,
+		mScreenViewport,
+		mScissorRect,
+		mSwapChainBuffer->CurrentBackBuffer(),
+		mCurrFrameResource->CB_DebugMap.Resource()->GetGPUVirtualAddress(),
+		mSwapChainBuffer->CurrentBackBufferRtv(),
+		DepthStencilView()
+	);
+
+	if (ShaderArgs::Debug::ShowCollisionBox) {
+		mDebugCollision->Run(
+			cmdList,
+			mScreenViewport,
+			mScissorRect,
+			mSwapChainBuffer->CurrentBackBuffer(),
+			mSwapChainBuffer->CurrentBackBufferRtv(),
+			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
+			mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress(),
+			D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object)),
+			mRitemRefs[RenderType::E_Opaque]
+		);
+	}
+
+	CheckHRESULT(cmdList->Close());
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
+
+	return TRUE;
+}
+
+BOOL DxRenderer::DrawImGui() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+	cmdList->RSSetViewports(1, &mScreenViewport);
+	cmdList->RSSetScissorRects(1, &mScissorRect);
+
+	const auto backBuffer = mSwapChainBuffer->CurrentBackBuffer();
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	const auto backBufferRtv = mSwapChainBuffer->CurrentBackBufferRtv();
+	cmdList->OMSetRenderTargets(1, &backBufferRtv, true, nullptr);
+
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	static const auto BuildDebugMap = [&](BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type) {
+		if (mode) { if (!mDebugMap->AddDebugMap(handle, type)) mode = FALSE; }
+		else { mDebugMap->RemoveDebugMap(handle); }
+	};
+	static const auto BuildDebugMapWithSampleDesc = [&](
+		BOOL& mode, D3D12_GPU_DESCRIPTOR_HANDLE handle, DebugMap::SampleMask::Type type, DebugMapSampleDesc desc) {
+			if (mode) { if (!mDebugMap->AddDebugMap(handle, type, desc)) mode = FALSE; }
+			else { mDebugMap->RemoveDebugMap(handle); }
+	};
+
+	// Main Panel
+	{
+		ImGui::Begin("Main Panel");
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::NewLine();
+
+		if (ImGui::CollapsingHeader("Debug")) {
+			if (ImGui::TreeNode("Texture Maps")) {
+				if (ImGui::TreeNode("G-Buffer")) {
+					if (ImGui::Checkbox("Albedo", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Albedo]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Albedo],
+							mGBuffer->AlbedoMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Normal", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Normal]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Normal],
+							mGBuffer->NormalMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Depth", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Depth]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Depth],
+							mGBuffer->DepthMapSrv(),
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::Checkbox("RoughnessMetalicSpecular", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RMS]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_RMS],
+							mGBuffer->RMSMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Velocity", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Velocity]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Velocity],
+							mGBuffer->VelocityMapSrv(),
+							DebugMap::SampleMask::RG);
+					}
+					ImGui::TreePop();
+				} // ImGui::TreeNode("G-Buffer")
+				if (ImGui::TreeNode("Irradiance")) {
+					if (ImGui::Checkbox("Equirectangular Map",
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Equirectangular]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_Equirectangular],
+							mIrradianceMap->EquirectangularMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Temporary Equirectangular Map",
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_TemporaryEquirectangular],
+							mIrradianceMap->TemporaryEquirectangularMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					if (ImGui::Checkbox("Diffuse Irradiance Equirectangular Map",
+						reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_DiffuseIrradianceEquirect],
+							mIrradianceMap->DiffuseIrradianceEquirectMapSrv(),
+							DebugMap::SampleMask::RGB);
+					}
+					ImGui::TreePop(); // ImGui::TreeNode("Irradiance")
+				}
+				if (ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Bloom]))) {
+					BuildDebugMap(
+						mDebugMapStates[DebugMapLayout::E_Bloom],
+						mBloom->BloomMapSrv(0),
+						DebugMap::SampleMask::RGB);
+				}
+
+				if (ImGui::TreeNode("Rasterization")) {
+					if (ImGui::TreeNode("Shadow")) {
+						auto debug = mShadow->DebugShadowMap();
+						if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(debug))) {
+							BuildDebugMap(
+								*debug,
+								mShadow->Srv(Shadow::Descriptor::ESI_Shadow),
+								DebugMap::SampleMask::RRR);
+						}
+
+						ImGui::TreePop();
+					}
+					if (ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSAO]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_SSAO],
+							mSSAO->AOCoefficientMapSrv(0),
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_SSR]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_SSR],
+							mSSR->SSRMapSrv(0),
+							DebugMap::SampleMask::RGB);
+					}
+
+					ImGui::TreePop();
+				}
+				if (ImGui::TreeNode("Raytracing")) {
+					if (ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_DxrShadow]))) {
+						BuildDebugMap(
+							mDebugMapStates[DebugMapLayout::E_DxrShadow],
+							mDxrShadow->Descriptor(),
+							DebugMap::SampleMask::RRR);
+					}
+					if (ImGui::TreeNode("RTAO")) {
+						auto index = mRTAO->TemporalCurrentFrameResourceIndex();
+
+						if (ImGui::Checkbox("AO Coefficients", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_AOCoeff]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_AOCoeff],
+								mRTAO->AOResourceGpuDescriptors()[RTAO::Descriptor::AO::ES_AmbientCoefficient],
+								DebugMap::SampleMask::RRR);
+						}
+						if (ImGui::Checkbox("Temporal AO Coefficients",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_TemporalAOCoeff],
+								mRTAO->TemporalAOCoefficientGpuDescriptors()[index][RTAO::Descriptor::TemporalAOCoefficient::Srv],
+								DebugMap::SampleMask::RRR);
+						}
+						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.Denominator = 22.0f;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_Tspp],
+								mRTAO->TemporalCacheGpuDescriptors()[index][RTAO::Descriptor::TemporalCache::ES_Tspp],
+								DebugMap::SampleMask::UINT,
+								desc);
+						}
+						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RayHitDist]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_RayHitDist],
+								mRTAO->AOResourceGpuDescriptors()[RTAO::Descriptor::AO::ES_RayHitDistance],
+								DebugMap::SampleMask::FLOAT,
+								desc);
+						}
+						if (ImGui::Checkbox("Temporal Ray Hit Distance",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
+								mRTAO->TemporalCacheGpuDescriptors()[index][RTAO::Descriptor::TemporalCache::ES_RayHitDistance],
+								DebugMap::SampleMask::FLOAT,
+								desc);
+						}
+
+						ImGui::TreePop(); // ImGui::TreeNode("RTAO")
+					}
+					if (ImGui::TreeNode("Raytraced Reflection")) {
+						auto index = mRR->TemporalCurrentFrameResourceIndex();
+
+						if (ImGui::Checkbox("Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_Reflection]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_RR_Reflection],
+								mRR->ReflectionMapSrv(),
+								DebugMap::SampleMask::RGB);
+						}
+						if (ImGui::Checkbox("Temporal Reflection", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_TemporalReflection]))) {
+							BuildDebugMap(
+								mDebugMapStates[DebugMapLayout::E_RR_TemporalReflection],
+								mRR->ResolvedReflectionSrv(),
+								DebugMap::SampleMask::RGB);
+						}
+						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_Tspp]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.Denominator = 22.0f;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_RR_Tspp],
+								mRR->TemporalCacheGpuDescriptors()[index][RaytracedReflection::Descriptor::TemporalCache::ES_Tspp],
+								DebugMap::SampleMask::UINT,
+								desc);
+						}
+						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_RayHitDist]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_RR_RayHitDist],
+								mRR->ReflectionGpuDescriptors()[RaytracedReflection::Descriptor::Reflection::ES_RayHitDistance],
+								DebugMap::SampleMask::FLOAT,
+								desc);
+						}
+						if (ImGui::Checkbox("Temporal Ray Hit Distance",
+							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_TemporalRayHitDist]))) {
+							DebugMapSampleDesc desc;
+							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
+							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
+
+							BuildDebugMapWithSampleDesc(
+								mDebugMapStates[DebugMapLayout::E_RR_TemporalRayHitDist],
+								mRR->TemporalCacheGpuDescriptors()[index][RaytracedReflection::Descriptor::TemporalCache::ES_RayHitDistance],
+								DebugMap::SampleMask::FLOAT,
+								desc);
+						}
+
+						ImGui::TreePop(); // ImGui::TreeNode("Raytraced Reflection")
+					}
+
+					ImGui::TreePop(); // ImGui::TreeNode("RTAO")
+				}
+
+				ImGui::TreePop(); // ImGui::TreeNode("Texture Maps")
+			}
+
+			ImGui::Checkbox("Show Collision Box", reinterpret_cast<bool*>(&ShaderArgs::Debug::ShowCollisionBox));
+		}
+		if (ImGui::CollapsingHeader("Effects")) {
+			ImGui::Checkbox("TAA", reinterpret_cast<bool*>(&bTaaEnabled));
+			ImGui::Checkbox("Motion Blur", reinterpret_cast<bool*>(&bMotionBlurEnabled));
+			ImGui::Checkbox("Depth of Field", reinterpret_cast<bool*>(&bDepthOfFieldEnabled));
+			ImGui::Checkbox("Bloom", reinterpret_cast<bool*>(&bBloomEnabled));
+			ImGui::Checkbox("Gamma Correction", reinterpret_cast<bool*>(&bGammaCorrectionEnabled));
+			ImGui::Checkbox("Tone Mapping", reinterpret_cast<bool*>(&bToneMappingEnabled));
+			ImGui::Checkbox("Pixelation", reinterpret_cast<bool*>(&bPixelationEnabled));
+			ImGui::Checkbox("Sharpen", reinterpret_cast<bool*>(&bSharpenEnabled));
+
+			if (ImGui::TreeNode("Rasterization")) {
+				ImGui::Checkbox("Shadow", reinterpret_cast<bool*>(&bShadowEnabled));
+				ImGui::Checkbox("SSAO", reinterpret_cast<bool*>(&bSsaoEnabled));
+				ImGui::Checkbox("SSR", reinterpret_cast<bool*>(&bSsrEnabled));
+
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Raytracing")) {
+
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::CollapsingHeader("BRDF")) {
+			ImGui::RadioButton("Blinn-Phong", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_BlinnPhong); ImGui::SameLine();
+			ImGui::RadioButton("Cook-Torrance", reinterpret_cast<INT*>(&mBRDF->ModelType), BRDF::Model::E_CookTorrance);
+
+		}
+		if (ImGui::CollapsingHeader("Environment")) {
+			ImGui::Checkbox("Show Irradiance CubeMap", reinterpret_cast<bool*>(&ShaderArgs::IrradianceMap::ShowIrradianceCubeMap));
+			if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
+				ImGui::RadioButton(
+					"Environment CubeMap",
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DebugCube::E_EnvironmentCube);
+				ImGui::RadioButton(
+					"Equirectangular Map",
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DebugCube::E_Equirectangular);
+				ImGui::RadioButton(
+					"Diffuse Irradiance CubeMap",
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DebugCube::E_DiffuseIrradianceCube);
+				ImGui::RadioButton(
+					"Prefiltered Irradiance CubeMap",
+					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
+					IrradianceMap::DebugCube::E_PrefilteredIrradianceCube);
+				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel - 1);
+			}
+		}
+
+		ImGui::End();
+	}
+	;// Sub Panel
+	{
+		ImGui::Begin("Sub Panel");
+		ImGui::NewLine();
+
+		if (ImGui::CollapsingHeader("Pre Pass")) {
+			if (ImGui::TreeNode("SSAO")) {
+				ImGui::SliderInt("Sample Count", &ShaderArgs::SSAO::SampleCount, 1, 32);
+				ImGui::SliderInt("Number of Blurs", &ShaderArgs::SSAO::BlurCount, 0, 8);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("SVGF")) {
+				ImGui::Checkbox("Clamp Cached Values", reinterpret_cast<bool*>(&ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping));
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("RTAO")) {
+				ImGui::SliderInt("Sample Count", reinterpret_cast<int*>(&ShaderArgs::RTAO::SampleCount), 1, 4);
+				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::UseSmoothingVariance));
+				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::DisocclusionBlur));
+				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::FullscreenBlur));
+				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RTAO::Denoiser::LowTsppBlurPasses), 1, 8);
+
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::CollapsingHeader("Main Pass")) {
+			if (ImGui::TreeNode("Dithering Transparency")) {
+				ImGui::SliderFloat("Max Distance", &ShaderArgs::GBuffer::Dither::MaxDistance, 0.1f, 10.0f);
+				ImGui::SliderFloat("Min Distance", &ShaderArgs::GBuffer::Dither::MinDistance, 0.01f, 1.0f);
+
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::CollapsingHeader("Post Pass")) {
+			if (ImGui::TreeNode("TAA")) {
+				ImGui::SliderFloat("Modulation Factor", &ShaderArgs::TemporalAA::ModulationFactor, 0.1f, 0.9f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Motion Blur")) {
+				ImGui::SliderFloat("Intensity", &ShaderArgs::MotionBlur::Intensity, 0.01f, 0.1f);
+				ImGui::SliderFloat("Limit", &ShaderArgs::MotionBlur::Limit, 0.001f, 0.01f);
+				ImGui::SliderFloat("Depth Bias", &ShaderArgs::MotionBlur::DepthBias, 0.001f, 0.01f);
+				ImGui::SliderInt("Sample Count", &ShaderArgs::MotionBlur::SampleCount, 1, 32);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Depth of Field")) {
+				ImGui::SliderFloat("Focus Range", &ShaderArgs::DepthOfField::FocusRange, 0.1f, 100.0f);
+				ImGui::SliderFloat("Focusing Speed", &ShaderArgs::DepthOfField::FocusingSpeed, 1.0f, 10.0f);
+				ImGui::SliderFloat("Bokeh Radius", &ShaderArgs::DepthOfField::BokehRadius, 1.0f, 8.0f);
+				ImGui::SliderFloat("CoC Max Deviation Tolerance", &ShaderArgs::DepthOfField::CoCMaxDevTolerance, 0.1f, 0.9f);
+				ImGui::SliderFloat("Highlight Power", &ShaderArgs::DepthOfField::HighlightPower, 1.0f, 32.0f);
+				ImGui::SliderInt("Sample Count", &ShaderArgs::DepthOfField::SampleCount, 1, 8);
+				ImGui::SliderInt("Blur Count", &ShaderArgs::DepthOfField::BlurCount, 0, 8);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Bloom")) {
+				ImGui::SliderInt("Blur Count", &ShaderArgs::Bloom::BlurCount, 0, 8);
+				ImGui::SliderFloat("Highlight Threshold", &ShaderArgs::Bloom::HighlightThreshold, 0.1f, 0.99f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("SSR")) {
+				ImGui::RadioButton("Screen Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ScreenSpace); ImGui::SameLine();
+				ImGui::RadioButton("View Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ViewSpace);
+
+				ImGui::SliderFloat("Max Distance", &ShaderArgs::SSR::MaxDistance, 1.0f, 100.0f);
+				ImGui::SliderInt("Blur Count", &ShaderArgs::SSR::BlurCount, 0, 8);
+
+				ImGui::Text("View");
+				ImGui::SliderFloat("Ray Length", &ShaderArgs::SSR::View::RayLength, 1.0f, 64.0f);
+				ImGui::SliderFloat("Noise Intensity", &ShaderArgs::SSR::View::NoiseIntensity, 0.1f, 0.001f);
+				ImGui::SliderInt("Step Count", &ShaderArgs::SSR::View::StepCount, 1, 32);
+				ImGui::SliderInt("Back Step Count", &ShaderArgs::SSR::View::BackStepCount, 1, 16);
+				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::SSR::View::DepthThreshold, 0.1f, 10.0f);
+
+				ImGui::Text("Screen");
+				ImGui::SliderFloat("Thickness", &ShaderArgs::SSR::Screen::Thickness, 0.01f, 1.0f);
+				ImGui::SliderFloat("Resolution", &ShaderArgs::SSR::Screen::Resolution, 0.0f, 1.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Tone Mapping")) {
+				ImGui::SliderFloat("Exposure", &ShaderArgs::ToneMapping::Exposure, 0.1f, 10.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Gamma Correction")) {
+				ImGui::SliderFloat("Gamma", &ShaderArgs::GammaCorrection::Gamma, 0.1f, 10.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Pixelization")) {
+				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.0f, 20.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Sharpen")) {
+				ImGui::SliderFloat("Amount", &ShaderArgs::Sharpen::Amount, 0.0f, 10.0f);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Raytraced Reflection")) {
+				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::UseSmoothingVariance));
+				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur));
+				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur));
+				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RaytracedReflection::Denoiser::LowTsppBlurPasses), 1, 8);
+
+				ImGui::TreePop();
+			}
+		}
+
+		ImGui::End();
+	}
+	;// Light Panel
+	{
+		ImGui::Begin("Light Panel");
+		ImGui::NewLine();
+
+		for (UINT i = 0; i < mLightCount; ++i) {
+			auto& light = mLights[i];
+			if (light.Type == LightType::E_Directional) {
+				if (ImGui::TreeNode((std::to_string(i) + " Directional Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+						XMVECTOR dir = XMLoadFloat3(&light.Direction);
+						XMVECTOR normalized = XMVector3Normalize(dir);
+						XMStoreFloat3(&light.Direction, normalized);
+					}
+
+					ImGui::TreePop();
+				}
+			}
+			else if (light.Type == LightType::E_Point) {
+				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
+			else if (light.Type == LightType::E_Spot) {
+				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+						XMVECTOR dir = XMLoadFloat3(&light.Direction);
+						XMVECTOR normalized = XMVector3Normalize(dir);
+						XMStoreFloat3(&light.Direction, normalized);
+					}
+					ImGui::SliderFloat("Inner Cone Angle", &light.InnerConeAngle, 0, 80.0f);
+					ImGui::SliderFloat("Outer Cone Angle", &light.OuterConeAngle, 0, 80.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
+			else if (light.Type == LightType::E_Tube) {
+				if (ImGui::TreeNode((std::to_string(i) + " Tube Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
+					ImGui::SliderFloat3("Position0", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat3("Position1", reinterpret_cast<FLOAT*>(&light.Position1), -100.0f, 100.0f, "%.3f");
+					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
+			else if (light.Type == LightType::E_Rect) {
+				if (ImGui::TreeNode((std::to_string(i) + " Rect Light").c_str())) {
+					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
+					ImGui::SliderFloat3("Center", reinterpret_cast<FLOAT*>(&light.Center), -100.0f, 100.0f, "%.3f");
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+						XMVECTOR dir = XMLoadFloat3(&light.Direction);
+						XMVECTOR normalized = XMVector3Normalize(dir);
+						XMStoreFloat3(&light.Direction, normalized);
+					}
+					ImGui::SliderFloat2("Size", reinterpret_cast<FLOAT*>(&light.Size), 0.0f, 100.0f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+
+					ImGui::TreePop();
+				}
+			}
+		}
+
+		if (mLightCount < MaxLights) {
+			if (ImGui::Button("Directional")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Directional;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Intensity = 1.0f;
+				light.Direction = { 0.0f, -1.0f, 0.0f };
+
+				mZDepth->AddLight(light.Type, mLightCount++);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Point")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Point;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Intensity = 1.0f;
+				light.AttenuationRadius = 50.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Radius = 1.0f;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Spot")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Spot;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Intensity = 1.0f;
+				light.AttenuationRadius = 50.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Direction = { 0.0f, -1.0f, 0.0f };
+				light.InnerConeAngle = 1.0f;
+				light.OuterConeAngle = 45.0f;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
+			}
+			if (ImGui::Button("Tube")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Tube;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Intensity = 1.0f;
+				light.AttenuationRadius = 50.0f;
+				light.Position = { 0.0f, 0.0f, 0.0f };
+				light.Position1 = { 1.0f, 0.0f, 0.0f };
+				light.Radius = 1.0f;
+
+				mZDepth->AddLight(light.Type, mLightCount++);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Rect")) {
+				auto& light = mLights[mLightCount];
+				light.Type = LightType::E_Rect;
+				light.Color = { 1.0f, 1.0f, 1.0f };
+				light.Intensity = 1.0f;
+				light.AttenuationRadius = 50.0f;
+				light.Center = { 0.0f,  2.0f,  0.0f };
+				light.Position = { -0.5f,  2.0f, -0.5f };
+				light.Position1 = { 0.5f,  2.0f, -0.5f };
+				light.Position2 = { 0.5f,  2.0f,  0.5f };
+				light.Position3 = { -0.5f,  2.0f,  0.5f };
+				light.Direction = { 0.0f, -1.0f,  0.0f };
+				light.Size = { 1.0f, 1.0f };
+
+				mZDepth->AddLight(light.Type, mLightCount++);
+			}
+		}
+
+		ImGui::End();
+	}
+	;// Reference Panel
+	{
+		ImGui::Begin("Reference Panel");
+		ImGui::NewLine();
+
+		if (mPickedRitem != nullptr) {
+			auto mat = mPickedRitem->Material;
+			ImGui::Text(mPickedRitem->Geometry->Name.c_str());
+
+			FLOAT albedo[4] = { mat->Albedo.x, mat->Albedo.y, mat->Albedo.z, mat->Albedo.w };
+			if (ImGui::ColorPicker4("Albedo", albedo)) {
+				mat->Albedo.x = albedo[0];
+				mat->Albedo.y = albedo[1];
+				mat->Albedo.z = albedo[2];
+				mat->Albedo.w = albedo[3];
+			}
+			ImGui::SliderFloat("Roughness", &mat->Roughness, 0.001f, 0.999f);
+			ImGui::SliderFloat("Metalic", &mat->Metailic, 0.0f, 1.0f);
+			ImGui::SliderFloat("Specular", &mat->Specular, 0.0f, 1.0f);
+		}
+
+		ImGui::End();
+	}
+
+	ImGui::Render();
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmdList);
+
+	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
 	CheckHRESULT(cmdList->Close());
 	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <d3dx12.h>
-#include <unordered_map>
-#include <array>
 #include <wrl.h>
 
 #include "Samplers.h"
@@ -12,6 +10,41 @@ class ShaderManager;
 class GpuResource;
 
 namespace VolumetricLight {
+	namespace RootSignature {
+		enum {
+			E_CalcScatteringAndDensity = 0,
+			Count
+		};
+
+		namespace CalcScatteringAndDensity {
+			enum {
+				ECB_Pass = 0,
+				EC_Consts,
+				ESI_ZDepth,
+				ESI_ZDepthCube,
+				ESI_FaceIDCube,
+				EUO_FrustumVolume,
+				Count
+			};
+
+			namespace RootConstant {
+				enum {
+					E_NearPlane = 0,
+					E_FarPlane,
+					E_DepthExponent,
+					Count
+				};
+			}
+		}
+	}
+
+	namespace PipelineState {
+		enum {
+			EC_CalcScatteringAndDensity = 0,
+			Count
+		};
+	}
+
 	class VolumetricLightClass {
 	public:
 		VolumetricLightClass();
@@ -24,6 +57,13 @@ namespace VolumetricLight {
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
+		void Run(
+			ID3D12GraphicsCommandList* const cmdList,
+			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_zdepth,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_zdepthCube,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_faceIDCube,
+			FLOAT nearZ, FLOAT farZ);
 
 		void BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
@@ -31,17 +71,21 @@ namespace VolumetricLight {
 			UINT descSize);
 
 	private:
+		void BuildDescriptors();
+		BOOL BuildResources();
+
+	private:
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignatures[RootSignature::Count];
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSOs[PipelineState::Count];
 
-		std::unique_ptr<GpuResource> mVolumetricLightMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhVolumetricLightMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhVolumetricLightMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhVolumetricLightMapCpuUav;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhVolumetricLightMapGpuUav;
+		std::unique_ptr<GpuResource> mFrustumMap;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFrustumMapCpuSrv;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhFrustumMapGpuSrv;
+		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFrustumMapCpuUav;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE mhFrustumMapGpuUav;
 
 		UINT mWidth;
 		UINT mHeight;

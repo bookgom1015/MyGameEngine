@@ -10,76 +10,91 @@ using namespace Microsoft::WRL;
 
 const size_t D3D12Util::SizeOfUint = sizeof(UINT);
 
-BOOL D3D12Util::LoadBinary(const std::wstring& inFilename, ComPtr<ID3DBlob>& outBlob) {
-	std::ifstream fin(inFilename, std::ios::binary);
+UINT D3D12Util::CalcConstantBufferByteSize(UINT byteSize) {
+	// Constant buffers must be a multiple of the minimum hardware
+	// allocation size (usually 256 bytes).  So round up to nearest
+	// multiple of 256.  We do this by adding 255 and then masking off
+	// the lower 2 bytes which store all bits < 256.
+	// Example: Suppose byteSize = 300.
+	// (300 + 255) & ~255
+	// 555 & ~255
+	// 0x022B & ~0x00ff
+	// 0x022B & 0xff00
+	// 0x0200
+	// 512
+	return (byteSize + 255) & ~255;
+}
+
+BOOL D3D12Util::LoadBinary(const std::wstring& filename, ComPtr<ID3DBlob>& blob) {
+	std::ifstream fin(filename, std::ios::binary);
 
 	fin.seekg(0, std::ios_base::end);
 	std::ifstream::pos_type size = static_cast<INT>(fin.tellg());
 	fin.seekg(0, std::ios_base::beg);
 
-	CheckHRESULT(D3DCreateBlob(size, outBlob.GetAddressOf()));
+	CheckHRESULT(D3DCreateBlob(size, blob.GetAddressOf()));
 
-	fin.read(reinterpret_cast<char*>(outBlob->GetBufferPointer()), size);
+	fin.read(reinterpret_cast<char*>(blob->GetBufferPointer()), size);
 	fin.close();
 
-	return true;
+	return TRUE;
 }
 
 BOOL D3D12Util::CreateDefaultBuffer(
-	ID3D12Device* inDevice,
-	ID3D12GraphicsCommandList* inCmdList,
-	const void* inInitData,
-	UINT64 inByteSize,
-	ComPtr<ID3D12Resource>& outUploadBuffer,
-	ComPtr<ID3D12Resource>& outDefaultBuffer) {
+	ID3D12Device* const device,
+	ID3D12GraphicsCommandList* const cmdList,
+	const void* initData,
+	UINT64 byteSize,
+	ComPtr<ID3D12Resource>& uploadBuffer,
+	ComPtr<ID3D12Resource>& defaultBuffer) {
 	// Create the actual default buffer resource.
-	CheckHRESULT(inDevice->CreateCommittedResource(
+	CheckHRESULT(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(inByteSize),
+		&CD3DX12_RESOURCE_DESC::Buffer(byteSize),
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(outDefaultBuffer.GetAddressOf()))
+		IID_PPV_ARGS(defaultBuffer.GetAddressOf()))
 	);
 
 	// In order to copy CPU memory data into our default buffer, we need to create
 	// an intermediate upload heap. 
-	CheckHRESULT(inDevice->CreateCommittedResource(
+	CheckHRESULT(device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(inByteSize),
+		&CD3DX12_RESOURCE_DESC::Buffer(byteSize),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(outUploadBuffer.GetAddressOf()))
+		IID_PPV_ARGS(uploadBuffer.GetAddressOf()))
 	);
 
 	// Describe the data we want to copy into the default buffer.
 	D3D12_SUBRESOURCE_DATA subResourceData = {};
-	subResourceData.pData = inInitData;
-	subResourceData.RowPitch = inByteSize;
+	subResourceData.pData = initData;
+	subResourceData.RowPitch = byteSize;
 	subResourceData.SlicePitch = subResourceData.RowPitch;
 
 	// Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
 	// will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
 	// the intermediate upload heap data will be copied to mBuffer.
-	inCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(outDefaultBuffer.Get(),
+	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
-	UpdateSubresources<1>(inCmdList, outDefaultBuffer.Get(), outUploadBuffer.Get(), 0, 0, 1, &subResourceData);
-	inCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(outDefaultBuffer.Get(),
+	UpdateSubresources<1>(cmdList, defaultBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &subResourceData);
+	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 
 	// Note: uploadBuffer has to be kept alive after the above function calls because
 	// the command list has not been executed yet that performs the actual copy.
 	// The caller can Release the uploadBuffer after it knows the copy has been executed.
 
-	return true;
+	return TRUE;
 }
 
-BOOL D3D12Util::CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGNATURE_DESC& inRootSignatureDesc, ID3D12RootSignature** ppRootSignature) {
+BOOL D3D12Util::CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, ID3D12RootSignature** rootSignature) {
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 	HRESULT hr = D3D12SerializeRootSignature(
-		&inRootSignatureDesc,
+		&rootSignatureDesc,
 		D3D_ROOT_SIGNATURE_VERSION_1,
 		serializedRootSig.GetAddressOf(),
 		errorBlob.GetAddressOf()
@@ -92,25 +107,25 @@ BOOL D3D12Util::CreateRootSignature(ID3D12Device* pDevice, const D3D12_ROOT_SIGN
 	if (FAILED(hr))
 		ReturnFalse(wsstream.str());
 
-	CheckHRESULT(pDevice->CreateRootSignature(
+	CheckHRESULT(device->CreateRootSignature(
 		0,
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
-		IID_PPV_ARGS(ppRootSignature)
+		IID_PPV_ARGS(rootSignature)
 	));
 
-	return true;
+	return TRUE;
 }
 
-BOOL D3D12Util::CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInfo, ID3D12Resource** ppResource, ID3D12InfoQueue* pInfoQueue) {
+BOOL D3D12Util::CreateBuffer(ID3D12Device* const device, D3D12BufferCreateInfo& info, ID3D12Resource** resource, ID3D12InfoQueue* infoQueue) {
 	D3D12_HEAP_PROPERTIES heapDesc = {};
-	heapDesc.Type = inInfo.HeapType;
+	heapDesc.Type = info.HeapType;
 	heapDesc.CreationNodeMask = 1;
 	heapDesc.VisibleNodeMask = 1;
 
 	D3D12_RESOURCE_DESC resourceDesc = {};
 	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	resourceDesc.Alignment = inInfo.Alignment;
+	resourceDesc.Alignment = info.Alignment;
 	resourceDesc.Height = 1;
 	resourceDesc.DepthOrArraySize = 1;
 	resourceDesc.MipLevels = 1;
@@ -118,40 +133,40 @@ BOOL D3D12Util::CreateBuffer(ID3D12Device* pDevice, D3D12BufferCreateInfo& inInf
 	resourceDesc.SampleDesc.Count = 1;
 	resourceDesc.SampleDesc.Quality = 0;
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	resourceDesc.Width = inInfo.Size;
-	resourceDesc.Flags = inInfo.Flags;
+	resourceDesc.Width = info.Size;
+	resourceDesc.Flags = info.Flags;
 
-	if (pInfoQueue != nullptr) {
-		CheckHRESULT(pDevice->CreateCommittedResource(&heapDesc, inInfo.HeapFlags, &resourceDesc, inInfo.State, nullptr, IID_PPV_ARGS(ppResource)));
+	if (infoQueue != nullptr) {
+		CheckHRESULT(device->CreateCommittedResource(&heapDesc, info.HeapFlags, &resourceDesc, info.State, nullptr, IID_PPV_ARGS(resource)));
 		//CheckHResult(pInfoQueue, pDevice->CreateCommittedResource(&heapDesc, inInfo.HeapFlags, &resourceDesc, inInfo.State, nullptr, IID_PPV_ARGS(ppResource)));
 	}
 	else {
-		CheckHRESULT(pDevice->CreateCommittedResource(&heapDesc, inInfo.HeapFlags, &resourceDesc, inInfo.State, nullptr, IID_PPV_ARGS(ppResource)));
+		CheckHRESULT(device->CreateCommittedResource(&heapDesc, info.HeapFlags, &resourceDesc, info.State, nullptr, IID_PPV_ARGS(resource)));
 	}
 
-	return true;
+	return TRUE;
 }
 
-BOOL D3D12Util::CreateConstantBuffer(ID3D12Device* pDevice, ID3D12Resource** ppResource, UINT64 inSize) {
-	D3D12BufferCreateInfo bufferInfo((inSize + 255) & ~255, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-	CheckHRESULT(CreateBuffer(pDevice, bufferInfo, ppResource));
+BOOL D3D12Util::CreateConstantBuffer(ID3D12Device* const device, ID3D12Resource** resource, UINT64 size) {
+	D3D12BufferCreateInfo bufferInfo((size + 255) & ~255, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+	CheckHRESULT(CreateBuffer(device, bufferInfo, resource));
 
-	return true;
+	return TRUE;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3D12Util::GetCpuHandle(ID3D12DescriptorHeap* descHeap, INT index, UINT descriptorSize) {
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12Util::GetCpuHandle(ID3D12DescriptorHeap* const descHeap, INT index, UINT descriptorSize) {
 	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(descHeap->GetCPUDescriptorHandleForHeapStart());
 	handle.Offset(index, descriptorSize);
 	return handle;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3D12Util::GetGpuHandle(ID3D12DescriptorHeap* descHeap, INT index, UINT descriptorSize) {
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12Util::GetGpuHandle(ID3D12DescriptorHeap* const descHeap, INT index, UINT descriptorSize) {
 	auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(descHeap->GetGPUDescriptorHandleForHeapStart());
 	handle.Offset(index, descriptorSize);
 	return handle;
 }
 
-void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resource) {
+void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* const cmdList, ID3D12Resource* resource) {
 	D3D12_RESOURCE_BARRIER uavBarrier;
 	uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 	uavBarrier.UAV.pResource = resource;
@@ -159,7 +174,7 @@ void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* r
 	cmdList->ResourceBarrier(1, &uavBarrier);
 }
 
-void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* resources[], size_t length) {
+void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* const cmdList, ID3D12Resource* resources[], size_t length) {
 	std::vector<D3D12_RESOURCE_BARRIER> uavBarriers;
 	for (size_t i = 0; i < length; ++i) {
 		D3D12_RESOURCE_BARRIER uavBarrier;
@@ -171,7 +186,7 @@ void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* 
 	cmdList->ResourceBarrier(static_cast<UINT>(uavBarriers.size()), uavBarriers.data());
 }
 
-void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* cmdList, GpuResource* resource) {
+void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* const cmdList, GpuResource* resource) {
 	D3D12_RESOURCE_BARRIER uavBarrier;
 	uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 	uavBarrier.UAV.pResource = resource->Resource();
@@ -179,7 +194,7 @@ void D3D12Util::UavBarrier(ID3D12GraphicsCommandList* cmdList, GpuResource* reso
 	cmdList->ResourceBarrier(1, &uavBarrier);
 }
 
-void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* cmdList, GpuResource* resources[], size_t length) {
+void D3D12Util::UavBarriers(ID3D12GraphicsCommandList* const cmdList, GpuResource* resources[], size_t length) {
 	std::vector<D3D12_RESOURCE_BARRIER> uavBarriers;
 	for (size_t i = 0; i < length; ++i) {
 		D3D12_RESOURCE_BARRIER uavBarrier;

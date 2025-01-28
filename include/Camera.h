@@ -11,6 +11,18 @@ public:
 
 public:
 	__forceinline FLOAT FovY() const;
+	__forceinline FLOAT NearZ() const;
+	__forceinline FLOAT FarZ() const;
+
+	const DirectX::XMFLOAT4X4& View() const;
+	const DirectX::XMFLOAT4X4& Proj() const;
+
+	const DirectX::XMVECTOR& Position() const;
+	DirectX::XMVECTOR Rotation() const;
+
+	const DirectX::XMVECTOR& RightVector() const;
+	const DirectX::XMVECTOR& UpVector() const;
+	const DirectX::XMVECTOR& ForwardVector() const;
 
 public:
 	void UpdateViewMatrix();
@@ -20,17 +32,7 @@ public:
 	void Roll(FLOAT rad);
 
 	void AddPosition(const DirectX::XMVECTOR& pos);
-	const DirectX::XMVECTOR& GetPosition() const;
 	void SetPosition(const DirectX::XMVECTOR& pos);
-
-	const DirectX::XMFLOAT4X4& GetView() const;
-	const DirectX::XMFLOAT4X4& GetProj() const;
-
-	const DirectX::XMVECTOR& GetRightVector() const;
-	const DirectX::XMVECTOR& GetUpVector() const;
-	const DirectX::XMVECTOR& GetForwardVector() const;
-
-	DirectX::XMVECTOR GetRotation() const;
 
 private:
 	DirectX::XMVECTOR mPosition;
@@ -48,6 +50,4 @@ private:
 	DirectX::XMFLOAT4X4 mProj;
 };
 
-FLOAT Camera::FovY() const {
-	return mFovY;
-}
+#include "Camera.inl"

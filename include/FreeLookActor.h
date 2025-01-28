@@ -14,14 +14,15 @@ public:
 	virtual ~FreeLookActor();
 
 public:
+	const DirectX::XMVECTOR& CameraForwardVector() const;
+	const DirectX::XMVECTOR& CameraRightVector() const;
+	const DirectX::XMVECTOR& CameraUpVector() const;
+
+	DirectX::XMVECTOR CameraRotation() const;
+
+public:
 	virtual BOOL ProcessActorInput(const InputState& input) override;
 	virtual BOOL UpdateActor(FLOAT delta) override;
-
-	const DirectX::XMVECTOR& GetCameraForwardVector() const;
-	const DirectX::XMVECTOR& GetCameraRightVector() const;
-	const DirectX::XMVECTOR& GetCameraUpVector() const;
-
-	DirectX::XMVECTOR GetCameraRotation() const;
 
 public:
 	CameraComponent* mCameraComp;

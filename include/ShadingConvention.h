@@ -283,9 +283,9 @@ namespace SVGF {
 	namespace Default {
 		namespace ThreadGroup {
 			enum {
-				Width = 8,
-				Height = 8,
-				Size = Width * Height
+				Width	= 8,
+				Height	= 8,
+				Size	= Width * Height
 			};
 		}
 	}
@@ -293,9 +293,9 @@ namespace SVGF {
 	namespace Atrous {
 		namespace ThreadGroup {
 			enum {
-				Width = 16,
-				Height = 16,
-				Size = Width * Height
+				Width	= 16,
+				Height	= 16,
+				Size	= Width * Height
 		};
 	}
 }
@@ -358,10 +358,20 @@ namespace RaytracedReflection {
 
 namespace VolumetricLight {
 #ifdef HLSL
-	typedef float4 VolumetricLightMapFormat;
+	typedef float4 FrustumMapFormat;
 #else
-	const DXGI_FORMAT VolumetricLightMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	const DXGI_FORMAT FrustumMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 #endif
+	namespace Default {
+		namespace ThreadGroup {
+			enum {
+				Width	= 8,
+				Height	= 8,
+				Depth	= 8,
+				Size	= Width * Height * Depth
+			};
+		}
+	}
 }
 
 namespace MipmapGenerator {

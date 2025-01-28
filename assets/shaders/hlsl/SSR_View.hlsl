@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://lettier.github.io/3d-game-shaders-for-beginners/screen-space-reflection.html
+
 #ifndef __SSR_VIEW_HLSL__
 #define __SSR_VIEW_HLSL__
 
@@ -6,8 +9,9 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "Samplers.hlsli"
 #include "ShadingHelpers.hlsli"
+#include "Samplers.hlsli"
+
 #include "Random.hlsli"
 
 ConstantBuffer<ConstantBuffer_SSR> cb_SSR	: register(b0);

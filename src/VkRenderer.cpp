@@ -1605,7 +1605,7 @@ BOOL VkRenderer::UpdateUniformBuffer(FLOAT delta) {
 		XMStoreFloat3(&mainPass.EyePosW, mCamera->GetPosition());
 		mainPass.AmbientLight = { 0.3f, 0.3f, 0.42f, 1.0f };
 		mainPass.Lights[0].Direction = mLightDir;
-		mainPass.Lights[0].LightColor = { 0.6f, 0.6f, 0.6f };
+		mainPass.Lights[0].Color = { 0.6f, 0.6f, 0.6f };
 
 		void* data;
 		const auto& bufferMemory = mMainPassMemories[mCurentImageIndex];

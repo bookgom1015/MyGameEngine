@@ -24,6 +24,30 @@ CameraComponent::CameraComponent(Actor* owner) : Component(owner) {
 
 CameraComponent::~CameraComponent() {}
 
+const XMVECTOR& CameraComponent::Position() const {
+	return mCamera->Position();
+}
+
+XMVECTOR CameraComponent::Rotation() const {
+	return mCamera->Rotation();
+}
+
+const XMFLOAT4X4& CameraComponent::View() const {
+	return mCamera->View();
+}
+
+const XMVECTOR& CameraComponent::RightVector() const {
+	return mCamera->RightVector();
+}
+
+const XMVECTOR& CameraComponent::UpVector() const {
+	return mCamera->UpVector();
+}
+
+const XMVECTOR& CameraComponent::ForwardVector() const {
+	return mCamera->ForwardVector();
+}
+
 BOOL CameraComponent::OnInitialzing() {
 	GameWorld::GetWorld()->GetRenderer()->SetCamera(mCamera.get());
 
@@ -69,30 +93,6 @@ void CameraComponent::AddPosition(const XMVECTOR& pos) {
 	mCamera->AddPosition(pos);
 }
 
-const XMVECTOR& CameraComponent::GetPosition() const {
-	return mCamera->GetPosition();
-}
-
 void CameraComponent::SetPosition(const XMVECTOR& pos) {
 	mCamera->SetPosition(pos);
-}
-
-const XMFLOAT4X4& CameraComponent::GetView() const {
-	return mCamera->GetView();
-}
-
-const XMVECTOR& CameraComponent::GetRightVector() const {
-	return mCamera->GetRightVector();
-}
-
-const XMVECTOR& CameraComponent::GetUpVector() const {
-	return mCamera->GetUpVector();
-}
-
-const XMVECTOR& CameraComponent::GetForwardVector() const {
-	return mCamera->GetForwardVector();
-}
-
-XMVECTOR CameraComponent::GetRotation() const {
-	return mCamera->GetRotation();
 }

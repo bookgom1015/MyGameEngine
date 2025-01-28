@@ -139,14 +139,16 @@ private:
 	BOOL ApplyGammaCorrection();
 	BOOL ApplySharpen();
 	BOOL ApplyPixelation();
-	BOOL DrawDebuggingInfo();
-	BOOL DrawImGui();
+	BOOL ApplyVolumetricLight();
 
 	BOOL DrawDXRShadow();
 	BOOL DrawDXRBackBuffer();
 	BOOL CalcDepthPartialDerivative();
 	BOOL DrawRTAO();
 	BOOL BuildRaytracedReflection();
+
+	BOOL DrawDebuggingInfo();
+	BOOL DrawImGui();
 
 private:
 	BOOL bIsCleanedUp;

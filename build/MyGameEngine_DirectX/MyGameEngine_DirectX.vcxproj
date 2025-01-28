@@ -330,6 +330,8 @@
     <None Include="..\..\include\Actor.inl" />
     <None Include="..\..\include\Bloom.inl" />
     <None Include="..\..\include\BlurFilter.inl" />
+    <None Include="..\..\include\Camera.inl" />
+    <None Include="..\..\include\D3D12Util.inl" />
     <None Include="..\..\include\DebugMap.inl" />
     <None Include="..\..\include\DepthOfField.inl" />
     <None Include="..\..\include\DxLowRenderer.inl" />
@@ -500,6 +502,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\CalculateScatteringAndDensityCS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\AccumulateScattering.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

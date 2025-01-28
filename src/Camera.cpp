@@ -15,6 +15,38 @@ Camera::Camera(FLOAT nearZ, FLOAT farZ, FLOAT fovY) : bViewDirty(true) {
 	mForward = UnitVector::ForwardVector;
 }
 
+const XMVECTOR& Camera::Position() const {
+	return mPosition;
+}
+
+const XMFLOAT4X4& Camera::View() const {
+	return mView;
+}
+
+const XMFLOAT4X4& Camera::Proj() const {
+	return mProj;
+}
+
+const XMVECTOR& Camera::RightVector() const {
+	return mRight;
+}
+
+const XMVECTOR& Camera::UpVector() const {
+	return mUp;
+}
+
+const XMVECTOR& Camera::ForwardVector() const {
+	return mForward;
+}
+
+XMVECTOR Camera::Rotation() const {
+	return XMQuaternionRotationMatrix(XMMatrixLookAtLH(
+		XMVectorZero(),
+		UnitVector::ForwardVector,
+		mUp
+	));
+}
+
 void Camera::UpdateViewMatrix() {
 	if (!bViewDirty) return;
 	bViewDirty = false;
@@ -73,40 +105,8 @@ void Camera::AddPosition(const XMVECTOR& pos) {
 	bViewDirty = true;
 }
 
-const XMVECTOR& Camera::GetPosition() const {
-	return mPosition;
-}
-
 void Camera::SetPosition(const XMVECTOR& pos) {
 	mPosition = pos;
 
 	bViewDirty = true;
-}
-
-const XMFLOAT4X4& Camera::GetView() const {
-	return mView;
-}
-
-const XMFLOAT4X4& Camera::GetProj() const {
-	return mProj;
-}
-
-const XMVECTOR& Camera::GetRightVector() const {
-	return mRight;
-}
-
-const XMVECTOR& Camera::GetUpVector() const {
-	return mUp;
-}
-
-const XMVECTOR& Camera::GetForwardVector() const {
-	return mForward;
-}
-
-XMVECTOR Camera::GetRotation() const {
-	return XMQuaternionRotationMatrix(XMMatrixLookAtLH(
-		XMVectorZero(),
-		UnitVector::ForwardVector,
-		mUp
-	));
 }

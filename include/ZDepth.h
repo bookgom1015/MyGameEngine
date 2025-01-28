@@ -8,8 +8,6 @@
 #include "Light.h"
 
 namespace ZDepth {
-	static const UINT NumDepthStenciles = MaxLights;
-
 	class ZDepthClass {
 	public:
 		ZDepthClass();
@@ -17,6 +15,11 @@ namespace ZDepth {
 
 	public:
 		__forceinline GpuResource* ZDepthMap(UINT index) const;
+		__forceinline GpuResource* FaceIDCubeMap(UINT index) const;
+
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE ZDepthSrv() const;
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE ZDepthCubeSrv() const;
+		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE FaceIDCubeSrv() const;
 
 	public:
 		BOOL Initialize(ID3D12Device* const device, UINT texW, UINT texH);
@@ -36,11 +39,16 @@ namespace ZDepth {
 		ID3D12Device* md3dDevice;
 
 		std::unique_ptr<GpuResource> mZDepthMaps[MaxLights];
+		std::unique_ptr<GpuResource> mFaceIDCubeMaps[MaxLights];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE mhCpuDescs[MaxLights];
-		D3D12_GPU_DESCRIPTOR_HANDLE mhGpuDescs[MaxLights];
+		D3D12_CPU_DESCRIPTOR_HANDLE mhZDepthCpuDescs[MaxLights];
+		D3D12_GPU_DESCRIPTOR_HANDLE mhZDepthGpuDescs[MaxLights];
 
-		D3D12_CPU_DESCRIPTOR_HANDLE mhCpuDsvs[MaxLights];
+		D3D12_CPU_DESCRIPTOR_HANDLE mhZDepthCubeCpuDescs[MaxLights];
+		D3D12_GPU_DESCRIPTOR_HANDLE mhZDepthCubeGpuDescs[MaxLights];
+
+		D3D12_CPU_DESCRIPTOR_HANDLE mhFaceIDCubeCpuDescs[MaxLights];
+		D3D12_GPU_DESCRIPTOR_HANDLE mhFaceIDCubeGpuDescs[MaxLights];
 
 		UINT mTexWidth;
 		UINT mTexHeight;
@@ -49,4 +57,20 @@ namespace ZDepth {
 
 GpuResource* ZDepth::ZDepthClass::ZDepthMap(UINT index) const {
 	return mZDepthMaps[index].get();
+}
+
+GpuResource* ZDepth::ZDepthClass::FaceIDCubeMap(UINT index) const {
+	return mFaceIDCubeMaps[index].get();
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE ZDepth::ZDepthClass::ZDepthSrv() const {
+	return mhZDepthGpuDescs[0];
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE ZDepth::ZDepthClass::ZDepthCubeSrv() const {
+	return mhZDepthCubeGpuDescs[0];
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE ZDepth::ZDepthClass::FaceIDCubeSrv() const {
+	return mhFaceIDCubeGpuDescs[0];
 }

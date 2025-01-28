@@ -69,8 +69,8 @@ float NdcDepthToViewDepth(float z_ndc, float4x4 proj) {
 	return viewZ;
 }
 
-float NdcDepthToExpViewDepth(float z_ndc, float z_exp, float4x4 proj) {
-	const float viewZ = proj[3][2] / (pow(z_ndc, z_exp) - proj[2][2]);
+float NdcDepthToExpViewDepth(float z_ndc, float z_exp, float near, float far) {
+	const float viewZ = pow(z_ndc, z_exp) * (far - near) + near;
 	return viewZ;
 }
 
@@ -82,19 +82,19 @@ float3 ThreadIdToNdc(uint3 DTid, uint3 dims) {
 	return ndc;
 }
 
-float3 NdcToWorldPosition(float3 ndc, float depthV, float4x4 invViewProj) {
-	float4 rayV = mul(float4(ndc, 1), invViewProj);
+float3 NdcToWorldPosition(float3 ndc, float depthV, float4x4 invView, float4x4 invProj) {
+	float4 rayV = mul(float4(ndc, 1), invProj);
 	rayV /= rayV.w;
 	rayV /= rayV.z; // So as to set the z depth value to 1.
 
-	const float4 posW = mul(float4(rayV.xyz * depthV, 1), invViewProj);
+	const float4 posW = mul(float4(rayV.xyz * depthV, 1), invView);
 	return posW.xyz;
 }
 
-float3 ThreadIdToWorldPosition(uint3 DTid, uint3 dims, float z_exp, float4x4 proj, float4x4 invViewProj) {
+float3 ThreadIdToWorldPosition(uint3 DTid, uint3 dims, float z_exp, float near, float far, float4x4 invView, float4x4 invProj) {
 	const float3 ndc = ThreadIdToNdc(DTid, dims);
-	const float depthV = NdcDepthToExpViewDepth(ndc.z, z_exp, proj);
-	return NdcToWorldPosition(ndc, depthV, invViewProj);
+	const float depthV = NdcDepthToExpViewDepth(ndc.z, z_exp, near, far);
+	return NdcToWorldPosition(ndc, depthV, invView, invProj);
 }
 
 float2 CalcVelocity(float4 curr_pos, float4 prev_pos) {

@@ -5,7 +5,6 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
-#include "HlslCompaction.h"
 
 class ShaderManager;
 
@@ -145,7 +144,8 @@ namespace Shadow {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_texMaps,
 			const std::vector<RenderItem*>& ritems,
-			GpuResource* const zdepth,
+			GpuResource* const dst_zdepth,
+			GpuResource* const dst_faceIDCube,
 			UINT lightType,
 			UINT index);
 
@@ -171,7 +171,8 @@ namespace Shadow {
 			const std::vector<RenderItem*>& ritems);
 		void CopyZDepth(
 			ID3D12GraphicsCommandList* const cmdList,
-			GpuResource*const dst, 
+			GpuResource*const dst_zdepth, 
+			GpuResource* const dst_faceIDCube,
 			BOOL needCubemap);
 		void DrawShadow(
 			ID3D12GraphicsCommandList* const cmdList,

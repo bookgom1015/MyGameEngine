@@ -1,3 +1,10 @@
+// [ References ]
+//  - https://blog.naver.com/PostView.nhn?blogId=daehuck&logNo=220450852220&parentCategoryNo
+//   -- http://www.kode80.com/blog/2015/03/11/screen-space-reflections-in-unity-5/
+//   -- http://www.crytek.com/download/fmx2013_c3_art_tech_donzallaz_sousa.pdf
+//   -- https://books.google.co.kr/books?id=30ZOCgAAQBAJ&pg=PA65&lpg=PA65&dq=rendering+in+thief&source=bl&ots=2YfyfYHFKM&sig=_bczBXj1hRGHEfx81_vciIWV9Mo&hl=ko&sa=X&ved=0CD4Q6AEwBGoVChMIwtWnsYSoxwIViKWUCh2AbQMR#v=onepage&q=rendering%20in%20thief&f=false
+//   -- https://forum.beyond3d.com/threads/screen-space-reflections.47780/
+
 #ifndef __SSR_SCREEN_HLSL__
 #define __SSR_SCREEN_HLSL__
 
@@ -6,8 +13,8 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "Samplers.hlsli"
 #include "ShadingHelpers.hlsli"
+#include "Samplers.hlsli"
 
 ConstantBuffer<ConstantBuffer_SSR> cb_SSR	: register(b0);
 

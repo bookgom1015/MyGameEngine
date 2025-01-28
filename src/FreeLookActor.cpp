@@ -36,6 +36,22 @@ FreeLookActor::FreeLookActor(const std::string& name, const Transform& trans) : 
 
 FreeLookActor::~FreeLookActor() {}
 
+const XMVECTOR& FreeLookActor::CameraForwardVector() const {
+	return mCameraComp->ForwardVector();
+}
+
+const XMVECTOR& FreeLookActor::CameraRightVector() const {
+	return mCameraComp->RightVector();
+}
+
+const XMVECTOR& FreeLookActor::CameraUpVector() const {
+	return mCameraComp->UpVector();
+}
+
+XMVECTOR FreeLookActor::CameraRotation() const {
+	return mCameraComp->Rotation();
+}
+
 BOOL FreeLookActor::ProcessActorInput(const InputState& input) {
 	mForwardSpeed = 0.0f;
 	mStrapeSpeed = 0.0f;
@@ -55,8 +71,8 @@ BOOL FreeLookActor::ProcessActorInput(const InputState& input) {
 }
 
 BOOL FreeLookActor::UpdateActor(FLOAT delta) {
-	XMVECTOR strape = mCameraComp->GetRightVector() * mStrapeSpeed;
-	XMVECTOR forward = mCameraComp->GetForwardVector() * mForwardSpeed;
+	XMVECTOR strape = mCameraComp->RightVector() * mStrapeSpeed;
+	XMVECTOR forward = mCameraComp->ForwardVector() * mForwardSpeed;
 	XMVECTOR disp = strape + forward;
 	
 	FLOAT yaw = mTurnSpeed * mLookSensitivity;
@@ -69,20 +85,4 @@ BOOL FreeLookActor::UpdateActor(FLOAT delta) {
 	mCameraComp->Pitch(pitch);
 
 	return TRUE;
-}
-
-const XMVECTOR& FreeLookActor::GetCameraForwardVector() const {
-	return mCameraComp->GetForwardVector();
-}
-
-const XMVECTOR& FreeLookActor::GetCameraRightVector() const {
-	return mCameraComp->GetRightVector();
-}
-
-const XMVECTOR& FreeLookActor::GetCameraUpVector() const {
-	return mCameraComp->GetUpVector();
-}
-
-XMVECTOR FreeLookActor::GetCameraRotation() const {
-	return mCameraComp->GetRotation();
 }

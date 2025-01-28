@@ -8,19 +8,26 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+
 #include "VolumetricLight.hlsli"
 #include "Shadow.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass>						cb_Pass						: register(b0);
+ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b0);
 
-Texture2DArray<Shadow::FaceIDCubeMapFormat>				gi_FaceIDTexArray			: register(t0);
-Texture2D<Shadow::ZDepthMapFormat>						gi_ZDepth[MaxLights]		: register(t0, space1);
-Texture2DArray<Shadow::ZDepthMapFormat>					gi_ZDepthCube[MaxLights]	: register(t0, space2);
+cbuffer cbRootConstants : register (b1) {
+	float gNearZ;
+	float gFarZ;
+	float gDepthExponent;
+}
 
-RWTexture3D<VolumetricLight::VolumetricLightMapFormat>	go_FrustumVolume			: register(u0);
+Texture2D<Shadow::ZDepthMapFormat>				gi_ZDepth[MaxLights]			: register(t0);
+Texture2DArray<Shadow::ZDepthMapFormat>			gi_ZDepthCube[MaxLights]		: register(t0, space1);
+Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray[MaxLights]	: register(t0, space2);
+
+RWTexture3D<VolumetricLight::FrustumMapFormat>	go_FrustumVolume				: register(u0);
 
 float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
-	uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
+	uint faceID = (uint)gi_FaceIDTexArray[index].SampleLevel(gsamPointClamp, float3(uv, index), 0);
 	switch (faceID) {
 	case 0: return light.Mat0;
 	case 1: return light.Mat1;
@@ -32,15 +39,18 @@ float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
 	}
 }
 
-[numthreads(8, 8, 8)]
+[numthreads(
+	VolumetricLight::Default::ThreadGroup::Width, 
+	VolumetricLight::Default::ThreadGroup::Height, 
+	VolumetricLight::Default::ThreadGroup::Depth)]
 void CS(uint3 DTid : SV_DispatchThreadId) {
 	uint3 dims;
 	go_FrustumVolume.GetDimensions(dims.x, dims.y, dims.z);
 	if (all(DTid >= dims)) return;
 
-	const float2 texc = float2(DTid.x + 0.5 / dims.x, DTid.y + 0.5 / dims.y);
+	const float2 texc = float2((DTid.x + 0.5) / dims.x, (DTid.y + 0.5) / dims.y);
 
-	const float3 posW = ThreadIdToWorldPosition(DTid, dims, 1/*z_exp*/, cb_Pass.Proj, cb_Pass.InvViewProj);
+	const float3 posW = ThreadIdToWorldPosition(DTid, dims, gDepthExponent, gNearZ, gFarZ, cb_Pass.InvView, cb_Pass.InvProj);
 	const float3 toEyeW = normalize(cb_Pass.EyePosW - posW);
 
 	const float density = 1;
@@ -85,7 +95,7 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 			visibility = CalcShadowFactor(gi_ZDepth[i], gsamShadow, light.Mat0, posW);
 		}
 
-		const float phaseFunction = HenyeyGreensteinPhaseFunction(direction, toEyeW, 1/*gAsymmetryParamG*/);
+		const float phaseFunction = HenyeyGreensteinPhaseFunction(direction, toEyeW, 0.5);
 
 		Li += visibility * light.Color * light.Intensity * phaseFunction;
 	}
