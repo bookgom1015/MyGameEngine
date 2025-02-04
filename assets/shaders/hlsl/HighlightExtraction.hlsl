@@ -1,3 +1,11 @@
+// [ References ]
+//  - https://nellfamily.tistory.com/50
+//  - https://sksnxjs.tistory.com/entry/Graphics-Bloom-shader-effect
+//   -- https://en.wikipedia.org/wiki/Bloom_(shader_effect)
+//   -- https://jmhongus2019.wixsite.com/mysite
+//   -- https://learnopengl.com/Advanced-Lighting/Bloom
+//   -- https://learnopengl.com/Advanced-Lighting/Bloom
+
 #ifndef __HIGHLIGHTEXTRACTION_HLSL__
 #define __HIGHLIGHTEXTRACTION_HLSL__
 

@@ -1,11 +1,10 @@
+// [ Descriptions ]
+//  Filters/fills-in invalid values for a checkerboard filled input from neighborhood.
+//  The compute shader is to be run with (width, height / 2) dimension as
+//   it scales Y coordinates by 2 to process only the inactive pixels in the checkerboard filled input.
+
 #ifndef __FILLINCHECKERBOARDCS_HLSL__
 #define __FILLINCHECKERBOARDCS_HLSL__
-
-// ---- Descriptions ----------------------------------------------------------------------------------
-// Filters/fills-in invalid values for a checkerboard filled input from neighborhood.
-// The compute shader is to be run with (width, height / 2) dimension as
-//  it scales Y coordinates by 2 to process only the inactive pixels in the checkerboard filled input.
-// ----------------------------------------------------------------------------------------------------
 
 #ifndef HLSL
 #define HLSL
@@ -13,11 +12,10 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
-#include "RTAO.hlsli"
 
-ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance> cb_LocalMeanVar : register(b0);
+ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance>	cb_LocalMeanVar			: register(b0);
 
-RWTexture2D<float2> gioLocalMeanVarianceMap	: register(u0);
+RWTexture2D<SVGF::LocalMeanVarianceMapFormat>			gioLocalMeanVarianceMap	: register(u0);
 
 // Adjust an index in Y coordinate to a same/next pixel that has an invalid value generated for it.
 int2 GetInactivePixelIndex(int2 pixel) {

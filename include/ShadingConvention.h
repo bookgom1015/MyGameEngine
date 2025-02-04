@@ -43,9 +43,9 @@
 #endif
 
 namespace GBuffer {
-	static const FLOAT InvalidDepthValue = 1.0f;
-	static const FLOAT InvalidNormDepthValue = 0.0f;
-	static const FLOAT InvalidVelocityValue = 1000.0f;	
+	static const FLOAT InvalidDepthValue = 1.f;
+	static const FLOAT InvalidNormDepthValue = 0.f;
+	static const FLOAT InvalidVelocityValue = 1000.f;	
 
 #ifdef HLSL
 	typedef float4								AlbedoMapFormat;
@@ -77,13 +77,13 @@ namespace GBuffer {
 	static const DXGI_FORMAT VelocityMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
 	static const DXGI_FORMAT PositionMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-	const FLOAT AlbedoMapClearValues[4]					= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT NormalMapClearValues[4]					= { 0.0f, 0.0f, 0.0f, -1.0f };
-	const FLOAT NormalDepthMapClearValues[4]			= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT RMSMapClearValues[4]					= { 0.5f, 0.0f, 0.5f, 0.0f };
+	const FLOAT AlbedoMapClearValues[4]					= { 0.f,  0.f, 0.f,  0.f };
+	const FLOAT NormalMapClearValues[4]					= { 0.f,  0.f, 0.f, -1.f };
+	const FLOAT NormalDepthMapClearValues[4]			= { 0.f,  0.f, 0.f,  0.f };
+	const FLOAT RMSMapClearValues[4]					= { 0.5f, 0.f, 0.5f, 0.f };
 	const FLOAT VelocityMapClearValues[2]				= { InvalidVelocityValue, InvalidVelocityValue };
-	const FLOAT ReprojNormalDepthMapClearValues[4]		= { 0.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT PositionMapClearValues[4]				= { 0.0f, 0.0f, 0.0f, -1.0f };
+	const FLOAT ReprojNormalDepthMapClearValues[4]		= { 0.f, 0.f, 0.f,  0.f };
+	const FLOAT PositionMapClearValues[4]				= { 0.f, 0.f, 0.f, -1.f };
 #endif 
 }
 
@@ -95,7 +95,7 @@ namespace Shadow {
 	typedef float	VSDepthCubeMapFormat;
 	typedef float	FaceIDCubeMapFormat;
 
-	static const float	InvalidVSDepth	= -1.0f;
+	static const float	InvalidVSDepth	= -1.f;
 	static const uint	InvalidFaceID	= 255;
 #else 
 	static const DXGI_FORMAT ZDepthMapFormat		= DXGI_FORMAT_D32_FLOAT;
@@ -104,8 +104,8 @@ namespace Shadow {
 	static const DXGI_FORMAT VSDepthCubeMapFormat	= DXGI_FORMAT_R16_FLOAT;
 	static const DXGI_FORMAT FaceIDCubeMapFormat	= DXGI_FORMAT_R16_FLOAT;
 
-	const FLOAT VSDepthCubeMapFormatClearValues[4]	= { -1.0f, 0.0f, 0.0f, 0.0f };
-	const FLOAT FaceIDCubeMapClearValues[4]			= { 255.0f, 0.0f, 0.0f, 0.0f };
+	const FLOAT VSDepthCubeMapFormatClearValues[4]	= { -1.f, 0.f, 0.f, 0.f };
+	const FLOAT FaceIDCubeMapClearValues[4]			= { 255.f, 0.f, 0.f, 0.f };
 #endif 
 	namespace Default {
 		namespace ThreadGroup {
@@ -133,7 +133,7 @@ namespace DepthStencilBuffer {
 	const DXGI_FORMAT BufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 #endif
 
-	static const FLOAT InvalidDepthValue = 1.0f;
+	static const FLOAT InvalidDepthValue = 1.f;
 }
 
 namespace ToneMapping {
@@ -308,6 +308,13 @@ namespace RTAO {
 	typedef uint								TsppMapFormat;
 	typedef float								CoefficientSquaredMeanMapFormat;
 	typedef float								RayHitDistanceFormat;
+
+	static const float RayHitDistanceOnMiss = 0.f;
+	static const float InvalidAOCoefficientValue = -1.f;
+
+	bool HasAORayHitAnyGeometry(float tHit) {
+		return tHit != RayHitDistanceOnMiss;
+	}
 #else
 	const DXGI_FORMAT AOCoefficientMapFormat			= CONTRAST_VALUE_FORMAT;
 	const DXGI_FORMAT NormalDepthMapFormat				= COMPACT_NORMAL_DEPTH_DXGI_FORMAT;
@@ -323,12 +330,21 @@ namespace RaytracedReflection {
 	typedef float					RayHitDistanceFormat;
 	typedef uint					TsppMapFormat;
 	typedef float					CoefficientSquaredMeanMapFormat;
+
+	static const float InvalidReflectionAlphaValue = -1.f;
+	static const float RayHitDistanceOnMiss = 0.f;
+
+	bool HasReflectionRayHitAnyGeometry(float tHit) {
+		return tHit != RayHitDistanceOnMiss;
+	}
 #else
 	const DXGI_FORMAT ReflectionMapFormat				= HDR_COLOR_VALUE_FORMAT;
 	const DXGI_FORMAT RayHitDistanceFormat				= DXGI_FORMAT_R16_FLOAT;
 	const DXGI_FORMAT TsppMapFormat						= DXGI_FORMAT_R8_UINT;
 	const DXGI_FORMAT ReflectionSquaredMeanMapFormat	= DXGI_FORMAT_R8G8B8A8_UNORM;
 #endif
+
+	static const UINT InstanceMask = 0xFF;
 
 	namespace Ray {
 		enum Type {
@@ -337,8 +353,6 @@ namespace RaytracedReflection {
 			Count
 		};
 	}
-
-	static const UINT InstanceMask = 0xFF;
 
 	namespace HitGroup {
 		static const UINT Offset[Ray::Count] = {
@@ -359,16 +373,28 @@ namespace RaytracedReflection {
 namespace VolumetricLight {
 #ifdef HLSL
 	typedef float4 FrustumMapFormat;
+	typedef float4 DebugMapFormat;
 #else
 	const DXGI_FORMAT FrustumMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	const DXGI_FORMAT DebugMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 #endif
-	namespace Default {
+	namespace CalcScatteringAndDensity {
 		namespace ThreadGroup {
 			enum {
 				Width	= 8,
 				Height	= 8,
 				Depth	= 8,
 				Size	= Width * Height * Depth
+			};
+		}
+	}
+
+	namespace AccumulateScattering {
+		namespace ThreadGroup {
+			enum {
+				Width	= 8,
+				Height	= 8,
+				Size	= Width * Height
 			};
 		}
 	}

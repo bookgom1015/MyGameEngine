@@ -7,14 +7,15 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
+
 #include "SVGF.hlsli"
 
 cbuffer cbRootConstants : register (b0) {
 	float2 gInvTextureDim;
 }
 
-Texture2D<float>	gi_Depth					: register(t0);
-RWTexture2D<float2>	go_DepthPartialDerivative	: register(u0);
+Texture2D<Shadow::ZDepthMapFormat>					gi_Depth					: register(t0);
+RWTexture2D<SVGF::DepthPartialDerivativeMapFormat>	go_DepthPartialDerivative	: register(u0);
 
 [numthreads(SVGF::Default::ThreadGroup::Width, SVGF::Default::ThreadGroup::Height, 1)]
 void CS(uint2 DTid : SV_DispatchThreadID) {

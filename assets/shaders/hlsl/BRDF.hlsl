@@ -48,7 +48,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {	
+HDR_FORMAT PS(VertexOut pin) : SV_Target {	
 	const float4 posW = gi_Position.Sample(gsamLinearClamp, pin.TexC);
 
 	float4 ssaoPosH = mul(posW, cb_Pass.ViewProjTex);

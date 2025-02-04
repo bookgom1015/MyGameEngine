@@ -6,12 +6,10 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "RTAO.hlsli"
-#include "SVGF.hlsli"
-#include "RaytracedReflection.hlsli"
 
 #define GAUSSIAN_KERNEL_3X3
 #include "Kernels.hlsli"
+#include "SVGF.hlsli"
 
 cbuffer cbRootConstants : register(b0) {
 	uint2	gTextureDim;

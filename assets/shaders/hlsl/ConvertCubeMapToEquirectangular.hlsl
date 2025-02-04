@@ -1,3 +1,7 @@
+// [ References ]
+//  - https://learnopengl.com/PBR/IBL/Diffuse-irradiance
+//  - https://learnopengl.com/PBR/IBL/Specular-IBL
+
 #ifndef __CONVERTECUBEMAPEQUIRECTANGULAR_HLSL__
 #define __CONVERTECUBEMAPEQUIRECTANGULAR_HLSL__
 
@@ -8,6 +12,8 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+
+#include "Equirectangular.hlsli"
 
 TextureCube<float3> gi_Cube : register(t0);
 
@@ -22,8 +28,6 @@ struct VertexOut {
 	float2 TexC		: TEXCOORD;
 };
 
-static const float2 InvATan = float2(0.1591, 0.3183);
-
 VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout = (VertexOut)0;
 
@@ -35,23 +39,8 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float3 SphericalToCartesian(float2 sphericalCoord) {
-	// Convert from spherical coordinates to texture coordinates.
-	sphericalCoord.y = 1 - sphericalCoord.y;
-	sphericalCoord -= 0.5;
-	sphericalCoord /= InvATan;
-
-	// Convert texture coordinates to 3D space coordinates.
-	float3 cartesianCoord;
-	cartesianCoord.x = cos(sphericalCoord.x) * cos(sphericalCoord.y);
-	cartesianCoord.y = sin(sphericalCoord.y);
-	cartesianCoord.z = sin(sphericalCoord.x) * cos(sphericalCoord.y);
-
-	return cartesianCoord;
-}
-
 float4 PS(VertexOut pin) : SV_Target{
-	float3 sampVec = SphericalToCartesian(pin.TexC);
+	float3 sampVec = Equirectangular::SphericalToCartesian(pin.TexC);
 	float3 samp = gi_Cube.SampleLevel(gsamLinearClamp, sampVec, gMipLevel);
 
 	return float4(samp, 1);

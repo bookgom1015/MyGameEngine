@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://learnopengl.com/PBR/IBL/Specular-IBL
+
 #ifndef __CONVOLUTESPECULARIRRADIANCE_HLSL__
 #define __CONVOLUTESPECULARIRRADIANCE_HLSL__
 
@@ -8,6 +11,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
+
 #include "BRDF.hlsli"
 
 ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);

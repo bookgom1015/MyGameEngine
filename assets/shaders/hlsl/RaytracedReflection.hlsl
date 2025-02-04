@@ -18,12 +18,12 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
+#include "Samplers.hlsli"
+#include "LightingUtil.hlsli"
+
 #include "DXR_ShadingHelpers.hlsli"
 #include "Random.hlsli"
-#include "Samplers.hlsli"
-#include "RaytracedReflection.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 

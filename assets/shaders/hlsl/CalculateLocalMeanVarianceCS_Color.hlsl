@@ -19,10 +19,9 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "RTAO.hlsli"
-#include "SVGF.hlsli"
+
 #include "ValuePackaging.hlsli"
-#include "RaytracedReflection.hlsli"
+#include "SVGF.hlsli"
 
 ConstantBuffer<ConstantBuffer_CalcLocalMeanVariance> cb_LocalMeanVar : register(b0);
 

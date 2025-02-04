@@ -147,7 +147,7 @@ void GBufferClass::Run(
 		mhAlbedoMapCpuRtv, mhNormalMapCpuRtv, mhNormalDepthMapCpuRtv, mhRMSMapCpuRtv, mhVelocityMapCpuRtv, mhReprojNormalDepthMapCpuRtv, mhPositionMapCpuRtv
 	};
 	
-	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), true, &mhDepthMapCpuDsv);
+	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), TRUE, &mhDepthMapCpuDsv);
 	cmdList->ClearDepthStencilView(mhDepthMapCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 	
 	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);

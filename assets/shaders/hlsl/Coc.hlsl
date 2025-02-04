@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
+
 #ifndef __COC_HLSL__
 #define __COC_HLSL__
 
@@ -11,9 +14,9 @@
 
 ConstantBuffer<ConstantBuffer_DoF> cb_DoF : register(b0);
 
-Texture2D<GBuffer::DepthMapFormat> gi_Depth : register(t0);
+Texture2D<GBuffer::DepthMapFormat>					gi_Depth			: register(t0);
 
-RWBuffer<DepthOfField::FocalDistanceBufferFormat> ui_FocalDistance : register(u0);
+RWBuffer<DepthOfField::FocalDistanceBufferFormat>	ui_FocalDistance	: register(u0);
 
 #include "CoordinatesFittedToScreen.hlsli"
 

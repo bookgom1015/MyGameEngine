@@ -39,9 +39,8 @@ VertexOut VS(VertexIn vin) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target {
+HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	float4 cubeSample = gi_Cube.Sample(gsamLinearWrap, normalize(pin.PosL));
-
 	return cubeSample;
 }
 

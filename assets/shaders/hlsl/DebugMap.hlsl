@@ -7,7 +7,6 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
-#include "CoordinatesFittedToScreen.hlsli"
 
 ConstantBuffer<ConstantBuffer_DebugMap> cb_Debug : register(b0);
 
@@ -18,6 +17,8 @@ cbuffer gRootConstants : register(b1) {
 	uint gSampleMask3;
 	uint gSampleMask4;
 }
+
+#include "CoordinatesFittedToScreen.hlsli"
 
 Texture2D gi_Debug0 : register(t0);
 Texture2D gi_Debug1 : register(t1);

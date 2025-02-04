@@ -6,12 +6,11 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "Kernels.hlsli"
-#include "RTAO.hlsli"
-#include "SVGF.hlsli"
+
 #include "FloatPrecision.hlsli"
 #include "ValuePackaging.hlsli"
-#include "RaytracedReflection.hlsli"
+#include "Kernels.hlsli"
+#include "SVGF.hlsli"
 
 ConstantBuffer<ConstantBuffer_AtrousWaveletTransformFilter> cb_Atrous : register(b0);
 

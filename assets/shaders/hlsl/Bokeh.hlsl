@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
+
 #ifndef __BOKEH_HLSL__
 #define __BOKEH_HLSL__
 

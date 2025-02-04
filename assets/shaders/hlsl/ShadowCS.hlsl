@@ -8,6 +8,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+
 #include "Shadow.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
@@ -25,7 +26,7 @@ RWTexture2D<Shadow::ShadowMapFormat>	guo_Shadow	: register(u0);
 RWTexture2D<Shadow::DebugMapFormat>		guo_Debug	: register(u1);
 
 float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
-	uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
+	const uint faceID = (uint)gi_FaceIDTexArray.SampleLevel(gsamPointClamp, float3(uv, index), 0);
 	switch (faceID) {
 	case 0: return light.Mat0;
 	case 1: return light.Mat1;

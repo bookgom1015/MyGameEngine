@@ -306,6 +306,7 @@
     <None Include="..\..\assets\shaders\hlsl\BlinnPhong.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BRDF.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\BxDF.hlsli" />
+    <None Include="..\..\assets\shaders\hlsl\Equirectangular.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\ValueTypeConversion.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\CoordinatesFittedToScreen.hlsli" />
@@ -320,13 +321,10 @@
     <None Include="..\..\assets\shaders\hlsl\ValuePackaging.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\VolumetricLight.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Random.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Samplers.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\ShadingConstants.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\ShadingHelpers.hlsli" />
     <None Include="..\..\assets\shaders\hlsl\Shadow.hlsli" />
-    <None Include="..\..\assets\shaders\hlsl\SsrCommon.hlsli" />
     <None Include="..\..\include\Actor.inl" />
     <None Include="..\..\include\Bloom.inl" />
     <None Include="..\..\include\BlurFilter.inl" />
@@ -507,6 +505,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\AccumulateScattering.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\assets\shaders\hlsl\ApplyFog.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

@@ -18,15 +18,15 @@
 // [ Return ]
 //  - Amount of 1ight leaving
 float HenyeyGreensteinPhaseFunction(float3 wi, float3 wo, float g) {
-	float theta = dot(wi, wo);
-	float g2 = g * g;
-	float denom = pow(1 + g2 - 2 * g * theta, 3 / 2);
-	return (1 / (4 * PI)) * ((1 - g2) / max(denom, FLT_EPSILON));
+	const float cosTheta = dot(wi, wo);
+	const float g2 = g * g;
+	const float denom = pow(1.f + g2 - 2.f * g * cosTheta, 3.f / 2.f);
+	return (1.f / (4.f * PI)) * ((1.f - g2) / max(denom, FLT_EPSILON));
 }
 
-float SliceThickness(float z_ndc, float z_exp, float near, float far, uint dimZ) {
-	float currDepthV = NdcDepthToExpViewDepth(z_ndc, z_exp, near, far);
-	float nextDepthV = NdcDepthToExpViewDepth(z_ndc + 1 / (float)dimZ, z_exp, near, far);
+float SliceTickness(float z_ndc, float z_exp, float near, float far, uint dimZ) {
+	const float currDepthV = NdcDepthToExpViewDepth(z_ndc, z_exp, near, far);
+	const float nextDepthV = NdcDepthToExpViewDepth(z_ndc + 1.f / (float)dimZ, z_exp, near, far);
 	return nextDepthV - currDepthV;
 }
 
@@ -35,7 +35,7 @@ float SliceThickness(float z_ndc, float z_exp, float near, float far, uint dimZ)
 //  - accumTransmittance : accumlated transmittance
 //  - sliceLight		 : light of current position
 //  - sliceDensity		 : density of current position
-//  - thickness			 : difference between current slice's depth and next slice's depth
+//  - tickness			 : difference between current slice's depth and next slice's depth
 //  - densityScale		 : scale for density(a number appropriately adjusted to use a larger value
 //							for the uniform density parameter rather than a decimal point 
 //
@@ -45,15 +45,15 @@ float4 ScatterStep(
 		inout float3 accumLight, 
 		inout float accumTransmittance, 
 		in float3 sliceLight,
-		inout float sliceDensity, 
-		in float thickness,
+		in float sliceDensity, 
+		in float tickness,
 		in float densityScale) {
-	sliceDensity = max(sliceDensity, 0.0000001);
+	sliceDensity = max(sliceDensity, 0.0000001f);
 	sliceDensity *= densityScale;
-	const float sliceTransmittance = exp(-sliceDensity * thickness);
+	const float sliceTransmittance = exp(-sliceDensity * tickness);
 
 	// The equation used in Frostbite
-	const float3 sliceLightIntegral = sliceLight * (1 - sliceTransmittance) / sliceDensity;
+	const float3 sliceLightIntegral = sliceLight * (1.f - sliceTransmittance) / sliceDensity;
 
 	accumLight += sliceLightIntegral * accumTransmittance;
 	accumTransmittance *= sliceTransmittance;

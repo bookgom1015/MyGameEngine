@@ -1,8 +1,9 @@
+// [ Descriptions ]
+//  2nd stage of temporal supersampling.
+//  Blends current frame values with values reprojected from previous frame in stage 1.
+
 #ifndef __TEMPORALSUPERSAMPLINGBLENDWIDTHCURRENTFRAMECS_HLSL__
 #define __TEMPORALSUPERSAMPLINGBLENDWIDTHCURRENTFRAMECS_HLSL__
-
-// 2nd stage of temporal supersampling.
-// Blends current frame values with values reprojected from previous frame in stage 1.
 
 #ifndef HLSL
 #define HLSL
@@ -10,9 +11,8 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
-#include "RTAO.hlsli"
+
 #include "SVGF.hlsli"
-#include "RaytracedReflection.hlsli"
 
 ConstantBuffer<ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame> cb_Blend : register(b0);
 

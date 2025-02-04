@@ -211,6 +211,36 @@
     <Filter Include="Source Files\Shading\Rasterization\Shadow">
       <UniqueIdentifier>{539520c6-2a90-45d1-9a7e-5998f9133d00}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Shading\Raytracing\Shadow">
+      <UniqueIdentifier>{b2ab3553-3d14-4e81-864f-4b018919e40d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Raytracing\SVGF">
+      <UniqueIdentifier>{c847475e-9335-46ee-8e61-d746eb9df429}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Raytracing\Raytraced-Reflection">
+      <UniqueIdentifier>{a58f27d7-63fe-4ce0-9323-6cf396c4b666}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Raytracing\RTAO">
+      <UniqueIdentifier>{738e025f-36f9-43ce-b6d8-e62b6a87f939}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\Bloom">
+      <UniqueIdentifier>{a7801c0c-d03c-4558-9ae2-e1809694d83d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\Dof">
+      <UniqueIdentifier>{391c9af4-389d-4c79-8303-1cc4d23899ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\GBuffer">
+      <UniqueIdentifier>{458fb782-39de-464b-98e2-598dc3eca865}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\SSAO">
+      <UniqueIdentifier>{db7976a6-377d-47bb-9e70-dac33e643b3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\SSR">
+      <UniqueIdentifier>{f8c7d5b8-e5ab-481a-b3ed-7a50d7a11222}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\TemporalAA">
+      <UniqueIdentifier>{0e45b78e-e95c-47fa-8379-919e602b699c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\externals\imgui\imgui.cpp">
@@ -524,17 +554,8 @@
     <ClInclude Include="..\..\include\AccelerationStructure.h">
       <Filter>Header Files\Raytracing</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Bloom.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\BRDF.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DepthOfField.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DXR_Shadow.h">
-      <Filter>Header Files\Shading\Raytracing</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\DXR_GeometryBuffer.h">
       <Filter>Header Files\Raytracing</Filter>
@@ -543,9 +564,6 @@
       <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\GammaCorrection.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GBuffer.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\IrradianceMap.h">
@@ -557,29 +575,8 @@
     <ClInclude Include="..\..\include\Pixelation.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\SSAO.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\SSR.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\Sharpen.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\TemporalAA.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ToneMapping.h">
-      <Filter>Header Files\Shading\Raytracing</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\SVGF.h">
-      <Filter>Header Files\Shading\Raytracing</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RTAO.h">
-      <Filter>Header Files\Shading\Raytracing</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RaytracedReflection.h">
-      <Filter>Header Files\Shading\Raytracing</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\ShaderTable.h">
       <Filter>Header Files\Raytracing</Filter>
@@ -659,6 +656,39 @@
     <ClInclude Include="..\..\include\ZDepth.h">
       <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\DXR_Shadow.h">
+      <Filter>Header Files\Shading\Raytracing\Shadow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SVGF.h">
+      <Filter>Header Files\Shading\Raytracing\SVGF</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\RaytracedReflection.h">
+      <Filter>Header Files\Shading\Raytracing\Raytraced-Reflection</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\RTAO.h">
+      <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ToneMapping.h">
+      <Filter>Header Files\Shading\Rasterization</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Bloom.h">
+      <Filter>Header Files\Shading\Rasterization\Bloom</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DepthOfField.h">
+      <Filter>Header Files\Shading\Rasterization\Dof</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GBuffer.h">
+      <Filter>Header Files\Shading\Rasterization\GBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SSAO.h">
+      <Filter>Header Files\Shading\Rasterization\SSAO</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SSR.h">
+      <Filter>Header Files\Shading\Rasterization\SSR</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\TemporalAA.h">
+      <Filter>Header Files\Shading\Rasterization\TemporalAA</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -672,36 +702,6 @@
     </None>
     <None Include="..\..\include\DebugMap.inl">
       <Filter>Header Files\Debug</Filter>
-    </None>
-    <None Include="..\..\include\Bloom.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\DepthOfField.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\DXR_Shadow.inl">
-      <Filter>Header Files\Shading\Raytracing</Filter>
-    </None>
-    <None Include="..\..\include\GBuffer.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\SSAO.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\SSR.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\TemporalAA.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </None>
-    <None Include="..\..\include\SVGF.inl">
-      <Filter>Header Files\Shading\Raytracing</Filter>
-    </None>
-    <None Include="..\..\include\RTAO.inl">
-      <Filter>Header Files\Shading\Raytracing</Filter>
-    </None>
-    <None Include="..\..\include\RaytracedReflection.inl">
-      <Filter>Header Files\Shading\Raytracing</Filter>
     </None>
     <None Include="..\..\include\DxLowRenderer.inl">
       <Filter>Header Files\Renderer</Filter>
@@ -790,17 +790,8 @@
     <None Include="..\..\assets\shaders\hlsl\ZDepth.hlsl">
       <Filter>Shader Files\Shadow</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DebugCubeMap.hlsl">
-      <Filter>Shader Files\Irradiance</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\RTAO.hlsl">
       <Filter>Shader Files\Raytracing\RTAO</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\RTAO.hlsli">
-      <Filter>Shader Files\Raytracing\RTAO</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsli">
-      <Filter>Shader Files\Raytracing\RaytracedReflection</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\RaytracedReflection.hlsl">
       <Filter>Shader Files\Raytracing\RaytracedReflection</Filter>
@@ -810,9 +801,6 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\SSAO.hlsl">
       <Filter>Shader Files\SSAO</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\SsrCommon.hlsli">
-      <Filter>Shader Files\SSR</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\SSR_Screen.hlsl">
       <Filter>Shader Files\SSR</Filter>
@@ -953,6 +941,45 @@
       <Filter>Common Files\Header Files\Camera</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\AccumulateScattering.hlsl">
+      <Filter>Shader Files\Volumetric-Light</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\Equirectangular.hlsli">
+      <Filter>Shader Files\Equirectangular</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\DebugCubeMap.hlsl">
+      <Filter>Shader Files\Debug</Filter>
+    </None>
+    <None Include="..\..\include\DXR_Shadow.inl">
+      <Filter>Header Files\Shading\Raytracing\Shadow</Filter>
+    </None>
+    <None Include="..\..\include\SVGF.inl">
+      <Filter>Header Files\Shading\Raytracing\SVGF</Filter>
+    </None>
+    <None Include="..\..\include\RaytracedReflection.inl">
+      <Filter>Header Files\Shading\Raytracing\Raytraced-Reflection</Filter>
+    </None>
+    <None Include="..\..\include\RTAO.inl">
+      <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
+    </None>
+    <None Include="..\..\include\Bloom.inl">
+      <Filter>Header Files\Shading\Rasterization\Bloom</Filter>
+    </None>
+    <None Include="..\..\include\DepthOfField.inl">
+      <Filter>Header Files\Shading\Rasterization\Dof</Filter>
+    </None>
+    <None Include="..\..\include\GBuffer.inl">
+      <Filter>Header Files\Shading\Rasterization\GBuffer</Filter>
+    </None>
+    <None Include="..\..\include\SSAO.inl">
+      <Filter>Header Files\Shading\Rasterization\SSAO</Filter>
+    </None>
+    <None Include="..\..\include\SSR.inl">
+      <Filter>Header Files\Shading\Rasterization\SSR</Filter>
+    </None>
+    <None Include="..\..\include\TemporalAA.inl">
+      <Filter>Header Files\Shading\Rasterization\TemporalAA</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\ApplyFog.hlsl">
       <Filter>Shader Files\Volumetric-Light</Filter>
     </None>
   </ItemGroup>

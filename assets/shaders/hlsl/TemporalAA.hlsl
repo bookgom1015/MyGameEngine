@@ -1,6 +1,15 @@
+// [ References ]
+//  - https://sugulee.wordpress.com/2021/06/21/temporal-anti-aliasingtaa-tutorial/
+//  - https://xtozero.tistory.com/4
+
 #ifndef __TEMPORALAA_HLSL__
 #define __TEMPORALAA_HLSL__
 
+#ifndef HLSL
+#define HLSL
+#endif
+
+#include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
 Texture2D<float3> gi_Input		: register(t0);
@@ -32,7 +41,7 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_TARGET {
+SDR_FORMAT PS(VertexOut pin) : SV_TARGET {
 	uint2 size;
 	gi_Input.GetDimensions(size.x, size.y);
 

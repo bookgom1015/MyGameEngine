@@ -64,17 +64,17 @@ namespace ShaderArgs {
 	}
 
 	namespace DepthOfField {
-		FLOAT FocusRange = 8.0f;
-		FLOAT FocusingSpeed = 8.0f;
-		FLOAT BokehRadius = 2.0f;
+		FLOAT FocusRange = 8.f;
+		FLOAT FocusingSpeed = 8.f;
+		FLOAT BokehRadius = 2.f;
 		FLOAT CoCMaxDevTolerance = 0.8f;
-		FLOAT HighlightPower = 4.0f;
+		FLOAT HighlightPower = 4.f;
 		INT SampleCount = 4;
 		INT BlurCount = 1;
 	}
 
 	namespace SSR {
-		FLOAT MaxDistance = 32.0f;
+		FLOAT MaxDistance = 32.f;
 		INT BlurCount = 3;
 
 		namespace View {
@@ -82,7 +82,7 @@ namespace ShaderArgs {
 			FLOAT NoiseIntensity = 0.01f;
 			INT StepCount = 16;
 			INT BackStepCount = 8;
-			FLOAT DepthThreshold = 1.0f;
+			FLOAT DepthThreshold = 1.f;
 		}
 		
 		namespace Screen {
@@ -120,16 +120,16 @@ namespace ShaderArgs {
 	}
 
 	namespace Debug {
-		BOOL ShowCollisionBox = false;
+		BOOL ShowCollisionBox = FALSE;
 	}
 
 	namespace IrradianceMap {
-		BOOL ShowIrradianceCubeMap = false;
+		BOOL ShowIrradianceCubeMap = FALSE;
 		FLOAT MipLevel = 0.0f;
 	}
 
 	namespace Pixelization {
-		FLOAT PixelSize = 5.0f;
+		FLOAT PixelSize = 5.f;
 	}
 
 	namespace Sharpen {
@@ -149,21 +149,21 @@ namespace ShaderArgs {
 				BOOL UseClamping = TRUE;
 				FLOAT StdDevGamma = 0.6f;
 				FLOAT MinStdDevTolerance = 0.05f;
-				FLOAT DepthSigma = 1.0f;
+				FLOAT DepthSigma = 1.f;
 			}
 
-			FLOAT ClampDifferenceToTsppScale = 4.0f;
+			FLOAT ClampDifferenceToTsppScale = 4.f;
 			UINT MinTsppToUseTemporalVariance = 4;
 			UINT LowTsppMaxTspp = 12;
-			FLOAT LowTsppDecayConstant = 1.0f;
+			FLOAT LowTsppDecayConstant = 1.f;
 		}
 
 		namespace AtrousWaveletTransformFilter {
-			FLOAT ValueSigma = 1.0f;
-			FLOAT DepthSigma = 1.0f;
+			FLOAT ValueSigma = 1.f;
+			FLOAT DepthSigma = 1.f;
 			FLOAT DepthWeightCutoff = 0.2f;
-			FLOAT NormalSigma = 64.0f;
-			FLOAT MinVarianceToDenoise = 0.0f;
+			FLOAT NormalSigma = 64.f;
+			FLOAT MinVarianceToDenoise = 0.f;
 			BOOL UseSmoothedVariance = FALSE;
 			BOOL PerspectiveCorrectDepthInterpolation = TRUE;
 			BOOL UseAdaptiveKernelSize = TRUE;
@@ -172,15 +172,15 @@ namespace ShaderArgs {
 			INT FilterMinKernelWidth = 3;
 			FLOAT FilterMaxKernelWidthPercentage = 1.5f;
 			FLOAT AdaptiveKernelSizeRayHitDistanceScaleFactor = 0.02f;
-			FLOAT AdaptiveKernelSizeRayHitDistanceScaleExponent = 2.0f;
+			FLOAT AdaptiveKernelSizeRayHitDistanceScaleExponent = 2.f;
 
 		}
 	}
 
 	namespace RTAO {
-		FLOAT OcclusionRadius = 22.0f;
-		FLOAT OcclusionFadeStart = 1.0f;
-		FLOAT OcclusionFadeEnd = 22.0f;
+		FLOAT OcclusionRadius = 22.f;
+		FLOAT OcclusionFadeStart = 1.f;
+		FLOAT OcclusionFadeEnd = 22.f;
 		FLOAT OcclusionEpsilon = 0.05f;
 		UINT SampleCount = 2;
 
@@ -195,7 +195,7 @@ namespace ShaderArgs {
 	namespace RaytracedReflection {
 		BOOL CheckerboardSamplingEnabled = FALSE;
 
-		FLOAT ReflectionRadius = 22.0f;
+		FLOAT ReflectionRadius = 22.f;
 
 		namespace Denoiser {
 			BOOL UseSmoothingVariance = TRUE;
@@ -204,17 +204,24 @@ namespace ShaderArgs {
 			UINT LowTsppBlurPasses = 4;
 		}
 	}
+
+	namespace VolumetricLight {
+		FLOAT DepthExponent = 4.0f;
+		FLOAT UniformDensity = 0.1f;
+		FLOAT AnisotropicCoefficient = 0.0f;
+		FLOAT DensityScale = 0.01f;
+	}
 }
 
 DxRenderer::DxRenderer() {
-	bIsCleanedUp = false;
+	bIsCleanedUp = FALSE;
 
 	mMainPassCB = std::make_unique<ConstantBuffer_Pass>();
 
 	mShaderManager = std::make_unique<ShaderManager>();
 
-	mSceneBounds.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	FLOAT widthSquared = 32.0f * 32.0f;
+	mSceneBounds.Center = XMFLOAT3(0.f, 0.f, 0.f);
+	FLOAT widthSquared = 32.f * 32.f;
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
 
 	mImGui = std::make_unique<ImGuiManager>();
@@ -325,7 +332,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	CheckReturn(mRR->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mEquirectangularConverter->Initialize(device, shaderManager));
-	CheckReturn(mVolumetricLight->Initialize(device, shaderManager, 160, 90, 128));
+	CheckReturn(mVolumetricLight->Initialize(device, shaderManager, width, height, 160, 90, 64));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -349,7 +356,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
-		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.0f, ((offset.y - 0.5f) / height) * 2.0f);
+		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.f, ((offset.y - 0.5f) / height) * 2.f);
 	}
 
 	bInitialized = TRUE;
@@ -361,7 +368,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		Light light;
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.577f, -0.577f, 0.577f };
-		light.Color = { 240.0f / 255.0f, 235.0f / 255.0f, 223.0f / 255.0f };
+		light.Color = { 240.f / 255.f, 235.f / 255.f, 223.f / 255.f };
 		light.Intensity = 1.802f;
 
 		mLights[mLightCount] = light;
@@ -371,38 +378,12 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 		Light light;
 		light.Type = LightType::E_Directional;
 		light.Direction = { 0.067f, -0.701f, -0.836f };
-		light.Color = { 149.0f / 255.0f, 142.0f/ 255.0f, 100.0f / 255.0f };
+		light.Color = { 149.f / 255.f, 142.f/ 255.f, 100.f / 255.f };
 		light.Intensity = 1.534f;
 
 		mLights[mLightCount] = light;
 		mZDepth->AddLight(light.Type, mLightCount++);
 	}
-
-	//{
-	//	XMFLOAT3 right;
-	//	MathHelper::CalcUpVector(right, UnitVector::RightVector);
-	//	Logln("right vector's up vector: ", MathHelper::to_string(right));
-	//
-	//	XMFLOAT3 up;
-	//	MathHelper::CalcUpVector(up, UnitVector::UpVector);
-	//	Logln("up vector's up vector: ", MathHelper::to_string(up));
-	//
-	//	XMFLOAT3 forward;
-	//	MathHelper::CalcUpVector(forward, UnitVector::ForwardVector);
-	//	Logln("forward vector's up vector: ", MathHelper::to_string(forward));
-	//
-	//	XMFLOAT3 left;
-	//	MathHelper::CalcUpVector(left, UnitVector::LeftVector);
-	//	Logln("left vector's up vector: ", MathHelper::to_string(left));
-	//
-	//	XMFLOAT3 down;
-	//	MathHelper::CalcUpVector(down, UnitVector::DownVector);
-	//	Logln("down vector's up vector: ", MathHelper::to_string(down));
-	//
-	//	XMFLOAT3 backward;
-	//	MathHelper::CalcUpVector(backward, UnitVector::BackwardVector);
-	//	Logln("backward vector's up vector: ", MathHelper::to_string(backward));
-	//}
 
 	return TRUE;
 }
@@ -416,7 +397,7 @@ void DxRenderer::CleanUp() {
 	mShaderManager->CleanUp();
 	LowCleanUp();
 
-	bIsCleanedUp = true;
+	bIsCleanedUp = TRUE;
 }
 
 BOOL DxRenderer::Update(FLOAT delta) {
@@ -426,7 +407,7 @@ BOOL DxRenderer::Update(FLOAT delta) {
 	// Has the GPU finished processing the commands of the current frame resource?
 	// If not, wait until the GPU has completed commands up to this fence point.
 	if (mCurrFrameResource->Fence != 0 && mFence->GetCompletedValue() < mCurrFrameResource->Fence) {
-		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+		HANDLE eventHandle = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
 		CheckHRESULT(mFence->SetEventOnCompletion(mCurrFrameResource->Fence, eventHandle));
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
@@ -515,7 +496,7 @@ BOOL DxRenderer::Draw() {
 }
 
 BOOL DxRenderer::OnResize(UINT width, UINT height) {
-	bool bNeedToReszie = mClientWidth != width || mClientHeight != height;
+	BOOL bNeedToReszie = mClientWidth != width || mClientHeight != height;
 
 	mClientWidth = width;
 	mClientHeight = height;
@@ -559,7 +540,7 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
-		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.0f, ((offset.y - 0.5f) / height) * 2.0f);
+		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.f, ((offset.y - 0.5f) / height) * 2.f);
 	}
 	
 	return TRUE;
@@ -589,7 +570,7 @@ void DxRenderer::UpdateModel(void* model, const Transform& trans) {
 		&ptr->World, 
 		XMMatrixAffineTransformation(
 			trans.Scale, 
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), 
+			XMVectorSet(0.f, 0.f, 0.f, 1.f), 
 			trans.Rotation, 
 			trans.Position
 		)
@@ -625,12 +606,12 @@ void DxRenderer::Pick(FLOAT x, FLOAT y) {
 	const auto& P = mCamera->Proj();
 
 	// Compute picking ray in vew space.
-	FLOAT vx = (2.0f * x / mClientWidth - 1.0f) / P(0, 0);
-	FLOAT vy = (-2.0f * y / mClientHeight + 1.0f) / P(1, 1);
+	FLOAT vx = (2.f * x / mClientWidth - 1.f) / P(0, 0);
+	FLOAT vy = (-2.f * y / mClientHeight + 1.f) / P(1, 1);
 
 	// Ray definition in view space.
-	auto origin = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-	auto dir = XMVectorSet(vx, vy, 1.0f, 0.0f);
+	auto origin = XMVectorSet(0.f, 0.f, 0.f, 1.f);
+	auto dir = XMVectorSet(vx, vy, 1.f, 0.f);
 
 	const auto V = XMLoadFloat4x4(&mCamera->View());
 	const auto InvView = XMMatrixInverse(&XMMatrixDeterminant(V), V);
@@ -652,7 +633,7 @@ void DxRenderer::Pick(FLOAT x, FLOAT y) {
 
 		// Make the ray direction unit length for the intersection tests.
 		dirL = XMVector3Normalize(dirL);
-		FLOAT tmin = 0.0f;
+		FLOAT tmin = 0.f;
 		if (ri->AABB.Intersects(originL, dirL, tmin) && tmin < closestT) {
 			closestT = tmin;
 			mPickedRitem = ri;
@@ -671,11 +652,12 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 		+ Bloom::NumRenderTargets
 		+ SSR::NumRenderTargets
 		+ ToneMapping::NumRenderTargets
-		+ IrradianceMap::NumRenderTargets;
+		+ IrradianceMap::NumRenderTargets
+		+ VolumetricLight::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
-	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
+	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&mRtvHeap)));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
 	dsvHeapDesc.NumDescriptors = 1
@@ -683,7 +665,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
-	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(mDsvHeap.GetAddressOf())));
+	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDsvHeap)));
 
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
 	heapDesc.NumDescriptors = MAX_DESCRIPTOR_SIZE;
@@ -735,8 +717,8 @@ BOOL DxRenderer::CompileShaders() {
 
 BOOL DxRenderer::BuildGeometries() {
 	GeometryGenerator geoGen;
-	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(1.0f, 32, 32);
-	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 1);
+	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(1.f, 32, 32);
+	GeometryGenerator::MeshData box = geoGen.CreateBox(1.f, 1.f, 1.f, 1);
 
 	UINT numVertices = 0;
 	UINT numIndices = 0;
@@ -908,7 +890,7 @@ void DxRenderer::BuildDescriptors() {
 	mRTAO->BuildDescriptors(hCpu, hGpu, descSize);
 	mRR->BuildDesscriptors(hCpu, hGpu, descSize);
 	mSVGF->BuildDescriptors(hCpu, hGpu, descSize);
-	mVolumetricLight->BuildDescriptors(hCpu, hGpu, descSize);
+	mVolumetricLight->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
 
 	mhCpuDescForTexMaps = hCpu.Offset(1, descSize);
 	mhGpuDescForTexMaps = hGpu.Offset(1, descSize);
@@ -1002,7 +984,7 @@ void DxRenderer::BuildRenderItems() {
 		skyRitem->IndexCount = skyRitem->Geometry->DrawArgs["sphere"].IndexCount;
 		skyRitem->StartIndexLocation = skyRitem->Geometry->DrawArgs["sphere"].StartIndexLocation;
 		skyRitem->BaseVertexLocation = skyRitem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
-		XMStoreFloat4x4(&skyRitem->World, XMMatrixScaling(1000.0f, 1000.0f, 1000.0f));
+		XMStoreFloat4x4(&skyRitem->World, XMMatrixScaling(1000.f, 1000.f, 1000.f));
 		mSkySphere = skyRitem.get();
 		mRitems.push_back(std::move(skyRitem));
 	}
@@ -1127,7 +1109,7 @@ void* DxRenderer::AddRenderItem(const std::string& file, const Transform& trans,
 		&ritem->World,
 		XMMatrixAffineTransformation(
 			trans.Scale,
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
+			XMVectorSet(0.f, 0.f, 0.f, 1.f),
 			trans.Rotation,
 			trans.Position
 		)
@@ -1179,7 +1161,7 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	srvDesc.Texture2D.MipLevels = resource->GetDesc().MipLevels;
 	srvDesc.Format = resource->GetDesc().Format;
 
@@ -1212,7 +1194,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	));
 	
 	if (bNeedToRebuildTLAS) {
-		bNeedToRebuildTLAS = false;
+		bNeedToRebuildTLAS = FALSE;
 		CheckReturn(BuildTLAS(cmdList));
 	}
 	else {
@@ -1220,7 +1202,7 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 	}
 	
 	if (bNeedToRebuildShaderTables) {
-		bNeedToRebuildShaderTables = false;
+		bNeedToRebuildShaderTables = FALSE;
 		BuildShaderTables();
 	}
 	
@@ -1241,7 +1223,7 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 
 			if (light.Type == LightType::E_Directional) {
 				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
-				XMVECTOR lightPos = -2.0f * mSceneBounds.Radius * lightDir;
+				XMVECTOR lightPos = -2.f * mSceneBounds.Radius * lightDir;
 				XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
 				XMVECTOR lightUp = UnitVector::UpVector;
 				XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
@@ -1262,10 +1244,10 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 
 				// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
 				XMMATRIX T(
-					0.5f, 0.0f, 0.0f, 0.0f,
-					0.0f, -0.5f, 0.0f, 0.0f,
-					0.0f, 0.0f, 1.0f, 0.0f,
-					0.5f, 0.5f, 0.0f, 1.0f
+					0.5f, 0.f,  0.f, 0.f,
+					0.f, -0.5f, 0.f, 0.f,
+					0.f,  0.f,  1.f, 0.f,
+					0.5f, 0.5f, 0.f, 1.f
 				);
 
 				XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
@@ -1277,48 +1259,48 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 				XMStoreFloat3(&light.Position, lightPos);
 			}
 			else if (light.Type == LightType::E_Point || light.Type == LightType::E_Spot || light.Type == LightType::E_Tube) {
-				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 1.0f, 50.0f);
+				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.f, 1.f, 50.f);
 				auto pos = XMLoadFloat3(&light.Position);
 				
 				// Positive +X
 				{
-					auto target = pos + XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-					auto view_px = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+					auto target = pos + XMVectorSet(1.f, 0.f, 0.f, 0.f);
+					auto view_px = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
 					auto vp_px = view_px * proj;
 					XMStoreFloat4x4(&light.Mat0, XMMatrixTranspose(vp_px));
 				}
 				// Positive -X
 				{
-					auto target = pos + XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f);
-					auto view_nx = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+					auto target = pos + XMVectorSet(-1.f, 0.f, 0.f, 0.f);
+					auto view_nx = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
 					auto vp_nx = view_nx * proj;
 					XMStoreFloat4x4(&light.Mat1, XMMatrixTranspose(vp_nx));
 				}
 				// Positive +Y
 				{
-					auto target = pos + XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-					auto view_py = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f));
+					auto target = pos + XMVectorSet(0.f, 1.f, 0.f, 0.f);
+					auto view_py = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 0.f, -1.f, 0.f));
 					auto vp_py = view_py * proj;
 					XMStoreFloat4x4(&light.Mat2, XMMatrixTranspose(vp_py));
 				}
 				// Positive -Y
 				{
-					auto target = pos + XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
-					auto view_ny = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f));
+					auto target = pos + XMVectorSet(0.f, -1.f, 0.f, 0.f);
+					auto view_ny = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 0.f, 1.f, 0.f));
 					auto vp_ny = view_ny * proj;
 					XMStoreFloat4x4(&light.Mat3, XMMatrixTranspose(vp_ny));
 				}
 				// Positive +Z
 				{
-					auto target = pos + XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-					auto view_pz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+					auto target = pos + XMVectorSet(0.f, 0.f, 1.f, 0.f);
+					auto view_pz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
 					auto vp_pz = view_pz * proj;
 					XMStoreFloat4x4(&light.Mat4, XMMatrixTranspose(vp_pz));
 				}
 				// Positive -Z
 				{
-					auto target = pos + XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
-					auto view_nz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+					auto target = pos + XMVectorSet(0.f, 0.f, -1.f, 0.f);
+					auto view_nz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
 					auto vp_nz = view_nz * proj;
 					XMStoreFloat4x4(&light.Mat5, XMMatrixTranspose(vp_nz));
 				}
@@ -1361,10 +1343,10 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 
 		// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
 		XMMATRIX T(
-			0.5f, 0.0f, 0.0f, 0.0f,
-			0.0f, -0.5f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.5f, 0.5f, 0.0f, 1.0f
+			0.5f, 0.f,  0.f, 0.f,
+			0.f, -0.5f, 0.f, 0.f,
+			0.f,  0.f,  1.f, 0.f,
+			0.5f, 0.5f, 0.f, 1.f
 		);
 		XMMATRIX viewProjTex = XMMatrixMultiply(viewProj, T);
 
@@ -1379,7 +1361,7 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 		XMStoreFloat4x4(&mMainPassCB->InvViewProj, XMMatrixTranspose(invViewProj));
 		XMStoreFloat4x4(&mMainPassCB->ViewProjTex, XMMatrixTranspose(viewProjTex));
 		XMStoreFloat3(&mMainPassCB->EyePosW, mCamera->Position());
-		mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.0f, 0.0f);
+		mMainPassCB->JitteredOffset = bTaaEnabled ? mFittedToBakcBufferHaltonSequence[offsetIndex] : XMFLOAT2(0.f, 0.f);
 
 		auto& currCB = mCurrFrameResource->CB_Pass;
 		currCB.CopyData(0, *mMainPassCB);
@@ -1397,10 +1379,10 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	XMMATRIX P = XMLoadFloat4x4(&mCamera->Proj());
 	// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
 	XMMATRIX T(
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f
+		0.5f, 0.f,  0.f, 0.f,
+		0.f, -0.5f, 0.f, 0.f,
+		0.f,  0.f,  1.f, 0.f,
+		0.5f, 0.5f, 0.f, 1.f
 	);
 	XMStoreFloat4x4(&ssaoCB.ProjTex, XMMatrixTranspose(P * T));
 
@@ -1409,7 +1391,7 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	// Coordinates given in view space.
 	ssaoCB.OcclusionRadius = 0.5f;
 	ssaoCB.OcclusionFadeStart = 0.2f;
-	ssaoCB.OcclusionFadeEnd = 2.0f;
+	ssaoCB.OcclusionFadeEnd = 2.f;
 	ssaoCB.SurfaceEpsilon = 0.05f;
 
 	ssaoCB.SampleCount = ShaderArgs::SSAO::SampleCount;
@@ -1483,8 +1465,8 @@ BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
 			objCB.PrevWorld = e->PrevWolrd;
 			XMStoreFloat4x4(&objCB.World, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&objCB.TexTransform, XMMatrixTranspose(texTransform));
-			objCB.Center = { e->AABB.Center.x, e->AABB.Center.y, e->AABB.Center.z, 1.0f };
-			objCB.Extents = { e->AABB.Extents.x, e->AABB.Extents.y, e->AABB.Extents.z, 0.0f };
+			objCB.Center = { e->AABB.Center.x, e->AABB.Center.y, e->AABB.Center.z, 1.f };
+			objCB.Extents = { e->AABB.Extents.x, e->AABB.Extents.y, e->AABB.Extents.z, 0.f };
 
 			e->PrevWolrd = objCB.World;
 
@@ -1530,60 +1512,60 @@ BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
 BOOL DxRenderer::UpdateCB_Irradiance(FLOAT delta) {
 	ConstantBuffer_Irradiance irradCB;
 		
-	XMStoreFloat4x4(&irradCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.0f, 0.1f, 10.0f)));
+	XMStoreFloat4x4(&irradCB.Proj, XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.f, 0.1f, 10.f)));
 
 	// Positive +X
 	XMStoreFloat4x4(
 		&irradCB.View[0],
 		XMMatrixTranspose(XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f),
-			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+			XMVectorSet(0.f, 0.f, 0.f, 1.f),
+			XMVectorSet(1.f, 0.f, 0.f, 0.f),
+			XMVectorSet(0.f, 1.f, 0.f, 0.f)
 		))
 	);
 	// Positive -X
 	XMStoreFloat4x4(
 		&irradCB.View[1],
 		XMMatrixTranspose(XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f),
-			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+			XMVectorSet( 0.f, 0.f, 0.f, 1.f),
+			XMVectorSet(-1.f, 0.f, 0.f, 0.f),
+			XMVectorSet( 0.f, 1.f, 0.f, 0.f)
 		))
 	);
 	// Positive +Y
 	XMStoreFloat4x4(
 		&irradCB.View[2],
 		XMMatrixTranspose(XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),
-			XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)
+			XMVectorSet(0.f, 0.f,  0.f, 1.f),
+			XMVectorSet(0.f, 1.f,  0.f, 0.f),
+			XMVectorSet(0.f, 0.f, -1.f, 0.f)
 		))
 	);
 	// Positive -Y
 	XMStoreFloat4x4(
 		&irradCB.View[3],
 		XMMatrixTranspose(XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f),
-			XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)
+			XMVectorSet(0.f,  0.f, 0.f, 1.f),
+			XMVectorSet(0.f, -1.f, 0.f, 0.f),
+			XMVectorSet(0.f,  0.f, 1.f, 0.f)
 		))
 	);
 	// Positive +Z
 	XMStoreFloat4x4(
 		&irradCB.View[4],
 		XMMatrixTranspose(XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
-			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+			XMVectorSet(0.f, 0.f, 0.f, 1.f),
+			XMVectorSet(0.f, 0.f, 1.f, 0.f),
+			XMVectorSet(0.f, 1.f, 0.f, 0.f)
 		))
 	);
 	// Positive -Z
 	XMStoreFloat4x4(
 		&irradCB.View[5],
 		XMMatrixTranspose(XMMatrixLookAtLH(
-			XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),
-			XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),
-			XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+			XMVectorSet(0.f, 0.f,  0.f, 1.f),
+			XMVectorSet(0.f, 0.f, -1.f, 0.f),
+			XMVectorSet(0.f, 1.f,  0.f, 0.f)
 		))
 	);
 	
@@ -1616,7 +1598,7 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 	// Temporal supersampling reverse reproject
 	{
 		ConstantBuffer_CrossBilateralFilter filterCB;
-		filterCB.DepthSigma = 1.0f;
+		filterCB.DepthSigma = 1.f;
 		filterCB.DepthNumMantissaBits = D3D12Util::NumMantissaBitsInFloatFormat(16);
 
 		auto& currCB = mCurrFrameResource->CB_CrossBilateralFilter;
@@ -1630,8 +1612,8 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 		tsppBlendCB.ClampingMinStdDevTolerance = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::MinStdDevTolerance;
 
 		tsppBlendCB.ClampDifferenceToTsppScale = ShaderArgs::SVGF::TemporalSupersampling::ClampDifferenceToTsppScale;
-		tsppBlendCB.ForceUseMinSmoothingFactor = false;
-		tsppBlendCB.MinSmoothingFactor = 1.0f / ShaderArgs::SVGF::TemporalSupersampling::MaxTspp;
+		tsppBlendCB.ForceUseMinSmoothingFactor = FALSE;
+		tsppBlendCB.MinSmoothingFactor = 1.f / ShaderArgs::SVGF::TemporalSupersampling::MaxTspp;
 		tsppBlendCB.MinTsppToUseTemporalVariance = ShaderArgs::SVGF::TemporalSupersampling::MinTsppToUseTemporalVariance;
 
 		tsppBlendCB.BlurStrengthMaxTspp = ShaderArgs::SVGF::TemporalSupersampling::LowTsppMaxTspp;
@@ -1661,7 +1643,7 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 		atrousFilterCB.UseAdaptiveKernelSize = ShaderArgs::SVGF::AtrousWaveletTransformFilter::UseAdaptiveKernelSize;
 		atrousFilterCB.KernelRadiusLerfCoef = kernelRadiusLerfCoef;
 		atrousFilterCB.MinKernelWidth = ShaderArgs::SVGF::AtrousWaveletTransformFilter::FilterMinKernelWidth;
-		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgs::SVGF::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100) * mClientWidth);
+		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgs::SVGF::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100.f) * mClientWidth);
 
 		atrousFilterCB.PerspectiveCorrectDepthInterpolation = ShaderArgs::SVGF::AtrousWaveletTransformFilter::PerspectiveCorrectDepthInterpolation;
 		atrousFilterCB.MinVarianceToDenoise = ShaderArgs::SVGF::AtrousWaveletTransformFilter::MinVarianceToDenoise;
@@ -1729,8 +1711,8 @@ BOOL DxRenderer::AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry
 	mBLASRefs[geo->Name] = blas.get();
 	mBLASes.emplace_back(std::move(blas));
 	
-	bNeedToRebuildTLAS = true;
-	bNeedToRebuildShaderTables = true;
+	bNeedToRebuildTLAS = TRUE;
+	bNeedToRebuildShaderTables = TRUE;
 
 	return TRUE;
 }
@@ -1859,10 +1841,7 @@ BOOL DxRenderer::DrawGBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	auto descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// Copy the previous frame normal and depth values to the cached map.
@@ -2399,12 +2378,21 @@ BOOL DxRenderer::ApplyVolumetricLight() {
 	
 	mVolumetricLight->Run(
 		cmdList,
+		mScreenViewport,
+		mScissorRect,
+		mToneMapping->InterMediateMapResource(),
+		mToneMapping->InterMediateMapRtv(),
 		mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 		mZDepth->ZDepthSrv(),
 		mZDepth->ZDepthCubeSrv(),
 		mZDepth->FaceIDCubeSrv(),
+		mGBuffer->PositionMapSrv(),
 		mCamera->NearZ(),
-		mCamera->FarZ()
+		mCamera->FarZ(),
+		ShaderArgs::VolumetricLight::DepthExponent,
+		ShaderArgs::VolumetricLight::UniformDensity,
+		ShaderArgs::VolumetricLight::AnisotropicCoefficient,
+		ShaderArgs::VolumetricLight::DensityScale
 	);
 	
 	CheckHRESULT(cmdList->Close());
@@ -3263,7 +3251,7 @@ BOOL DxRenderer::DrawImGui() {
 					"Prefiltered Irradiance CubeMap",
 					reinterpret_cast<INT*>(&mIrradianceMap->DrawCubeType),
 					IrradianceMap::DebugCube::E_PrefilteredIrradianceCube);
-				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.0f, IrradianceMap::MaxMipLevel - 1);
+				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.f, IrradianceMap::MaxMipLevel - 1);
 			}
 		}
 
@@ -3298,15 +3286,15 @@ BOOL DxRenderer::DrawImGui() {
 		}
 		if (ImGui::CollapsingHeader("Main Pass")) {
 			if (ImGui::TreeNode("Dithering Transparency")) {
-				ImGui::SliderFloat("Max Distance", &ShaderArgs::GBuffer::Dither::MaxDistance, 0.1f, 10.0f);
-				ImGui::SliderFloat("Min Distance", &ShaderArgs::GBuffer::Dither::MinDistance, 0.01f, 1.0f);
+				ImGui::SliderFloat("Max Distance", &ShaderArgs::GBuffer::Dither::MaxDistance, 0.1f, 10.f);
+				ImGui::SliderFloat("Min Distance", &ShaderArgs::GBuffer::Dither::MinDistance, 0.01f, 1.f);
 
 				ImGui::TreePop();
 			}
 		}
 		if (ImGui::CollapsingHeader("Post Pass")) {
 			if (ImGui::TreeNode("TAA")) {
-				ImGui::SliderFloat("Modulation Factor", &ShaderArgs::TemporalAA::ModulationFactor, 0.1f, 0.9f);
+				ImGui::SliderFloat("Modulation Factor", &ShaderArgs::TemporalAA::ModulationFactor, 0.01f, 0.99f);
 
 				ImGui::TreePop();
 			}
@@ -3319,11 +3307,11 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Depth of Field")) {
-				ImGui::SliderFloat("Focus Range", &ShaderArgs::DepthOfField::FocusRange, 0.1f, 100.0f);
-				ImGui::SliderFloat("Focusing Speed", &ShaderArgs::DepthOfField::FocusingSpeed, 1.0f, 10.0f);
-				ImGui::SliderFloat("Bokeh Radius", &ShaderArgs::DepthOfField::BokehRadius, 1.0f, 8.0f);
+				ImGui::SliderFloat("Focus Range", &ShaderArgs::DepthOfField::FocusRange, 0.1f, 100.f);
+				ImGui::SliderFloat("Focusing Speed", &ShaderArgs::DepthOfField::FocusingSpeed, 1.f, 10.f);
+				ImGui::SliderFloat("Bokeh Radius", &ShaderArgs::DepthOfField::BokehRadius, 1.f, 8.f);
 				ImGui::SliderFloat("CoC Max Deviation Tolerance", &ShaderArgs::DepthOfField::CoCMaxDevTolerance, 0.1f, 0.9f);
-				ImGui::SliderFloat("Highlight Power", &ShaderArgs::DepthOfField::HighlightPower, 1.0f, 32.0f);
+				ImGui::SliderFloat("Highlight Power", &ShaderArgs::DepthOfField::HighlightPower, 1.f, 32.f);
 				ImGui::SliderInt("Sample Count", &ShaderArgs::DepthOfField::SampleCount, 1, 8);
 				ImGui::SliderInt("Blur Count", &ShaderArgs::DepthOfField::BlurCount, 0, 8);
 
@@ -3356,22 +3344,22 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Tone Mapping")) {
-				ImGui::SliderFloat("Exposure", &ShaderArgs::ToneMapping::Exposure, 0.1f, 10.0f);
+				ImGui::SliderFloat("Exposure", &ShaderArgs::ToneMapping::Exposure, 0.1f, 10.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Gamma Correction")) {
-				ImGui::SliderFloat("Gamma", &ShaderArgs::GammaCorrection::Gamma, 0.1f, 10.0f);
+				ImGui::SliderFloat("Gamma", &ShaderArgs::GammaCorrection::Gamma, 0.1f, 10.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Pixelization")) {
-				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.0f, 20.0f);
+				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.f, 20.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Sharpen")) {
-				ImGui::SliderFloat("Amount", &ShaderArgs::Sharpen::Amount, 0.0f, 10.0f);
+				ImGui::SliderFloat("Amount", &ShaderArgs::Sharpen::Amount, 0.f, 10.f);
 
 				ImGui::TreePop();
 			}
@@ -3380,6 +3368,14 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur));
 				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur));
 				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RaytracedReflection::Denoiser::LowTsppBlurPasses), 1, 8);
+
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Volumetric Light")) {
+				ImGui::SliderFloat("Depth Exponent", &ShaderArgs::VolumetricLight::DepthExponent, 1.f, 16.f);
+				ImGui::SliderFloat("Uniform Density", &ShaderArgs::VolumetricLight::UniformDensity, 0.f, 1.f);
+				ImGui::SliderFloat("Anisotropic Coefficient", &ShaderArgs::VolumetricLight::AnisotropicCoefficient, -0.5f, 0.5f);
+				ImGui::SliderFloat("Density Scale", &ShaderArgs::VolumetricLight::DensityScale, 0.01f, 1.f);
 
 				ImGui::TreePop();
 			}
@@ -3397,8 +3393,8 @@ BOOL DxRenderer::DrawImGui() {
 			if (light.Type == LightType::E_Directional) {
 				if (ImGui::TreeNode((std::to_string(i) + " Directional Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 100.0f);
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0.f, 100.f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.f, 1.f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
 						XMVECTOR normalized = XMVector3Normalize(dir);
 						XMStoreFloat3(&light.Direction, normalized);
@@ -3410,10 +3406,10 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Point) {
 				if (ImGui::TreeNode((std::to_string(i) + " Point Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0.f, 1000.f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.f, 100.f, "%.3f");
+					ImGui::SliderFloat("Radius", &light.Radius, 0.f, 100.f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0.f, 100.f);
 
 					ImGui::TreePop();
 				}
@@ -3421,16 +3417,16 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Spot) {
 				if (ImGui::TreeNode((std::to_string(i) + " Spot Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f);
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0.f, 1000.f);
+					ImGui::SliderFloat3("Position", reinterpret_cast<FLOAT*>(&light.Position), -100.f, 100.f);
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.f, 1.f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
 						XMVECTOR normalized = XMVector3Normalize(dir);
 						XMStoreFloat3(&light.Direction, normalized);
 					}
-					ImGui::SliderFloat("Inner Cone Angle", &light.InnerConeAngle, 0, 80.0f);
-					ImGui::SliderFloat("Outer Cone Angle", &light.OuterConeAngle, 0, 80.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+					ImGui::SliderFloat("Inner Cone Angle", &light.InnerConeAngle, 0.f, 80.f);
+					ImGui::SliderFloat("Outer Cone Angle", &light.OuterConeAngle, 0.f, 80.f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0.f, 100.f);
 
 					ImGui::TreePop();
 				}
@@ -3438,11 +3434,11 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Tube) {
 				if (ImGui::TreeNode((std::to_string(i) + " Tube Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Position0", reinterpret_cast<FLOAT*>(&light.Position), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat3("Position1", reinterpret_cast<FLOAT*>(&light.Position1), -100.0f, 100.0f, "%.3f");
-					ImGui::SliderFloat("Radius", &light.Radius, 0, 100.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0.f, 1000.f);
+					ImGui::SliderFloat3("Position0", reinterpret_cast<FLOAT*>(&light.Position), -100.f, 100.f, "%.3f");
+					ImGui::SliderFloat3("Position1", reinterpret_cast<FLOAT*>(&light.Position1), -100.f, 100.f, "%.3f");
+					ImGui::SliderFloat("Radius", &light.Radius, 0.f, 100.f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0.f, 100.f);
 
 					ImGui::TreePop();
 				}
@@ -3450,15 +3446,15 @@ BOOL DxRenderer::DrawImGui() {
 			else if (light.Type == LightType::E_Rect) {
 				if (ImGui::TreeNode((std::to_string(i) + " Rect Light").c_str())) {
 					ImGui::ColorPicker3("Color", reinterpret_cast<FLOAT*>(&light.Color));
-					ImGui::SliderFloat("Intensity", &light.Intensity, 0, 1000.0f);
-					ImGui::SliderFloat3("Center", reinterpret_cast<FLOAT*>(&light.Center), -100.0f, 100.0f, "%.3f");
-					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.0f, 1.0f)) {
+					ImGui::SliderFloat("Intensity", &light.Intensity, 0.f, 1000.f);
+					ImGui::SliderFloat3("Center", reinterpret_cast<FLOAT*>(&light.Center), -100.f, 100.f, "%.3f");
+					if (ImGui::SliderFloat3("Direction", reinterpret_cast<FLOAT*>(&light.Direction), -1.f, 1.f)) {
 						XMVECTOR dir = XMLoadFloat3(&light.Direction);
 						XMVECTOR normalized = XMVector3Normalize(dir);
 						XMStoreFloat3(&light.Direction, normalized);
 					}
-					ImGui::SliderFloat2("Size", reinterpret_cast<FLOAT*>(&light.Size), 0.0f, 100.0f);
-					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0, 100.0f);
+					ImGui::SliderFloat2("Size", reinterpret_cast<FLOAT*>(&light.Size), 0.f, 100.f);
+					ImGui::SliderFloat("Attenuation Radius", &light.AttenuationRadius, 0.f, 100.f);
 
 					ImGui::TreePop();
 				}
@@ -3469,9 +3465,9 @@ BOOL DxRenderer::DrawImGui() {
 			if (ImGui::Button("Directional")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Directional;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.Direction = { 0.0f, -1.0f, 0.0f };
+				light.Color = { 1.f, 1.f, 1.f };
+				light.Intensity = 1.f;
+				light.Direction = { 0.f, -1.f, 0.f };
 
 				mZDepth->AddLight(light.Type, mLightCount++);
 			}
@@ -3479,11 +3475,11 @@ BOOL DxRenderer::DrawImGui() {
 			if (ImGui::Button("Point")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Point;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Radius = 1.0f;
+				light.Color = { 1.f, 1.f, 1.f };
+				light.Intensity = 1.f;
+				light.AttenuationRadius = 50.f;
+				light.Position = { 0.f, 0.f, 0.f };
+				light.Radius = 1.f;
 
 				mZDepth->AddLight(light.Type, mLightCount++);
 			}
@@ -3491,25 +3487,25 @@ BOOL DxRenderer::DrawImGui() {
 			if (ImGui::Button("Spot")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Spot;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Direction = { 0.0f, -1.0f, 0.0f };
-				light.InnerConeAngle = 1.0f;
-				light.OuterConeAngle = 45.0f;
+				light.Color = { 1.f, 1.f, 1.f };
+				light.Intensity = 1.f;
+				light.AttenuationRadius = 50.f;
+				light.Position = { 0.f, 0.f, 0.f };
+				light.Direction = { 0.f, -1.f, 0.f };
+				light.InnerConeAngle = 1.f;
+				light.OuterConeAngle = 45.f;
 
 				mZDepth->AddLight(light.Type, mLightCount++);
 			}
 			if (ImGui::Button("Tube")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Tube;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Position = { 0.0f, 0.0f, 0.0f };
-				light.Position1 = { 1.0f, 0.0f, 0.0f };
-				light.Radius = 1.0f;
+				light.Color = { 1.f, 1.f, 1.f };
+				light.Intensity = 1.f;
+				light.AttenuationRadius = 50.f;
+				light.Position = { 0.f, 0.f, 0.f };
+				light.Position1 = { 1.f, 0.f, 0.f };
+				light.Radius = 1.f;
 
 				mZDepth->AddLight(light.Type, mLightCount++);
 			}
@@ -3517,16 +3513,16 @@ BOOL DxRenderer::DrawImGui() {
 			if (ImGui::Button("Rect")) {
 				auto& light = mLights[mLightCount];
 				light.Type = LightType::E_Rect;
-				light.Color = { 1.0f, 1.0f, 1.0f };
-				light.Intensity = 1.0f;
-				light.AttenuationRadius = 50.0f;
-				light.Center = { 0.0f,  2.0f,  0.0f };
-				light.Position = { -0.5f,  2.0f, -0.5f };
-				light.Position1 = { 0.5f,  2.0f, -0.5f };
-				light.Position2 = { 0.5f,  2.0f,  0.5f };
-				light.Position3 = { -0.5f,  2.0f,  0.5f };
-				light.Direction = { 0.0f, -1.0f,  0.0f };
-				light.Size = { 1.0f, 1.0f };
+				light.Color = { 1.f, 1.f, 1.f };
+				light.Intensity = 1.f;
+				light.AttenuationRadius = 50.f;
+				light.Center = { 0.f,  2.f,  0.f };
+				light.Position  = { -0.5f, 2.f, -0.5f };
+				light.Position1 = {  0.5f, 2.f, -0.5f };
+				light.Position2 = {  0.5f, 2.f,  0.5f };
+				light.Position3 = { -0.5f, 2.f,  0.5f };
+				light.Direction = {  0.f, -1.f,  0.f };
+				light.Size = { 1.f, 1.f };
 
 				mZDepth->AddLight(light.Type, mLightCount++);
 			}
@@ -3551,8 +3547,8 @@ BOOL DxRenderer::DrawImGui() {
 				mat->Albedo.w = albedo[3];
 			}
 			ImGui::SliderFloat("Roughness", &mat->Roughness, 0.001f, 0.999f);
-			ImGui::SliderFloat("Metalic", &mat->Metailic, 0.0f, 1.0f);
-			ImGui::SliderFloat("Specular", &mat->Specular, 0.0f, 1.0f);
+			ImGui::SliderFloat("Metalic", &mat->Metailic, 0.f, 1.f);
+			ImGui::SliderFloat("Specular", &mat->Specular, 0.f, 1.f);
 		}
 
 		ImGui::End();

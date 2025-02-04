@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://learnopengl.com/Advanced-Lighting/Shadows/Point-Shadows
+
 #ifndef __ZDEPTH_HLSL__
 #define __ZDEPTH_HLSL__
 

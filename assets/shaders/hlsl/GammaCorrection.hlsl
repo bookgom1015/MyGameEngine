@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://learnopengl.com/Advanced-Lighting/Gamma-Correction
+
 #ifndef __GAMMACORRECTION_HLSL__
 #define __GAMMACORRECTION_HLSL__
 
@@ -7,11 +10,12 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
-#include "CoordinatesFittedToScreen.hlsli"
 
 cbuffer gRootConstants : register(b0) {
 	float gGamma;
 }
+
+#include "CoordinatesFittedToScreen.hlsli"
 
 Texture2D<SDR_FORMAT> gi_BackBuffer : register(t0);
 
@@ -31,7 +35,7 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
+SDR_FORMAT PS(VertexOut pin) : SV_Target{
 	float2 tex = pin.TexC;
 
 	float3 color = gi_BackBuffer.SampleLevel(gsamPointClamp, tex, 0).rgb;

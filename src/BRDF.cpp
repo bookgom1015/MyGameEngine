@@ -310,7 +310,7 @@ void BRDFClass::CalcReflectanceWithoutSpecIrrad(
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::CalcReflectanceEquation::ECB_Pass, cb_pass);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::CalcReflectanceEquation::ESI_Albedo, si_albedo);

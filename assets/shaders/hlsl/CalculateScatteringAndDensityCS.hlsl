@@ -18,6 +18,8 @@ cbuffer cbRootConstants : register (b1) {
 	float gNearZ;
 	float gFarZ;
 	float gDepthExponent;
+	float gUniformDensity;
+	float gAnisotropicCoefficient;
 }
 
 Texture2D<Shadow::ZDepthMapFormat>				gi_ZDepth[MaxLights]			: register(t0);
@@ -27,7 +29,7 @@ Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray[MaxLights]	: regi
 RWTexture3D<VolumetricLight::FrustumMapFormat>	go_FrustumVolume				: register(u0);
 
 float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
-	uint faceID = (uint)gi_FaceIDTexArray[index].SampleLevel(gsamPointClamp, float3(uv, index), 0);
+	const uint faceID = (uint)gi_FaceIDTexArray[index].SampleLevel(gsamPointClamp, float3(uv, index), 0);
 	switch (faceID) {
 	case 0: return light.Mat0;
 	case 1: return light.Mat1;
@@ -40,28 +42,26 @@ float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
 }
 
 [numthreads(
-	VolumetricLight::Default::ThreadGroup::Width, 
-	VolumetricLight::Default::ThreadGroup::Height, 
-	VolumetricLight::Default::ThreadGroup::Depth)]
+	VolumetricLight::CalcScatteringAndDensity::ThreadGroup::Width, 
+	VolumetricLight::CalcScatteringAndDensity::ThreadGroup::Height, 
+	VolumetricLight::CalcScatteringAndDensity::ThreadGroup::Depth)]
 void CS(uint3 DTid : SV_DispatchThreadId) {
 	uint3 dims;
 	go_FrustumVolume.GetDimensions(dims.x, dims.y, dims.z);
 	if (all(DTid >= dims)) return;
 
-	const float2 texc = float2((DTid.x + 0.5) / dims.x, (DTid.y + 0.5) / dims.y);
+	const float2 texc = float2((DTid.x + 0.5f) / dims.x, (DTid.y + 0.5f) / dims.y);
 
 	const float3 posW = ThreadIdToWorldPosition(DTid, dims, gDepthExponent, gNearZ, gFarZ, cb_Pass.InvView, cb_Pass.InvProj);
 	const float3 toEyeW = normalize(cb_Pass.EyePosW - posW);
 
-	const float density = 1;
-
-	float3 Li = 0; // Ambient lights;
+	float3 Li = 0.f; // Ambient lights;
 
 	[loop]
 	for (uint i = 0; i < cb_Pass.LightCount; ++i) {
 		Light light = cb_Pass.Lights[i];
 
-		float3 direction = 0;
+		float3 direction = 0.f;
 
 		if (light.Type == LightType::E_Directional) {
 			direction = light.Direction;
@@ -75,11 +75,11 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 			direction = posW - light.Position;
 		}
 
-		bool needCube = light.Type == LightType::E_Point || light.Type == LightType::E_Spot;
-
+		const bool needCube = light.Type == LightType::E_Point || light.Type == LightType::E_Spot;
 		const float3 toLight = -direction;
 
-		float visibility = 0; 
+		float visibility = 0.f; 
+
 		if (needCube) {
 			const uint index = GetCubeFaceIndex(direction);
 			const float3 normalized = normalize(direction);
@@ -95,12 +95,12 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 			visibility = CalcShadowFactor(gi_ZDepth[i], gsamShadow, light.Mat0, posW);
 		}
 
-		const float phaseFunction = HenyeyGreensteinPhaseFunction(direction, toEyeW, 0.5);
+		const float phaseFunction = HenyeyGreensteinPhaseFunction(direction, toEyeW, gAnisotropicCoefficient);
 
 		Li += visibility * light.Color * light.Intensity * phaseFunction;
 	}
 
-	go_FrustumVolume[DTid] = float4(Li * density, density);
+	go_FrustumVolume[DTid] = float4(Li * gUniformDensity, gUniformDensity);
 }
 
 #endif // __CALCULATESCATTERINGANDDENSITY_HLSL__

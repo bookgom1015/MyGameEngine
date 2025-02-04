@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/Samples/Desktop/D3D12Raytracing/src/D3D12RaytracingRealTimeDenoisedAmbientOcclusion
+
 #ifndef __RTAO_HLSL__
 #define __RTAO_HLSL__
 
@@ -7,11 +10,11 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "ShadingHelpers.hlsli"
-#include "DXR_ShadingHelpers.hlsli"
-#include "Random.hlsli"
 #include "Samplers.hlsli"
-#include "RTAO.hlsli"
+
+#include "DXR_ShadingHelpers.hlsli"
 #include "ValuePackaging.hlsli"
+#include "Random.hlsli"
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 

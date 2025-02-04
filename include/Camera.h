@@ -6,7 +6,7 @@
 
 class Camera {
 public:
-	Camera(FLOAT nearZ = 0.1f, FLOAT farZ = 1000.0f, FLOAT fovY = 90.0f);
+	Camera(FLOAT nearZ = 0.1f, FLOAT farZ = 100.0f, FLOAT fovY = 90.0f);
 	virtual ~Camera() = default;
 
 public:

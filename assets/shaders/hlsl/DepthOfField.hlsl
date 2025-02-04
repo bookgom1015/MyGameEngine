@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
+
 #ifndef __DEPTHOFFIELD_HLSL__
 #define __DEPTHOFFIELD_HLSL__
 

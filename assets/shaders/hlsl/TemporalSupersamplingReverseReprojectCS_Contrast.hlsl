@@ -1,9 +1,10 @@
+// [ Descriptions ]
+//  Stage 1 of Temporal-Supersampling.
+//  Samples temporal cache via vectors/reserve reprojection.
+//  If no valid values have been reterived from the cache, the tspp is set to 0.
+
 #ifndef __TEMPORALSUPERSAMPLINGREVERSEREPROJECTCS_HLSL__
 #define __TEMPORALSUPERSAMPLINGREVERSEREPROJECTCS_HLSL__
-
-// Stage 1 of Temporal-Supersampling.
-// Samples temporal cache via vectors/reserve reprojection.
-// If no valid values have been reterived from the cache, the tspp is set to 0.
 
 #ifndef HLSL
 #define HLSL
@@ -11,10 +12,9 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
-#include "CrossBilateralWeights.hlsli"
-#include "RTAO.hlsli"
+
 #include "ValuePackaging.hlsli"
-#include "RaytracedReflection.hlsli"
+#include "CrossBilateralWeights.hlsli"
 
 ConstantBuffer<ConstantBuffer_CrossBilateralFilter> cb_Reproject : register (b0);
 

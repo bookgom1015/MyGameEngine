@@ -1,3 +1,6 @@
+// [ References ]
+//  - https://dev.epicgames.com/documentation/en-us/unreal-engine/cinematic-depth-of-field-method?application_version=4.27
+
 #ifndef __FOCALDISTANCE_HLSL__
 #define __FOCALDISTANCE_HLSL__
 
@@ -11,9 +14,9 @@
 
 ConstantBuffer<ConstantBuffer_DoF> cb_DoF : register(b0);
 
-Texture2D<GBuffer::DepthMapFormat> gi_Depth : register(t0);
+Texture2D<GBuffer::DepthMapFormat>					gi_Depth			: register(t0);
 
-RWBuffer<DepthOfField::FocalDistanceBufferFormat> uio_FocalDistance : register(u0);
+RWBuffer<DepthOfField::FocalDistanceBufferFormat>	uio_FocalDistance	: register(u0);
 
 struct VertexOut {
 	float4 PosH	: SV_POSITION;

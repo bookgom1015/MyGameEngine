@@ -42,7 +42,8 @@ bool IsWithinBounds(int2 index, int2 dimensions) {
 	return index.x >= 0 && index.y >= 0 && index.x < dimensions.x&& index.y < dimensions.y;
 }
 
-// Remap partial depth derivatives at z0 from [1,1] pixel offset to a new pixel offset.
+// [ Descriptions ]
+//  Remap partial depth derivatives at z0 from [1,1] pixel offset to a new pixel offset.
 float2 RemapDdxy(float z0, float2 ddxy, float2 pixelOffset) {
 	// Perspective correction for non-linear depth interpolation.
 	// Ref: https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/visibility-problem-depth-buffer-depth-interpolation
@@ -60,18 +61,18 @@ bool IsInRange(float val, float min, float max) {
 	return (val >= min && val <= max);
 }
 
-// Returns an approximate surface dimensions covered in a pixel. 
-// This is a simplified model assuming pixel to pixel view angles are the same.
-// z - linear depth of the surface at the pixel
-// ddxy - partial depth derivatives
-// tan_a - tangent of a per pixel view angle 
+// [ Descriptions ]
+//  Returns an approximate surface dimensions covered in a pixel. 
+//  This is a simplified model assuming pixel to pixel view angles are the same.
+// [ Parameters ]
+//  - z		: linear depth of the surface at the pixel
+//  - ddxy	: partial depth derivatives
+//  - tan_a : tangent of a per pixel view angle 
 float2 ApproximateProjectedSurfaceDimensionsPerPixel(float z, float2 ddxy, float tan_a) {
 	// Surface dimensions for a surface parallel at z.
 	float2 dx = tan_a * z;
-
 	// Using Pythagorean theorem approximate the surface dimensions given the ddxy.
 	float2 w = sqrt(dx * dx + ddxy * ddxy);
-
 	return w;
 }
 

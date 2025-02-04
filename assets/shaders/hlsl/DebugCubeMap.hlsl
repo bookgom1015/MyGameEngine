@@ -7,8 +7,10 @@
 
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
-#include "ValueTypeConversion.hlsli"
 #include "Samplers.hlsli"
+
+#include "ValueTypeConversion.hlsli"
+#include "Equirectangular.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 
@@ -39,26 +41,17 @@ VertexOut VS(uint vid : SV_VertexID) {
 	return vout;
 }
 
-float2 SampleSphericalMap(float3 view) {
-	float2 texc = float2(atan2(view.z, view.x), asin(view.y));
-	texc *= InvATan;
-	texc += 0.5;
-	texc.y = 1 - texc.y;
-	return texc;
-}
-
-float4 PS(VertexOut pin) : SV_Target{
+HDR_FORMAT PS(VertexOut pin) : SV_Target{
 	float4 color = 0;
 
 #ifdef SPHERICAL
-	float2 texc = SampleSphericalMap(normalize(pin.PosL));
+	float2 texc = Equirectangular::SampleSphericalMap(normalize(pin.PosL));
 	color = gi_Equirectangular.SampleLevel(gsamLinearClamp, texc, gMipLevel);
 #else
 	color = gi_Cube.SampleLevel(gsamLinearWrap, normalize(pin.PosL), gMipLevel);
 #endif
 
 	float4 gammaEncoded = LinearTosRGB(color);
-
 	return gammaEncoded;
 }
 

@@ -1,3 +1,7 @@
+// [ References ]
+//  - https://learnopengl.com/PBR/IBL/Diffuse-irradiance
+//  - https://learnopengl.com/PBR/IBL/Specular-IBL
+
 #ifndef __CONVERTEQUIRECTANGULARTOCUBEMAP_HLSL__
 #define __CONVERTEQUIRECTANGULARTOCUBEMAP_HLSL__
 
@@ -8,6 +12,8 @@
 #include "./../../../include/HlslCompaction.h"
 #include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
+
+#include "Equirectangular.hlsli"
 
 ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
 
@@ -58,16 +64,8 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	}
 }
 
-float2 SampleSphericalMap(float3 view) {
-	float2 texc = float2(atan2(view.z, view.x), asin(view.y));
-	texc *= InvATan;
-	texc += 0.5;
-	texc.y = 1 - texc.y;
-	return texc;
-}
-
 HDR_FORMAT PS(GeoOut pin) : SV_Target{
-	float2 texc = SampleSphericalMap(normalize(pin.PosL));
+	float2 texc = Equirectangular::SampleSphericalMap(normalize(pin.PosL));
 	float3 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc).rgb;
 	return float4(samp, 1);
 }

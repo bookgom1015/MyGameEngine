@@ -1,13 +1,13 @@
-//*********************************************************
+// [ Copyrights ]
+//  Copyright (c) Microsoft. All rights reserved.
+//  This code is licensed under the MIT License (MIT).
+//  THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
+//  ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
+//  IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
+//  PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
 //
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
+// [ Notes ] 
+//  - [3/12/2019] DXC fails to compile with both /Od /Zi specified when a global symbol is defined under a namespace. Workaround: remove /Od.
 
 #ifndef __KERNELS_HLSLI__
 #define __KERNELS_HLSLI__
@@ -15,8 +15,6 @@
 #ifndef HLSL
 #define HLSL
 #endif
-
-// Note: [3/12/2019] DXC fails to compile with both /Od /Zi specified when a global symbol is defined under a namespace. Workaround: remove /Od.
 
 namespace FilterKernel
 {

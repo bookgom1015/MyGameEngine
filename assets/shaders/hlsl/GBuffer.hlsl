@@ -9,6 +9,7 @@
 #include "./../../../include/Vertex.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
+
 #include "ValuePackaging.hlsli"
 #include "ValueTypeConversion.hlsli"
 
