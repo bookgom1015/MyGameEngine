@@ -3,8 +3,8 @@
 
 #include "ShadingConstants.hlsli"
 
-uint GetCubeFaceIndex(float3 direction) {
-    float3 absDir = abs(direction);
+uint GetCubeFaceIndex(in float3 direction) {
+    const float3 absDir = abs(direction);
     if (absDir.x >= absDir.y && absDir.x >= absDir.z)
 		return (direction.x > 0.f) ? 0 : 1; // +X : -X
     else if (absDir.y >= absDir.x && absDir.y >= absDir.z)
@@ -14,7 +14,7 @@ uint GetCubeFaceIndex(float3 direction) {
 }
 
 // Convert normalized direction to UV coordinates for the 2D texture
-float2 ConvertDirectionToUV(float3 dir) {	
+float2 ConvertDirectionToUV(in float3 dir) {
 	const float absX = abs(dir.x);
 	const float absY = abs(dir.y);
 	const float absZ = abs(dir.z);
@@ -28,7 +28,7 @@ float2 ConvertDirectionToUV(float3 dir) {
 	// Check which face the vector corresponds to
 	if (absX >= absY && absX >= absZ) {
 		// +X or -X face
-		if (dir.x > 0) {
+		if (dir.x > 0.f) {
 			u = 0.5f * (-dir.z / dirX + 1.f);
 			v = 0.5f * (-dir.y / dirX + 1.f);
 		}
@@ -39,9 +39,9 @@ float2 ConvertDirectionToUV(float3 dir) {
 	}
 	else if (absY >= absX && absY >= absZ) {
 		// +Y or -Y face
-		if (dir.y > 0) {
-			u = 0.5f * ( dir.x / dirY + 1.f);
-			v = 0.5f * (-dir.z / dirY + 1.f);
+		if (dir.y > 0.f) {
+			u = 0.5f * (dir.x / dirY + 1.f);
+			v = 0.5f * (dir.z / dirY + 1.f);
 		}
 		else {
 			u = 0.5f * ( dir.x / -dirY + 1.f);
@@ -50,7 +50,7 @@ float2 ConvertDirectionToUV(float3 dir) {
 	}
 	else {
 		// +Z or -Z face
-		if (dir.z > 0) {
+		if (dir.z > 0.f) {
 			u = 0.5f * ( dir.x / dirZ + 1.f);
 			v = 0.5f * (-dir.y / dirZ + 1.f);
 		}
@@ -63,18 +63,18 @@ float2 ConvertDirectionToUV(float3 dir) {
 	return float2(u, v);
 }
 
-float NdcDepthToViewDepth(float z_ndc, float4x4 proj) {
+float NdcDepthToViewDepth(in float z_ndc, in float4x4 proj) {
 	// z_ndc = A + B/viewZ, where proj[2,2]=A and proj[3,2]=B.
 	const float viewZ = proj[3][2] / (z_ndc - proj[2][2]);
 	return viewZ;
 }
 
-float NdcDepthToExpViewDepth(float z_ndc, float z_exp, float near, float far) {
+float NdcDepthToExpViewDepth(in float z_ndc, in float z_exp, in float near, in float far) {
 	const float viewZ = pow(z_ndc, z_exp) * (far - near) + near;
 	return viewZ;
 }
 
-float3 ThreadIdToNdc(uint3 DTid, uint3 dims) {
+float3 ThreadIdToNdc(in uint3 DTid, in uint3 dims) {
 	float3 ndc = DTid;
 	ndc += 0.5f;
 	ndc *= float3(2.f / dims.x, -2.f / dims.y, 1.f / dims.z);
@@ -82,7 +82,7 @@ float3 ThreadIdToNdc(uint3 DTid, uint3 dims) {
 	return ndc;
 }
 
-float3 NdcToWorldPosition(float3 ndc, float depthV, float4x4 invView, float4x4 invProj) {
+float3 NdcToWorldPosition(in float3 ndc, in float depthV, in float4x4 invView, in float4x4 invProj) {
 	float4 rayV = mul(float4(ndc, 1.f), invProj);
 	rayV /= rayV.w;
 	rayV /= rayV.z; // So as to set the z depth value to 1.
@@ -91,13 +91,13 @@ float3 NdcToWorldPosition(float3 ndc, float depthV, float4x4 invView, float4x4 i
 	return posW.xyz;
 }
 
-float3 ThreadIdToWorldPosition(uint3 DTid, uint3 dims, float z_exp, float near, float far, float4x4 invView, float4x4 invProj) {
+float3 ThreadIdToWorldPosition(in uint3 DTid, in uint3 dims, in float z_exp, in float near, in float far, in float4x4 invView, in float4x4 invProj) {
 	const float3 ndc = ThreadIdToNdc(DTid, dims);
 	const float depthV = NdcDepthToExpViewDepth(ndc.z, z_exp, near, far);
 	return NdcToWorldPosition(ndc, depthV, invView, invProj);
 }
 
-float2 CalcVelocity(float4 curr_pos, float4 prev_pos) {
+float2 CalcVelocity(in float4 curr_pos, in float4 prev_pos) {
 	curr_pos.xy = (curr_pos.xy + (float2)1.f) / 2.f;
 	curr_pos.y = 1.f - curr_pos.y;
 
@@ -108,7 +108,7 @@ float2 CalcVelocity(float4 curr_pos, float4 prev_pos) {
 }
 
 // Determines how much the sample point q occludes the point p as a function of distZ.
-float OcclusionFunction(float distZ, float epsilon, float fadeStart, float fadeEnd) {
+float OcclusionFunction(in float distZ, in float epsilon, in float fadeStart, in float fadeEnd) {
 	//
 	// If depth(q) is "behind" depth(p), then q cannot occlude p.  Moreover, if 
 	// depth(q) and depth(p) are sufficiently close, then we also assume q cannot
@@ -129,13 +129,21 @@ float OcclusionFunction(float distZ, float epsilon, float fadeStart, float fadeE
 	//
 	float occlusion = 0.f;
 	if (distZ > epsilon) {
-		float fadeLength = fadeEnd - fadeStart;
+		const float fadeLength = fadeEnd - fadeStart;
 
 		// Linearly decrease occlusion from 1 to 0 as distZ goes from gOcclusionFadeStart to gOcclusionFadeEnd.	
 		occlusion = saturate((fadeEnd - distZ) / fadeLength);
 	}
 
 	return occlusion;
+}
+
+bool IsZeroMatrix(float4x4 mat) {
+	return abs(dot(mat[0], 1)) + abs(dot(mat[1], 1)) + abs(dot(mat[2], 1)) + abs(dot(mat[3], 1)) < FLT_EPSILON;
+}
+
+bool IsNotZeroMatrix(float4x4 mat) {
+	return abs(dot(mat[0], 1)) + abs(dot(mat[1], 1)) + abs(dot(mat[2], 1)) + abs(dot(mat[3], 1)) >= FLT_EPSILON;
 }
 
 #endif // __SHADINGHELPERS_HLSLI__

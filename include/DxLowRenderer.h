@@ -71,7 +71,7 @@ protected:
 	D3D12_VIEWPORT mScreenViewport;
 	D3D12_RECT mScissorRect;
 
-	HWND mhMainWnd;
+	HWND mhMainWnd = NULL;
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuCbvSrvUav;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuCbvSrvUav;
@@ -82,19 +82,19 @@ protected:
 	std::unique_ptr<DepthStencilBuffer::DepthStencilBufferClass> mDepthStencilBuffer;
 
 private:
-	BOOL bIsCleanedUp;
+	BOOL bIsCleanedUp = FALSE;
 
 	BOOL bAllowTearing;
 
 	Microsoft::WRL::ComPtr<ID3D12Debug> mDebugController;
-	DWORD mCallbakCookie;
+	DWORD mCallbakCookie = 0x01010101;
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4> mdxgiFactory;
-	UINT mdxgiFactoryFlags;
+	UINT mdxgiFactoryFlags = 0;
 
-	UINT mRtvDescriptorSize;
-	UINT mDsvDescriptorSize;
-	UINT mCbvSrvUavDescriptorSize;
+	UINT mRtvDescriptorSize = 0;
+	UINT mDsvDescriptorSize = 0;
+	UINT mCbvSrvUavDescriptorSize = 0;
 
 	UINT64 mCurrentFence;
 };

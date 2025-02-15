@@ -40,20 +40,6 @@ namespace {
 }
 
 DxLowRenderer::DxLowRenderer() {
-	bIsCleanedUp = false;
-
-	mhMainWnd = NULL;
-
-	mCallbakCookie = 0x01010101;
-
-	mdxgiFactoryFlags = 0;
-
-	mRtvDescriptorSize = 0;
-	mDsvDescriptorSize = 0;
-	mCbvSrvUavDescriptorSize = 0;
-
-	mCurrentFence = 0;
-
 	mSwapChainBuffer = std::make_unique<SwapChainBuffer::SwapChainBufferClass>();
 	mDepthStencilBuffer = std::make_unique<DepthStencilBuffer::DepthStencilBufferClass>();
 }
@@ -75,7 +61,7 @@ BOOL DxLowRenderer::LowInitialize(HWND hwnd, UINT width, UINT height) {
 
 	CheckReturn(LowOnResize(width, height));
 
-	return true;
+	return TRUE;
 }
 
 void DxLowRenderer::LowCleanUp() {
@@ -88,7 +74,7 @@ void DxLowRenderer::LowCleanUp() {
 			WLogln(L"Failed to flush command queue during cleaning up");
 	}
 
-	bIsCleanedUp = true;
+	bIsCleanedUp = TRUE;
 }
 
 BOOL DxLowRenderer::LowOnResize(UINT width, UINT height) {
@@ -103,7 +89,7 @@ BOOL DxLowRenderer::LowOnResize(UINT width, UINT height) {
 	// Execute the resize commands.
 	CheckHRESULT(mCommandList->Close());
 
-	ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
+	ID3D12CommandList* const cmdLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
 	// Wait until resize is complete.
@@ -114,12 +100,12 @@ BOOL DxLowRenderer::LowOnResize(UINT width, UINT height) {
 	mScreenViewport.TopLeftY = 0;
 	mScreenViewport.Width = static_cast<FLOAT>(width);
 	mScreenViewport.Height = static_cast<FLOAT>(height);
-	mScreenViewport.MinDepth = 0.0f;
-	mScreenViewport.MaxDepth = 1.0f;
+	mScreenViewport.MinDepth = 0.f;
+	mScreenViewport.MaxDepth = 1.f;
 
 	mScissorRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxLowRenderer::CreateRtvAndDsvDescriptorHeaps() {
@@ -143,7 +129,7 @@ BOOL DxLowRenderer::CreateRtvAndDsvDescriptorHeaps() {
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CheckHRESULT(md3dDevice->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mCbvSrvUavHeap)));
 
-	return true;
+	return TRUE;
 }
 
 UINT64 DxLowRenderer::IncreaseFence() { return ++mCurrentFence; }
@@ -163,7 +149,7 @@ BOOL DxLowRenderer::FlushCommandQueue() {
 
 	// Wait until the GPU has compledted commands up to this fence point.
 	if (mFence->GetCompletedValue() < mCurrentFence) {
-		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+		HANDLE eventHandle = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
 
 		// Fire event when GPU hits current fence.
 		CheckHRESULT(mFence->SetEventOnCompletion(mCurrentFence, eventHandle));
@@ -173,7 +159,7 @@ BOOL DxLowRenderer::FlushCommandQueue() {
 		CloseHandle(eventHandle);
 	}
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxLowRenderer::InitDirect3D(UINT width, UINT height) {
@@ -189,19 +175,19 @@ BOOL DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 	ComPtr<IDXGIFactory5> factory5;
 	CheckHRESULT(mdxgiFactory.As(&factory5));
 
-	auto supported = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &bAllowTearing, sizeof(bAllowTearing));
+	const auto supported = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &bAllowTearing, sizeof(bAllowTearing));
 	if (SUCCEEDED(supported)) bAllowTearing = TRUE;
 	else bAllowTearing = FALSE;
 
 	Adapters adapters;
 	SortAdapters(adapters);
 
-	BOOL found = false;
+	BOOL found = FALSE;
 	for (auto begin = adapters.rbegin(), end = adapters.rend(); begin != end; ++begin) {
 		auto adapter = begin->second;
 
 		// Try to create hardware device.
-		HRESULT hr = D3D12CreateDevice(
+		const HRESULT hr = D3D12CreateDevice(
 			adapter,
 			D3D_FEATURE_LEVEL_12_1,
 			__uuidof(ID3D12Device5),
@@ -209,7 +195,7 @@ BOOL DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 		);
 
 		if (SUCCEEDED(hr)) {
-			found = true;
+			found = TRUE;
 #ifdef _DEBUG
 			DXGI_ADAPTER_DESC desc;
 			adapter->GetDesc(&desc);
@@ -222,7 +208,7 @@ BOOL DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 
 	// Checks that device supports ray-tracing.
 	D3D12_FEATURE_DATA_D3D12_OPTIONS5 ops = {};
-	HRESULT featureSupport = md3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &ops, sizeof(ops));
+	const HRESULT featureSupport = md3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &ops, sizeof(ops));
 	if (FAILED(featureSupport)) ReturnFalse(L"Device or driver does not support d3d12");
 
 	if (FAILED(featureSupport) || ops.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)
@@ -241,7 +227,7 @@ BOOL DxLowRenderer::InitDirect3D(UINT width, UINT height) {
 	CheckReturn(CreateSwapChain(width, height));
 	CheckReturn(CreateRtvAndDsvDescriptorHeaps());
 
-	return true;
+	return TRUE;
 }
 
 void DxLowRenderer::SortAdapters(Adapters& adapters) {
@@ -261,7 +247,7 @@ void DxLowRenderer::SortAdapters(Adapters& adapters) {
 		wsstream << L"\t " << desc.Description << std::endl;
 #endif
 
-		size_t score = desc.DedicatedSystemMemory + desc.DedicatedVideoMemory + desc.SharedSystemMemory;
+		const size_t score = desc.DedicatedSystemMemory + desc.DedicatedVideoMemory + desc.SharedSystemMemory;
 
 		adapters.insert(std::make_pair(score, adapter));
 		++i;
@@ -277,7 +263,7 @@ BOOL DxLowRenderer::CreateDebugObjects() {
 
 	CheckHRESULT(mInfoQueue->RegisterMessageCallback(D3D12MessageCallback, D3D12_MESSAGE_CALLBACK_IGNORE_FILTERS, NULL, &mCallbakCookie));
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxLowRenderer::CreateCommandObjects() {
@@ -303,7 +289,7 @@ BOOL DxLowRenderer::CreateCommandObjects() {
 	// calling Reset.
 	mCommandList->Close();
 
-	return true;
+	return TRUE;
 }
 
 BOOL DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
@@ -323,21 +309,21 @@ BOOL DxLowRenderer::CreateSwapChain(UINT width, UINT height) {
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	sd.BufferCount = SwapChainBufferCount;
 	sd.OutputWindow = mhMainWnd;
-	sd.Windowed = true;
+	sd.Windowed = TRUE;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 	// Note: Swap chain uses queue to perfrom flush.
 	CheckHRESULT(mdxgiFactory->CreateSwapChain(mCommandQueue.Get(), &sd, &mSwapChain));
 
-	return true;
+	return TRUE;
 }
 
 void DxLowRenderer::BuildDescriptors() {
-	auto cpuStart = mCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
-	auto gpuStart = mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
-	auto rtvCpuStart = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
-	auto dsvCpuStart = mDsvHeap->GetCPUDescriptorHandleForHeapStart();
+	const auto cpuStart = mCbvSrvUavHeap->GetCPUDescriptorHandleForHeapStart();
+	const auto gpuStart = mCbvSrvUavHeap->GetGPUDescriptorHandleForHeapStart();
+	const auto rtvCpuStart = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
+	const auto dsvCpuStart = mDsvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	mhCpuCbvSrvUav = CD3DX12_CPU_DESCRIPTOR_HANDLE(cpuStart);
 	mhGpuCbvSrvUav = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart);

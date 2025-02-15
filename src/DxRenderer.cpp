@@ -125,7 +125,7 @@ namespace ShaderArgs {
 
 	namespace IrradianceMap {
 		BOOL ShowIrradianceCubeMap = FALSE;
-		FLOAT MipLevel = 0.0f;
+		FLOAT MipLevel = 0.f;
 	}
 
 	namespace Pixelization {
@@ -206,26 +206,17 @@ namespace ShaderArgs {
 	}
 
 	namespace VolumetricLight {
-		FLOAT DepthExponent = 4.0f;
+		FLOAT DepthExponent = 4.f;
 		FLOAT UniformDensity = 0.1f;
-		FLOAT AnisotropicCoefficient = 0.0f;
+		FLOAT AnisotropicCoefficient = 0.f;
 		FLOAT DensityScale = 0.01f;
 	}
 }
 
 DxRenderer::DxRenderer() {
-	bIsCleanedUp = FALSE;
-
 	mMainPassCB = std::make_unique<ConstantBuffer_Pass>();
-
 	mShaderManager = std::make_unique<ShaderManager>();
-
-	mSceneBounds.Center = XMFLOAT3(0.f, 0.f, 0.f);
-	FLOAT widthSquared = 32.f * 32.f;
-	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
-
 	mImGui = std::make_unique<ImGuiManager>();
-
 	mBRDF = std::make_unique<BRDF::BRDFClass>();
 	mGBuffer = std::make_unique<GBuffer::GBufferClass>();
 	mShadow = std::make_unique<Shadow::ShadowClass>();
@@ -255,12 +246,14 @@ DxRenderer::DxRenderer() {
 	mEquirectangularConverter = std::make_unique<EquirectangularConverter::EquirectangularConverterClass>();
 	mVolumetricLight = std::make_unique<VolumetricLight::VolumetricLightClass>();
 
+	mSceneBounds.Center = XMFLOAT3(0.f, 0.f, 0.f);
+	const FLOAT widthSquared = 32.f * 32.f;
+	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
+
 	auto blurWeights = BlurFilter::CalcGaussWeights(2.5f);
 	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
 	mBlurWeights[1] = XMFLOAT4(&blurWeights[4]);
 	mBlurWeights[2] = XMFLOAT4(&blurWeights[8]);
-
-	bInitiatingTaa = TRUE;
 
 	mHaltonSequence = {
 		XMFLOAT2(0.5f, 0.333333f),
@@ -292,7 +285,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 
 	CheckReturn(LowInitialize(hwnd, width, height));
 
-	auto device = md3dDevice.Get();
+	const auto device = md3dDevice.Get();
 	mGraphicsMemory = std::make_unique<GraphicsMemory>(device);
 
 	const auto cmdList = mCommandList.Get();
@@ -332,7 +325,7 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	CheckReturn(mRR->Initialize(device, cmdList, shaderManager, width, height));
 	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mEquirectangularConverter->Initialize(device, shaderManager));
-	CheckReturn(mVolumetricLight->Initialize(device, shaderManager, width, height, 160, 90, 64));
+	CheckReturn(mVolumetricLight->Initialize(device, shaderManager, width, height, 160, 90, 128));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
@@ -476,9 +469,9 @@ BOOL DxRenderer::Draw() {
 		CheckReturn(ResolveToneMapping());
 		if (bGammaCorrectionEnabled) CheckReturn(ApplyGammaCorrection());
 	
-		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 		if (bTaaEnabled) CheckReturn(ApplyTAA());
 		if (bSharpenEnabled) CheckReturn(ApplySharpen());
+		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
 		if (bPixelationEnabled) CheckReturn(ApplyPixelation());
 	}
 	
@@ -496,7 +489,7 @@ BOOL DxRenderer::Draw() {
 }
 
 BOOL DxRenderer::OnResize(UINT width, UINT height) {
-	BOOL bNeedToReszie = mClientWidth != width || mClientHeight != height;
+	const BOOL bNeedToReszie = mClientWidth != width || mClientHeight != height;
 
 	mClientWidth = width;
 	mClientHeight = height;
@@ -556,7 +549,7 @@ void DxRenderer::RemoveModel(void* model) {
 }
 
 void DxRenderer::UpdateModel(void* model, const Transform& trans) {
-	RenderItem* ritem = reinterpret_cast<RenderItem*>(model);
+	RenderItem* const ritem = reinterpret_cast<RenderItem*>(model);
 	if (ritem == nullptr) return;
 
 	auto begin = mRitems.begin();
@@ -606,8 +599,8 @@ void DxRenderer::Pick(FLOAT x, FLOAT y) {
 	const auto& P = mCamera->Proj();
 
 	// Compute picking ray in vew space.
-	FLOAT vx = (2.f * x / mClientWidth - 1.f) / P(0, 0);
-	FLOAT vy = (-2.f * y / mClientHeight + 1.f) / P(1, 1);
+	const FLOAT vx = (2.f * x / mClientWidth - 1.f) / P(0, 0);
+	const FLOAT vy = (-2.f * y / mClientHeight + 1.f) / P(1, 1);
 
 	// Ray definition in view space.
 	auto origin = XMVectorSet(0.f, 0.f, 0.f, 1.f);
@@ -620,15 +613,13 @@ void DxRenderer::Pick(FLOAT x, FLOAT y) {
 	for (auto ri : mRitemRefs[RenderType::E_Opaque]) {
 		if (!ri->Pickable) continue;
 
-		auto geo = ri->Geometry;
-
 		const auto W = XMLoadFloat4x4(&ri->World);
 		const auto InvWorld = XMMatrixInverse(&XMMatrixDeterminant(W), W);
 
 		// Transform ray to vi space of the mesh.
 		const auto ToLocal = XMMatrixMultiply(InvView, InvWorld);
 
-		auto originL = XMVector3TransformCoord(origin, ToLocal);
+		const auto originL = XMVector3TransformCoord(origin, ToLocal);
 		auto dirL = XMVector3TransformNormal(dir, ToLocal);
 
 		// Make the ray direction unit length for the intersection tests.
@@ -731,8 +722,8 @@ BOOL DxRenderer::BuildGeometries() {
 	sphereSubmesh.StartIndexLocation = startIndexLocation;
 	sphereSubmesh.BaseVertexLocation = baseVertexLocation;
 	{
-		auto numIdx = static_cast<UINT>(sphere.GetIndices16().size());
-		auto numVert = static_cast<UINT>(sphere.Vertices.size());
+		const auto numIdx = static_cast<UINT>(sphere.GetIndices16().size());
+		const auto numVert = static_cast<UINT>(sphere.Vertices.size());
 
 		sphereSubmesh.IndexCount = numIdx;
 
@@ -748,8 +739,8 @@ BOOL DxRenderer::BuildGeometries() {
 	boxSubmesh.StartIndexLocation = startIndexLocation;
 	boxSubmesh.BaseVertexLocation = baseVertexLocation;
 	{
-		auto numIdx = static_cast<UINT>(box.GetIndices16().size());
-		auto numVert = static_cast<UINT>(box.Vertices.size());
+		const auto numIdx = static_cast<UINT>(box.GetIndices16().size());
+		const auto numVert = static_cast<UINT>(box.Vertices.size());
 
 		boxSubmesh.IndexCount = numIdx;
 
@@ -763,13 +754,13 @@ BOOL DxRenderer::BuildGeometries() {
 	std::vector<Vertex> vertices(numVertices);
 
 	for (size_t i = 0, end = sphere.Vertices.size(); i < end; ++i) {
-		auto index = i + sphereSubmesh.BaseVertexLocation;
+		const auto index = i + sphereSubmesh.BaseVertexLocation;
 		vertices[index].Position = sphere.Vertices[i].Position;
 		vertices[index].Normal = sphere.Vertices[i].Normal;
 		vertices[index].TexCoord = sphere.Vertices[i].TexC;
 	}
 	for (size_t i = 0, end = box.Vertices.size(); i < end; ++i) {
-		auto index = i + boxSubmesh.BaseVertexLocation;
+		const auto index = i + boxSubmesh.BaseVertexLocation;
 		vertices[index].Position = box.Vertices[i].Position;
 		vertices[index].Normal = box.Vertices[i].Normal;
 		vertices[index].TexCoord = box.Vertices[i].TexC;
@@ -777,11 +768,11 @@ BOOL DxRenderer::BuildGeometries() {
 
 	std::vector<std::uint16_t> indices(numIndices);
 	for (size_t i = 0, end = sphere.GetIndices16().size(); i < end; ++i) {
-		auto index = i + sphereSubmesh.StartIndexLocation;
+		const auto index = i + sphereSubmesh.StartIndexLocation;
 		indices[index] = sphere.GetIndices16()[i];
 	}
 	for (size_t i = 0, end = box.GetIndices16().size(); i < end; ++i) {
-		auto index = i + boxSubmesh.StartIndexLocation;
+		const auto index = i + boxSubmesh.StartIndexLocation;
 		indices[index] = box.GetIndices16()[i];
 	}
 
@@ -855,9 +846,9 @@ void DxRenderer::BuildDescriptors() {
 	auto& hCpuDsv = mhCpuDsv;
 	auto& hCpuRtv = mhCpuRtv;
 
-	auto descSize = GetCbvSrvUavDescriptorSize();
-	auto rtvDescSize = GetRtvDescriptorSize();
-	auto dsvDescSize = GetDsvDescriptorSize();
+	const auto descSize = GetCbvSrvUavDescriptorSize();
+	const auto rtvDescSize = GetRtvDescriptorSize();
+	const auto dsvDescSize = GetDsvDescriptorSize();
 
 	std::array<ID3D12Resource*, SwapChainBufferCount> backBuffers;
 	for (INT i = 0; i < SwapChainBufferCount; ++i) {
@@ -1006,8 +997,8 @@ BOOL DxRenderer::AddGeometry(const std::string& file) {
 	const UINT vbByteSize = static_cast<UINT>(vertices.size() * vertexSize);
 	const UINT ibByteSize = static_cast<UINT>(indices.size() * sizeof(UINT));
 
-	XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
-	XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
+	const XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+	const XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
 
 	XMVECTOR vMin = XMLoadFloat3(&vMinf3);
 	XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
@@ -1077,7 +1068,7 @@ BOOL DxRenderer::AddGeometry(const std::string& file) {
 }
 
 BOOL DxRenderer::AddMaterial(const std::string& file, const Material& material) {
-	UINT index = AddTexture(file, material);
+	const UINT index = AddTexture(file, material);
 	if (index == -1) ReturnFalse("Failed to create texture");
 
 	auto matData = std::make_unique<MaterialData>();
@@ -1131,7 +1122,7 @@ UINT DxRenderer::AddTexture(const std::string& file, const Material& material) {
 	std::wstring filename;
 	filename.assign(material.DiffuseMapFileName.begin(), material.DiffuseMapFileName.end());
 
-	auto index = filename.rfind(L'.');
+	const auto index = filename.rfind(L'.');
 	filename = filename.replace(filename.begin() + index, filename.end(), L".dds");
 
 	ResourceUploadBatch resourceUpload(md3dDevice.Get());
@@ -1214,6 +1205,14 @@ BOOL DxRenderer::UpdateShadingObjects(FLOAT delta) {
 }
 
 BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
+	// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
+	const XMMATRIX T(
+		0.5f, 0.f,  0.f, 0.f,
+		0.f, -0.5f, 0.f, 0.f,
+		0.f,  0.f,  1.f, 0.f,
+		0.5f, 0.5f, 0.f, 1.f
+	);
+
 	// Shadow
 	{
 		mMainPassCB->LightCount = mLightCount;
@@ -1222,110 +1221,102 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 			auto& light = mLights[i];
 
 			if (light.Type == LightType::E_Directional) {
-				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
-				XMVECTOR lightPos = -2.f * mSceneBounds.Radius * lightDir;
-				XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
-				XMVECTOR lightUp = UnitVector::UpVector;
-				XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+				const XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
+				const XMVECTOR lightPos = -2.f * mSceneBounds.Radius * lightDir;
+				const XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
+				const XMVECTOR lightUp = UnitVector::UpVector;
+				const XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
 
 				// Transform bounding sphere to light space.
 				XMFLOAT3 sphereCenterLS;
 				XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
 
 				// Ortho frustum in light space encloses scene.
-				FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
-				FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
-				FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
-				FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
-				FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
-				FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
+				const FLOAT l = sphereCenterLS.x - mSceneBounds.Radius;
+				const FLOAT b = sphereCenterLS.y - mSceneBounds.Radius;
+				const FLOAT n = sphereCenterLS.z - mSceneBounds.Radius;
+				const FLOAT r = sphereCenterLS.x + mSceneBounds.Radius;
+				const FLOAT t = sphereCenterLS.y + mSceneBounds.Radius;
+				const FLOAT f = sphereCenterLS.z + mSceneBounds.Radius;
 
-				XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+				const XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
 
-				// Transform NDC space [-1 , +1]^2 to texture space [0, 1]^2
-				XMMATRIX T(
-					0.5f, 0.f,  0.f, 0.f,
-					0.f, -0.5f, 0.f, 0.f,
-					0.f,  0.f,  1.f, 0.f,
-					0.5f, 0.5f, 0.f, 1.f
-				);
-
-				XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
+				const XMMATRIX viewProj = XMMatrixMultiply(lightView, lightProj);
 				XMStoreFloat4x4(&light.Mat0, XMMatrixTranspose(viewProj));
 
-				XMMATRIX S = lightView * lightProj * T;
+				const XMMATRIX S = lightView * lightProj * T;
 				XMStoreFloat4x4(&light.Mat1, XMMatrixTranspose(S));
 
 				XMStoreFloat3(&light.Position, lightPos);
 			}
 			else if (light.Type == LightType::E_Point || light.Type == LightType::E_Spot || light.Type == LightType::E_Tube) {
-				auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.f, 1.f, 50.f);
-				auto pos = XMLoadFloat3(&light.Position);
+				const auto proj = XMMatrixPerspectiveFovLH(XM_PIDIV2, 1.f, 1.f, 50.f);
+				const auto pos = XMLoadFloat3(&light.Position);
 				
 				// Positive +X
 				{
-					auto target = pos + XMVectorSet(1.f, 0.f, 0.f, 0.f);
-					auto view_px = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
-					auto vp_px = view_px * proj;
+					const auto target = pos + XMVectorSet(1.f, 0.f, 0.f, 0.f);
+					const auto view_px = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
+					const auto vp_px = view_px * proj;
 					XMStoreFloat4x4(&light.Mat0, XMMatrixTranspose(vp_px));
 				}
 				// Positive -X
 				{
-					auto target = pos + XMVectorSet(-1.f, 0.f, 0.f, 0.f);
-					auto view_nx = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
-					auto vp_nx = view_nx * proj;
+					const auto target = pos + XMVectorSet(-1.f, 0.f, 0.f, 0.f);
+					const auto view_nx = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
+					const auto vp_nx = view_nx * proj;
 					XMStoreFloat4x4(&light.Mat1, XMMatrixTranspose(vp_nx));
 				}
 				// Positive +Y
 				{
-					auto target = pos + XMVectorSet(0.f, 1.f, 0.f, 0.f);
-					auto view_py = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 0.f, -1.f, 0.f));
-					auto vp_py = view_py * proj;
+					const auto target = pos + XMVectorSet(0.f, 1.f, 0.f, 0.f);
+					const auto view_py = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 0.f, -1.f, 0.f));
+					const auto vp_py = view_py * proj;
 					XMStoreFloat4x4(&light.Mat2, XMMatrixTranspose(vp_py));
 				}
 				// Positive -Y
 				{
-					auto target = pos + XMVectorSet(0.f, -1.f, 0.f, 0.f);
-					auto view_ny = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 0.f, 1.f, 0.f));
-					auto vp_ny = view_ny * proj;
+					const auto target = pos + XMVectorSet(0.f, -1.f, 0.f, 0.f);
+					const auto view_ny = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 0.f, 1.f, 0.f));
+					const auto vp_ny = view_ny * proj;
 					XMStoreFloat4x4(&light.Mat3, XMMatrixTranspose(vp_ny));
 				}
 				// Positive +Z
 				{
-					auto target = pos + XMVectorSet(0.f, 0.f, 1.f, 0.f);
-					auto view_pz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
-					auto vp_pz = view_pz * proj;
+					const auto target = pos + XMVectorSet(0.f, 0.f, 1.f, 0.f);
+					const auto view_pz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
+					const auto vp_pz = view_pz * proj;
 					XMStoreFloat4x4(&light.Mat4, XMMatrixTranspose(vp_pz));
 				}
 				// Positive -Z
 				{
-					auto target = pos + XMVectorSet(0.f, 0.f, -1.f, 0.f);
-					auto view_nz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
-					auto vp_nz = view_nz * proj;
+					const auto target = pos + XMVectorSet(0.f, 0.f, -1.f, 0.f);
+					const auto view_nz = XMMatrixLookAtLH(pos, target, XMVectorSet(0.f, 1.f, 0.f, 0.f));
+					const auto vp_nz = view_nz * proj;
 					XMStoreFloat4x4(&light.Mat5, XMMatrixTranspose(vp_nz));
 				}
 			}
 			else if (light.Type == LightType::E_Rect) {
-				XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
-				XMVECTOR lightUp = MathHelper::CalcUpVector(light.Direction);
-				XMVECTOR lightRight = XMVector3Cross(lightUp, lightDir);
+				const XMVECTOR lightDir = XMLoadFloat3(&light.Direction);
+				const XMVECTOR lightUp = MathHelper::CalcUpVector(light.Direction);
+				const XMVECTOR lightRight = XMVector3Cross(lightUp, lightDir);
 				XMStoreFloat3(&light.Up, lightUp);
 				XMStoreFloat3(&light.Right, lightRight);
 
-				XMVECTOR lightCenter = XMLoadFloat3(&light.Center);
-				FLOAT halfSizeX = light.Size.x * 0.5f;
-				FLOAT halfSizeY = light.Size.y * 0.5f;
-				XMVECTOR lightPos0 = lightCenter + lightUp * halfSizeY + lightRight * halfSizeX;
-				XMVECTOR lightPos1 = lightCenter + lightUp * halfSizeY - lightRight * halfSizeX;
-				XMVECTOR lightPos2 = lightCenter - lightUp * halfSizeY - lightRight * halfSizeX;
-				XMVECTOR lightPos3 = lightCenter - lightUp * halfSizeY + lightRight * halfSizeX;
+				const XMVECTOR lightCenter = XMLoadFloat3(&light.Center);
+				const FLOAT halfSizeX = light.Size.x * 0.5f;
+				const FLOAT halfSizeY = light.Size.y * 0.5f;
+				const XMVECTOR lightPos0 = lightCenter + lightUp * halfSizeY + lightRight * halfSizeX;
+				const XMVECTOR lightPos1 = lightCenter + lightUp * halfSizeY - lightRight * halfSizeX;
+				const XMVECTOR lightPos2 = lightCenter - lightUp * halfSizeY - lightRight * halfSizeX;
+				const XMVECTOR lightPos3 = lightCenter - lightUp * halfSizeY + lightRight * halfSizeX;
 				XMStoreFloat3(&light.Position,  lightPos0);
 				XMStoreFloat3(&light.Position1, lightPos1);
 				XMStoreFloat3(&light.Position2, lightPos2);
 				XMStoreFloat3(&light.Position3, lightPos3);
 
-				XMVECTOR targetPos = lightCenter + lightDir;
-				XMMATRIX lightView = XMMatrixLookAtLH(lightCenter, targetPos, lightUp);
+				const XMVECTOR targetPos = lightCenter + lightDir;
+				const XMMATRIX lightView = XMMatrixLookAtLH(lightCenter, targetPos, lightUp);
 			}
 
 			mMainPassCB->Lights[i] = light;
@@ -1333,24 +1324,17 @@ BOOL DxRenderer::UpdateCB_Main(FLOAT delta) {
 	}
 	// Main
 	{
-		XMMATRIX view = XMLoadFloat4x4(&mCamera->View());
-		XMMATRIX proj = XMLoadFloat4x4(&mCamera->Proj());
-		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+		const XMMATRIX view = XMLoadFloat4x4(&mCamera->View());
+		const XMMATRIX proj = XMLoadFloat4x4(&mCamera->Proj());
+		const XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 
-		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
-		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
-		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+		const XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+		const XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+		const XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
 
-		// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
-		XMMATRIX T(
-			0.5f, 0.f,  0.f, 0.f,
-			0.f, -0.5f, 0.f, 0.f,
-			0.f,  0.f,  1.f, 0.f,
-			0.5f, 0.5f, 0.f, 1.f
-		);
-		XMMATRIX viewProjTex = XMMatrixMultiply(viewProj, T);
+		const XMMATRIX viewProjTex = XMMatrixMultiply(viewProj, T);
 
-		size_t offsetIndex = static_cast<size_t>(GetCurrentFence()) % mFittedToBakcBufferHaltonSequence.size();
+		const size_t offsetIndex = static_cast<size_t>(GetCurrentFence()) % mFittedToBakcBufferHaltonSequence.size();
 
 		mMainPassCB->PrevViewProj = mMainPassCB->ViewProj;
 		XMStoreFloat4x4(&mMainPassCB->View, XMMatrixTranspose(view));
@@ -1376,9 +1360,9 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	ssaoCB.Proj = mMainPassCB->Proj;
 	ssaoCB.InvProj = mMainPassCB->InvProj;
 
-	XMMATRIX P = XMLoadFloat4x4(&mCamera->Proj());
+	const XMMATRIX P = XMLoadFloat4x4(&mCamera->Proj());
 	// Transform NDC space [-1,+1]^2 to texture space [0,1]^2
-	XMMATRIX T(
+	const XMMATRIX T(
 		0.5f, 0.f,  0.f, 0.f,
 		0.f, -0.5f, 0.f, 0.f,
 		0.f,  0.f,  1.f, 0.f,
@@ -1458,8 +1442,8 @@ BOOL DxRenderer::UpdateCB_Objects(FLOAT delta) {
 		// Only update the cbuffer data if the constants have changed.  
 		// This needs to be tracked per frame resource.
 		if (e->NumFramesDirty > 0) {
-			XMMATRIX world = XMLoadFloat4x4(&e->World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
+			const XMMATRIX world = XMLoadFloat4x4(&e->World);
+			const XMMATRIX texTransform = XMLoadFloat4x4(&e->TexTransform);
 
 			ConstantBuffer_Object objCB;
 			objCB.PrevWorld = e->PrevWolrd;
@@ -1489,7 +1473,7 @@ BOOL DxRenderer::UpdateCB_Materials(FLOAT delta) {
 		auto* mat = e.second.get();
 		//if (mat->NumFramesDirty > 0) {
 		{
-			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
+			const XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
 
 			ConstantBuffer_Material matCB;
 			matCB.DiffuseSrvIndex = mat->DiffuseSrvHeapIndex;
@@ -1725,7 +1709,7 @@ BOOL DxRenderer::BuildTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	for (const auto ri : opaques) {
 		auto iter = std::find(opaques.begin(), opaques.end(), ri);
 
-		UINT hitGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
+		const UINT hitGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
 
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 		instanceDesc.InstanceID = 0;
@@ -1754,7 +1738,7 @@ BOOL DxRenderer::UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList) {
 	for (const auto ri : opaques) {
 		auto iter = std::find(opaques.begin(), opaques.end(), ri);
 
-		UINT hitGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
+		const UINT hitGroupIndex = static_cast<UINT>(std::distance(opaques.begin(), iter));
 
 		D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
 		instanceDesc.InstanceID = 0;
@@ -1779,10 +1763,10 @@ BOOL DxRenderer::BuildShaderTables() {
 	const auto& opaques = mRitemRefs[RenderType::E_Opaque];
 	const auto objCBAddress = mCurrFrameResource->CB_Object.Resource()->GetGPUVirtualAddress();
 	const auto matCBAddress = mCurrFrameResource->CB_Material.Resource()->GetGPUVirtualAddress();
-	UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object));
-	UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material));
+	const UINT objCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Object));
+	const UINT matCBByteSize = D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material));
 
-	UINT numRitems = static_cast<UINT>(opaques.size());
+	const UINT numRitems = static_cast<UINT>(opaques.size());
 	CheckReturn(mDxrShadow->BuildShaderTables(numRitems));
 	CheckReturn(mRTAO->BuildShaderTables(numRitems));
 	CheckReturn(mRR->BuildShaderTables(
@@ -1810,7 +1794,7 @@ BOOL DxRenderer::DrawShadow() {
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 	for (UINT i = 0; i < mLightCount; ++i) {
@@ -1841,7 +1825,7 @@ BOOL DxRenderer::DrawGBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// Copy the previous frame normal and depth values to the cached map.
@@ -1905,10 +1889,10 @@ BOOL DxRenderer::DrawSSAO() {
 
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
-	auto ssaoCBAddr = mCurrFrameResource->CB_SSAO.Resource()->GetGPUVirtualAddress();
+	const auto ssaoCBAddr = mCurrFrameResource->CB_SSAO.Resource()->GetGPUVirtualAddress();
 	mSSAO->Run(
 		cmdList,
 		ssaoCBAddr,
@@ -1942,7 +1926,7 @@ BOOL DxRenderer::DrawBackBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mBRDF->CalcReflectanceWithoutSpecIrrad(
@@ -1973,11 +1957,11 @@ BOOL DxRenderer::IntegrateSpecIrrad() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	auto aoCoeffDesc = bRaytracing ? mRTAO->ResolvedAOCoefficientSrv() : mSSAO->AOCoefficientMapSrv(0);
-	auto reflectionDesc = bRaytracing ? mRR->ResolvedReflectionSrv() : mSSR->SSRMapSrv(0);
+	const auto aoCoeffDesc = bRaytracing ? mRTAO->ResolvedAOCoefficientSrv() : mSSAO->AOCoefficientMapSrv(0);
+	const auto reflectionDesc = bRaytracing ? mRR->ResolvedReflectionSrv() : mSSR->SSRMapSrv(0);
 
 	mBRDF->IntegrateSpecularIrrad(
 		cmdList,
@@ -2007,7 +1991,7 @@ BOOL DxRenderer::DrawSkySphere() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	mIrradianceMap->DrawSkySphere(
@@ -2033,7 +2017,7 @@ BOOL DxRenderer::DrawEquirectangulaToCube() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 		
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	mIrradianceMap->DebugCubeMap(
@@ -2056,7 +2040,7 @@ BOOL DxRenderer::ApplyTAA() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mTAA->Run(
@@ -2087,7 +2071,7 @@ BOOL DxRenderer::ApplySSR() {
 		const auto descHeap = mCbvSrvUavHeap.Get();
 		cmdList->SetDescriptorHeaps(1, &descHeap);
 
-		auto ssrCBAddr = mCurrFrameResource->CB_SSR.Resource()->GetGPUVirtualAddress();
+		const auto ssrCBAddr = mCurrFrameResource->CB_SSR.Resource()->GetGPUVirtualAddress();
 
 		mSSR->Run(
 			cmdList,
@@ -2100,7 +2084,7 @@ BOOL DxRenderer::ApplySSR() {
 			mGBuffer->RMSMapSrv()
 		);
 
-		auto blurCBAddr = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
+		const auto blurCBAddr = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
 		mBlurFilter->Run(
 			cmdList,
 			blurCBAddr,
@@ -2137,7 +2121,7 @@ BOOL DxRenderer::ApplyBloom() {
 	const auto cmdList= mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	const auto backBuffer = mToneMapping->InterMediateMapResource();
@@ -2154,7 +2138,7 @@ BOOL DxRenderer::ApplyBloom() {
 		ShaderArgs::Bloom::HighlightThreshold
 	);
 	
-	auto blurPassCBAddress = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
+	const auto blurPassCBAddress = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
 	mBlurFilter->Run(
 		cmdList,
 		blurPassCBAddress,
@@ -2186,12 +2170,12 @@ BOOL DxRenderer::ApplyDepthOfField() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	const auto backBuffer = mToneMapping->InterMediateMapResource();
-	auto backBufferRtv = mToneMapping->InterMediateMapRtv();
-	auto backBufferSrv = mToneMapping->InterMediateMapSrv();
+	const auto backBufferRtv = mToneMapping->InterMediateMapRtv();
+	const auto backBufferSrv = mToneMapping->InterMediateMapSrv();
 
 	const auto dofCBAddr = mCurrFrameResource->CB_DoF.Resource()->GetGPUVirtualAddress();
 	mDoF->CalcFocalDist(
@@ -2243,10 +2227,7 @@ BOOL DxRenderer::ApplyMotionBlur() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	auto pDescHeap = mCbvSrvUavHeap.Get();
-	UINT descSize = GetCbvSrvUavDescriptorSize();
-
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 	mMotionBlur->Run(
@@ -2274,7 +2255,7 @@ BOOL DxRenderer::ResolveToneMapping() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	if (bToneMappingEnabled) {
@@ -2307,7 +2288,7 @@ BOOL DxRenderer::ApplyGammaCorrection() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mGammaCorrection->Run(
@@ -2329,7 +2310,7 @@ BOOL DxRenderer::ApplySharpen() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mSharpen->Run(
@@ -2351,7 +2332,7 @@ BOOL DxRenderer::ApplyPixelation() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mPixelation->Run(
@@ -2373,7 +2354,7 @@ BOOL DxRenderer::ApplyVolumetricLight() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 	mVolumetricLight->Run(
@@ -2405,7 +2386,7 @@ BOOL DxRenderer::DrawDXRShadow() {
 	const auto cmdList = mCommandList.Get();	
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 	
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 		
 	mDxrShadow->Run(
@@ -2428,7 +2409,7 @@ BOOL DxRenderer::DrawDXRBackBuffer() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mBRDF->CalcReflectanceWithoutSpecIrrad(
@@ -2460,7 +2441,7 @@ BOOL DxRenderer::CalcDepthPartialDerivative() {
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
 	const auto pDescHeap = mCbvSrvUavHeap.Get();
-	ID3D12DescriptorHeap* descriptorHeaps[] = { pDescHeap };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { pDescHeap };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mSVGF->RunCalculatingDepthPartialDerivative(
@@ -2479,7 +2460,7 @@ BOOL DxRenderer::DrawRTAO() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// Calculate ambient occlusion.
@@ -2507,11 +2488,11 @@ BOOL DxRenderer::DrawRTAO() {
 		{
 			// Stage 1: Reverse reprojection
 			{
-				UINT temporalPreviousFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
-				UINT temporalCurrentFrameResourcIndex = mRTAO->MoveToNextFrame();
+				const UINT temporalPreviousFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
+				const UINT temporalCurrentFrameResourcIndex = mRTAO->MoveToNextFrame();
 
-				UINT temporalPreviousFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
-				UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->MoveToNextFrameTemporalAOCoefficient();
+				const UINT temporalPreviousFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+				const UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->MoveToNextFrameTemporalAOCoefficient();
 
 				const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RTAO::Resource::TemporalCache::E_Tspp].get();
 
@@ -2560,8 +2541,8 @@ BOOL DxRenderer::DrawRTAO() {
 				// Blends reprojected values with current frame values.
 				// Inactive pixels are filtered from active neighbors on checkerboard sampling before the blending operation.
 				{
-					UINT temporalCurrentFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
-					UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+					const UINT temporalCurrentFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
+					const UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 
 					const auto currTemporalAOCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
 					const auto currTemporalSupersampling = temporalCaches[temporalCurrentFrameResourceIndex][RTAO::Resource::TemporalCache::E_Tspp].get();
@@ -2627,9 +2608,9 @@ BOOL DxRenderer::DrawRTAO() {
 		{
 			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
 			if (ShaderArgs::RTAO::Denoiser::FullscreenBlur) {
-				UINT temporalCurrentFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
-				UINT inputAOCoefficientIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
-				UINT outputAOCoefficientIndex = mRTAO->MoveToNextFrameTemporalAOCoefficient();
+				const UINT temporalCurrentFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
+				const UINT inputAOCoefficientIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+				const UINT outputAOCoefficientIndex = mRTAO->MoveToNextFrameTemporalAOCoefficient();
 
 				const auto outputAOCoefficient = temporalAOCoefficients[outputAOCoefficientIndex].get();
 
@@ -2664,7 +2645,7 @@ BOOL DxRenderer::DrawRTAO() {
 			}
 			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
 			if (ShaderArgs::RTAO::Denoiser::DisocclusionBlur) {
-				UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
+				const UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 
 				const auto aoCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
 
@@ -2698,7 +2679,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// Calculate raytraced reflection.
@@ -2733,11 +2714,11 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		{
 			// Stage 1: Reverse reprojection
 			{
-				UINT temporalPreviousFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
-				UINT temporalCurrentFrameResourcIndex = mRR->MoveToNextFrame();
+				const UINT temporalPreviousFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
+				const UINT temporalCurrentFrameResourcIndex = mRR->MoveToNextFrame();
 			
-				UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
-				UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->MoveToNextFrameTemporalReflection();
+				const UINT temporalPreviousFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
+				const UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->MoveToNextFrameTemporalReflection();
 			
 				const auto currTsppMap = temporalCaches[temporalCurrentFrameResourcIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
 			
@@ -2778,8 +2759,8 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 				// Blends reprojected values with current frame values.
 				// Inactive pixels are filtered from active neighbors on checkerboard sampling before the blending operation.
 				{
-					UINT temporalCurrentFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
-					UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
+					const UINT temporalCurrentFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
+					const UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
 				
 					const auto currTemporalReflection = temporalReflections[temporalCurrentFrameTemporalReflectionResourceIndex].get();
 					const auto currTemporalSupersampling = temporalCaches[temporalCurrentFrameResourceIndex][RaytracedReflection::Resource::TemporalCache::E_Tspp].get();
@@ -2844,9 +2825,9 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		{
 			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
 			if (ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur) {
-				UINT temporalCurrentFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
-				UINT inputReflectionIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
-				UINT outputReflectionIndex = mRR->MoveToNextFrameTemporalReflection();
+				const UINT temporalCurrentFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
+				const UINT inputReflectionIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
+				const UINT outputReflectionIndex = mRR->MoveToNextFrameTemporalReflection();
 
 				const auto outputReflection = temporalReflections[outputReflectionIndex].get();
 
@@ -2881,7 +2862,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 			}
 			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
 			if (ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur) {
-				UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
+				const UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
 
 				const auto reflections = temporalReflections[temporalCurrentFrameTemporalReflectionResourceIndex].get();
 
@@ -2915,7 +2896,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mDebugMap->Run(
@@ -2952,7 +2933,7 @@ BOOL DxRenderer::DrawImGui() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
+	ID3D12DescriptorHeap* const descriptorHeaps[] = { mCbvSrvUavHeap.Get() };
 	cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	cmdList->RSSetViewports(1, &mScreenViewport);
@@ -2962,7 +2943,7 @@ BOOL DxRenderer::DrawImGui() {
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	const auto backBufferRtv = mSwapChainBuffer->CurrentBackBufferRtv();
-	cmdList->OMSetRenderTargets(1, &backBufferRtv, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &backBufferRtv, TRUE, nullptr);
 
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
@@ -2981,7 +2962,7 @@ BOOL DxRenderer::DrawImGui() {
 	// Main Panel
 	{
 		ImGui::Begin("Main Panel");
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::NewLine();
 
 		if (ImGui::CollapsingHeader("Debug")) {
@@ -3102,9 +3083,9 @@ BOOL DxRenderer::DrawImGui() {
 						}
 						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_Tspp]))) {
 							DebugMapSampleDesc desc;
-							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-							desc.Denominator = 22.0f;
+							desc.MinColor = { 153.f / 255.f, 18.f / 255.f, 15.f / 255.f, 1.f };
+							desc.MaxColor = { 170.f / 255.f, 220.f / 255.f, 200.f / 255.f, 1.f };
+							desc.Denominator = 22.f;
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_Tspp],
@@ -3114,8 +3095,8 @@ BOOL DxRenderer::DrawImGui() {
 						}
 						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RayHitDist]))) {
 							DebugMapSampleDesc desc;
-							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.MinColor = { 15.f / 255.f, 18.f / 255.f, 153.f / 255.f, 1.f };
+							desc.MaxColor = { 170.f / 255.f, 220.f / 255.f, 200.f / 255.f, 1.f };
 							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
 
 							BuildDebugMapWithSampleDesc(
@@ -3127,8 +3108,8 @@ BOOL DxRenderer::DrawImGui() {
 						if (ImGui::Checkbox("Temporal Ray Hit Distance",
 							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist]))) {
 							DebugMapSampleDesc desc;
-							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+							desc.MinColor = { 12.f / 255.f, 64.f / 255.f, 18.f / 255.f, 1.f };
+							desc.MaxColor = { 180.f / 255.f, 197.f / 255.f, 231.f / 255.f, 1.f };
 							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
 
 							BuildDebugMapWithSampleDesc(
@@ -3157,9 +3138,9 @@ BOOL DxRenderer::DrawImGui() {
 						}
 						if (ImGui::Checkbox("Tspp", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_Tspp]))) {
 							DebugMapSampleDesc desc;
-							desc.MinColor = { 153.0f / 255.0f, 18.0f / 255.0f, 15.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
-							desc.Denominator = 22.0f;
+							desc.MinColor = { 153.f / 255.f, 18.f / 255.f, 15.f / 255.f, 1.f };
+							desc.MaxColor = { 170.f / 255.f, 220.f / 255.f, 200.f / 255.f, 1.f };
+							desc.Denominator = 22.f;
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_RR_Tspp],
@@ -3169,8 +3150,8 @@ BOOL DxRenderer::DrawImGui() {
 						}
 						if (ImGui::Checkbox("Ray Hit Distance", reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_RayHitDist]))) {
 							DebugMapSampleDesc desc;
-							desc.MinColor = { 15.0f / 255.0f, 18.0f / 255.0f, 153.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 170.0f / 255.0f, 220.0f / 255.0f, 200.0f / 255.0f, 1.0f };
+							desc.MinColor = { 15.f / 255.f, 18.f / 255.f, 153.f / 255.f, 1.f };
+							desc.MaxColor = { 170.f / 255.f, 220.f / 255.f, 200.f / 255.f, 1.f };
 							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
 
 							BuildDebugMapWithSampleDesc(
@@ -3182,8 +3163,8 @@ BOOL DxRenderer::DrawImGui() {
 						if (ImGui::Checkbox("Temporal Ray Hit Distance",
 							reinterpret_cast<bool*>(&mDebugMapStates[DebugMapLayout::E_RR_TemporalRayHitDist]))) {
 							DebugMapSampleDesc desc;
-							desc.MinColor = { 12.0f / 255.0f, 64.0f / 255.0f, 18.0f / 255.0f, 1.0f };
-							desc.MaxColor = { 180.0f / 255.0f, 197.0f / 255.0f, 231.0f / 255.0f, 1.0f };
+							desc.MinColor = { 12.f / 255.f, 64.f / 255.f, 18.f / 255.f, 1.f };
+							desc.MaxColor = { 180.f / 255.f, 197.f / 255.f, 231.f / 255.f, 1.f };
 							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
 
 							BuildDebugMapWithSampleDesc(
@@ -3327,19 +3308,19 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::RadioButton("Screen Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ScreenSpace); ImGui::SameLine();
 				ImGui::RadioButton("View Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ViewSpace);
 
-				ImGui::SliderFloat("Max Distance", &ShaderArgs::SSR::MaxDistance, 1.0f, 100.0f);
+				ImGui::SliderFloat("Max Distance", &ShaderArgs::SSR::MaxDistance, 1.f, 100.f);
 				ImGui::SliderInt("Blur Count", &ShaderArgs::SSR::BlurCount, 0, 8);
 
 				ImGui::Text("View");
-				ImGui::SliderFloat("Ray Length", &ShaderArgs::SSR::View::RayLength, 1.0f, 64.0f);
+				ImGui::SliderFloat("Ray Length", &ShaderArgs::SSR::View::RayLength, 1.f, 64.f);
 				ImGui::SliderFloat("Noise Intensity", &ShaderArgs::SSR::View::NoiseIntensity, 0.1f, 0.001f);
 				ImGui::SliderInt("Step Count", &ShaderArgs::SSR::View::StepCount, 1, 32);
 				ImGui::SliderInt("Back Step Count", &ShaderArgs::SSR::View::BackStepCount, 1, 16);
-				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::SSR::View::DepthThreshold, 0.1f, 10.0f);
+				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::SSR::View::DepthThreshold, 0.1f, 10.f);
 
 				ImGui::Text("Screen");
-				ImGui::SliderFloat("Thickness", &ShaderArgs::SSR::Screen::Thickness, 0.01f, 1.0f);
-				ImGui::SliderFloat("Resolution", &ShaderArgs::SSR::Screen::Resolution, 0.0f, 1.0f);
+				ImGui::SliderFloat("Thickness", &ShaderArgs::SSR::Screen::Thickness, 0.01f, 1.f);
+				ImGui::SliderFloat("Resolution", &ShaderArgs::SSR::Screen::Resolution, 0.f, 1.f);
 
 				ImGui::TreePop();
 			}

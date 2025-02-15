@@ -151,7 +151,7 @@ private:
 	BOOL DrawImGui();
 
 private:
-	BOOL bIsCleanedUp;
+	BOOL bIsCleanedUp = FALSE;
 
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 	FrameResource* mCurrFrameResource;
@@ -232,8 +232,8 @@ private:
 	std::vector<std::unique_ptr<AccelerationStructureBuffer>> mBLASes;
 	std::unordered_map<std::string, AccelerationStructureBuffer*> mBLASRefs;
 	std::unique_ptr<AccelerationStructureBuffer> mTLAS;
-	BOOL bNeedToRebuildTLAS = true;
-	BOOL bNeedToRebuildShaderTables = true;
+	BOOL bNeedToRebuildTLAS = TRUE;
+	BOOL bNeedToRebuildShaderTables = TRUE;
 
 	std::unique_ptr<DXR_Shadow::DXR_ShadowClass> mDxrShadow;
 	std::unique_ptr<BlurFilter::CS::BlurFilterCSClass> mBlurFilterCS;

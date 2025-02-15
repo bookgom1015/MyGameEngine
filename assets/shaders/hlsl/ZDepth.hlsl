@@ -39,15 +39,15 @@ struct GeoOut {
 VertexOut VS(VertexIn vin) {
 	VertexOut vout = (VertexOut)0;
 
-	vout.PosW = mul(float4(vin.PosL, 1), cb_Obj.World);
+	vout.PosW = mul(float4(vin.PosL, 1.f), cb_Obj.World);
 
-	float4 texC = mul(float4(vin.TexC, 0, 1), cb_Obj.TexTransform);
+	float4 texC = mul(float4(vin.TexC, 0.f, 1.f), cb_Obj.TexTransform);
 	vout.TexC = mul(texC, cb_Mat.MatTransform).xy;
 
 	return vout;
 }
 
-float4x4 GetViewProjMatrix(Light light, int face) {
+float4x4 GetViewProjMatrix(Light light, uint face) {
 	switch (face) {
 	case 0: return light.Mat0;
 	case 1: return light.Mat1;
@@ -68,11 +68,11 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	// Directional light
 	if (light.Type == LightType::E_Directional) {
 		[unroll]
-		for (int i = 0; i < 3; ++i) {
+		for (uint i = 0; i < 3; ++i) {
 			gout.PosH = mul(gin[i].PosW, light.Mat0);
 
-			float4 texC = mul(float4(gin[i].TexC, 0, 1), cb_Obj.TexTransform);
-			gout.TexC = mul(texC, cb_Mat.MatTransform).xy;
+			const float4 texc = mul(float4(gin[i].TexC, 0.f, 1.f), cb_Obj.TexTransform);
+			gout.TexC = mul(texc, cb_Mat.MatTransform).xy;
 
 			triStream.Append(gout);
 		}
@@ -80,13 +80,13 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	// Point light or Spot light
 	else {
 		[loop]
-		for (int face = 0; face < 6; ++face) {
+		for (uint face = 0; face < 6; ++face) {
 			gout.ArrayIndex = face;
 
 			const float4x4 viewProj = GetViewProjMatrix(light, face);
 
 			[unroll]
-			for (int i = 0; i < 3; ++i) {				
+			for (uint i = 0; i < 3; ++i) {				
 				gout.PosH = mul(gin[i].PosW, viewProj);
 				gout.TexC = gin[i].TexC;
 

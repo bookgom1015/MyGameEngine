@@ -66,7 +66,7 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 		{
 			texDesc.Format = Shadow::ZDepthMapFormat;
 
-			std::wstring name = L"Shadow_ZDepthCubeMap_";
+			std::wstring name = L"ZDepth_ZDepthCubeMap_";
 			name.append(std::to_wstring(index));
 
 			CheckReturn(mZDepthMaps[index]->Initialize(
@@ -82,7 +82,7 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 		{
 			texDesc.Format = Shadow::FaceIDCubeMapFormat;
 
-			std::wstring name = L"Shadow_FaceIDCubeMap_";
+			std::wstring name = L"ZDepth_FaceIDCubeMap_";
 			name.append(std::to_wstring(index));
 
 			CheckReturn(mFaceIDCubeMaps[index]->Initialize(
@@ -100,7 +100,7 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 		texDesc.Format = Shadow::ZDepthMapFormat;
 		texDesc.DepthOrArraySize = 1;
 
-		std::wstring name = L"Shadow_ZDepthMap_";
+		std::wstring name = L"ZDepth_ZDepthMap_";
 		name.append(std::to_wstring(index));
 
 		CheckReturn(mZDepthMaps[index]->Initialize(

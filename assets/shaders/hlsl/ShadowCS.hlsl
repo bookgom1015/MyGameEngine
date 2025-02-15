@@ -44,7 +44,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 
 	Light light = cb_Pass.Lights[gLightIndex];
 
-	const float4 posW = gi_Position.Load(int3(DTid, 0));
+	const float4 posW = gi_Position.Load(uint3(DTid, 0));
 
 	const bool needCube = light.Type == LightType::E_Point || light.Type == LightType::E_Spot;
 
@@ -55,7 +55,7 @@ void CS(uint2 DTid : SV_DispatchThreadID) {
 		const float2 uv = ConvertDirectionToUV(normalized);
 
 		const float4x4 viewProj = GetViewProjMatrix(light, uv, index);
-		const float shadowFactor = CalcShadowFactorCubeCS(gi_ZDepthTexArray, gsamShadow, viewProj, posW.xyz, uv, index);
+		const float shadowFactor = all(viewProj != (float4x4)0) ? CalcShadowFactorCubeCS(gi_ZDepthTexArray, gsamShadow, viewProj, posW.xyz, uv, index) : 1.f;
 
 		value = CalcShiftedShadowValueF(shadowFactor, value, gLightIndex);
 	}

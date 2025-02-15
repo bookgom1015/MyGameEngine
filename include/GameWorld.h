@@ -59,7 +59,6 @@ private:
 private:
 	static GameWorld* sGameWorld;
 
-
 	HINSTANCE	mhInst				= NULL;		// Application instance handle
 	HWND		mhMainWnd			= NULL;		// Main window handle
 	GLFWwindow* mGlfwWnd			= nullptr;

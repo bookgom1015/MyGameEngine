@@ -11,6 +11,7 @@
 
 #include "VolumetricLight.hlsli"
 #include "Shadow.hlsli"
+#include "LightingUtil.hlsli"
 
 ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b0);
 
@@ -28,8 +29,8 @@ Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray[MaxLights]	: regi
 
 RWTexture3D<VolumetricLight::FrustumMapFormat>	go_FrustumVolume				: register(u0);
 
-float4x4 GetViewProjMatrix(Light light, float2 uv, uint index) {
-	const uint faceID = (uint)gi_FaceIDTexArray[index].SampleLevel(gsamPointClamp, float3(uv, index), 0);
+float4x4 GetViewProjMatrix(Light light, uint lightIndex, float2 uv, uint texIndex) {
+	const uint faceID = (uint)gi_FaceIDTexArray[lightIndex].SampleLevel(gsamPointClamp, float3(uv, texIndex), 0);
 	switch (faceID) {
 	case 0: return light.Mat0;
 	case 1: return light.Mat1;
@@ -50,8 +51,6 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 	go_FrustumVolume.GetDimensions(dims.x, dims.y, dims.z);
 	if (all(DTid >= dims)) return;
 
-	const float2 texc = float2((DTid.x + 0.5f) / dims.x, (DTid.y + 0.5f) / dims.y);
-
 	const float3 posW = ThreadIdToWorldPosition(DTid, dims, gDepthExponent, gNearZ, gFarZ, cb_Pass.InvView, cb_Pass.InvProj);
 	const float3 toEyeW = normalize(cb_Pass.EyePosW - posW);
 
@@ -62,6 +61,8 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 		Light light = cb_Pass.Lights[i];
 
 		float3 direction = 0.f;
+		float Ld = 0.f;
+		float falloff = 1.f;
 
 		if (light.Type == LightType::E_Directional) {
 			direction = light.Direction;
@@ -73,20 +74,23 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 		}
 		else {
 			direction = posW - light.Position;
+			Ld = length(direction);
 		}
 
 		const bool needCube = light.Type == LightType::E_Point || light.Type == LightType::E_Spot;
 		const float3 toLight = -direction;
 
-		float visibility = 0.f; 
+		float visibility = 1.f;
 
 		if (needCube) {
 			const uint index = GetCubeFaceIndex(direction);
 			const float3 normalized = normalize(direction);
 			const float2 uv = ConvertDirectionToUV(normalized);
 
-			const float4x4 viewProj = GetViewProjMatrix(light, uv, index);
-			visibility = CalcShadowFactorCubeCS(gi_ZDepthCube[i], gsamShadow, viewProj, posW, uv, index);
+			const float4x4 viewProj = GetViewProjMatrix(light, i, uv, index);
+			if (IsNotZeroMatrix(viewProj)) visibility = CalcShadowFactorCubeCS(gi_ZDepthCube[i], gsamShadow, viewProj, posW, uv, index);
+
+			falloff = CalcAttenuation_InverseSquare(Ld, light.AttenuationRadius);
 		}
 		else if (light.Type == LightType::E_Directional) {
 			visibility = CalcShadowFactorDirectional(gi_ZDepth[i], gsamShadow, light.Mat1, posW);
@@ -97,7 +101,7 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 
 		const float phaseFunction = HenyeyGreensteinPhaseFunction(direction, toEyeW, gAnisotropicCoefficient);
 
-		Li += visibility * light.Color * light.Intensity * phaseFunction;
+		Li += visibility * light.Color * light.Intensity * falloff * phaseFunction;
 	}
 
 	go_FrustumVolume[DTid] = float4(Li * gUniformDensity, gUniformDensity);

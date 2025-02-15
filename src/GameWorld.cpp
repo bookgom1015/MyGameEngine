@@ -116,9 +116,9 @@ BOOL GameWorld::Initialize() {
 BOOL GameWorld::RunLoop() {
 	MSG msg = { 0 };
 
-	FLOAT beginTime = 0.0f;
-	FLOAT endTime = 0.0f;
-	FLOAT elapsedTime = 0.0f;
+	FLOAT beginTime = 0.f;
+	FLOAT endTime = 0.f;
+	FLOAT elapsedTime = 0.f;
 
 	mTimer->Reset();
 
@@ -356,7 +356,7 @@ BOOL GameWorld::InitMainWindow() {
 
 	// Compute window rectangle dimensions based on requested client area dimensions.
 	RECT R = { 0, 0, static_cast<LONG>(InitClientWidth), static_cast<LONG>(InitClientHeight) };
-	AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, false);
+	AdjustWindowRect(&R, WS_OVERLAPPEDWINDOW, FALSE);
 	INT width = R.right - R.left;
 	INT height = R.bottom - R.top;
 
@@ -425,10 +425,10 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 			return;
 		}
 		case VK_UP:
-			mTimeSlowDown = std::min(1.0f, mTimeSlowDown + 0.1f);
+			mTimeSlowDown = std::min(1.f, mTimeSlowDown + 0.1f);
 			return;
 		case VK_DOWN:
-			mTimeSlowDown = std::max(0.0f, mTimeSlowDown - 0.1f);
+			mTimeSlowDown = std::max(0.f, mTimeSlowDown - 0.1f);
 			return;
 		case VK_SPACE: {
 			auto state = mRenderer->RaytracingEnabled();
@@ -481,14 +481,17 @@ BOOL GameWorld::LoadData() {
 	XMFLOAT4 rot;
 	XMStoreFloat4(&rot, XMQuaternionRotationAxis(UnitVector::UpVector, XM_PI));
 
-	new FreeLookActor("free_look_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -5.0f));
-	new RotatingMonkey("monkey_1", XM_PIDIV2, DirectX::XMFLOAT3(0.0f, 0.5f, 0.5f), rot);
-	new RotatingMonkey("monkey_2", 2.0f * XM_2PI, DirectX::XMFLOAT3(-2.0f, -1.0f, -0.5f), rot);
-	new RotatingMonkey("monkey_3", XM_PI, DirectX::XMFLOAT3(2.5f, -1.0f, -1.0f), rot);
-	new RotatingMonkey("monkey_4", XM_PIDIV4, DirectX::XMFLOAT3(0.0f, 0.0f, -20.0f), rot);
-	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.0f, -2.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(30.0f, 1.0f, 30.0f));
-	new SphereActor("sphere_actor", DirectX::XMFLOAT3(0.0f, 0.0f, -2.0f));
-	new BoxActor("box_actor", DirectX::XMFLOAT3(0.0f, 9.0f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(6.0f, 6.0f, 6.0f));
+	new FreeLookActor("free_look_actor", DirectX::XMFLOAT3(0.f, 0.f, -5.f));
+	new RotatingMonkey("monkey_L1", XM_PIDIV2, DirectX::XMFLOAT3(0.f, 0.5f, 0.5f), rot);
+	new RotatingMonkey("monkey_L2", 2.f * XM_2PI, DirectX::XMFLOAT3(-2.f, -1.f, -0.5f), rot);
+	new RotatingMonkey("monkey_L3", XM_PI, DirectX::XMFLOAT3(2.5f, -1.f, -1.f), rot);
+	new RotatingMonkey("monkey_L4", XM_PIDIV4, DirectX::XMFLOAT3(0.f, 0.f, -20.f), rot);
+	new RotatingMonkey("monkey_U1", XM_PIDIV2, DirectX::XMFLOAT3(0.f, 6.5f, 0.5f), rot);
+	new RotatingMonkey("monkey_U2", 2.f * XM_2PI, DirectX::XMFLOAT3(-2.f, 5.f, -0.5f), rot);
+	new RotatingMonkey("monkey_U3", XM_PI, DirectX::XMFLOAT3(2.5f, 5.f, -1.f), rot);
+	new PlaneActor("plane_actor", DirectX::XMFLOAT3(0.f, -2.f, 0.f), DirectX::XMFLOAT4(0.f, 0.f, 0.f, 1.f), DirectX::XMFLOAT3(30.f, 1.f, 30.f));
+	new SphereActor("sphere_actor", DirectX::XMFLOAT3(0.f, 0.f, -2.f));
+	new BoxActor("box_actor", DirectX::XMFLOAT3(0.f, 9.f, 0.f), DirectX::XMFLOAT4(0.f, 0.f, 0.f, 1.f), DirectX::XMFLOAT3(6.f, 6.f, 6.f));
 
 	return TRUE;
 }

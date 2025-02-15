@@ -97,6 +97,14 @@ namespace Shadow {
 
 	static const float	InvalidVSDepth	= -1.f;
 	static const uint	InvalidFaceID	= 255;
+
+	bool IsValidFaceID(uint faceID) {
+		return faceID != InvalidFaceID;
+	}
+
+	bool IsInvalidFaceID(uint faceID) {
+		return faceID == InvalidFaceID;
+	}
 #else 
 	static const DXGI_FORMAT ZDepthMapFormat		= DXGI_FORMAT_D32_FLOAT;
 	static const DXGI_FORMAT ShadowMapFormat		= DXGI_FORMAT_R16_UINT;
