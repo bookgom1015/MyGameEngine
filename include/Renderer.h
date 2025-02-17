@@ -63,6 +63,7 @@ public:
 	virtual BOOL Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) = 0;
 	virtual void CleanUp() = 0;
 
+	virtual BOOL PrepareUpdate() = 0;
 	virtual BOOL Update(FLOAT delta) = 0;
 	virtual BOOL Draw() = 0;
 

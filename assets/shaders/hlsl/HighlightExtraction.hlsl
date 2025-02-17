@@ -18,9 +18,7 @@
 
 Texture2D<ToneMapping::IntermediateMapFormat> gi_BackBuffer : register(t0);
 
-cbuffer cbRootConstants : register(b0) {
-	float gThreshold;
-};
+Bloom_Default_RootConstants(b0)
 
 #include "CoordinatesFittedToScreen.hlsli"
 

@@ -7,7 +7,7 @@
 using namespace GaussianFilter;
 
 namespace {
-	const CHAR* const CS_GaussianFilter3x3 = "CS_GaussianFilter3x3";
+	const CHAR* const CS_GaussianFilter3x3	 = "CS_GaussianFilter3x3";
 	const CHAR* const CS_GaussianFilterRG3x3 = "CS_GaussianFilterRG3x3";
 }
 
@@ -21,12 +21,12 @@ BOOL GaussianFilterClass::Initialize(ID3D12Device* const device, ShaderManager* 
 BOOL GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const auto fullPath = filePath + L"GaussianFilter3x3CS.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
+		const auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_GaussianFilter3x3));
 	}
 	{
 		const auto fullPath = filePath + L"GaussianFilterRG3x3CS.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
+		const auto shaderInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_GaussianFilterRG3x3));
 	}
 
@@ -34,14 +34,16 @@ BOOL GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_DESCRIPTOR_RANGE texTables[2];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-	texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+	CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
-	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0, 0);
-	slotRootParameter[RootSignature::ESI_Input].InitAsDescriptorTable(1, &texTables[0]);
-	slotRootParameter[RootSignature::EUO_Output].InitAsDescriptorTable(1, &texTables[1]);
+	index = 0;
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count];
+	slotRootParameter[RootSignature::Default::EC_Consts].InitAsConstants(RootConstant::Default::Count, 0, 0);
+	slotRootParameter[RootSignature::Default::ESI_Input].InitAsDescriptorTable(1, &texTables[index++]);
+	slotRootParameter[RootSignature::Default::EUO_Output].InitAsDescriptorTable(1, &texTables[index++]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -86,19 +88,18 @@ void GaussianFilterClass::Run(
 	cmdList->SetPipelineState(mPSOs[type].Get());
 	cmdList->SetComputeRootSignature(mRootSignature.Get());
 
-	{
-		UINT values[2] = { width, height };
-		cmdList->SetComputeRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
-	}
-	{
-		FLOAT values[2] = { 1.0f / width, 1.0f / height };
-		cmdList->SetComputeRoot32BitConstants(RootSignature
-			::EC_Consts, _countof(values), values, RootSignature::RootConstant::E_InvDimensionX);
-	}
+	RootConstant::Default::Struct rc;
+	rc.gTextureDim.x = width;
+	rc.gTextureDim.y = height;
+	rc.gInvTextureDim.x = 1.f / width;
+	rc.gInvTextureDim.y = 1.f / height;
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::ESI_Input, si_input);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::EUO_Output, uo_output);
+	std::array<std::uint32_t, RootConstant::Default::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::Default::Struct));
 
-	cmdList->Dispatch(D3D12Util::CeilDivide(
-		width, Default::ThreadGroup::Width), D3D12Util::CeilDivide(height, Default::ThreadGroup::Height), 1);
+	cmdList->SetComputeRoot32BitConstants(RootSignature::Default::EC_Consts, RootConstant::Default::Count, consts.data(), 0);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Default::ESI_Input, si_input);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::Default::EUO_Output, uo_output);
+
+	cmdList->Dispatch(D3D12Util::CeilDivide(width, ThreadGroup::Default::Width), D3D12Util::CeilDivide(height, ThreadGroup::Default::Height), 1);
 }

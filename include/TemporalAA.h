@@ -12,13 +12,15 @@ class GpuResource;
 
 namespace TemporalAA {
 	namespace RootSignature {
-		enum {
-			ESI_Input = 0,
-			ESI_History,
-			ESI_Velocity,
-			ESI_Factor,
-			Count
-		};
+		namespace Default {
+			enum {
+				ESI_Input = 0,
+				ESI_History,
+				ESI_Velocity,
+				ESI_Factor,
+				Count
+			};
+		}
 	}
 
 	class TemporalAAClass {
@@ -32,7 +34,7 @@ namespace TemporalAA {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE HistoryMapSrv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager*const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -41,7 +43,7 @@ namespace TemporalAA {
 			ID3D12GraphicsCommandList*const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			GpuResource* backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,

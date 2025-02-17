@@ -9,22 +9,13 @@
 
 class ShaderManager;
 
-
 namespace GaussianFilter {
 	namespace RootSignature {
-		enum {
-			EC_Consts = 0,
-			ESI_Input,
-			EUO_Output,
-			Count
-		};
-
-		namespace RootConstant {
+		namespace Default {
 			enum {
-				E_DimensionX = 0,
-				E_DimensionY,
-				E_InvDimensionX,
-				E_InvDimensionY,
+				EC_Consts = 0,
+				ESI_Input,
+				EUO_Output,
 				Count
 			};
 		}

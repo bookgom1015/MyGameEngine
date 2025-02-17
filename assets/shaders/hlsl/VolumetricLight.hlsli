@@ -61,4 +61,10 @@ float4 ScatterStep(
 	return float4(accumLight, accumTransmittance);
 }
 
+float3 ConvertPositionToUV(in float3 pos, in float4x4 viewProj) {
+	float4 posH = mul(float4(pos, 1), viewProj);
+	posH /= posH.w;
+	return float3(posH.xy * float2(0.5f, -0.5f) + (float2)0.5f, posH.z);
+}
+
 #endif // __VOLUMETRICLIGHT_HLSLI__

@@ -51,6 +51,7 @@ private:
 	void OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam);
 
 	BOOL ProcessInput();
+	BOOL PrepareUpdate();
 	BOOL Update();
 	BOOL Draw();
 

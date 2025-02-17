@@ -12,24 +12,21 @@
 #include "VolumetricLight.hlsli"
 #include "Shadow.hlsli"
 #include "LightingUtil.hlsli"
+#include "Random.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b0);
+ConstantBuffer<ConstantBuffer_Pass>				cb_Pass							: register(b0);
 
-cbuffer cbRootConstants : register (b1) {
-	float gNearZ;
-	float gFarZ;
-	float gDepthExponent;
-	float gUniformDensity;
-	float gAnisotropicCoefficient;
-}
+VolumetricLight_CalcScatteringAndDensity_RootConstants(b1)
 
-Texture2D<Shadow::ZDepthMapFormat>				gi_ZDepth[MaxLights]			: register(t0);
+Texture3D<VolumetricLight::FrustumMapFormat>	gi_PrevFrustumVolume			: register(t0);
+
+Texture2D<Shadow::ZDepthMapFormat>				gi_ZDepth[MaxLights]			: register(t1);
 Texture2DArray<Shadow::ZDepthMapFormat>			gi_ZDepthCube[MaxLights]		: register(t0, space1);
 Texture2DArray<Shadow::FaceIDCubeMapFormat>		gi_FaceIDTexArray[MaxLights]	: register(t0, space2);
 
 RWTexture3D<VolumetricLight::FrustumMapFormat>	go_FrustumVolume				: register(u0);
 
-float4x4 GetViewProjMatrix(Light light, uint lightIndex, float2 uv, uint texIndex) {
+float4x4 GetViewProjMatrix(in Light light, in uint lightIndex, in float2 uv, in uint texIndex) {
 	const uint faceID = (uint)gi_FaceIDTexArray[lightIndex].SampleLevel(gsamPointClamp, float3(uv, texIndex), 0);
 	switch (faceID) {
 	case 0: return light.Mat0;
@@ -43,15 +40,18 @@ float4x4 GetViewProjMatrix(Light light, uint lightIndex, float2 uv, uint texInde
 }
 
 [numthreads(
-	VolumetricLight::CalcScatteringAndDensity::ThreadGroup::Width, 
-	VolumetricLight::CalcScatteringAndDensity::ThreadGroup::Height, 
-	VolumetricLight::CalcScatteringAndDensity::ThreadGroup::Depth)]
+	VolumetricLight::ThreadGroup::CalcScatteringAndDensity::Width, 
+	VolumetricLight::ThreadGroup::CalcScatteringAndDensity::Height, 
+	VolumetricLight::ThreadGroup::CalcScatteringAndDensity::Depth)]
 void CS(uint3 DTid : SV_DispatchThreadId) {
 	uint3 dims;
 	go_FrustumVolume.GetDimensions(dims.x, dims.y, dims.z);
 	if (all(DTid >= dims)) return;
 
-	const float3 posW = ThreadIdToWorldPosition(DTid, dims, gDepthExponent, gNearZ, gFarZ, cb_Pass.InvView, cb_Pass.InvProj);
+	const float3 jitter = (HALTON_SEQUENCE[(gFrameCount + DTid.x + DTid.y * 2) % MAX_HALTON_SEQUENCE] - (float3)0.5f) * 0.25f;
+
+	const float3 notJitteredPosW = ThreadIdToWorldPosition(DTid, dims, gDepthExponent, gNearZ, gFarZ, cb_Pass.InvView, cb_Pass.InvProj);
+	const float3 posW = notJitteredPosW + jitter;
 	const float3 toEyeW = normalize(cb_Pass.EyePosW - posW);
 
 	float3 Li = 0.f; // Ambient lights;
@@ -104,7 +104,22 @@ void CS(uint3 DTid : SV_DispatchThreadId) {
 		Li += visibility * light.Color * light.Intensity * falloff * phaseFunction;
 	}
 
-	go_FrustumVolume[DTid] = float4(Li * gUniformDensity, gUniformDensity);
+	{
+		const float4 currScattering = float4(Li * gUniformDensity, gUniformDensity);
+		const float3 prevFrameUV = ConvertPositionToUV(notJitteredPosW, cb_Pass.PrevViewProj);
+
+		float4 scattering = currScattering;
+		
+		if (all(prevFrameUV <= (float3)1.f) && all(prevFrameUV >= (float3)0.f)) {
+			const float4 prevScattering = gi_PrevFrustumVolume.SampleLevel(gsamLinearClamp, prevFrameUV, 0);
+
+			if (VolumetricLight::IsValidFrustumVolume(prevScattering)) {
+				scattering = lerp(prevScattering, currScattering, 0.05f);
+			}
+		}
+
+		go_FrustumVolume[DTid] = scattering;
+	}
 }
 
 #endif // __CALCULATESCATTERINGANDDENSITY_HLSL__

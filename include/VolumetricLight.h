@@ -22,23 +22,13 @@ namespace VolumetricLight {
 			enum {
 				ECB_Pass = 0,
 				EC_Consts,
+				ESI_PrevFrustumVolume,
 				ESI_ZDepth,
 				ESI_ZDepthCube,
 				ESI_FaceIDCube,
 				EUO_FrustumVolume,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_NearPlane = 0,
-					E_FarPlane,
-					E_DepthExponent,
-					E_UniformDensity,
-					E_AnisotropicCoefficient,
-					Count
-				};
-			}
 		}
 
 		namespace AccumulateScattering {
@@ -47,16 +37,6 @@ namespace VolumetricLight {
 				EUIO_FrustumVolume,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_NearPlane = 0,
-					E_FarPlane,
-					E_DepthExponent,
-					E_DensityScale,
-					Count
-				};
-			}
 		}
 
 		namespace ApplyFog {
@@ -90,6 +70,7 @@ namespace VolumetricLight {
 			ID3D12Device* device, ShaderManager* const manager,
 			UINT clientW, UINT clientH,
 			UINT texW, UINT texH, UINT texD);
+		BOOL PrepareUpdate(ID3D12GraphicsCommandList* const cmdList);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -97,15 +78,14 @@ namespace VolumetricLight {
 			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			GpuResource* backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_zdepth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_zdepthCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_faceIDCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_position,
-			FLOAT nearZ, FLOAT farZ,
-			FLOAT depth_exp, 
+			FLOAT nearZ, FLOAT farZ, FLOAT depth_exp, 
 			FLOAT uniformDensity, 
 			FLOAT anisotropicCoeiff,
 			FLOAT densityScale);
@@ -122,15 +102,21 @@ namespace VolumetricLight {
 
 		void CalculateScatteringAndDensity(
 			ID3D12GraphicsCommandList* const cmdList,
+			GpuResource* const currFrustumVolume,
+			GpuResource* const prevFrustumVolume,
+			D3D12_GPU_DESCRIPTOR_HANDLE uo_currFrustumVolume,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_prevFrustumVolume,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_zdepth,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_zdepthCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_faceIDCube,
-			FLOAT nearZ, FLOAT farZ,
-			FLOAT depth_exp, FLOAT uniformDensity, FLOAT anisotropicCoeiff);
+			FLOAT nearZ, FLOAT farZ, FLOAT depth_exp, 
+			FLOAT uniformDensity, FLOAT anisotropicCoeiff);
 		void AccumulateScattering(
 			ID3D12GraphicsCommandList* const cmdList,
-			FLOAT nearZ, FLOAT farZ,
+			GpuResource* const currFrustumVolume,
+			D3D12_GPU_DESCRIPTOR_HANDLE uio_currFrustumVolume,
+			FLOAT nearZ, FLOAT farZ, FLOAT depth_exp,
 			FLOAT densityScale);
 		void ApplyFog(
 			ID3D12GraphicsCommandList* const cmdList, 
@@ -139,6 +125,7 @@ namespace VolumetricLight {
 			GpuResource* backBuffer, 
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+			D3D12_GPU_DESCRIPTOR_HANDLE si_currFrustumVolume,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_position);
 
 	private:
@@ -148,11 +135,13 @@ namespace VolumetricLight {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignatures[RootSignature::Count];
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSOs[PipelineState::Count];
 
-		std::unique_ptr<GpuResource> mFrustumMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFrustumMapCpuSrv;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhFrustumMapGpuSrv;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhFrustumMapCpuUav;
-		CD3DX12_GPU_DESCRIPTOR_HANDLE mhFrustumMapGpuUav;
+		std::array<std::unique_ptr<GpuResource>, 2> mFrustumVolumeMaps;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhFrustumVolumeMapCpuSrvs;
+		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhFrustumVolumeMapGpuSrvs;
+		std::array<CD3DX12_CPU_DESCRIPTOR_HANDLE, 2> mhFrustumVolumeMapCpuUavs;
+		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhFrustumVolumeMapGpuUavs;
+
+		std::unique_ptr<GpuResource> mFrustumVolumeUploadBuffer;
 
 		std::unique_ptr<GpuResource> mDebugMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDebugMapCpuRtv;
@@ -163,5 +152,8 @@ namespace VolumetricLight {
 		UINT mTexWidth;
 		UINT mTexHeight;
 		UINT mTexDepth;
+
+		UINT mFrameCount = 0;
+		BOOL mCurrentFrame = FALSE;
 	};
 }

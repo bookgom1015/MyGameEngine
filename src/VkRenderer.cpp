@@ -125,6 +125,10 @@ void VkRenderer::CleanUp() {
 	bIsCleanedUp = true;
 }
 
+BOOL VkRenderer::PrepareUpdate() {
+	return TRUE;
+}
+
 BOOL VkRenderer::Update(FLOAT delta) {
 	vkWaitForFences(mDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
 

@@ -11,18 +11,13 @@
 
 #include "VolumetricLight.hlsli"
 
-cbuffer cbRootConstants : register (b0) {
-	float gNearZ;
-	float gFarZ;
-	float gDepthExponent;
-	float gDensityScale;
-}
+VolumetricLight_AccumulateScattering_RootConstants(b0)
 
-RWTexture3D<VolumetricLight::FrustumMapFormat>	gio_FrustumVolume	: register(u0);
+RWTexture3D<VolumetricLight::FrustumMapFormat> gio_FrustumVolume : register(u0);
 
 [numthreads(
-	VolumetricLight::AccumulateScattering::ThreadGroup::Width,
-	VolumetricLight::AccumulateScattering::ThreadGroup::Height,
+	VolumetricLight::ThreadGroup::AccumulateScattering::Width,
+	VolumetricLight::ThreadGroup::AccumulateScattering::Height,
 	1)]
 void CS(uint3 DTid : SV_DispatchThreadID) {
 	uint3 dims;

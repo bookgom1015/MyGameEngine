@@ -144,6 +144,31 @@ namespace DepthStencilBuffer {
 	static const FLOAT InvalidDepthValue = 1.f;
 }
 
+namespace TemporalAA {
+#ifndef TemporalAA_Default_RCSTRUCT
+	#define TemporalAA_Default_RCSTRUCT {	\
+		float gModulationFactor;			\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef TemporalAA_Default_RootConstants
+		#define TemporalAA_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) TemporalAA_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct TemporalAA_Default_RCSTRUCT
+
+			enum {
+				E_ModulationFactor = 0,
+				Count
+			};
+		}
+	}
+#endif
+}
+
 namespace ToneMapping {
 #ifdef HLSL
 	typedef HDR_FORMAT IntermediateMapFormat;
@@ -171,7 +196,17 @@ namespace SSR {
 }
 
 namespace Bloom {
+#ifndef Bloom_Default_RCSTRUCT
+	#define Bloom_Default_RCSTRUCT {	\
+		float gThreshold;				\
+	};
+#endif
+
 #ifdef HLSL
+	#ifndef Bloom_Default_RootConstants
+		#define Bloom_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) Bloom_Default_RCSTRUCT
+	#endif
+
 	typedef HDR_FORMAT BloomMapFormat;
 #else
 	static const DXGI_FORMAT BloomMapFormat = HDR_FORMAT;
@@ -208,6 +243,8 @@ namespace IrradianceMap {
 }
 
 namespace BlurFilter {
+	static const INT MaxBlurRadius = 17;
+
 	enum FilterType {
 		R8G8B8A8,
 		R16,
@@ -215,6 +252,67 @@ namespace BlurFilter {
 		R32G32B32A32,
 		Count
 	};
+
+#ifndef BlurFilter_Default_RCSTRUCT
+	#define BlurFilter_Default_RCSTRUCT {	\
+		BOOL gHorizontal;					\
+		BOOL gBilateral;					\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef BlurFilter_Default_RootConstants
+		#define BlurFilter_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) BlurFilter_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct BlurFilter_Default_RCSTRUCT
+
+			enum {
+				E_Horizontal = 0,
+				E_Bilateral,
+				Count
+			};
+		}
+	}
+#endif
+
+	namespace CS {
+		static const INT MaxBlurRadius = 5;
+
+		namespace ThreadGroup {
+			namespace Default {
+				enum {
+					Size = 256
+				};
+			}
+		}
+
+	#ifndef BlurFilter_CS_Default_RCSTRUCT
+		#define BlurFilter_CS_Default_RCSTRUCT {	\
+			DirectX::XMFLOAT2 gDimension;			\
+		};
+	#endif
+
+	#ifdef HLSL
+		#ifndef BlurFilter_CS_Default_RootConstants
+			#define BlurFilter_CS_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) BlurFilter_CS_Default_RCSTRUCT
+		#endif
+	#else
+		namespace RootConstant {
+			namespace Default {
+				struct Struct BlurFilter_CS_Default_RCSTRUCT
+					
+				enum {
+					E_DimensionX = 0,
+					E_DimensionY,
+					Count
+				};
+			}
+		}
+	#endif
+	}
 }
 
 namespace DebugMap {
@@ -238,19 +336,9 @@ namespace DXR_GeometryBuffer {
 	static const UINT GeometryBufferCount = 32;
 }
 
-namespace BlurFilterCS {
-	static const INT MaxBlurRadius = 5;
-
-	namespace ThreadGroup {
-		enum {
-			Size = 256
-		};
-	}
-}
-
 namespace GaussianFilter {
-	namespace Default {
-		namespace ThreadGroup {
+	namespace ThreadGroup {
+		namespace Default {
 			enum {
 				Width	= 8,
 				Height	= 8,
@@ -258,6 +346,33 @@ namespace GaussianFilter {
 			};
 		}
 	}
+
+#ifndef GaussianFilter_Default_RCSTRUCT
+	#define GaussianFilter_Default_RCSTRUCT {	\
+		DirectX::XMUINT2  gTextureDim;			\
+		DirectX::XMFLOAT2 gInvTextureDim;		\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef GaussianFilter_Default_RootConstants
+		#define GaussianFilter_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) GaussianFilter_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct GaussianFilter_Default_RCSTRUCT
+
+			enum {
+				E_DimensionX = 0,
+				E_DimensionY,
+				E_InvDimensionX,
+				E_InvDimensionY,
+				Count
+			};
+		}
+	}
+#endif
 }
 
 namespace SVGF {
@@ -379,33 +494,96 @@ namespace RaytracedReflection {
 }
 
 namespace VolumetricLight {
-#ifdef HLSL
-	typedef float4 FrustumMapFormat;
-	typedef float4 DebugMapFormat;
-#else
-	const DXGI_FORMAT FrustumMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	const DXGI_FORMAT DebugMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
-#endif
-	namespace CalcScatteringAndDensity {
-		namespace ThreadGroup {
+	static const float InvalidFrustumVolumeAlphaValue = -1.f;
+
+	namespace ThreadGroup {
+		namespace CalcScatteringAndDensity {
 			enum {
-				Width	= 8,
-				Height	= 8,
-				Depth	= 8,
-				Size	= Width * Height * Depth
+				Width = 8,
+				Height = 8,
+				Depth = 8,
+				Size = Width * Height * Depth
+			};
+		}
+
+		namespace AccumulateScattering {
+			enum {
+				Width = 8,
+				Height = 8,
+				Size = Width * Height
 			};
 		}
 	}
 
-	namespace AccumulateScattering {
-		namespace ThreadGroup {
+#ifndef VolumetricLight_CalcScatteringAndDensity_RCSTRUCT
+	#define VolumetricLight_CalcScatteringAndDensity_RCSTRUCT {	\
+		FLOAT gNearZ;											\
+		FLOAT gFarZ;											\
+		FLOAT gDepthExponent;									\
+		FLOAT gUniformDensity;									\
+		FLOAT gAnisotropicCoefficient;							\
+		UINT  gFrameCount;										\
+	};
+#endif
+#ifndef VolumetricLight_AccumulateScattering_RCSTRUCT 
+#define VolumetricLight_AccumulateScattering_RCSTRUCT {	\
+		FLOAT gNearZ;									\
+		FLOAT gFarZ;									\
+		FLOAT gDepthExponent;							\
+		FLOAT gDensityScale;							\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef VolumetricLight_CalcScatteringAndDensity_RootConstants
+		#define VolumetricLight_CalcScatteringAndDensity_RootConstants(reg) cbuffer cbRootConstants : register (reg) VolumetricLight_CalcScatteringAndDensity_RCSTRUCT
+	#endif
+	#ifndef VolumetricLight_AccumulateScattering_RootConstants
+		#define VolumetricLight_AccumulateScattering_RootConstants(reg) cbuffer cbRootConstants : register (reg) VolumetricLight_AccumulateScattering_RCSTRUCT
+	#endif
+
+	typedef float4 FrustumMapFormat;
+	typedef float4 DebugMapFormat;
+
+	bool IsValidFrustumVolume(float4 val) {
+		return val.w == InvalidFrustumVolumeAlphaValue;
+	}
+
+	bool IsInvalidFrustumVolume(float4 val) {
+		return val.w != InvalidFrustumVolumeAlphaValue;
+	}
+#else
+	const DXGI_FORMAT FrustumMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	const DXGI_FORMAT DebugMapFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+	namespace RootConstant {
+		namespace CalcScatteringAndDensity {
+			struct Struct VolumetricLight_CalcScatteringAndDensity_RCSTRUCT
+
 			enum {
-				Width	= 8,
-				Height	= 8,
-				Size	= Width * Height
+				E_NearPlane = 0,
+				E_FarPlane,
+				E_DepthExponent,
+				E_UniformDensity,
+				E_AnisotropicCoefficient,
+				E_FrameCount,
+				Count
+			};
+		}
+
+		namespace AccumulateScattering {
+			struct Struct VolumetricLight_AccumulateScattering_RCSTRUCT
+
+			enum {
+				E_NearPlane = 0,
+				E_FarPlane,
+				E_DepthExponent,
+				E_DensityScale,
+				Count
 			};
 		}
 	}
+#endif
 }
 
 namespace MipmapGenerator {

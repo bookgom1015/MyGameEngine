@@ -301,8 +301,8 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 #endif
 	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
 	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
-	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 4096, 4096));
-	CheckReturn(mZDepth->Initialize(device, 4096, 4096));
+	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 2048, 2048));
+	CheckReturn(mZDepth->Initialize(device, 2048, 2048));
 	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
 	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
 	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_OneSixteenth));
@@ -391,6 +391,19 @@ void DxRenderer::CleanUp() {
 	LowCleanUp();
 
 	bIsCleanedUp = TRUE;
+}
+
+BOOL DxRenderer::PrepareUpdate() {
+	const auto cmdList = mCommandList.Get();
+	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+
+	CheckReturn(mVolumetricLight->PrepareUpdate(cmdList));
+
+	CheckHRESULT(cmdList->Close());
+	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
+	CheckReturn(FlushCommandQueue());
+
+	return TRUE;
 }
 
 BOOL DxRenderer::Update(FLOAT delta) {

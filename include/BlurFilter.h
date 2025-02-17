@@ -12,27 +12,19 @@ class ShaderManager;
 struct IDxcBlob;
 
 namespace BlurFilter {
-	const INT MaxBlurRadius = 17;
-
 	__forceinline FLOAT* CalcGaussWeights(FLOAT sigma);
 
 	namespace RootSignature {
-		enum {
-			ECB_BlurPass = 0,
-			EC_Consts,
-			ESI_Normal,
-			ESI_Depth,
-			ESI_Input_F4,
-			ESI_Input_F3,
-			ESI_Input_F2,
-			ESI_Input_F1,
-			Count
-		};
-
-		namespace RootConstant {
+		namespace Default {
 			enum {
-				E_Horizontal = 0,
-				E_Bilateral,
+				ECB_BlurPass = 0,
+				EC_Consts,
+				ESI_Normal,
+				ESI_Depth,
+				ESI_Input_F4,
+				ESI_Input_F3,
+				ESI_Input_F2,
+				ESI_Input_F1,
 				Count
 			};
 		}
@@ -101,14 +93,6 @@ namespace BlurFilter {
 				EUO_Output,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_DimensionX = 0,
-					E_DimensionY,
-					Count
-				};
-			}
 		}
 
 		namespace Filter {

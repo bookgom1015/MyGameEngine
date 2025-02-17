@@ -67,6 +67,7 @@ public:
 	virtual BOOL Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) override;
 	virtual void CleanUp() override;
 
+	virtual BOOL PrepareUpdate() override;
 	virtual BOOL Update(FLOAT delta) override;
 	virtual BOOL Draw() override;
 

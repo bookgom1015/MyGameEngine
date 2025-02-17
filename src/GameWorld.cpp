@@ -125,6 +125,8 @@ BOOL GameWorld::RunLoop() {
 	if (!LoadData()) return FALSE;
 
 #ifdef _DirectX
+	CheckReturn(PrepareUpdate());
+
 	while (msg.message != WM_QUIT) {
 		// If there are Window messages then process them
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
@@ -150,6 +152,8 @@ BOOL GameWorld::RunLoop() {
 		}
 	}
 #else
+	CheckReturn(PrepareUpdate());
+
 	while (!glfwWindowShouldClose(mGlfwWnd)) {
 		glfwPollEvents();
 
@@ -457,6 +461,12 @@ void GameWorld::OnKeyboardInput(UINT msg, WPARAM wParam, LPARAM lParam) {
 BOOL GameWorld::ProcessInput() {
 	mInputManager->Update();
 	if (mGameState == EGameStates::EGS_Play) CheckReturn(mActorManager->ProcessInput(mInputManager->GetInputState()));
+
+	return TRUE;
+}
+
+BOOL GameWorld::PrepareUpdate() {
+	CheckReturn(mRenderer->PrepareUpdate());
 
 	return TRUE;
 }

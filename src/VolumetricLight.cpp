@@ -4,6 +4,7 @@
 #include "D3D12Util.h"
 #include "HlslCompaction.h"
 #include "Light.h"
+#include "MathHelper.h"
 
 using namespace VolumetricLight;
 
@@ -16,7 +17,9 @@ namespace {
 }
 
 VolumetricLightClass::VolumetricLightClass() {
-	mFrustumMap = std::make_unique<GpuResource>();
+	for (size_t i = 0, end = mFrustumVolumeMaps.size(); i < end; ++i) 
+		mFrustumVolumeMaps[i] = std::make_unique<GpuResource>();
+	mFrustumVolumeUploadBuffer = std::make_unique<GpuResource>();
 	mDebugMap = std::make_unique<GpuResource>();
 }
 
@@ -39,21 +42,69 @@ BOOL VolumetricLightClass::Initialize(
 	return TRUE;
 }
 
+BOOL VolumetricLightClass::PrepareUpdate(ID3D12GraphicsCommandList* const cmdList) {	
+	const auto dest = mFrustumVolumeMaps[1].get();
+
+	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(dest->Resource(), 0, 1);	
+
+	CheckReturn(mFrustumVolumeUploadBuffer->Initialize(
+		md3dDevice,
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
+		D3D12_RESOURCE_STATE_COPY_SOURCE,
+		nullptr
+	));
+
+	const size_t size = mTexWidth * mTexHeight * mTexDepth * 4;
+	std::vector<std::uint16_t> data(size);
+	
+	for (UINT i = 0; i < size; i += 4) {
+		data[i + 0] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
+		data[i + 1] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
+		data[i + 2] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
+		data[i + 3] = DirectX::PackedVector::XMConvertFloatToHalf(VolumetricLight::InvalidFrustumVolumeAlphaValue);
+	}
+	
+	D3D12_SUBRESOURCE_DATA subResourceData = {};
+	subResourceData.pData = data.data();
+	subResourceData.RowPitch = mTexWidth * 4 * sizeof(std::uint16_t);
+	subResourceData.SlicePitch = subResourceData.RowPitch * mTexHeight;
+
+	dest->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+		
+	UpdateSubresources(
+		cmdList,
+		dest->Resource(),
+		mFrustumVolumeUploadBuffer->Resource(),
+		0,
+		0,
+		1,
+		&subResourceData
+	);
+	
+	dest->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	
+	mFrustumVolumeUploadBuffer.release();
+
+	return TRUE;
+}
+
 BOOL VolumetricLightClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring fullPath = filePath + L"CalculateScatteringAndDensityCS.hlsl";
-		auto csInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
+		const auto csInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(csInfo, CS_CalcScatteringAndDensity));
 	}
 	{
 		const std::wstring fullPath = filePath + L"AccumulateScattering.hlsl";
-		auto csInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
+		const auto csInfo = D3D12ShaderInfo(fullPath.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(csInfo, CS_AccumulateScattering));
 	}
 	{
 		const std::wstring fullPath = filePath + L"ApplyFog.hlsl";
-		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+		const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ApplyFog));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ApplyFog));
 	}
@@ -66,16 +117,18 @@ BOOL VolumetricLightClass::BuildRootSignature(const StaticSamplers& samplers) {
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcScatteringAndDensity::Count];
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[4]; UINT index = 0;
-		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[5]; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1,			0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 1, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 0, 1);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 0, 2);
-		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1,			0, 0);
 
 		index = 0;
 
 		slotRootParameter[RootSignature::CalcScatteringAndDensity::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::CalcScatteringAndDensity::EC_Consts].InitAsConstants(RootSignature::CalcScatteringAndDensity::RootConstant::Count, 1);
+		slotRootParameter[RootSignature::CalcScatteringAndDensity::EC_Consts].InitAsConstants(RootConstant::CalcScatteringAndDensity::Count, 1);
+		slotRootParameter[RootSignature::CalcScatteringAndDensity::ESI_PrevFrustumVolume].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::CalcScatteringAndDensity::ESI_ZDepth].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::CalcScatteringAndDensity::ESI_ZDepthCube].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::CalcScatteringAndDensity::ESI_FaceIDCube].InitAsDescriptorTable(1, &texTables[index++]);
@@ -98,7 +151,7 @@ BOOL VolumetricLightClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		index = 0;
 
-		slotRootParameter[RootSignature::AccumulateScattering::EC_Consts].InitAsConstants(RootSignature::AccumulateScattering::RootConstant::Count, 0);
+		slotRootParameter[RootSignature::AccumulateScattering::EC_Consts].InitAsConstants(RootConstant::AccumulateScattering::Count, 0);
 		slotRootParameter[RootSignature::AccumulateScattering::EUIO_FrustumVolume].InitAsDescriptorTable(1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
@@ -158,6 +211,7 @@ BOOL VolumetricLightClass::BuildPSO() {
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_AccumulateScattering])));
 	}
+	// ApplyFog
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ApplyFog].Get();
@@ -195,21 +249,55 @@ void VolumetricLightClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_zdepth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_zdepthCube,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_faceIDCube,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_position,
-		FLOAT nearZ, FLOAT farZ,
-		FLOAT depth_exp, 
+		FLOAT nearZ, FLOAT farZ, FLOAT depth_exp, 
 		FLOAT uniformDensity, 
 		FLOAT anisotropicCoeiff,
 		FLOAT densityScale) {
-	CalculateScatteringAndDensity(cmdList, cb_pass, si_zdepth, si_zdepthCube, si_faceIDCube, nearZ, farZ, depth_exp, uniformDensity, anisotropicCoeiff);
-	AccumulateScattering(cmdList, nearZ, farZ, densityScale);
-	ApplyFog(cmdList, viewport, scissorRect, backBuffer, ro_backBuffer, cb_pass, si_position);
+	GpuResource* currVolume;
+	GpuResource* prevVolume;
+	D3D12_GPU_DESCRIPTOR_HANDLE currVolumeGpuUav;
+	D3D12_GPU_DESCRIPTOR_HANDLE currVolumeGpuSrv;
+	D3D12_GPU_DESCRIPTOR_HANDLE prevVolumeGpuSrv;
+
+	if (mCurrentFrame) {
+		currVolume = mFrustumVolumeMaps[1].get();
+		prevVolume = mFrustumVolumeMaps[0].get();
+		currVolumeGpuUav = mhFrustumVolumeMapGpuUavs[1];
+		currVolumeGpuSrv = mhFrustumVolumeMapGpuSrvs[1];
+		prevVolumeGpuSrv = mhFrustumVolumeMapGpuSrvs[0];
+	}
+	else {
+		currVolume = mFrustumVolumeMaps[0].get();
+		prevVolume = mFrustumVolumeMaps[1].get();
+		currVolumeGpuUav = mhFrustumVolumeMapGpuUavs[0];
+		currVolumeGpuSrv = mhFrustumVolumeMapGpuSrvs[0];
+		prevVolumeGpuSrv = mhFrustumVolumeMapGpuSrvs[1];
+	}
+
+	CalculateScatteringAndDensity(
+		cmdList, 
+		currVolume, 
+		prevVolume, 
+		currVolumeGpuUav, 
+		prevVolumeGpuSrv, 
+		cb_pass, 
+		si_zdepth, 
+		si_zdepthCube, 
+		si_faceIDCube, 
+		nearZ, farZ, depth_exp, 
+		uniformDensity, 
+		anisotropicCoeiff);
+	AccumulateScattering(cmdList, currVolume, currVolumeGpuUav, nearZ, farZ, depth_exp, densityScale);
+	ApplyFog(cmdList, viewport, scissorRect, backBuffer, ro_backBuffer, cb_pass, currVolumeGpuSrv, si_position);
+
+	mCurrentFrame = ++mFrameCount % 2 != 0;
 }
 
 void VolumetricLightClass::BuildDescriptors(
@@ -217,11 +305,13 @@ void VolumetricLightClass::BuildDescriptors(
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 		UINT descSize, UINT rtvDescSize) {
-	mhFrustumMapCpuSrv = hCpu.Offset(1, descSize);
-	mhFrustumMapGpuSrv = hGpu.Offset(1, descSize);
+	for (size_t i = 0; i < 2; ++i) {
+		mhFrustumVolumeMapCpuSrvs[i] = hCpu.Offset(1, descSize);
+		mhFrustumVolumeMapGpuSrvs[i] = hGpu.Offset(1, descSize);
 
-	mhFrustumMapCpuUav = hCpu.Offset(1, descSize);
-	mhFrustumMapGpuUav = hGpu.Offset(1, descSize);
+		mhFrustumVolumeMapCpuUavs[i] = hCpu.Offset(1, descSize);
+		mhFrustumVolumeMapGpuUavs[i] = hGpu.Offset(1, descSize);
+	}
 
 	mhDebugMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 
@@ -230,8 +320,6 @@ void VolumetricLightClass::BuildDescriptors(
 
 void VolumetricLightClass::BuildDescriptors() {
 	{
-		const auto& frustum = mFrustumMap->Resource();
-
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
@@ -240,8 +328,6 @@ void VolumetricLightClass::BuildDescriptors() {
 		srvDesc.Texture3D.MipLevels = 1;
 		srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
 
-		md3dDevice->CreateShaderResourceView(frustum, &srvDesc, mhFrustumMapCpuSrv);
-
 		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
 		uavDesc.Format = FrustumMapFormat;
@@ -249,7 +335,12 @@ void VolumetricLightClass::BuildDescriptors() {
 		uavDesc.Texture3D.WSize = mTexDepth;
 		uavDesc.Texture3D.FirstWSlice = 0;
 
-		md3dDevice->CreateUnorderedAccessView(frustum, nullptr, &uavDesc, mhFrustumMapCpuUav);
+		for (size_t i = 0; i < 2; ++i) {
+			const auto& frustum = mFrustumVolumeMaps[i]->Resource();
+
+			md3dDevice->CreateShaderResourceView(frustum, &srvDesc, mhFrustumVolumeMapCpuSrvs[i]);
+			md3dDevice->CreateUnorderedAccessView(frustum, nullptr, &uavDesc, mhFrustumVolumeMapCpuUavs[i]);
+		}
 	}
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -279,15 +370,22 @@ BOOL VolumetricLightClass::BuildResources() {
 		texDesc.Format = FrustumMapFormat;
 		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-		CheckReturn(mFrustumMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&texDesc,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			nullptr,
-			L"VolumetricLight_FrustumMap"
-		));
+		for (size_t i = 0; i < 2; ++i) {
+			const auto volume = mFrustumVolumeMaps[i].get();
+
+			std::wstring name(L"VolumetricLight_FrustumMap_");
+			name.append(std::to_wstring(i));
+
+			CheckReturn(volume->Initialize(
+				md3dDevice,
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&texDesc,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				nullptr,
+				name.c_str()
+			));
+		}
 	}
 	// Bebug map
 	{
@@ -314,62 +412,85 @@ BOOL VolumetricLightClass::BuildResources() {
 
 void VolumetricLightClass::CalculateScatteringAndDensity(
 		ID3D12GraphicsCommandList* const cmdList,
+		GpuResource* const currFrustumVolume,
+		GpuResource* const prevFrustumVolume,
+		D3D12_GPU_DESCRIPTOR_HANDLE uo_currFrustumVolume,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_prevFrustumVolume,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_zdepth,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_zdepthCube,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_faceIDCube,
-		FLOAT nearZ, FLOAT farZ,
-		FLOAT depth_exp, 
+		FLOAT nearZ, FLOAT farZ, FLOAT depth_exp, 
 		FLOAT uniformDensity, 
 		FLOAT anisotropicCoeiff) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::EC_CalcScatteringAndDensity].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_CalcScatteringAndDensity].Get());
 
-	mFrustumMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12Util::UavBarrier(cmdList, mFrustumMap.get());
+	currFrustumVolume->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, currFrustumVolume);
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::CalcScatteringAndDensity::ECB_Pass, cb_pass);
 
-	FLOAT values[RootSignature::CalcScatteringAndDensity::RootConstant::Count] = { nearZ, farZ, depth_exp, uniformDensity, anisotropicCoeiff };
-	cmdList->SetComputeRoot32BitConstants(RootSignature::CalcScatteringAndDensity::EC_Consts, _countof(values), values, 0);
+	RootConstant::CalcScatteringAndDensity::Struct rc;
+	rc.gNearZ = nearZ;
+	rc.gFarZ = farZ;
+	rc.gDepthExponent = depth_exp;
+	rc.gUniformDensity = uniformDensity;
+	rc.gAnisotropicCoefficient = anisotropicCoeiff;
+	rc.gFrameCount = mFrameCount;
+
+	std::array<std::uint32_t, RootConstant::CalcScatteringAndDensity::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::CalcScatteringAndDensity::Struct));
+
+	cmdList->SetComputeRoot32BitConstants(RootSignature::CalcScatteringAndDensity::EC_Consts, RootConstant::CalcScatteringAndDensity::Count, consts.data(), 0);
 
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcScatteringAndDensity::ESI_ZDepth, si_zdepth);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcScatteringAndDensity::ESI_ZDepthCube, si_zdepthCube);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcScatteringAndDensity::ESI_FaceIDCube, si_faceIDCube);
-	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcScatteringAndDensity::EUO_FrustumVolume, mhFrustumMapGpuUav);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::CalcScatteringAndDensity::EUO_FrustumVolume, si_prevFrustumVolume);
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(static_cast<UINT>(mTexWidth), CalcScatteringAndDensity::ThreadGroup::Width),
-		D3D12Util::CeilDivide(static_cast<UINT>(mTexHeight), CalcScatteringAndDensity::ThreadGroup::Height),
-		D3D12Util::CeilDivide(static_cast<UINT>(mTexDepth), CalcScatteringAndDensity::ThreadGroup::Depth)
+		D3D12Util::CeilDivide(static_cast<UINT>(mTexWidth), ThreadGroup::CalcScatteringAndDensity::Width),
+		D3D12Util::CeilDivide(static_cast<UINT>(mTexHeight), ThreadGroup::CalcScatteringAndDensity::Height),
+		D3D12Util::CeilDivide(static_cast<UINT>(mTexDepth), ThreadGroup::CalcScatteringAndDensity::Depth)
 	);
 
-	mFrustumMap->Transite(cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
-	D3D12Util::UavBarrier(cmdList, mFrustumMap.get());
+	currFrustumVolume->Transite(cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
+	D3D12Util::UavBarrier(cmdList, currFrustumVolume);
 }
 
 void VolumetricLightClass::AccumulateScattering(
 		ID3D12GraphicsCommandList* const cmdList,
-		FLOAT nearZ, FLOAT farZ, FLOAT densityScale) {
+		GpuResource* const currFrustumVolume,
+		D3D12_GPU_DESCRIPTOR_HANDLE uio_currFrustumVolume,
+		FLOAT nearZ, FLOAT farZ, FLOAT depth_exp, 
+		FLOAT densityScale) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::EC_AccumulateScattering].Get());
 	cmdList->SetComputeRootSignature(mRootSignatures[RootSignature::E_AccumulateScattering].Get());
 
-	mFrustumMap->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12Util::UavBarrier(cmdList, mFrustumMap.get());
+	currFrustumVolume->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, currFrustumVolume);
 
-	FLOAT values[RootSignature::AccumulateScattering::RootConstant::Count] = { nearZ, farZ, 4, densityScale };
-	cmdList->SetComputeRoot32BitConstants(RootSignature::AccumulateScattering::EC_Consts, _countof(values), values, 0);
+	RootConstant::AccumulateScattering::Struct rc;
+	rc.gNearZ = nearZ;
+	rc.gFarZ = farZ;
+	rc.gDepthExponent = depth_exp;
+	rc.gDensityScale = densityScale;
 
-	cmdList->SetComputeRootDescriptorTable(RootSignature::AccumulateScattering::EUIO_FrustumVolume, mhFrustumMapGpuUav);
+	std::array<std::uint32_t, RootConstant::AccumulateScattering::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::AccumulateScattering::Struct));
+
+	cmdList->SetComputeRoot32BitConstants(RootSignature::AccumulateScattering::EC_Consts, RootConstant::AccumulateScattering::Count, consts.data(), 0);
+	cmdList->SetComputeRootDescriptorTable(RootSignature::AccumulateScattering::EUIO_FrustumVolume, uio_currFrustumVolume);
 
 	cmdList->Dispatch(
-		D3D12Util::CeilDivide(static_cast<UINT>(mTexWidth), AccumulateScattering::ThreadGroup::Width),
-		D3D12Util::CeilDivide(static_cast<UINT>(mTexHeight), AccumulateScattering::ThreadGroup::Height),
+		D3D12Util::CeilDivide(static_cast<UINT>(mTexWidth), ThreadGroup::AccumulateScattering::Width),
+		D3D12Util::CeilDivide(static_cast<UINT>(mTexHeight), ThreadGroup::AccumulateScattering::Height),
 		1
 	);
 
-	mFrustumMap->Transite(cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
-	D3D12Util::UavBarrier(cmdList, mFrustumMap.get());
+	currFrustumVolume->Transite(cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
+	D3D12Util::UavBarrier(cmdList, currFrustumVolume);
 }
 
 void VolumetricLightClass::ApplyFog(
@@ -379,6 +500,7 @@ void VolumetricLightClass::ApplyFog(
 		GpuResource* backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
+		D3D12_GPU_DESCRIPTOR_HANDLE si_currFrustumVolume,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_position) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::EG_ApplyFog].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_ApplyFog].Get());
@@ -394,7 +516,7 @@ void VolumetricLightClass::ApplyFog(
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ApplyFog::ECB_Pass, cb_pass);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ApplyFog::ESI_Position, si_position);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ApplyFog::ESI_FrustumVolume, mhFrustumMapGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ApplyFog::ESI_FrustumVolume, si_currFrustumVolume);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

@@ -8,30 +8,26 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConstantBuffer_Blur> cbBlur : register(b0);
+ConstantBuffer<ConstantBuffer_Blur> cb_Blur		: register(b0);
 
-cbuffer cbRootConstants : register(b1) {
-	uint2 gDimension;
-}
+BlurFilter_CS_Default_RootConstants(b1)
 
 Texture2D<GBuffer::NormalMapFormat>	gi_Normal	: register(t0);
 Texture2D<GBuffer::DepthMapFormat>	gi_Depth	: register(t1);
 
-Texture2D<float>	gi_Input	: register(t2);
-RWTexture2D<float>	go_Output	: register(u0);
+Texture2D<float>					gi_Input	: register(t2);
+RWTexture2D<float>					go_Output	: register(u0);
 
-#define CacheSize (BlurFilterCS ::ThreadGroup::Size + 2 * BlurFilterCS ::MaxBlurRadius)
+#define CacheSize (BlurFilter::CS::ThreadGroup::Default::Size + 2 * BlurFilter::CS::MaxBlurRadius)
 groupshared float gCache[CacheSize];
 
-#define Deadline 0.1
-
-[numthreads(BlurFilterCS::ThreadGroup::Size, 1, 1)]
+[numthreads(BlurFilter::CS::ThreadGroup::Default::Size, 1, 1)]
 void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID) {
 	// unpack into float array.
-	float blurWeights[12] = {
-		cbBlur.BlurWeights[0].x, cbBlur.BlurWeights[0].y, cbBlur.BlurWeights[0].z, cbBlur.BlurWeights[0].w,
-		cbBlur.BlurWeights[1].x, cbBlur.BlurWeights[1].y, cbBlur.BlurWeights[1].z, cbBlur.BlurWeights[1].w,
-		cbBlur.BlurWeights[2].x, cbBlur.BlurWeights[2].y, cbBlur.BlurWeights[2].z, cbBlur.BlurWeights[2].w,
+	const float blurWeights[12] = {
+		cb_Blur.BlurWeights[0].x, cb_Blur.BlurWeights[0].y, cb_Blur.BlurWeights[0].z, cb_Blur.BlurWeights[0].w,
+		cb_Blur.BlurWeights[1].x, cb_Blur.BlurWeights[1].y, cb_Blur.BlurWeights[1].z, cb_Blur.BlurWeights[1].w,
+		cb_Blur.BlurWeights[2].x, cb_Blur.BlurWeights[2].y, cb_Blur.BlurWeights[2].z, cb_Blur.BlurWeights[2].w,
 	};
 
 	uint2 length;
@@ -39,20 +35,20 @@ void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 
 	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels, 
 	// have 2*BlurRadius threads sample an extra pixel.
-	if (groupThreadID.x < cbBlur.BlurRadius) {
+	if (groupThreadID.x < cb_Blur.BlurRadius) {
 		// Clamp out of bound samples that occur at image borders.
-		int x = max(dispatchThreadID.x - cbBlur.BlurRadius, 0);
+		const int x = max(dispatchThreadID.x - cb_Blur.BlurRadius, 0);
 		gCache[groupThreadID.x] = gi_Input[int2(x, dispatchThreadID.y)];
 	}
 
-	if (groupThreadID.x >= BlurFilterCS::ThreadGroup::Size - cbBlur.BlurRadius) {
+	if (groupThreadID.x >= BlurFilter::CS::ThreadGroup::Default::Size - cb_Blur.BlurRadius) {
 		// Clamp out of bound samples that occur at image borders.
-		int x = min(dispatchThreadID.x + cbBlur.BlurRadius, length.x - 1);
-		gCache[groupThreadID.x + 2 * cbBlur.BlurRadius] = gi_Input[int2(x, dispatchThreadID.y)].r;
+		const int x = min(dispatchThreadID.x + cb_Blur.BlurRadius, length.x - 1);
+		gCache[groupThreadID.x + 2.f * cb_Blur.BlurRadius] = gi_Input[int2(x, dispatchThreadID.y)].r;
 	}
 
 	// Clamp out of bound samples that occur at image borders.
-	gCache[groupThreadID.x + cbBlur.BlurRadius] = gi_Input[min(dispatchThreadID.xy, length.xy - 1)].r;
+	gCache[groupThreadID.x + cb_Blur.BlurRadius] = gi_Input[min(dispatchThreadID.xy, length.xy - 1)].r;
 
 	// Wait for all threads to finish.
 	GroupMemoryBarrierWithGroupSync();
@@ -60,40 +56,40 @@ void HorzBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 	//
 	// Now blur each pixel.
 	//
-	float blurColor = gCache[groupThreadID.x + cbBlur.BlurRadius] * blurWeights[cbBlur.BlurRadius];
-	float totalWeight = blurWeights[cbBlur.BlurRadius];
+	float blurColor = gCache[groupThreadID.x + cb_Blur.BlurRadius] * blurWeights[cb_Blur.BlurRadius];
+	float totalWeight = blurWeights[cb_Blur.BlurRadius];
 
-	float2 centerTex = float2((dispatchThreadID.x + 0.5) / (float)gDimension.x, (dispatchThreadID.y + 0.5) / (float)gDimension.y);
-	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0).rgb);
-	float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
+	const float2 centerTex = float2((dispatchThreadID.x + 0.5f) / (float)gDimension.x, (dispatchThreadID.y + 0.5f) / (float)gDimension.y);
+	const float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0).rgb);
+	const float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
 
-	float dx = 1.0 / gDimension.x;
+	const float dx = 1.f / gDimension.x;
 
-	for (int i = -cbBlur.BlurRadius; i <= cbBlur.BlurRadius; i++) {
+	for (int i = -cb_Blur.BlurRadius; i <= cb_Blur.BlurRadius; i++) {
 		if (i == 0) continue;
 
-		float2 neighborTex = float2(centerTex.x + dx * i, centerTex.y);
-		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0).rgb);
-		float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
+		const float2 neighborTex = float2(centerTex.x + dx * i, centerTex.y);
+		const float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0).rgb);
+		const float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
 
-		if (dot(neighborNormal, centerNormal) >= 0.95 && abs(neighborDepth - centerDepth) <= 0.01) {
-			int k = groupThreadID.x + cbBlur.BlurRadius + i;
+		if (dot(neighborNormal, centerNormal) >= 0.95f && abs(neighborDepth - centerDepth) <= 0.01f) {
+			const int k = groupThreadID.x + cb_Blur.BlurRadius + i;
 
-			blurColor += gCache[k] * blurWeights[cbBlur.BlurRadius + i];
-			totalWeight += blurWeights[cbBlur.BlurRadius + i];
+			blurColor += gCache[k] * blurWeights[cb_Blur.BlurRadius + i];
+			totalWeight += blurWeights[cb_Blur.BlurRadius + i];
 		}
 	}
 
 	go_Output[dispatchThreadID.xy] = blurColor / totalWeight;
 }
 
-[numthreads(1, BlurFilterCS::ThreadGroup::Size, 1)]
+[numthreads(1, BlurFilter::CS::ThreadGroup::Default::Size, 1)]
 void VertBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID) {
 	// unpack into float array.
 	float blurWeights[12] = {
-		cbBlur.BlurWeights[0].x, cbBlur.BlurWeights[0].y, cbBlur.BlurWeights[0].z, cbBlur.BlurWeights[0].w,
-		cbBlur.BlurWeights[1].x, cbBlur.BlurWeights[1].y, cbBlur.BlurWeights[1].z, cbBlur.BlurWeights[1].w,
-		cbBlur.BlurWeights[2].x, cbBlur.BlurWeights[2].y, cbBlur.BlurWeights[2].z, cbBlur.BlurWeights[2].w,
+		cb_Blur.BlurWeights[0].x, cb_Blur.BlurWeights[0].y, cb_Blur.BlurWeights[0].z, cb_Blur.BlurWeights[0].w,
+		cb_Blur.BlurWeights[1].x, cb_Blur.BlurWeights[1].y, cb_Blur.BlurWeights[1].z, cb_Blur.BlurWeights[1].w,
+		cb_Blur.BlurWeights[2].x, cb_Blur.BlurWeights[2].y, cb_Blur.BlurWeights[2].z, cb_Blur.BlurWeights[2].w,
 	};
 
 	//
@@ -107,20 +103,20 @@ void VertBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 
 	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels, 
 	// have 2*BlurRadius threads sample an extra pixel.
-	if (groupThreadID.y < cbBlur.BlurRadius) {
+	if (groupThreadID.y < cb_Blur.BlurRadius) {
 		// Clamp out of bound samples that occur at image borders.
-		int y = max(dispatchThreadID.y - cbBlur.BlurRadius, 0);
+		const int y = max(dispatchThreadID.y - cb_Blur.BlurRadius, 0);
 		gCache[groupThreadID.y] = gi_Input[int2(dispatchThreadID.x, y)].r;
 	}
 
-	if (groupThreadID.y >= BlurFilterCS::ThreadGroup::Size - cbBlur.BlurRadius) {
+	if (groupThreadID.y >= BlurFilter::CS::ThreadGroup::Default::Size - cb_Blur.BlurRadius) {
 		// Clamp out of bound samples that occur at image borders.
-		int y = min(dispatchThreadID.y + cbBlur.BlurRadius, length.y - 1);
-		gCache[groupThreadID.y + 2 * cbBlur.BlurRadius] = gi_Input[int2(dispatchThreadID.x, y)].r;
+		const int y = min(dispatchThreadID.y + cb_Blur.BlurRadius, length.y - 1);
+		gCache[groupThreadID.y + 2 * cb_Blur.BlurRadius] = gi_Input[int2(dispatchThreadID.x, y)].r;
 	}
 
 	// Clamp out of bound samples that occur at image borders.
-	gCache[groupThreadID.y + cbBlur.BlurRadius] = gi_Input[min(dispatchThreadID.xy, length.xy - 1)].r;
+	gCache[groupThreadID.y + cb_Blur.BlurRadius] = gi_Input[min(dispatchThreadID.xy, length.xy - 1)].r;
 
 	// Wait for all threads to finish.
 	GroupMemoryBarrierWithGroupSync();
@@ -128,27 +124,27 @@ void VertBlurCS(uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID :
 	//
 	// Now blur each pixel.
 	//
-	float blurColor = gCache[groupThreadID.y + cbBlur.BlurRadius] * blurWeights[cbBlur.BlurRadius];
-	float totalWeight = blurWeights[cbBlur.BlurRadius];
+	float blurColor = gCache[groupThreadID.y + cb_Blur.BlurRadius] * blurWeights[cb_Blur.BlurRadius];
+	float totalWeight = blurWeights[cb_Blur.BlurRadius];
 
-	float2 centerTex = float2((dispatchThreadID.x + 0.5) / (float)gDimension.x, (dispatchThreadID.y + 0.5) / (float)gDimension.y);
-	float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0).rgb);
-	float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
+	const float2 centerTex = float2((dispatchThreadID.x + 0.5f) / (float)gDimension.x, (dispatchThreadID.y + 0.5f) / (float)gDimension.y);
+	const float3 centerNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, centerTex, 0).rgb);
+	const float centerDepth = gi_Depth.SampleLevel(gsamLinearClamp, centerTex, 0);
 
-	float dy = 1.0 / gDimension.y;
+	const float dy = 1.f / gDimension.y;
 
-	for (int i = -cbBlur.BlurRadius; i <= cbBlur.BlurRadius; i++) {
+	for (int i = -cb_Blur.BlurRadius; i <= cb_Blur.BlurRadius; i++) {
 		if (i == 0) continue;
 
-		float2 neighborTex = float2(centerTex.x, centerTex.y + dy * i);
-		float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0).rgb);
-		float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
+		const float2 neighborTex = float2(centerTex.x, centerTex.y + dy * i);
+		const float3 neighborNormal = normalize(gi_Normal.SampleLevel(gsamLinearClamp, neighborTex, 0).rgb);
+		const float neighborDepth = gi_Depth.SampleLevel(gsamLinearClamp, neighborTex, 0);
 
-		if (dot(neighborNormal, centerNormal) >= 0.95 && abs(neighborDepth - centerDepth) <= 0.01) {
-			int k = groupThreadID.y + cbBlur.BlurRadius + i;
+		if (dot(neighborNormal, centerNormal) >= 0.95f && abs(neighborDepth - centerDepth) <= 0.01f) {
+			const int k = groupThreadID.y + cb_Blur.BlurRadius + i;
 
-			blurColor += gCache[k] * blurWeights[cbBlur.BlurRadius + i];
-			totalWeight += blurWeights[cbBlur.BlurRadius + i];
+			blurColor += gCache[k] * blurWeights[cb_Blur.BlurRadius + i];
+			totalWeight += blurWeights[cb_Blur.BlurRadius + i];
 		}
 	}
 

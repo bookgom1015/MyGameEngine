@@ -8,7 +8,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass> cb_Pass : register(b0);
+ConstantBuffer<ConstantBuffer_Pass>				cb_Pass				: register(b0);
 
 Texture2D<GBuffer::PositionMapFormat>			gi_Position			: register(t0);
 Texture3D<VolumetricLight::FrustumMapFormat>	gi_FrustumVolume	: register(t1);
