@@ -4,29 +4,29 @@
 #include "ShadingConstants.hlsli"
 
 // Trowbridge-Reitz GGX 
-float DistributionGGX(float3 N, float3 H, float roughness) {
+float DistributionGGX(in float3 N, in float3 H, in float roughness) {
 	const float a = roughness * roughness;
 	const float a2 = a * a;
-	const float NdotH = max(dot(N, H), 0);
+	const float NdotH = max(dot(N, H), 0.f);
 	const float NdotH2 = NdotH * NdotH;
 
 	const float num = a2;
-	float denom = (NdotH2 * (a2 - 1) + 1);
+	float denom = (NdotH2 * (a2 - 1.f) + 1.f);
 	denom = PI * denom * denom;
 
 	return num / denom;
 }
 
-float DistributionGGX_Modified(float3 N, float3 H, float roughness, float d, float radius) {
+float DistributionGGX_Modified(in float3 N, in float3 H, in float roughness, in float d, in float radius) {
 	const float a = roughness * roughness;
-	const float a_ = saturate(radius / (2 * d) + a);
+	const float a_ = saturate(radius / (2.f * d) + a);
 	const float a2 = a * a;
 	const float a_2 = a_ * a_;
-	const float NdotH = max(dot(N, H), 0);
+	const float NdotH = max(dot(N, H), 0.f);
 	const float NdotH2 = NdotH * NdotH;
 
 	const float num = a2 * a_2;
-	float denom = (NdotH2 * (a2 - 1) + 1);
+	float denom = (NdotH2 * (a2 - 1.f) + 1.f);
 	denom = PI * denom * denom;
 
 	return num / denom;
@@ -36,29 +36,29 @@ float DistributionGGX_Modified(float3 N, float3 H, float roughness, float d, flo
 // 
 // k is a remapping of ес based on whether using the geometry function 
 //  for either direct lighting or IBL lighting.
-float GeometryShlickGGX(float NdotV, float roughness) {
-	const float a = (roughness + 1);
-	const float k = (a * a) / 8;
+float GeometryShlickGGX(in float NdotV, in float roughness) {
+	const float a = (roughness + 1.f);
+	const float k = (a * a) / 8.f;
 
 	const float num = NdotV;
-	const float denom = NdotV * (1 - k) + k;
+	const float denom = NdotV * (1.f - k) + k;
 
 	return num / denom;
 }
 
-float GeometryShlickGGX_IBL(float NdotV, float roughness) {
+float GeometryShlickGGX_IBL(in float NdotV, in float roughness) {
 	const float a = roughness;
-	const float k = (a * a) / 2;
+	const float k = (a * a) / 2.f;
 
 	const float num = NdotV;
-	const float denom = NdotV * (1 - k) + k;
+	const float denom = NdotV * (1.f - k) + k;
 
 	return num / denom;
 }
 
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
-	const float NdotV = max(dot(N, V), 0);
-	const float NdotL = max(dot(N, L), 0);
+float GeometrySmith(in float3 N, in float3 V, in float3 L, in float roughness) {
+	const float NdotV = max(dot(N, V), 0.f);
+	const float NdotL = max(dot(N, L), 0.f);
 
 	const float ggx1 = GeometryShlickGGX(NdotV, roughness);
 	const float ggx2 = GeometryShlickGGX(NdotL, roughness);
@@ -66,9 +66,9 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
 	return ggx1 * ggx2;
 }
 
-float GeometrySmith_IBL(float3 N, float3 V, float3 L, float roughness) {
-	const float NdotV = max(dot(N, V), 0);
-	const float NdotL = max(dot(N, L), 0);
+float GeometrySmith_IBL(in float3 N, in float3 V, in float3 L, in float roughness) {
+	const float NdotV = max(dot(N, V), 0.f);
+	const float NdotL = max(dot(N, L), 0.f);
 
 	const float ggx1 = GeometryShlickGGX_IBL(NdotV, roughness);
 	const float ggx2 = GeometryShlickGGX_IBL(NdotL, roughness);
@@ -77,15 +77,15 @@ float GeometrySmith_IBL(float3 N, float3 V, float3 L, float roughness) {
 }
 
 // the Fresnel Schlick approximation
-float3 FresnelSchlick(float cos, float3 F0) {
-	return F0 + (1 - F0) * pow(max((1 - cos), 0), 5);
+float3 FresnelSchlick(in float cos, in float3 F0) {
+	return F0 + (1.f - F0) * pow(max((1.f - cos), 0.f), 5.f);
 }
 
-float3 FresnelSchlickRoughness(float cos, float3 F0, float roughness) {
-	return F0 + (max((float3)(1 - roughness), F0) - F0) * pow(max(1 - cos, 0), 5);
+float3 FresnelSchlickRoughness(in float cos, in float3 F0, in float roughness) {
+	return F0 + (max((float3)(1.f - roughness), F0) - F0) * pow(max(1.f - cos, 0.f), 5.f);
 }
 
-float RadicalInverse_VdC(uint bits) {
+float RadicalInverse_VdC(in uint bits) {
 	bits = (bits << 16u) | (bits >> 16u);
 	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
 	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
@@ -94,16 +94,16 @@ float RadicalInverse_VdC(uint bits) {
 	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 
-float2 Hammersley(uint i, uint N) {
+float2 Hammersley(in uint i, in uint N) {
 	return float2(float(i) / float(N), RadicalInverse_VdC(i));
 }
 
-float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
-	float a = roughness * roughness;
+float3 ImportanceSampleGGX(in float2 Xi, in float3 N, in float roughness) {
+	const float a = roughness * roughness;
 
-	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
-	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	const float phi = 2.f * PI * Xi.x;
+	const float cosTheta = sqrt((1.f - Xi.y) / (1.f + (a * a - 1.f) * Xi.y));
+	const float sinTheta = sqrt(1.f - cosTheta * cosTheta);
 
 	// from spherical coordinates to cartesian coordinates
 	float3 H;
@@ -112,11 +112,11 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
 	H.z = cosTheta;
 
 	// from tangent-space vector to world-space sample vector
-	float3 up = abs(N.z) < 0.999 ? float3(0, 0, 1) : float3(1, 0, 0);
-	float3 tangent = normalize(cross(up, N));
-	float3 bitangent = cross(N, tangent);
+	const float3 up = abs(N.z) < 0.999f ? float3(0.f, 0.f, 1.f) : float3(1.f, 0.f, 0.f);
+	const float3 tangent = normalize(cross(up, N));
+	const float3 bitangent = cross(N, tangent);
 
-	float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+	const float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
 	return normalize(sampleVec);
 }
 

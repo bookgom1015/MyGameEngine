@@ -13,6 +13,12 @@ class GpuResource;
 
 namespace Bloom {
 	namespace RootSignature {
+		enum {
+			E_ApplyBloom,
+			E_ExtractHighlight,
+			Count
+		};
+
 		namespace ApplyBloom {
 			enum {
 				ESI_BackBuffer = 0,
@@ -21,24 +27,17 @@ namespace Bloom {
 			};
 		}
 
-		namespace HighlightExtraction {
+		namespace ExtractHighlight {
 			enum {
 				ESI_BackBuffer = 0,
 				EC_Consts,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					EThreshold = 0,
-					Count
-				};
-			}
 		}
 	}
 
 	namespace PipelineState {
-		enum Type {
+		enum {
 			E_Extract = 0,
 			E_Bloom,
 			Count
@@ -71,20 +70,20 @@ namespace Bloom {
 
 	public:
 		BOOL Initialize(
-			ID3D12Device* device, ShaderManager*const manager, 
+			ID3D12Device* const device, ShaderManager* const manager, 
 			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 		void ExtractHighlight(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			FLOAT threshold);
 		void ApplyBloom(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			GpuResource*const backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer);
 
 		void BuildDescriptors(
@@ -102,8 +101,8 @@ namespace Bloom {
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignature::Count> mRootSignatures;
+		std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, PipelineState::Count> mPSOs;
 
 		Resolution::Type mResolutionType;
 

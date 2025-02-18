@@ -1,8 +1,8 @@
 // [ References ]
 //  - https://catlikecoding.com/unity/tutorials/advanced-rendering/depth-of-field/
 
-#ifndef __DEPTHOFFIELD_HLSL__
-#define __DEPTHOFFIELD_HLSL__
+#ifndef __CIRCULARBOKEH_HLSL__
+#define __CIRCULARBOKEH_HLSL__
 
 #ifndef HLSL
 #define HLSL
@@ -14,12 +14,7 @@
 Texture2D<ToneMapping::IntermediateMapFormat>	gi_BackBuffer	: register(t0);
 Texture2D<DepthOfField::CoCMapFormat>			gi_CoC			: register(t1);
 
-cbuffer cbRootConstants : register(b0) {
-	float gBokehRadius;
-	float gMaxDevTolerance;
-	float gHighlightPower;
-	float gSampleCount;
-};
+DepthOfField_ApplyDoF_RootConstants(b0)
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -32,8 +27,7 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
 	return vout;
 }
@@ -45,13 +39,13 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	const float dx = gBokehRadius / size.x;
 	const float dy = gBokehRadius / size.y;
 
-	const float centerCoC = abs(gi_CoC.Sample(gsamPointClamp, pin.TexC));
+	const float centerCoC = abs(gi_CoC.SampleLevel(gsamPointClamp, pin.TexC, 0));
 	const uint blurRadius = round(gSampleCount * centerCoC);
 
-	const float3 centerColor = gi_BackBuffer.Sample(gsamPointClamp, pin.TexC).rgb;
+	const float3 centerColor = gi_BackBuffer.SampleLevel(gsamPointClamp, pin.TexC, 0).rgb;
 
 	float3 poweredSum = pow(centerColor, gHighlightPower);
-	float3 colorSum = gi_BackBuffer.Sample(gsamPointClamp, pin.TexC).rgb * poweredSum;
+	float3 colorSum = gi_BackBuffer.SampleLevel(gsamPointClamp, pin.TexC, 0).rgb * poweredSum;
 
 	[loop]
 	for (int i = -gSampleCount; i <= gSampleCount; ++i) {
@@ -61,10 +55,10 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target {
 			if ((i == 0 && j == 0) || radius > blurRadius) continue;
 
 			const float2 texc = pin.TexC + float2(i * dx, j * dy);
-			const float neighborCoC = abs(gi_CoC.Sample(gsamPointClamp, texc));
+			const float neighborCoC = abs(gi_CoC.SampleLevel(gsamPointClamp, texc, 0));
 			if (abs(neighborCoC - centerCoC) > gMaxDevTolerance) continue;
 
-			const float3 color = gi_BackBuffer.Sample(gsamPointClamp, texc).rgb;
+			const float3 color = gi_BackBuffer.SampleLevel(gsamPointClamp, texc, 0).rgb;
 			const float3 powered = pow(color, gHighlightPower);
 
 			colorSum += color * powered;
@@ -73,7 +67,7 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	}
 	colorSum /= poweredSum;
 
-	return float4(colorSum, 1);
+	return float4(colorSum, 1.f);
 }
 
-#endif // __DEPTHOFFIELD_HLSL__
+#endif // __CIRCULARBOKEH_HLSL__

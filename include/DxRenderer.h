@@ -116,7 +116,7 @@ private:
 	BOOL UpdateCB_Irradiance(FLOAT delta);
 	BOOL UpdateCB_SVGF(FLOAT delta);
 	BOOL UpdateCB_RTAO(FLOAT delta);
-	BOOL UpdateCB_DebugMap(FLOAT delta);
+	BOOL UpdateCB_Debug(FLOAT delta);
 
 	BOOL AddBLAS(ID3D12GraphicsCommandList4* const cmdList, MeshGeometry* const geo);
 	BOOL BuildTLAS(ID3D12GraphicsCommandList4* const cmdList);
@@ -130,7 +130,6 @@ private:
 	BOOL DrawBackBuffer();
 	BOOL IntegrateSpecIrrad();
 	BOOL DrawSkySphere();
-	BOOL DrawEquirectangulaToCube();
 	BOOL ApplyTAA();
 	BOOL ApplySSR();
 	BOOL ApplyBloom();
@@ -192,7 +191,7 @@ private:
 	std::unique_ptr<DepthOfField::DepthOfFieldClass> mDoF;
 	std::unique_ptr<MotionBlur::MotionBlurClass> mMotionBlur;
 	std::unique_ptr<TemporalAA::TemporalAAClass> mTAA;
-	std::unique_ptr<DebugMap::DebugMapClass> mDebugMap;
+	std::unique_ptr<Debug::DebugClass> mDebug;
 	std::unique_ptr<DebugCollision::DebugCollisionClass> mDebugCollision;
 	std::unique_ptr<GammaCorrection::GammaCorrectionClass> mGammaCorrection;
 	std::unique_ptr<ToneMapping::ToneMappingClass> mToneMapping;

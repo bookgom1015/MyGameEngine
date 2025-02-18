@@ -12,7 +12,7 @@ namespace SSR { class SSRClass; }
 namespace DepthOfField { class DepthOfFieldClass; }
 namespace MotionBlur { class MotionBlurClass; }
 namespace TemporalAA { class TemporalAAClass; }
-namespace DebugMap { class DebugMapClass; }
+namespace Debug { class DebugClass; }
 namespace DXR_Shadow { class DXR_ShadowClass; }
 namespace DXR_GeometryBuffer { class DXR_GeometryBufferClass; }
 namespace RTAO { class RTAOClass; }

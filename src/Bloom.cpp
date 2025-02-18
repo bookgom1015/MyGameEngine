@@ -21,7 +21,7 @@ BloomClass::BloomClass() {
 }
 
 BOOL BloomClass::Initialize(
-		ID3D12Device* device, ShaderManager*const manager, 
+		ID3D12Device* const device, ShaderManager* const manager, 
 		UINT width, UINT height, Resolution::Type type) {
 	md3dDevice = device;
 	mShaderManager = manager;
@@ -36,15 +36,15 @@ BOOL BloomClass::Initialize(
 BOOL BloomClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring actualPath = filePath + L"Bloom.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_Bloom));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_Bloom));
 	}
 	{
-		const std::wstring actualPath = filePath + L"HighlightExtraction.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const std::wstring actualPath = filePath + L"ExtractHighlight.hlsl";
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_HighlightExtraction));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_HighlightExtraction));
 	}
@@ -53,14 +53,15 @@ BOOL BloomClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
+	// ExtractHighlight
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::HighlightExtraction::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ExtractHighlight::Count];
 
 		CD3DX12_DESCRIPTOR_RANGE texTable0;
 		texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-		slotRootParameter[RootSignature::HighlightExtraction::ESI_BackBuffer].InitAsDescriptorTable(1, &texTable0);
-		slotRootParameter[RootSignature::HighlightExtraction::EC_Consts].InitAsConstants(RootSignature::HighlightExtraction::RootConstant::Count, 0);
+		slotRootParameter[RootSignature::ExtractHighlight::ESI_BackBuffer].InitAsDescriptorTable(1, &texTable0);
+		slotRootParameter[RootSignature::ExtractHighlight::EC_Consts].InitAsConstants(RootConstant::ExtractHighlight::Count, 0);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -70,6 +71,7 @@ BOOL BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Extract]));
 	}
+	// ApplyBloom
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyBloom::Count];
 
@@ -100,8 +102,8 @@ BOOL BloomClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC extHlightsPsoDesc = quadPsoDesc;
 	extHlightsPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Extract].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_HighlightExtraction);
-		auto ps = mShaderManager->GetDxcShader(PS_HighlightExtraction);
+		const auto vs = mShaderManager->GetDxcShader(VS_HighlightExtraction);
+		const auto ps = mShaderManager->GetDxcShader(PS_HighlightExtraction);
 		extHlightsPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		extHlightsPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -111,8 +113,8 @@ BOOL BloomClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC bloomPsoDesc = quadPsoDesc;
 	bloomPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Bloom].Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_Bloom);
-		auto ps = mShaderManager->GetDxcShader(PS_Bloom);
+		const auto vs = mShaderManager->GetDxcShader(VS_Bloom);
+		const auto ps = mShaderManager->GetDxcShader(PS_Bloom);
 		bloomPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		bloomPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -123,7 +125,7 @@ BOOL BloomClass::BuildPSO() {
 }
 
 void BloomClass::ExtractHighlight(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 		FLOAT threshold) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_Extract].Get());
@@ -137,12 +139,12 @@ void BloomClass::ExtractHighlight(
 	
 	auto bloomMapRtv = mhBloomMapCpuRtvs[0];
 	cmdList->ClearRenderTargetView(bloomMapRtv, ClearValues, 0, nullptr);
-	cmdList->OMSetRenderTargets(1, &bloomMapRtv, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &bloomMapRtv, TRUE, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::HighlightExtraction::ESI_BackBuffer, si_backBuffer);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ExtractHighlight::ESI_BackBuffer, si_backBuffer);
 
-	FLOAT values[RootSignature::HighlightExtraction::RootConstant::Count] = { threshold };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignature::HighlightExtraction::EC_Consts, _countof(values), values, 0);
+	FLOAT values[RootConstant::ExtractHighlight::Count] = { threshold };
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::ExtractHighlight::EC_Consts, _countof(values), values, 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -153,7 +155,7 @@ void BloomClass::ExtractHighlight(
 }
 
 void BloomClass::ApplyBloom(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
 		GpuResource* const backBuffer,

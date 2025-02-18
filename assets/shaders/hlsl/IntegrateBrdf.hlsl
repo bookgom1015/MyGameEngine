@@ -25,9 +25,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
-	float4 ph = mul(vout.PosH, cb_Pass.InvProj);
+	const float4 ph = mul(vout.PosH, cb_Pass.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -35,37 +35,37 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 float2 IntegrateBRDF(float NdotV, float roughness) {
 	float3 V;
-	V.x = sqrt(1 - NdotV * NdotV);
-	V.y = 0;
+	V.x = sqrt(1.f - NdotV * NdotV);
+	V.y = 0.f;
 	V.z = NdotV;
 
-	float A = 0;
-	float B = 0;
+	float A = 0.f;
+	float B = 0.f;
 
-	float3 N = float3(0, 0, 1);
+	float3 N = float3(0.f, 0.f, 1.f);
 
 	for (uint i = 0; i < SAMPLE_COUNT; ++i)
 	{
-		float2 Xi = Hammersley(i, SAMPLE_COUNT);
-		float3 H = ImportanceSampleGGX(Xi, N, roughness);
-		float3 L = normalize(2 * dot(V, H) * H - V);
+		const float2 Xi = Hammersley(i, SAMPLE_COUNT);
+		const float3 H = ImportanceSampleGGX(Xi, N, roughness);
+		const float3 L = normalize(2.f * dot(V, H) * H - V);
 
-		float NdotL = max(L.z, 0);
-		float NdotH = max(H.z, 0);
-		float VdotH = max(dot(V, H), 0);
+		const float NdotL = max(L.z, 0.f);
+		const float NdotH = max(H.z, 0.f);
+		const float VdotH = max(dot(V, H), 0.f);
 
-		if (NdotL > 0)
+		if (NdotL > 0.f)
 		{
-			float G = GeometrySmith_IBL(N, V, L, roughness);
-			float G_Vis = (G * VdotH) / (NdotH * NdotV);
-			float Fc = pow(1 - VdotH, 5);
+			const float G = GeometrySmith_IBL(N, V, L, roughness);
+			const float G_Vis = (G * VdotH) / (NdotH * NdotV);
+			const float Fc = pow(1.f - VdotH, 5.f);
 
-			A += (1 - Fc) * G_Vis;
+			A += (1.f - Fc) * G_Vis;
 			B += Fc * G_Vis;
 		}
 	}
 
-	const float inv = 1 / float(SAMPLE_COUNT);
+	const float inv = 1.f / (float)SAMPLE_COUNT;
 
 	A *= inv;
 	B *= inv;
@@ -74,8 +74,7 @@ float2 IntegrateBRDF(float NdotV, float roughness) {
 }
 
 float2 PS(VertexOut pin) : SV_Target{
-	float2 integrated = IntegrateBRDF(pin.TexC.x, pin.TexC.y);
-	return integrated;
+	return IntegrateBRDF(pin.TexC.x, pin.TexC.y);
 }
 
 #endif // __INTEGRATEBRDF_HLSL__

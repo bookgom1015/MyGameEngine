@@ -147,7 +147,7 @@ namespace DepthStencilBuffer {
 namespace TemporalAA {
 #ifndef TemporalAA_Default_RCSTRUCT
 	#define TemporalAA_Default_RCSTRUCT {	\
-		float gModulationFactor;			\
+		FLOAT gModulationFactor;			\
 	};
 #endif
 
@@ -196,29 +196,95 @@ namespace SSR {
 }
 
 namespace Bloom {
-#ifndef Bloom_Default_RCSTRUCT
-	#define Bloom_Default_RCSTRUCT {	\
-		float gThreshold;				\
+#ifndef Bloom_ExtractHighlight_RCSTRUCT
+	#define Bloom_ExtractHighlight_RCSTRUCT {	\
+		FLOAT gThreshold;							\
 	};
 #endif
 
 #ifdef HLSL
-	#ifndef Bloom_Default_RootConstants
-		#define Bloom_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) Bloom_Default_RCSTRUCT
-	#endif
-
 	typedef HDR_FORMAT BloomMapFormat;
+
+	#ifndef Bloom_ExtractHighlight_RootConstants
+		#define Bloom_ExtractHighlight_RootConstants(reg) cbuffer cbRootConstants : register(reg) Bloom_ExtractHighlight_RCSTRUCT
+	#endif
 #else
 	static const DXGI_FORMAT BloomMapFormat = HDR_FORMAT;
+
+	namespace RootConstant {
+		namespace ExtractHighlight {
+			enum {
+				EThreshold = 0,
+				Count
+			};
+		}
+	}
+#endif
+}
+
+namespace MotionBlur {
+#ifndef MotionBlur_Default_RCSTRUCT
+	#define MotionBlur_Default_RCSTRUCT {	\
+		FLOAT gIntensity;					\
+		FLOAT gLimit;						\
+		FLOAT gDepthBias;					\
+		UINT  gSampleCount;					\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef MotionBlur_Default_RootConstants
+		#define MotionBlur_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) MotionBlur_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct MotionBlur_Default_RCSTRUCT
+
+			enum {
+				E_Intensity = 0,
+				E_Limit,
+				E_DepthBias,
+				E_SampleCount,
+				Count
+			};
+		}
+	}
 #endif
 }
 
 namespace DepthOfField {
+#ifndef DepthOfField_ApplyDoF_RCSTRUCT
+	#define DepthOfField_ApplyDoF_RCSTRUCT {	\
+		FLOAT gBokehRadius;						\
+		FLOAT gMaxDevTolerance;					\
+		FLOAT gHighlightPower;					\
+		INT   gSampleCount;						\
+	};
+#endif
+
 #ifdef HLSL
 	typedef float	CoCMapFormat;
 	typedef float	FocalDistanceBufferFormat;
+
+	#ifndef DepthOfField_ApplyDoF_RootConstants
+		#define DepthOfField_ApplyDoF_RootConstants(reg) cbuffer cbRootConstants : register(reg) DepthOfField_ApplyDoF_RCSTRUCT
+	#endif
 #else
 	static const DXGI_FORMAT CoCMapFormat = DXGI_FORMAT_R16_FLOAT;
+
+	namespace RootConstant {
+		namespace ApplyDoF {
+			struct Struct DepthOfField_ApplyDoF_RCSTRUCT
+			enum {
+				E_BokehRadius = 0,
+				E_MaxDevTolerance,
+				E_HighlightPower,
+				E_SampleCount,
+				Count
+			};
+		}
+	}
 #endif
 }
 
@@ -239,6 +305,16 @@ namespace IrradianceMap {
 	static const DXGI_FORMAT PrefilteredEnvEquirectMapFormat	= HDR_FORMAT;
 	static const DXGI_FORMAT EquirectMapFormat					= HDR_FORMAT;
 	static const DXGI_FORMAT IntegratedBrdfMapFormat			= DXGI_FORMAT_R16G16_FLOAT;
+
+	namespace CubeMap {
+		enum Type {
+			E_Equirectangular = 0,
+			E_EnvironmentCube,
+			E_DiffuseIrradianceCube,
+			E_PrefilteredIrradianceCube,
+			Count
+		};
+	}
 #endif
 }
 
@@ -315,21 +391,70 @@ namespace BlurFilter {
 	}
 }
 
-namespace DebugMap {
+namespace Debug {
 	static const INT MapSize = 5;
 
 	namespace SampleMask {
 		enum Type {
-			RGB		= 0,
-			RG		= 1 << 0,
-			RRR		= 1 << 1,
-			GGG		= 1 << 2,
-			BBB		= 1 << 3,
-			AAA		= 1 << 4,
-			FLOAT	= 1 << 5,
-			UINT	= 1 << 6
+			RGB = 0,
+			RG = 1 << 0,
+			RRR = 1 << 1,
+			GGG = 1 << 2,
+			BBB = 1 << 3,
+			AAA = 1 << 4,
+			FLOAT = 1 << 5,
+			UINT = 1 << 6
 		};
 	}
+
+#ifndef Debug_DebugTexMap_RCSTRUCT
+	#define Debug_DebugTexMap_RCSTRUCT {	\
+		UINT gSampleMask0;					\
+		UINT gSampleMask1;					\
+		UINT gSampleMask2;					\
+		UINT gSampleMask3;					\
+		UINT gSampleMask4;					\
+	};
+#endif
+
+#ifndef Debug_DebugCubeMap_RCSTRUCT
+	#define Debug_DebugCubeMap_RCSTRUCT {	\
+		FLOAT gMipLevel;					\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef Debug_DebugTexMap_RootConstants
+		#define Debug_DebugTexMap_RootConstants(reg) cbuffer gRootConstants : register(reg) Debug_DebugTexMap_RCSTRUCT
+	#endif
+
+	#ifndef Debug_DebugCubeMap_RootConstants
+		#define Debug_DebugCubeMap_RootConstants(reg) cbuffer cbRootConstants : register(reg) Debug_DebugCubeMap_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		struct Struct Debug_DebugTexMap_RCSTRUCT
+		namespace DebugTexMap {
+			enum {
+				E_SampleMask0 = 0,
+				E_SampleMask1,
+				E_SampleMask2,
+				E_SampleMask3,
+				E_SampleMask4,
+				Count
+			};
+		}
+
+		namespace DebugCubeMap {
+			struct Struct Debug_DebugCubeMap_RCSTRUCT
+			enum {
+				E_MipLevel = 0,
+				Count
+			};
+		}
+	}
+#endif
+	
 }
 
 namespace DXR_GeometryBuffer {

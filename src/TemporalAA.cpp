@@ -17,7 +17,7 @@ TemporalAAClass::TemporalAAClass() {
 	mHistoryMap = std::make_unique<GpuResource>();
 }
 
-BOOL TemporalAAClass::Initialize(ID3D12Device* const device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL TemporalAAClass::Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -77,7 +77,7 @@ BOOL TemporalAAClass::BuildPSO() {
 }
 
 void TemporalAAClass::Run(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
 		GpuResource* const backBuffer,

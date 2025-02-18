@@ -10,7 +10,7 @@
 #include "BRDF.hlsli"
 #include "Shadow.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass> cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Pass>						cb_Pass					: register(b0);
 
 Texture2D<GBuffer::AlbedoMapFormat>						gi_Albedo				: register(t0);
 Texture2D<GBuffer::NormalMapFormat>						gi_Normal				: register(t1);
@@ -40,9 +40,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 
 	vout.TexC = gTexCoords[vid];
 
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
-	float4 ph = mul(vout.PosH, cb_Pass.InvProj);
+	const float4 ph = mul(vout.PosH, cb_Pass.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -62,7 +62,7 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	const float specular = roughnessMetalicSpecular.b;
 
 	const float shiness = 1 - roughness;
-	const float3 fresnelR0 = lerp((float3)0.08 * specular, albedo.rgb, metalic);
+	const float3 fresnelR0 = lerp((float3)0.08f * specular, albedo.rgb, metalic);
 
 	Material mat = { albedo, fresnelR0, shiness, metalic };
 
@@ -76,9 +76,8 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target {
 		uint2 size;
 		gi_Shadow.GetDimensions(size.x, size.y);
 
-		uint2 id = pin.TexC * size - 0.5;
-
-		uint value = gi_Shadow.Load(uint3(id, 0));
+		const uint2 id = pin.TexC * size - 0.5;
+		const uint value = gi_Shadow.Load(uint3(id, 0));
 
 		[loop]
 		for (uint i = 0; i < cb_Pass.LightCount; ++i) {
@@ -89,10 +88,10 @@ HDR_FORMAT PS(VertexOut pin) : SV_Target {
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 
 	const float3 viewW = normalize(cb_Pass.EyePosW - posW.xyz);
-	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor, cb_Pass.LightCount), (float3)0);
+	const float3 radiance = max(ComputeBRDF(cb_Pass.Lights, mat, posW.xyz, normalW, viewW, shadowFactor, cb_Pass.LightCount), (float3)0.f);
 
 	const float3 kS = FresnelSchlickRoughness(saturate(dot(normalW, viewW)), fresnelR0, roughness);
-	const float3 kD = 1 - kS;
+	const float3 kD = 1.f - kS;
 
 	const float3 diffIrrad = gi_DiffuseIrrad.SampleLevel(gsamLinearClamp, normalW, 0).rgb;
 	const float3 diffuse = diffIrrad * albedo.rgb;

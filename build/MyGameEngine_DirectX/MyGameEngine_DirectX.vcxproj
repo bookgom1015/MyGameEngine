@@ -168,7 +168,7 @@
     <ClCompile Include="..\..\src\Component.cpp" />
     <ClCompile Include="..\..\src\D3D12Util.cpp" />
     <ClCompile Include="..\..\src\DebugCollision.cpp" />
-    <ClCompile Include="..\..\src\DebugMap.cpp" />
+    <ClCompile Include="..\..\src\Debug.cpp" />
     <ClCompile Include="..\..\src\DepthOfField.cpp" />
     <ClCompile Include="..\..\src\DepthStencilBuffer.cpp" />
     <ClCompile Include="..\..\src\DxLowRenderer.cpp" />
@@ -238,7 +238,7 @@
     <ClInclude Include="..\..\include\ConstantsBufferDeclarations.h" />
     <ClInclude Include="..\..\include\D3D12Util.h" />
     <ClInclude Include="..\..\include\DebugCollision.h" />
-    <ClInclude Include="..\..\include\DebugMap.h" />
+    <ClInclude Include="..\..\include\Debug.h" />
     <ClInclude Include="..\..\include\DepthOfField.h" />
     <ClInclude Include="..\..\include\DepthStencilBuffer.h" />
     <ClInclude Include="..\..\include\DxForwardDeclarations.h" />
@@ -330,11 +330,12 @@
     <None Include="..\..\include\BlurFilter.inl" />
     <None Include="..\..\include\Camera.inl" />
     <None Include="..\..\include\D3D12Util.inl" />
-    <None Include="..\..\include\DebugMap.inl" />
+    <None Include="..\..\include\Debug.inl" />
     <None Include="..\..\include\DepthOfField.inl" />
     <None Include="..\..\include\DxLowRenderer.inl" />
     <None Include="..\..\include\DXR_Shadow.inl" />
     <None Include="..\..\include\GBuffer.inl" />
+    <None Include="..\..\include\IrradianceMap.inl" />
     <None Include="..\..\include\MathHelper.inl" />
     <None Include="..\..\include\RaytracedReflection.inl" />
     <None Include="..\..\include\Renderer.inl" />
@@ -349,9 +350,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\BRDF.hlsl">
@@ -384,10 +382,10 @@
     <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DebugTexMap.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CircularBokeh.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_Color.hlsl">
@@ -396,7 +394,7 @@
     <None Include="..\..\assets\shaders\hlsl\DisocclusionBlur3x3CS_Contrast.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BlurDoF.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DebugCubeMap.hlsl">
@@ -435,7 +433,7 @@
     <None Include="..\..\assets\shaders\hlsl\GenerateMipmap.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\HighlightExtraction.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ExtractHighlight.hlsl">
       <FileType>Document</FileType>
     </None>
     <None Include="..\..\assets\shaders\hlsl\IntegrateBRDF.hlsl">

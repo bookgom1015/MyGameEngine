@@ -179,7 +179,7 @@ struct ConstantBuffer_AtrousWaveletTransformFilter {
 	FLOAT FovY;
 };
 
-struct DebugMapSampleDesc {
+struct DebugSampleDesc {
 	DirectX::XMFLOAT4 MinColor;
 	DirectX::XMFLOAT4 MaxColor;
 
@@ -189,6 +189,6 @@ struct DebugMapSampleDesc {
 	FLOAT ConstantPad2;
 };
 
-struct ConstantBuffer_DebugMap {
-	DebugMapSampleDesc SampleDescs[DebugMap::MapSize];
+struct ConstantBuffer_Debug {
+	DebugSampleDesc SampleDescs[Debug::MapSize];
 };

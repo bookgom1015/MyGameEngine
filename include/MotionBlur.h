@@ -10,20 +10,12 @@ class ShaderManager;
 
 namespace MotionBlur {
 	namespace RootSignature {
-		enum {
-			ESI_BackBuffer = 0,
-			ESI_Depth,
-			ESI_Velocity,
-			EC_Consts,
-			Count
-		};
-
-		namespace RootConstant {
+		namespace Default {
 			enum {
-				E_Intensity = 0,
-				E_Limit,
-				E_DepthBias,
-				E_SampleCount,
+				EC_Consts = 0,
+				ESI_BackBuffer,
+				ESI_Depth,
+				ESI_Velocity,
 				Count
 			};
 		}
@@ -35,7 +27,7 @@ namespace MotionBlur {
 		virtual ~MotionBlurClass() = default;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -47,7 +39,7 @@ namespace MotionBlur {
 		BOOL OnResize(UINT width, UINT height);
 
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
 			GpuResource* const backBuffer,

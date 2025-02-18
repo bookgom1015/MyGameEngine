@@ -39,7 +39,7 @@ public:
 	UploadBuffer<ConstantBuffer_CalcLocalMeanVariance> CB_CalcLocalMeanVar;
 	UploadBuffer<ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame> CB_TSPPBlend;
 	UploadBuffer<ConstantBuffer_AtrousWaveletTransformFilter> CB_AtrousFilter;
-	UploadBuffer<ConstantBuffer_DebugMap> CB_DebugMap;
+	UploadBuffer<ConstantBuffer_Debug> CB_Debug;
 
 	UINT64 Fence;
 

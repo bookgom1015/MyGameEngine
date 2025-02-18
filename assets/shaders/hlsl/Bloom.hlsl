@@ -23,15 +23,15 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
 	return vout;
 }
 
 HDR_FORMAT PS(VertexOut pin) : SV_Target {
-	float3 color = gi_BackBuffer.Sample(gsamLinearClamp, pin.TexC).rgb;
-	float3 bloom = gi_Bloom.Sample(gsamLinearClamp, pin.TexC).rgb;
-	return float4(color + bloom, 1);
+	const float3 color = gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC, 0).rgb;
+	const float3 bloom = gi_Bloom.SampleLevel(gsamLinearClamp, pin.TexC, 0).rgb;
+	return float4(color + bloom, 1.f);
 }
 
 #endif // __BLOOM_HLSL__

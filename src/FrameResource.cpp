@@ -29,7 +29,7 @@ BOOL FrameResource::Initialize() {
 	CheckReturn(CB_CalcLocalMeanVar.Initialize(Device, 1, TRUE));
 	CheckReturn(CB_TSPPBlend.Initialize(Device, 1, TRUE));
 	CheckReturn(CB_AtrousFilter.Initialize(Device, 1, TRUE));
-	CheckReturn(CB_DebugMap.Initialize(Device, 1, TRUE));
+	CheckReturn(CB_Debug.Initialize(Device, 1, TRUE));
 
 	return TRUE;
 }

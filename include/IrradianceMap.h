@@ -18,31 +18,13 @@ namespace EquirectangularConverter { class EquirectangularConverterClass; }
 
 namespace IrradianceMap {
 	namespace RootSignature {
-		enum Type {
+		enum {
 			E_ConvoluteDiffuseIrradiance = 0,
 			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBRDF,
-			E_DebugCube,
 			E_DrawSkySphere,
 			Count
 		};
-
-		namespace DebugCube {
-			enum {
-				ECB_Pass = 0,
-				EC_Consts,
-				ESI_Cube,
-				ESI_Equirectangular,
-				Count
-			};
-
-			namespace RootConstant {
-				enum {
-					E_MipLevel = 0,
-					Count
-				};
-			}
-		}
 
 		namespace ConvoluteDiffuseIrradiance {
 			enum {
@@ -96,25 +78,13 @@ namespace IrradianceMap {
 	}
 
 	namespace PipelineState {
-		enum Type {
+		enum {
 			E_ConvEquirectToCube = 0,
 			E_ConvCubeToEquirect,
 			E_ConvoluteDiffuseIrradiance,
 			E_ConvolutePrefilteredIrradiance,
 			E_IntegrateBRDF,
-			E_DebugCube,
-			E_DebugEquirectangular,
 			E_DrawSkySphere,
-			Count
-		};
-	}
-
-	namespace DebugCube {
-		enum Type {
-			E_Equirectangular = 0,
-			E_EnvironmentCube,
-			E_DiffuseIrradianceCube,
-			E_PrefilteredIrradianceCube,
 			Count
 		};
 	}
@@ -163,7 +133,7 @@ namespace IrradianceMap {
 		UINT Size() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
+		BOOL Initialize(ID3D12Device* const device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -177,32 +147,24 @@ namespace IrradianceMap {
 		BOOL SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file);
 
 		BOOL Update(
-			ID3D12CommandQueue*const queue,
-			ID3D12DescriptorHeap* descHeap,
+			ID3D12CommandQueue* const queue,
+			ID3D12DescriptorHeap* const descHeap,
 			ID3D12GraphicsCommandList* const cmdList,
-			EquirectangularConverter::EquirectangularConverterClass* converter,
+			EquirectangularConverter::EquirectangularConverterClass* const converter,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			MipmapGenerator::MipmapGeneratorClass* const generator);
-		BOOL DebugCubeMap(
-			ID3D12GraphicsCommandList* const cmdList,
-			D3D12_VIEWPORT viewport,
-			D3D12_RECT scissorRect,
-			GpuResource* backBuffer,
-			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-			D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
-			FLOAT mipLevel = 0.0f);
 		BOOL DrawSkySphere(
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
-			GpuResource* backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
 			D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
 			UINT objCBByteSize,
-			RenderItem* sphere);
+			RenderItem* const sphere);
 
 	private:
 		void BuildDescriptors();
@@ -227,15 +189,12 @@ namespace IrradianceMap {
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbPass);
 
-	public:
-		DebugCube::Type DrawCubeType = DebugCube::E_EnvironmentCube;
-
 	private:
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignature::Count> mRootSignatures;
+		std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, PipelineState::Count> mPSOs;
 
 		std::unique_ptr<GpuResource> mTemporaryEquirectangularMap;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE mhTemporaryEquirectangularMapCpuSrv;
@@ -287,30 +246,4 @@ namespace IrradianceMap {
 	};
 }
 
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::EquirectangularMapSrv() const {
-	return mhEquirectangularMapGpuSrv;
-}
-
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::TemporaryEquirectangularMapSrv() const {
-	return mhTemporaryEquirectangularMapGpuSrv;
-}
-
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::EnvironmentCubeMapSrv() const {
-	return mhEnvironmentCubeMapGpuSrv;
-}
-
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::DiffuseIrradianceCubeMapSrv() const {
-	return mhDiffuseIrradianceCubeMapGpuSrv;
-}
-
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::PrefilteredEnvironmentCubeMapSrv() const {
-	return mhPrefilteredEnvironmentCubeMapGpuSrv;
-}
-
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::IntegratedBrdfMapSrv() const {
-	return mhIntegratedBrdfMapGpuSrv;
-}
-
-constexpr D3D12_GPU_DESCRIPTOR_HANDLE IrradianceMap::IrradianceMapClass::DiffuseIrradianceEquirectMapSrv() const {
-	return mhDiffuseIrradianceEquirectMapGpuSrv;
-}
+#include "IrradianceMap.inl"

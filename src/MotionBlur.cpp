@@ -15,7 +15,7 @@ MotionBlurClass::MotionBlurClass() {
 	mCopiedBackBuffer = std::make_unique<GpuResource>();
 }
 
-BOOL MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL MotionBlurClass::Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -26,8 +26,8 @@ BOOL MotionBlurClass::Initialize(ID3D12Device* device, ShaderManager*const manag
 
 BOOL MotionBlurClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"MotionBlur.hlsl";
-	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+	const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+	const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_MotionBlur));
 	CheckReturn(mShaderManager->CompileShader(psInfo, PS_MotionBlur));
 
@@ -35,21 +35,19 @@ BOOL MotionBlurClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count];
 
-	CD3DX12_DESCRIPTOR_RANGE texTable0;
-	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	CD3DX12_DESCRIPTOR_RANGE texTables[3]; UINT index = 0;
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 
-	CD3DX12_DESCRIPTOR_RANGE texTable1;
-	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+	index = 0;
 
-	CD3DX12_DESCRIPTOR_RANGE texTable2;
-	texTable2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-
-	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTable0);
-	slotRootParameter[RootSignature::ESI_Depth].InitAsDescriptorTable(1, &texTable1);
-	slotRootParameter[RootSignature::ESI_Velocity].InitAsDescriptorTable(1, &texTable2);
-	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0);
+	slotRootParameter[RootSignature::Default::EC_Consts].InitAsConstants(RootConstant::Default::Count, 0);
+	slotRootParameter[RootSignature::Default::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[index++]);
+	slotRootParameter[RootSignature::Default::ESI_Depth].InitAsDescriptorTable(1, &texTables[index++]);
+	slotRootParameter[RootSignature::Default::ESI_Velocity].InitAsDescriptorTable(1, &texTables[index++]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -68,8 +66,8 @@ BOOL MotionBlurClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC motionBlurPsoDesc = quadPsoDesc;
 	motionBlurPsoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_MotionBlur);
-		auto ps = mShaderManager->GetDxcShader(PS_MotionBlur);
+		const auto vs = mShaderManager->GetDxcShader(VS_MotionBlur);
+		const auto ps = mShaderManager->GetDxcShader(PS_MotionBlur);
 		motionBlurPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		motionBlurPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -94,7 +92,7 @@ BOOL MotionBlurClass::OnResize(UINT width, UINT height) {
 }
 
 void MotionBlurClass::Run(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
 		GpuResource* const backBuffer,
@@ -122,12 +120,19 @@ void MotionBlurClass::Run(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Depth, si_depth);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Velocity, si_velocity);
+	RootConstant::Default::Struct rc;
+	rc.gIntensity = intensity;
+	rc.gLimit = limit;
+	rc.gDepthBias = depthBias;
+	rc.gSampleCount = sampleCount;
 
-	FLOAT values[RootSignature::RootConstant::Count] = { intensity, limit, depthBias, static_cast<FLOAT>(sampleCount) };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
+	std::array<std::uint32_t, RootConstant::Default::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::Default::Struct));
+
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::Default::EC_Consts, RootConstant::Default::Count, consts.data(), 0);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_Depth, si_depth);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_Velocity, si_velocity);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);

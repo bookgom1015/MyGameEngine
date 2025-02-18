@@ -19,12 +19,6 @@ using namespace DirectX;
 using namespace IrradianceMap;
 
 namespace {
-	const CHAR* const VS_DrawCube = "VS_DrawCube";
-	const CHAR* const PS_DrawCube = "PS_DrawCube";
-
-	const CHAR* const VS_DrawEquirectangular = "VS_DrawEquirectangular";
-	const CHAR* const PS_DrawEquirectangular = "PS_DrawEquirectangular";
-
 	const CHAR* const VS_ConvoluteDiffuseIrradiance = "VS_ConvoluteDiffuseIrradiance";
 	const CHAR* const GS_ConvoluteDiffuseIrradiance = "GS_ConvoluteDiffuseIrradiance";
 	const CHAR* const PS_ConvoluteDiffuseIrradiance = "PS_ConvoluteDiffuseIrradiance";
@@ -82,7 +76,7 @@ UINT IrradianceMapClass::Size() const {
 	return CubeMapSize;
 }
 
-BOOL IrradianceMapClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
+BOOL IrradianceMapClass::Initialize(ID3D12Device* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -93,53 +87,34 @@ BOOL IrradianceMapClass::Initialize(ID3D12Device* device, ID3D12GraphicsCommandL
 
 BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 	{
-		const std::wstring actualPath = filePath + L"DebugCubeMap.hlsl";
-		{
-			DxcDefine defines[] = {
-			{ L"SPHERICAL", L"1" }
-			};
-
-			auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
-			auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
-			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DrawEquirectangular));
-			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DrawEquirectangular));
-		}
-		{
-			auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-			auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
-			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DrawCube));
-			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DrawCube));
-		}
-	}
-	{
 		const std::wstring actualPath = filePath + L"ConvoluteDiffuseIrradiance.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvoluteDiffuseIrradiance));
 		CheckReturn(mShaderManager->CompileShader(gsInfo, GS_ConvoluteDiffuseIrradiance));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvoluteDiffuseIrradiance));
 	}
 	{
 		const std::wstring actualPath = filePath + L"ConvoluteSpecularIrradiance.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ConvoluteSpecularIrradiance));
 		CheckReturn(mShaderManager->CompileShader(gsInfo, GS_ConvoluteSpecularIrradiance));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ConvoluteSpecularIrradiance));
 	}
 	{
 		const std::wstring actualPath = filePath + L"IntegrateBRDF.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_IntegrateBRDF));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_IntegrateBRDF));
 	}
 	{
 		const std::wstring actualPath = filePath + L"SkySphere.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_SkySphere));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_SkySphere));
 	}
@@ -148,27 +123,6 @@ BOOL IrradianceMapClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
-	// DebugCube
-	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DebugCube::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[2];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-
-		slotRootParameter[RootSignature::DebugCube::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::DebugCube::EC_Consts].InitAsConstants(RootSignature::DebugCube::RootConstant::Count, 2);
-		slotRootParameter[RootSignature::DebugCube::ESI_Cube].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::DebugCube::ESI_Equirectangular].InitAsDescriptorTable(1, &texTables[1]);
-
-		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-			_countof(slotRootParameter), slotRootParameter,
-			static_cast<UINT>(samplers.size()), samplers.data(),
-			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-		);
-
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_DebugCube]));
-	}
 	// ConvoluteDiffuseIrradiance
 	{
 		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ConvoluteDiffuseIrradiance::Count];
@@ -248,30 +202,7 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 BOOL IrradianceMapClass::BuildPSO() {
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = { nullptr, 0 };
-	// DebugCube
-	{
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
-		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_DebugCube].Get();
-		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = SDR_FORMAT;
-		psoDesc.DepthStencilState.DepthEnable = FALSE;
-
-		{
-			auto vs = mShaderManager->GetDxcShader(VS_DrawCube);
-			auto ps = mShaderManager->GetDxcShader(PS_DrawCube);
-			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
-			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
-		}
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DebugCube])));
-
-		{
-			auto vs = mShaderManager->GetDxcShader(VS_DrawEquirectangular);
-			auto ps = mShaderManager->GetDxcShader(PS_DrawEquirectangular);
-			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
-			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
-		}
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_DebugEquirectangular])));
-	}
+	
 	// ConvoluteDiffuseIrradiance & ConvoluteSpecularIrradiance
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(inputLayoutDesc, DXGI_FORMAT_UNKNOWN);
@@ -429,7 +360,7 @@ BOOL IrradianceMapClass::SetEquirectangularMap(ID3D12CommandQueue* const queue, 
 
 BOOL IrradianceMapClass::Update(
 		ID3D12CommandQueue* const queue,
-		ID3D12DescriptorHeap* descHeap,
+		ID3D12DescriptorHeap* const descHeap,
 		ID3D12GraphicsCommandList* const cmdList,
 		EquirectangularConverter::EquirectangularConverterClass* converter,
 		D3D12_GPU_VIRTUAL_ADDRESS cbPass,
@@ -641,63 +572,17 @@ BOOL IrradianceMapClass::Update(
 	return TRUE;
 }
 
-BOOL IrradianceMapClass::DebugCubeMap(
-		ID3D12GraphicsCommandList* const cmdList,
-		D3D12_VIEWPORT viewport,
-		D3D12_RECT scissorRect,
-		GpuResource* backBuffer,
-		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
-		D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
-		FLOAT mipLevel) {
-	if (DrawCubeType == DebugCube::E_Equirectangular) cmdList->SetPipelineState(mPSOs[PipelineState::E_DebugEquirectangular].Get());
-	else cmdList->SetPipelineState(mPSOs[PipelineState::E_DebugCube].Get());
-	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_DebugCube].Get());
-
-	cmdList->RSSetViewports(1, &viewport);
-	cmdList->RSSetScissorRects(1, &scissorRect);
-
-	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
-
-	cmdList->SetGraphicsRootConstantBufferView(RootSignature::DebugCube::ECB_Pass, cbPassAddress);
-
-	FLOAT values[RootSignature::DebugCube::RootConstant::Count] = { mipLevel };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignature::DebugCube::EC_Consts, _countof(values), values, 0);
-
-	switch (DrawCubeType) {
-	case DebugCube::E_EnvironmentCube:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DebugCube::ESI_Cube, mhEnvironmentCubeMapGpuSrv);
-		break;
-	case DebugCube::E_Equirectangular:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DebugCube::ESI_Equirectangular, mhEquirectangularMapGpuSrv);
-		break;
-	case DebugCube::E_DiffuseIrradianceCube:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DebugCube::ESI_Cube, mhDiffuseIrradianceCubeMapGpuSrv);
-		break;
-	case DebugCube::E_PrefilteredIrradianceCube:
-		cmdList->SetGraphicsRootDescriptorTable(RootSignature::DebugCube::ESI_Cube, mhPrefilteredEnvironmentCubeMapGpuSrv);
-	}
-
-	cmdList->IASetVertexBuffers(0, 0, nullptr);
-	cmdList->IASetIndexBuffer(nullptr);
-	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	cmdList->DrawInstanced(36, 1, 0, 0);
-
-	return TRUE;
-}
-
 BOOL IrradianceMapClass::DrawSkySphere(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE dio_dsv,
 		D3D12_GPU_VIRTUAL_ADDRESS cbPassAddress,
 		D3D12_GPU_VIRTUAL_ADDRESS cbObjAddress,
 		UINT objCBByteSize,
-		RenderItem* sphere) {
+		RenderItem* const sphere) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_DrawSkySphere].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignatures[RootSignature::E_DrawSkySphere].Get());
 	

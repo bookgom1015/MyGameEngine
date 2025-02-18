@@ -34,13 +34,13 @@ namespace TemporalAA {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE HistoryMapSrv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* const device, ShaderManager*const manager, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
 			GpuResource* const backBuffer,

@@ -324,7 +324,7 @@
     <ClCompile Include="..\..\src\DebugCollision.cpp">
       <Filter>Source Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DebugMap.cpp">
+    <ClCompile Include="..\..\src\Debug.cpp">
       <Filter>Source Files\Debug</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Vertex.cpp">
@@ -530,7 +530,7 @@
     <ClInclude Include="..\..\include\DebugCollision.h">
       <Filter>Header Files\Debug</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\DebugMap.h">
+    <ClInclude Include="..\..\include\Debug.h">
       <Filter>Header Files\Debug</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\RenderItem.h">
@@ -700,7 +700,7 @@
     <None Include="..\..\include\Renderer.inl">
       <Filter>Common Files\Header Files\Render</Filter>
     </None>
-    <None Include="..\..\include\DebugMap.inl">
+    <None Include="..\..\include\Debug.inl">
       <Filter>Header Files\Debug</Filter>
     </None>
     <None Include="..\..\include\DxLowRenderer.inl">
@@ -766,7 +766,7 @@
     <None Include="..\..\assets\shaders\hlsl\DebugCollision.hlsl">
       <Filter>Shader Files\Debug</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DebugMap.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\DebugTexMap.hlsl">
       <Filter>Shader Files\Debug</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ConvoluteDiffuseIrradiance.hlsl">
@@ -778,13 +778,10 @@
     <None Include="..\..\assets\shaders\hlsl\CoC.hlsl">
       <Filter>Shader Files\DoF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\Bokeh.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\CircularBokeh.hlsl">
       <Filter>Shader Files\DoF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\DepthOfField.hlsl">
-      <Filter>Shader Files\DoF</Filter>
-    </None>
-    <None Include="..\..\assets\shaders\hlsl\DoFBlur.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\BlurDoF.hlsl">
       <Filter>Shader Files\DoF</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\ZDepth.hlsl">
@@ -865,7 +862,7 @@
     <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">
       <Filter>Shader Files\Bloom</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\HighlightExtraction.hlsl">
+    <None Include="..\..\assets\shaders\hlsl\ExtractHighlight.hlsl">
       <Filter>Shader Files\Bloom</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\DXR_Shadow.hlsl">
@@ -981,6 +978,9 @@
     </None>
     <None Include="..\..\assets\shaders\hlsl\ApplyFog.hlsl">
       <Filter>Shader Files\Volumetric-Light</Filter>
+    </None>
+    <None Include="..\..\include\IrradianceMap.inl">
+      <Filter>Header Files\Shading\Rasterization</Filter>
     </None>
   </ItemGroup>
 </Project>
