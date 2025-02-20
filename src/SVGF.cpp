@@ -47,70 +47,70 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 	{
 		{
 			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_Contrast.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Contrast]));
 		}
 		{
 			const auto path = filePath + L"TemporalSupersamplingReverseReprojectCS_Color.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppReprojCS[Value::E_Color_HDR]));
 		}
 	}
 	{
 		{
 			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_Contrast.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Contrast]));
 		}
 		{
 			const auto path = filePath + L"TemporalSupersamplingBlendWithCurrentFrameCS_Color.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, TsppBlendCS[Value::E_Color_HDR]));
 		}
 	}
 	{
 		const auto path = filePath + L"CalculatePartialDerivativeCS.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+		const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, PartialDerivativeCS));
 	}
 	{
 		{
 			const auto path = filePath + L"CalculateLocalMeanVarianceCS_Contrast.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Contrast]));
 		}
 		{
 			const auto path = filePath + L"CalculateLocalMeanVarianceCS_Color.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, CalcLocalMeanVarianceCS[Value::E_Color_HDR]));
 		}
 	}
 	{
 		const auto path = filePath + L"FillInCheckerboardCS.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+		const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, FillInCheckerboardCS));
 	}
 	{
 		const auto path = filePath + L"EdgeStoppingFilter_Gaussian3x3CS.hlsl";
 		{
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Contrast]));
 		}
 		{
 			DxcDefine defines[] = { { L"VT_FLOAT4", L"1" } };
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, EdgeStoppingFilter_Gaussian3x3CS[Value::E_Color_HDR]));
 		}
 	}
 	{
 		{
 			const auto path = filePath + L"DisocclusionBlur3x3CS_Contrast.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Contrast]));
 		}
 		{
 			const auto path = filePath + L"DisocclusionBlur3x3CS_Color.hlsl";
-			auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
+			const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"CS", L"cs_6_3");
 			CheckReturn(mShaderManager->CompileShader(shaderInfo, DisocclusionBlur3x3CS[Value::E_Color_HDR]));
 		}
 	}
@@ -121,38 +121,40 @@ BOOL SVGFClass::CompileShaders(const std::wstring& filePath) {
 BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Temporal supersampling reverse reproject
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[13];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
-		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
-		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
-		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8);
-		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
-		texTables[11].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
-		texTables[12].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3);
+		CD3DX12_DESCRIPTOR_RANGE texTables[13] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::Count] = {};
 		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ECB_CrossBilateralFilter].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EC_Consts].InitAsConstants(
 			RootSignature::TemporalSupersamplingReverseReproject::RootConstant::Count, 1);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_DepthPartialDerivative].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_ReprojectedNormalDepth].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedNormalDepth].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_Velocity].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedAOCoefficient].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedTspp].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedAOCoefficientSquaredMean].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedRayHitDistance].InitAsDescriptorTable(1, &texTables[8]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedTspp].InitAsDescriptorTable(1, &texTables[9]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedValue].InitAsDescriptorTable(1, &texTables[10]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedSquaredMean].InitAsDescriptorTable(1, &texTables[11]);
-		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppSquaredMeanRayHitDistacne].InitAsDescriptorTable(1, &texTables[12]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_NormalDepth].InitAsDescriptorTable(						1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_DepthPartialDerivative].InitAsDescriptorTable(			1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_ReprojectedNormalDepth].InitAsDescriptorTable(			1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedNormalDepth].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_Velocity].InitAsDescriptorTable(						1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedAOCoefficient].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedTspp].InitAsDescriptorTable(						1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedAOCoefficientSquaredMean].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::ESI_CachedRayHitDistance].InitAsDescriptorTable(			1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedTspp].InitAsDescriptorTable(						1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedValue].InitAsDescriptorTable(						1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_CachedSquaredMean].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingReverseReproject::EUO_TsppSquaredMeanRayHitDistacne].InitAsDescriptorTable(	1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -164,34 +166,36 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// Temporal supersampling blend with current frame
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[12];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
-		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
-		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0);
-		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2, 0);
-		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3, 0);
-		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 4, 0);
-		texTables[11].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 5, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[12] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 4, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 5, 0);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::Count] = {};
 		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ECB_TsspBlendWithCurrentFrame].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_LocalMeanVaraince].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_RayHitDistance].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_CachedValue].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_CachedSquaredMean].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppSquaredMeanRayHitDistance].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_TemporalAOCoefficient].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_Tspp].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_CoefficientSquaredMean].InitAsDescriptorTable(1, &texTables[8]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_RayHitDistance].InitAsDescriptorTable(1, &texTables[9]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_VarianceMap].InitAsDescriptorTable(1, &texTables[10]);
-		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_BlurStrength].InitAsDescriptorTable(1, &texTables[11]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_AOCoefficient].InitAsDescriptorTable(					1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_LocalMeanVaraince].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_RayHitDistance].InitAsDescriptorTable(					1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_CachedValue].InitAsDescriptorTable(					1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_CachedSquaredMean].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::ESI_TsppSquaredMeanRayHitDistance].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_TemporalAOCoefficient].InitAsDescriptorTable(			1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_Tspp].InitAsDescriptorTable(							1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_CoefficientSquaredMean].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUIO_RayHitDistance].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_VarianceMap].InitAsDescriptorTable(					1, &texTables[index++]);
+		slotRootParameter[RootSignature::TemporalSupersamplingBlendWithCurrentFrame::EUO_BlurStrength].InitAsDescriptorTable(					1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -203,15 +207,17 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// CalculateDepthPartialDerivative
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[2];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcDepthPartialDerivative::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcDepthPartialDerivative::Count] = {};
 		slotRootParameter[RootSignature::CalcDepthPartialDerivative::EC_Consts].InitAsConstants(
 			RootSignature::CalcDepthPartialDerivative::RootConstant::Count, 0, 0);
-		slotRootParameter[RootSignature::CalcDepthPartialDerivative::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::CalcDepthPartialDerivative::EUO_DepthPartialDerivative].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::CalcDepthPartialDerivative::ESI_Depth].InitAsDescriptorTable(					1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcDepthPartialDerivative::EUO_DepthPartialDerivative].InitAsDescriptorTable(	1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -223,14 +229,16 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// CalculateMeanVariance
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[2];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcLocalMeanVariance::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcLocalMeanVariance::Count] = {};
 		slotRootParameter[RootSignature::CalcLocalMeanVariance::ECB_LocalMeanVar].InitAsConstantBufferView(0, 0);
-		slotRootParameter[RootSignature::CalcLocalMeanVariance::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::CalcLocalMeanVariance::EUO_LocalMeanVar].InitAsDescriptorTable(1, &texTables[1]);
+		slotRootParameter[RootSignature::CalcLocalMeanVariance::ESI_AOCoefficient].InitAsDescriptorTable(1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcLocalMeanVariance::EUO_LocalMeanVar].InitAsDescriptorTable( 1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -242,12 +250,14 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// FillInCheckerboard
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[1];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::FillInCheckerboard::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::FillInCheckerboard::Count] = {};
 		slotRootParameter[RootSignature::FillInCheckerboard::ECB_LocalMeanVar].InitAsConstantBufferView(0, 0);
-		slotRootParameter[RootSignature::FillInCheckerboard::EUIO_LocalMeanVar].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::FillInCheckerboard::EUIO_LocalMeanVar].InitAsDescriptorTable(1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -259,25 +269,27 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// Atrous Wavelet transform filter
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[7];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
-		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[7] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::AtrousWaveletTransformFilter::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::AtrousWaveletTransformFilter::Count] = {};
 		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ECB_AtrousFilter].InitAsConstantBufferView(0, 0);
 		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::EC_Consts].InitAsConstants(RootSignature::AtrousWaveletTransformFilter::RootConstant::Count, 1);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_TemporalAOCoefficient].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_NormalDepth].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_Variance].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_HitDistance].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_DepthPartialDerivative].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_Tspp].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::EUO_TemporalAOCoefficient].InitAsDescriptorTable(1, &texTables[6]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_TemporalAOCoefficient].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_NormalDepth].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_Variance].InitAsDescriptorTable(					1, &texTables[index++]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_HitDistance].InitAsDescriptorTable(				1, &texTables[index++]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_DepthPartialDerivative].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::ESI_Tspp].InitAsDescriptorTable(						1, &texTables[index++]);
+		slotRootParameter[RootSignature::AtrousWaveletTransformFilter::EUO_TemporalAOCoefficient].InitAsDescriptorTable(	1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -289,19 +301,21 @@ BOOL SVGFClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	}
 	// Disocclusion blur
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[4];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[4] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DisocclusionBlur::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DisocclusionBlur::Count] = {};
 		slotRootParameter[RootSignature::DisocclusionBlur::EC_Consts].InitAsConstants(
 			RootSignature::DisocclusionBlur::RootConstant::Count, 0);
-		slotRootParameter[RootSignature::DisocclusionBlur::ESI_Depth].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::DisocclusionBlur::ESI_RMS].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::DisocclusionBlur::ESI_BlurStrength].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::DisocclusionBlur::EUIO_AOCoefficient].InitAsDescriptorTable(1, &texTables[3]);
+		slotRootParameter[RootSignature::DisocclusionBlur::ESI_Depth].InitAsDescriptorTable(		 1, &texTables[index++]);
+		slotRootParameter[RootSignature::DisocclusionBlur::ESI_RMS].InitAsDescriptorTable(			 1, &texTables[index++]);
+		slotRootParameter[RootSignature::DisocclusionBlur::ESI_BlurStrength].InitAsDescriptorTable(	 1, &texTables[index++]);
+		slotRootParameter[RootSignature::DisocclusionBlur::EUIO_AOCoefficient].InitAsDescriptorTable(1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -323,13 +337,13 @@ BOOL SVGFClass::BuildPSO() {
 		tsppReprojPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Contrast]);
+			const auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Contrast]);
 			tsppReprojPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_Contrast])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Color_HDR]);
+			const auto cs = mShaderManager->GetDxcShader(TsppReprojCS[Value::E_Color_HDR]);
 			tsppReprojPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppReprojPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingReverseReproject_HDR])));
@@ -341,13 +355,13 @@ BOOL SVGFClass::BuildPSO() {
 		tsppBlendPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Contrast]);
+			const auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Contrast]);
 			tsppBlendPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_Contrast])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Color_HDR]);
+			const auto cs = mShaderManager->GetDxcShader(TsppBlendCS[Value::E_Color_HDR]);
 			tsppBlendPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&tsppBlendPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_TemporalSupersamplingBlendWithCurrentFrame_HDR])));
@@ -357,7 +371,7 @@ BOOL SVGFClass::BuildPSO() {
 		D3D12_COMPUTE_PIPELINE_STATE_DESC calcPartialDerivativePsoDesc = {};
 		calcPartialDerivativePsoDesc.pRootSignature = mRootSignatures[RootSignature::E_CalcDepthPartialDerivative].Get();
 		{
-			auto cs = mShaderManager->GetDxcShader(PartialDerivativeCS);
+			const auto cs = mShaderManager->GetDxcShader(PartialDerivativeCS);
 			calcPartialDerivativePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		calcPartialDerivativePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -371,13 +385,13 @@ BOOL SVGFClass::BuildPSO() {
 		calcLocalMeanVariancePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		{
-			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Contrast]);
+			const auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Contrast]);
 			calcLocalMeanVariancePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_Contrast])));
 
 		{
-			auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Color_HDR]);
+			const auto cs = mShaderManager->GetDxcShader(CalcLocalMeanVarianceCS[Value::E_Color_HDR]);
 			calcLocalMeanVariancePsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&calcLocalMeanVariancePsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_CalcLocalMeanVariance_HDR])));
@@ -387,7 +401,7 @@ BOOL SVGFClass::BuildPSO() {
 		D3D12_COMPUTE_PIPELINE_STATE_DESC fillInCheckerboardPsoDesc = {};
 		fillInCheckerboardPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_FillInCheckerboard].Get();
 		{
-			auto cs = mShaderManager->GetDxcShader(FillInCheckerboardCS);
+			const auto cs = mShaderManager->GetDxcShader(FillInCheckerboardCS);
 			fillInCheckerboardPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		fillInCheckerboardPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -400,12 +414,12 @@ BOOL SVGFClass::BuildPSO() {
 		atrousWaveletTransformFilterPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_AtrousWaveletTransformFilter].Get();
 		atrousWaveletTransformFilterPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
-			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Contrast]);
+			const auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Contrast]);
 			atrousWaveletTransformFilterPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_Contrast])));
 		{
-			auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Color_HDR]);
+			const auto cs = mShaderManager->GetDxcShader(EdgeStoppingFilter_Gaussian3x3CS[Value::E_Color_HDR]);
 			atrousWaveletTransformFilterPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&atrousWaveletTransformFilterPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_AtrousWaveletTransformFilter_HDR])));
@@ -416,12 +430,12 @@ BOOL SVGFClass::BuildPSO() {
 		disocclusionBlurPsoDesc.pRootSignature = mRootSignatures[RootSignature::E_DisocclusionBlur].Get();
 		disocclusionBlurPsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		{
-			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Contrast]);
+			const auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Contrast]);
 			disocclusionBlurPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_Contrast])));
 		{
-			auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Color_HDR]);
+			const auto cs = mShaderManager->GetDxcShader(DisocclusionBlur3x3CS[Value::E_Color_HDR]);
 			disocclusionBlurPsoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 		CheckHRESULT(md3dDevice->CreateComputePipelineState(&disocclusionBlurPsoDesc, IID_PPV_ARGS(&mPsos[PipelineState::E_DisocclusionBlur_HDR])));
@@ -430,7 +444,7 @@ BOOL SVGFClass::BuildPSO() {
 	return TRUE;
 }
 
-void SVGFClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void SVGFClass::AllocateDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	for (UINT i = 0; i < Descriptor::LocalMeanVariance::Count; ++i) {
 		mhLocalMeanVarianceResourcesCpus[i] = hCpu.Offset(1, descSize);
 		mhLocalMeanVarianceResourcesGpus[i] = hGpu.Offset(1, descSize);
@@ -465,8 +479,98 @@ void SVGFClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GP
 	mhTsppSquaredMeanRayHitDistanceGpuSrv = hGpu.Offset(1, descSize);
 	mhTsppSquaredMeanRayHitDistanceCpuUav = hCpu.Offset(1, descSize);
 	mhTsppSquaredMeanRayHitDistanceGpuUav = hGpu.Offset(1, descSize);
+}
 
-	BuildDescriptors();
+BOOL SVGFClass::BuildDescriptors() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+	{
+		srvDesc.Format = LocalMeanVarianceMapFormat;
+		uavDesc.Format = LocalMeanVarianceMapFormat;
+
+		const auto rawResource = mLocalMeanVarianceResources[Resource::LocalMeanVariance::E_Raw]->Resource();
+		md3dDevice->CreateShaderResourceView(rawResource, &srvDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::ES_Raw]);
+		md3dDevice->CreateUnorderedAccessView(rawResource, nullptr, &uavDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::EU_Raw]);
+
+		const auto smoothedResource = mLocalMeanVarianceResources[Resource::LocalMeanVariance::E_Smoothed]->Resource();
+		md3dDevice->CreateShaderResourceView(smoothedResource, &srvDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::ES_Smoothed]);
+		md3dDevice->CreateUnorderedAccessView(smoothedResource, nullptr, &uavDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::EU_Smoothed]);
+	}
+	{
+		srvDesc.Format = VarianceMapFormat;
+		uavDesc.Format = VarianceMapFormat;
+
+		const auto rawResource = mVarianceResources[Resource::Variance::E_Raw]->Resource();
+		md3dDevice->CreateShaderResourceView(rawResource, &srvDesc, mhVarianceResourcesCpus[Descriptor::Variance::ES_Raw]);
+		md3dDevice->CreateUnorderedAccessView(rawResource, nullptr, &uavDesc, mhVarianceResourcesCpus[Descriptor::Variance::EU_Raw]);
+
+		const auto smoothedResource = mVarianceResources[Resource::Variance::E_Smoothed]->Resource();
+		md3dDevice->CreateShaderResourceView(smoothedResource, &srvDesc, mhVarianceResourcesCpus[Descriptor::Variance::ES_Smoothed]);
+		md3dDevice->CreateUnorderedAccessView(smoothedResource, nullptr, &uavDesc, mhVarianceResourcesCpus[Descriptor::Variance::EU_Smoothed]);
+	}
+	{
+		srvDesc.Format = ValueMapFormat_Contrast;
+		uavDesc.Format = ValueMapFormat_Contrast;
+
+		const auto f1ValueResource = mCachedValues[Resource::CachedValue::E_Contrast]->Resource();
+		md3dDevice->CreateShaderResourceView(f1ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_Contrast]);
+		md3dDevice->CreateUnorderedAccessView(f1ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_Contrast]);
+	}
+	{
+		srvDesc.Format = ValueMapFormat_HDR;
+		uavDesc.Format = ValueMapFormat_HDR;
+
+		const auto f4ValueResource = mCachedValues[Resource::CachedValue::E_Color_HDR]->Resource();
+		md3dDevice->CreateShaderResourceView(f4ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_Color_HDR]);
+		md3dDevice->CreateUnorderedAccessView(f4ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_Color_HDR]);
+	}
+	{
+		srvDesc.Format = ValueSquaredMeanMapFormat_Contrast;
+		uavDesc.Format = ValueSquaredMeanMapFormat_Contrast;
+
+		const auto squaredMeanResource_F1 = mCachedSquaredMeans[Resource::CachedSquaredMean::E_Contrast]->Resource();
+		md3dDevice->CreateShaderResourceView(squaredMeanResource_F1, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_Contrast]);
+		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F1, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_Contrast]);
+	}
+	{
+		srvDesc.Format = ValueSquaredMeanMapFormat_HDR;
+		uavDesc.Format = ValueSquaredMeanMapFormat_HDR;
+
+		const auto squaredMeanResource_F4 = mCachedSquaredMeans[Resource::CachedValue::E_Color_HDR]->Resource();
+		md3dDevice->CreateShaderResourceView(squaredMeanResource_F4, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_Color_HDR]);
+		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F4, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_Color_HDR]);
+	}
+	{
+		srvDesc.Format = DepthPartialDerivativeMapFormat;
+		uavDesc.Format = DepthPartialDerivativeMapFormat;
+
+		md3dDevice->CreateShaderResourceView(mDepthPartialDerivative->Resource(), &srvDesc, mhDepthPartialDerivativeCpuSrv);
+		md3dDevice->CreateUnorderedAccessView(mDepthPartialDerivative->Resource(), nullptr, &uavDesc, mhDepthPartialDerivativeCpuUav);
+	}
+	{
+		srvDesc.Format = DisocclusionBlurStrengthMapFormat;
+		uavDesc.Format = DisocclusionBlurStrengthMapFormat;
+
+		md3dDevice->CreateShaderResourceView(mDisocclusionBlurStrength->Resource(), &srvDesc, mhDisocclusionBlurStrengthCpuSrv);
+		md3dDevice->CreateUnorderedAccessView(mDisocclusionBlurStrength->Resource(), nullptr, &uavDesc, mhDisocclusionBlurStrengthCpuUav);
+	}
+	{
+		srvDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
+		uavDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
+
+		md3dDevice->CreateShaderResourceView(mTsppSquaredMeanRayHitDistance->Resource(), &srvDesc, mhTsppSquaredMeanRayHitDistanceCpuSrv);
+		md3dDevice->CreateUnorderedAccessView(mTsppSquaredMeanRayHitDistance->Resource(), nullptr, &uavDesc, mhTsppSquaredMeanRayHitDistanceCpuUav);
+	}
+
+	return TRUE;
 }
 
 BOOL SVGFClass::OnResize(UINT width, UINT height) {
@@ -776,96 +880,6 @@ void SVGFClass::BlurDisocclusion(
 		D3D12Util::UavBarrier(cmdList, value);
 
 		filterStep *= 2;
-	}
-}
-
-void SVGFClass::BuildDescriptors() {
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	srvDesc.Texture2D.MipLevels = 1;
-
-	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-
-	{
-		srvDesc.Format = LocalMeanVarianceMapFormat;
-		uavDesc.Format = LocalMeanVarianceMapFormat;
-
-		auto rawResource = mLocalMeanVarianceResources[Resource::LocalMeanVariance::E_Raw]->Resource();
-		md3dDevice->CreateShaderResourceView(rawResource, &srvDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::ES_Raw]);
-		md3dDevice->CreateUnorderedAccessView(rawResource, nullptr, &uavDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::EU_Raw]);
-
-		auto smoothedResource = mLocalMeanVarianceResources[Resource::LocalMeanVariance::E_Smoothed]->Resource();
-		md3dDevice->CreateShaderResourceView(smoothedResource, &srvDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::ES_Smoothed]);
-		md3dDevice->CreateUnorderedAccessView(smoothedResource, nullptr, &uavDesc, mhLocalMeanVarianceResourcesCpus[Descriptor::LocalMeanVariance::EU_Smoothed]);
-	}
-	{
-		srvDesc.Format = VarianceMapFormat;
-		uavDesc.Format = VarianceMapFormat;
-
-		auto rawResource = mVarianceResources[Resource::Variance::E_Raw]->Resource();
-		md3dDevice->CreateShaderResourceView(rawResource, &srvDesc, mhVarianceResourcesCpus[Descriptor::Variance::ES_Raw]);
-		md3dDevice->CreateUnorderedAccessView(rawResource, nullptr, &uavDesc, mhVarianceResourcesCpus[Descriptor::Variance::EU_Raw]);
-
-		auto smoothedResource = mVarianceResources[Resource::Variance::E_Smoothed]->Resource();
-		md3dDevice->CreateShaderResourceView(smoothedResource, &srvDesc, mhVarianceResourcesCpus[Descriptor::Variance::ES_Smoothed]);
-		md3dDevice->CreateUnorderedAccessView(smoothedResource, nullptr, &uavDesc, mhVarianceResourcesCpus[Descriptor::Variance::EU_Smoothed]);
-	}
-	{
-		srvDesc.Format = ValueMapFormat_Contrast;
-		uavDesc.Format = ValueMapFormat_Contrast;
-
-		auto f1ValueResource = mCachedValues[Resource::CachedValue::E_Contrast]->Resource();
-		md3dDevice->CreateShaderResourceView(f1ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_Contrast]);
-		md3dDevice->CreateUnorderedAccessView(f1ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_Contrast]);
-	}
-	{
-		srvDesc.Format = ValueMapFormat_HDR;
-		uavDesc.Format = ValueMapFormat_HDR;
-
-		auto f4ValueResource = mCachedValues[Resource::CachedValue::E_Color_HDR]->Resource();
-		md3dDevice->CreateShaderResourceView(f4ValueResource, &srvDesc, mhCachedValueCpus[Descriptor::CachedValue::ES_Color_HDR]);
-		md3dDevice->CreateUnorderedAccessView(f4ValueResource, nullptr, &uavDesc, mhCachedValueCpus[Descriptor::CachedValue::EU_Color_HDR]);
-	}
-	{
-		srvDesc.Format = ValueSquaredMeanMapFormat_Contrast;
-		uavDesc.Format = ValueSquaredMeanMapFormat_Contrast;
-
-		auto squaredMeanResource_F1 = mCachedSquaredMeans[Resource::CachedSquaredMean::E_Contrast]->Resource();
-		md3dDevice->CreateShaderResourceView(squaredMeanResource_F1, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_Contrast]);
-		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F1, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_Contrast]);
-	}
-	{
-		srvDesc.Format = ValueSquaredMeanMapFormat_HDR;
-		uavDesc.Format = ValueSquaredMeanMapFormat_HDR;
-
-		auto squaredMeanResource_F4 = mCachedSquaredMeans[Resource::CachedValue::E_Color_HDR]->Resource();
-		md3dDevice->CreateShaderResourceView(squaredMeanResource_F4, &srvDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::ES_Color_HDR]);
-		md3dDevice->CreateUnorderedAccessView(squaredMeanResource_F4, nullptr, &uavDesc, mhCachedSquaredMeanCpus[Descriptor::CachedValue::EU_Color_HDR]);
-	}
-	{
-		srvDesc.Format = DepthPartialDerivativeMapFormat;
-		uavDesc.Format = DepthPartialDerivativeMapFormat;
-
-		md3dDevice->CreateShaderResourceView(mDepthPartialDerivative->Resource(), &srvDesc, mhDepthPartialDerivativeCpuSrv);
-		md3dDevice->CreateUnorderedAccessView(mDepthPartialDerivative->Resource(), nullptr, &uavDesc, mhDepthPartialDerivativeCpuUav);
-	}
-	{
-		srvDesc.Format = DisocclusionBlurStrengthMapFormat;
-		uavDesc.Format = DisocclusionBlurStrengthMapFormat;
-
-		md3dDevice->CreateShaderResourceView(mDisocclusionBlurStrength->Resource(), &srvDesc, mhDisocclusionBlurStrengthCpuSrv);
-		md3dDevice->CreateUnorderedAccessView(mDisocclusionBlurStrength->Resource(), nullptr, &uavDesc, mhDisocclusionBlurStrengthCpuUav);
-	}
-	{
-		srvDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
-		uavDesc.Format = TsppSquaredMeanRayHitDistanceFormat;
-
-		md3dDevice->CreateShaderResourceView(mTsppSquaredMeanRayHitDistance->Resource(), &srvDesc, mhTsppSquaredMeanRayHitDistanceCpuSrv);
-		md3dDevice->CreateUnorderedAccessView(mTsppSquaredMeanRayHitDistance->Resource(), nullptr, &uavDesc, mhTsppSquaredMeanRayHitDistanceCpuUav);
 	}
 }
 

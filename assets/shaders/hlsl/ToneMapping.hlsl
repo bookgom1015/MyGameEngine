@@ -9,9 +9,7 @@
 #include "Samplers.hlsli"
 #include "CoordinatesFittedToScreen.hlsli"
 
-cbuffer gRootConstants : register(b0) {
-	float gExposure;
-}
+ToneMapping_Default_RootConstants(b0)
 
 Texture2D<ToneMapping::IntermediateMapFormat> gi_Intermediate : register(t0);
 
@@ -21,32 +19,28 @@ struct VertexOut {
 };
 
 VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
 
-	// Quad covering screen in NDC space.
-	float2 pos = float2(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y);
-
-	// Already in homogeneous clip space.
-	vout.PosH = float4(pos, 0, 1);
+	const float2 pos = float2(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y);
+	vout.PosH = float4(pos, 0.f, 1.f);
 
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target {
-	float2 tex = pin.TexC;
-
-	float3 hdr = gi_Intermediate.SampleLevel(gsamPointClamp, tex, 0).rgb;
+	const float2 tex = pin.TexC;
+	const float3 hdr = gi_Intermediate.SampleLevel(gsamPointClamp, tex, 0).rgb;
 
 #if NON_HDR
-	float3 mapped = hdr;
+	const float3 mapped = hdr;
 #else
 
-	float3 mapped = (float3)1 - exp(-hdr * gExposure);
+	const float3 mapped = (float3)1.f - exp(-hdr * gExposure);
 #endif
 
-	return float4(mapped, 1);
+	return float4(mapped, 1.f);
 }
 
 #endif // __TONEMAPPING_HLSL__

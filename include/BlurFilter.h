@@ -2,17 +2,20 @@
 
 #include <d3dx12.h>
 #include <unordered_map>
+#include <array>
 #include <wrl.h>
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "Locker.h"
 #include "HlslCompaction.h"
 
 class ShaderManager;
 struct IDxcBlob;
 
 namespace BlurFilter {
-	__forceinline FLOAT* CalcGaussWeights(FLOAT sigma);
+	__forceinline INT CalcSize(FLOAT sigma);
+	__forceinline BOOL CalcGaussWeights(FLOAT sigma, FLOAT weights[]);
 
 	namespace RootSignature {
 		namespace Default {
@@ -36,15 +39,15 @@ namespace BlurFilter {
 		virtual ~BlurFilterClass() = default;
 
 	public:
-		BOOL Initialize(ID3D12Device*const device, ShaderManager*const manager);
+		BOOL Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
-			GpuResource*const primary,
-			GpuResource*const secondary,
+			GpuResource* const primary,
+			GpuResource* const secondary,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_primary,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_primary,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_secondary,
@@ -52,7 +55,7 @@ namespace BlurFilter {
 			FilterType type,
 			UINT blurCount = 3);
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
@@ -67,15 +70,15 @@ namespace BlurFilter {
 
 	private:
 		void Blur(
-			ID3D12GraphicsCommandList* cmdList,
-			GpuResource*const output,
+			ID3D12GraphicsCommandList* const cmdList,
+			GpuResource* const output,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_output,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_input,
 			FilterType type,
 			BOOL horzBlur);
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
@@ -117,7 +120,7 @@ namespace BlurFilter {
 			virtual ~BlurFilterCSClass() = default;
 
 		public:
-			BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager);
+			BOOL Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager);
 			BOOL CompileShaders(const std::wstring& filePath);
 			BOOL BuildRootSignature(const StaticSamplers& samplers);
 			BOOL BuildPSO();
@@ -140,7 +143,7 @@ namespace BlurFilter {
 			IDxcBlob* GetShader(Filter::Type type, Direction::Type direction);
 
 		private:
-			ID3D12Device* md3dDevice;
+			Locker<ID3D12Device5>* md3dDevice;
 			ShaderManager* mShaderManager;
 
 			Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;

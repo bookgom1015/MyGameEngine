@@ -30,12 +30,18 @@ DepthOfFieldClass::DepthOfFieldClass() {
 BOOL DepthOfFieldClass::Initialize(
 		ID3D12Device* const device, 
 		ShaderManager* const manager, 
-		ID3D12GraphicsCommandList* cmdList, 
 		UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	CheckReturn(BuildResources(cmdList, width, height));
+	CheckReturn(BuildResources(width, height));
+
+	return TRUE;
+}
+
+BOOL DepthOfFieldClass::PrepareUpdate(ID3D12GraphicsCommandList* const cmdList) {
+	mFocalDistanceBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer.get());
 
 	return TRUE;
 }
@@ -76,14 +82,13 @@ BOOL DepthOfFieldClass::CompileShaders(const std::wstring& filePath) {
 BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	// Circle of confusion
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CircleOfConfusion::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CircleOfConfusion::Count] = {};
 		slotRootParameter[RootSignature::CircleOfConfusion::ECB_DoF].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::CircleOfConfusion::ESI_Depth].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::CircleOfConfusion::EUI_FocalDist].InitAsDescriptorTable(1, &texTables[index++]);
@@ -98,14 +103,13 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	}
 	// Depth of field
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyDoF::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
 		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyDoF::Count] = {};
 		slotRootParameter[RootSignature::ApplyDoF::EC_Consts].InitAsConstants(RootConstant::ApplyDoF::Count, 0);
 		slotRootParameter[RootSignature::ApplyDoF::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::ApplyDoF::ESI_CoC].InitAsDescriptorTable(1, &texTables[index++]);
@@ -120,14 +124,13 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	}
 	// DoF blur
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::BlurDoF::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
 		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::BlurDoF::Count] = {};
 		slotRootParameter[RootSignature::BlurDoF::ECB_Blur].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::BlurDoF::ESI_Input].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::BlurDoF::ESI_CoC].InitAsDescriptorTable(1, &texTables[index++]);
@@ -142,14 +145,13 @@ BOOL DepthOfFieldClass::BuildRootSignature(const StaticSamplers& samplers) {
 	}
 	// Focal distance
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::FocalDistance::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::FocalDistance::Count] = {};
 		slotRootParameter[RootSignature::FocalDistance::ECB_DoF].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::FocalDistance::ESI_Depth].InitAsDescriptorTable(1, &texTables[index++]);
 		slotRootParameter[RootSignature::FocalDistance::EUO_FocalDist].InitAsDescriptorTable(1, &texTables[index++]);
@@ -365,7 +367,7 @@ void DepthOfFieldClass::BlurDoF(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void DepthOfFieldClass::BuildDescriptors(
+void DepthOfFieldClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
@@ -379,18 +381,9 @@ void DepthOfFieldClass::BuildDescriptors(
 
 	mhFocalDistanceCpuUav = hCpu.Offset(1, descSize);
 	mhFocalDistanceGpuUav = hGpu.Offset(1, descSize);
-
-	BuildDescriptors();	
 }
 
-BOOL DepthOfFieldClass::OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
-	CheckReturn(BuildResources(cmdList, width, height));
-	BuildDescriptors();
-
-	return TRUE;
-}
-
-void DepthOfFieldClass::BuildDescriptors() {
+BOOL DepthOfFieldClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -420,9 +413,18 @@ void DepthOfFieldClass::BuildDescriptors() {
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 
 	md3dDevice->CreateUnorderedAccessView(mFocalDistanceBuffer->Resource(), nullptr, &uavDesc, mhFocalDistanceCpuUav);
+
+	return TRUE;
 }
 
-BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height) {
+BOOL DepthOfFieldClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
+
+	return TRUE;
+}
+
+BOOL DepthOfFieldClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Width = width;
@@ -479,9 +481,6 @@ BOOL DepthOfFieldClass::BuildResources(ID3D12GraphicsCommandList* const cmdList,
 			L"DoF_FocalDistanceMap"
 		));
 	}
-
-	mFocalDistanceBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12Util::UavBarrier(cmdList, mFocalDistanceBuffer->Resource());
 
 	return TRUE;
 }

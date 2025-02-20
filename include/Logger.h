@@ -165,11 +165,10 @@ namespace Logger {
 	inline void AppendTextToWnd(HWND hWnd, LPCWSTR newText) {
 		INT finalLength = GetWindowTextLength(hWnd) + lstrlen(newText) + 1;
 		wchar_t* buf = reinterpret_cast<wchar_t*>(std::malloc(finalLength * sizeof(wchar_t)));
+		if (buf == nullptr) return;
 
 		GetWindowText(hWnd, buf, finalLength);
-
 		wcscat_s(buf, finalLength, newText);
-
 		SetWindowText(hWnd, buf);
 
 		std::free(buf);

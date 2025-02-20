@@ -5,7 +5,7 @@
 #include <imgui/backends/imgui_impl_win32.h>
 #include <imgui/backends/imgui_impl_dx12.h>
 
-BOOL ImGuiManager::Initialize(HWND hwnd, ID3D12Device*const device, ID3D12DescriptorHeap*const heap, INT bufferCount, DXGI_FORMAT format) {
+BOOL ImGuiManager::Initialize(HWND hwnd, ID3D12Device* const device, ID3D12DescriptorHeap* const heap, INT bufferCount, DXGI_FORMAT format) {
 	md3dDevice = device;
 	mHeap = heap;
 
@@ -23,13 +23,15 @@ BOOL ImGuiManager::Initialize(HWND hwnd, ID3D12Device*const device, ID3D12Descri
 	// Setup platform/renderer backends
 	CheckReturn(ImGui_ImplWin32_Init(hwnd));
 
-	return true;
+	return TRUE;
 }
 
-BOOL ImGuiManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void ImGuiManager::AllocateDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	mhCpuSrv = hCpu.Offset(1, descSize);
 	mhGpuSrv = hGpu.Offset(1, descSize);
+}
 
+BOOL ImGuiManager::BuildDescriptors() {
 	CheckReturn(ImGui_ImplDX12_Init(
 		md3dDevice,
 		mSwapChainBufferCount,
@@ -39,7 +41,7 @@ BOOL ImGuiManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12
 		mhGpuSrv
 	));
 
-	return true;
+	return TRUE;
 }
 
 void ImGuiManager::CleanUp() {

@@ -60,9 +60,7 @@ BOOL DebugClass::CompileShaders(const std::wstring& filePath) {
 BOOL DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
 	// DebugTexMap
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DebugTexMap::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[10]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[10] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
@@ -76,6 +74,7 @@ BOOL DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
 
 		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DebugTexMap::Count] = {};
 		slotRootParameter[RootSignature::DebugTexMap::ECB_Debug].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::DebugTexMap::EC_Consts].InitAsConstants(RootConstant::DebugTexMap::Count, 1);
 		slotRootParameter[RootSignature::DebugTexMap::ESI_Debug0].InitAsDescriptorTable(1, &texTables[index++]);
@@ -99,14 +98,13 @@ BOOL DebugClass::BuildRootSignature(const StaticSamplers& samplers) {
 	}
 	// DebugCubeMap
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DebugCubeMap::Count];
-
-		CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
 		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::DebugCubeMap::Count] = {};
 		slotRootParameter[RootSignature::DebugCubeMap::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::DebugCubeMap::EC_Consts].InitAsConstants(RootConstant::DebugCubeMap::Count, 1);
 		slotRootParameter[RootSignature::DebugCubeMap::ESI_Cube].InitAsDescriptorTable(1, &texTables[index++]);

@@ -6,6 +6,7 @@
 #include "MathHelper.h"
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "Locker.h"
 
 class ShaderManager;
 
@@ -49,35 +50,35 @@ namespace SSAO {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE RandomVectorMapSrv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, ShaderManager*const manager,
-			UINT width, UINT height, Resolution::Type type);
+		BOOL Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager, UINT width, UINT height, Resolution::Type type);
+		BOOL PrepareUpdate(ID3D12GraphicsCommandList* const cmdList);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS passCBAddress,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth);
 
 		void GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 		void BuildOffsetVectors();
-		BOOL BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList);
+		BOOL BuildRandomVectorTexture(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList);
 		
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;

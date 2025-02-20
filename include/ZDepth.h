@@ -6,6 +6,7 @@
 #include "GpuResource.h"
 #include "HlslCompaction.h"
 #include "Light.h"
+#include "Locker.h"
 
 namespace ZDepth {
 	class ZDepthClass {
@@ -22,9 +23,8 @@ namespace ZDepth {
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE FaceIDCubeSrv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* const device, UINT texW, UINT texH);
-
-		void BuildDescriptors(
+		BOOL Initialize(Locker<ID3D12Device5>* const device, UINT texW, UINT texH);
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
@@ -33,10 +33,10 @@ namespace ZDepth {
 		BOOL AddLight(UINT lightType, UINT index);
 
 	private:
-		void BuildDescriptor(UINT index, BOOL needCubemap);
+		BOOL BuildDescriptor(ID3D12Device5* const device, UINT index, BOOL needCubemap);
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 
 		std::unique_ptr<GpuResource> mZDepthMaps[MaxLights];
 		std::unique_ptr<GpuResource> mFaceIDCubeMaps[MaxLights];
@@ -55,22 +55,4 @@ namespace ZDepth {
 	};
 }
 
-GpuResource* ZDepth::ZDepthClass::ZDepthMap(UINT index) const {
-	return mZDepthMaps[index].get();
-}
-
-GpuResource* ZDepth::ZDepthClass::FaceIDCubeMap(UINT index) const {
-	return mFaceIDCubeMaps[index].get();
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE ZDepth::ZDepthClass::ZDepthSrv() const {
-	return mhZDepthGpuDescs[0];
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE ZDepth::ZDepthClass::ZDepthCubeSrv() const {
-	return mhZDepthCubeGpuDescs[0];
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE ZDepth::ZDepthClass::FaceIDCubeSrv() const {
-	return mhFaceIDCubeGpuDescs[0];
-}
+#include "ZDepth.inl"

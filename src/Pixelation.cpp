@@ -16,7 +16,7 @@ PixelationClass::PixelationClass() {
 	mCopiedBackBuffer = std::make_unique<GpuResource>();
 }
 
-BOOL PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
+BOOL PixelationClass::Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -27,8 +27,8 @@ BOOL PixelationClass::Initialize(ID3D12Device* device, ShaderManager* const mana
 
 BOOL PixelationClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring actualPath = filePath + L"Pixelate.hlsl";
-	auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-	auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+	const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+	const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_Pixelize));
 	CheckReturn(mShaderManager->CompileShader(psInfo, PS_Pixelize));
 
@@ -36,13 +36,14 @@ BOOL PixelationClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL PixelationClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
+	CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[1];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	index = 0;
 
-	slotRootParameter[RootSignature::EC_Consts].InitAsConstants(RootSignature::RootConstant::Count, 0);
-	slotRootParameter[RootSignature::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
+	slotRootParameter[RootSignature::Default::EC_Consts].InitAsConstants(RootConstant::Default::Count, 0);
+	slotRootParameter[RootSignature::Default::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[index++]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -59,8 +60,8 @@ BOOL PixelationClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_Pixelize);
-		auto ps = mShaderManager->GetDxcShader(PS_Pixelize);
+		const auto vs = mShaderManager->GetDxcShader(VS_Pixelize);
+		const auto ps = mShaderManager->GetDxcShader(PS_Pixelize);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -71,14 +72,26 @@ BOOL PixelationClass::BuildPSO() {
 	return TRUE;
 }
 
-void PixelationClass::BuildDescriptors(
+void PixelationClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		UINT descSize) {
 	mhCopiedBackBufferCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhCopiedBackBufferGpuSrv = hGpuSrv.Offset(1, descSize);
+}
 
-	BuildDescriptors();	
+BOOL PixelationClass::BuildDescriptors() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Format = SDR_FORMAT;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
+	srvDesc.Texture2D.PlaneSlice = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
+
+	return TRUE;
 }
 
 BOOL PixelationClass::OnResize(UINT width, UINT height) {
@@ -92,7 +105,7 @@ void PixelationClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT pixelSize) {
 	cmdList->SetPipelineState(mPSO.Get());
@@ -111,10 +124,17 @@ void PixelationClass::Run(
 
 	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_BackBuffer, mhCopiedBackBufferGpuSrv);
 
-	FLOAT values[RootSignature::RootConstant::Count] = { static_cast<FLOAT>(viewport.Width), static_cast<FLOAT>(viewport.Height), pixelSize };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Consts, _countof(values), values, 0);
+	RootConstant::Default::Struct rc;
+	rc.gTexSize.x = static_cast<FLOAT>(viewport.Width);
+	rc.gTexSize.y = static_cast<FLOAT>(viewport.Height);
+	rc.gPixelSize = pixelSize;
+
+	std::array<std::uint32_t, RootConstant::Default::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::Default::Struct));
+
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::Default::EC_Consts, RootConstant::Default::Count, consts.data(), 0);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -122,18 +142,6 @@ void PixelationClass::Run(
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-}
-
-void PixelationClass::BuildDescriptors() {
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = SDR_FORMAT;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	srvDesc.Texture2D.PlaneSlice = 0;
-	srvDesc.Texture2D.MipLevels = 1;
-	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 }
 
 BOOL PixelationClass::BuildResources(UINT width, UINT height) {

@@ -20,11 +20,10 @@ VolumetricLightClass::VolumetricLightClass() {
 	for (size_t i = 0, end = mFrustumVolumeMaps.size(); i < end; ++i) 
 		mFrustumVolumeMaps[i] = std::make_unique<GpuResource>();
 	mFrustumVolumeUploadBuffer = std::make_unique<GpuResource>();
-	mDebugMap = std::make_unique<GpuResource>();
 }
 
 BOOL VolumetricLightClass::Initialize(
-		ID3D12Device* device, ShaderManager* const manager,
+		Locker<ID3D12Device5>* const device, ShaderManager* const manager,
 		UINT clientW, UINT clientH,
 		UINT texW, UINT texH, UINT texD) {
 	md3dDevice = device;
@@ -43,12 +42,14 @@ BOOL VolumetricLightClass::Initialize(
 }
 
 BOOL VolumetricLightClass::PrepareUpdate(ID3D12GraphicsCommandList* const cmdList) {	
-	const auto dest = mFrustumVolumeMaps[1].get();
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
 
+	const auto dest = mFrustumVolumeMaps[1].get();
 	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(dest->Resource(), 0, 1);	
 
 	CheckReturn(mFrustumVolumeUploadBuffer->Initialize(
-		md3dDevice,
+		device,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
 		&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
@@ -56,19 +57,19 @@ BOOL VolumetricLightClass::PrepareUpdate(ID3D12GraphicsCommandList* const cmdLis
 		nullptr
 	));
 
-	const size_t size = mTexWidth * mTexHeight * mTexDepth * 4;
+	const UINT size = static_cast<UINT64>(mTexWidth) * static_cast<UINT64>(mTexHeight) * static_cast<UINT64>(mTexDepth) * 4;
 	std::vector<std::uint16_t> data(size);
 	
 	for (UINT i = 0; i < size; i += 4) {
-		data[i + 0] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
-		data[i + 1] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
-		data[i + 2] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
-		data[i + 3] = DirectX::PackedVector::XMConvertFloatToHalf(VolumetricLight::InvalidFrustumVolumeAlphaValue);
+		data[static_cast<UINT64>(i) + 0] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
+		data[static_cast<UINT64>(i) + 1] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
+		data[static_cast<UINT64>(i) + 2] = DirectX::PackedVector::XMConvertFloatToHalf(0.f);
+		data[static_cast<UINT64>(i) + 3] = DirectX::PackedVector::XMConvertFloatToHalf(VolumetricLight::InvalidFrustumVolumeAlphaValue);
 	}
 	
 	D3D12_SUBRESOURCE_DATA subResourceData = {};
 	subResourceData.pData = data.data();
-	subResourceData.RowPitch = mTexWidth * 4 * sizeof(std::uint16_t);
+	subResourceData.RowPitch = static_cast<UINT64>(mTexWidth) * 4 * sizeof(std::uint16_t);
 	subResourceData.SlicePitch = subResourceData.RowPitch * mTexHeight;
 
 	dest->Transite(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -113,11 +114,14 @@ BOOL VolumetricLightClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL VolumetricLightClass::BuildRootSignature(const StaticSamplers& samplers) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// CalcScatteringAndDensity
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcScatteringAndDensity::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcScatteringAndDensity::Count] = {};
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[5]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[5] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1,			0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 1, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxLights, 0, 1);
@@ -140,13 +144,13 @@ BOOL VolumetricLightClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_CalcScatteringAndDensity]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_CalcScatteringAndDensity]));
 	}
 	// AccumulateScattering
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::AccumulateScattering::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::AccumulateScattering::Count] = {};
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[1]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 		index = 0;
@@ -160,13 +164,13 @@ BOOL VolumetricLightClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_AccumulateScattering]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_AccumulateScattering]));
 	}
 	// ApplyFog
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyFog::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyFog::Count] = {};
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+		CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
@@ -182,13 +186,16 @@ BOOL VolumetricLightClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ApplyFog]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_ApplyFog]));
 	}
 
 	return TRUE;
 }
 
 BOOL VolumetricLightClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// CalcScatteringAndDensity
 	{
 		D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
@@ -198,7 +205,7 @@ BOOL VolumetricLightClass::BuildPSO() {
 			auto cs = mShaderManager->GetDxcShader(CS_CalcScatteringAndDensity);
 			psoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_CalcScatteringAndDensity])));
+		CheckHRESULT(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_CalcScatteringAndDensity])));
 	}
 	// AccumulateScattering
 	{
@@ -209,7 +216,7 @@ BOOL VolumetricLightClass::BuildPSO() {
 			auto cs = mShaderManager->GetDxcShader(CS_AccumulateScattering);
 			psoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_AccumulateScattering])));
+		CheckHRESULT(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_AccumulateScattering])));
 	}
 	// ApplyFog
 	{
@@ -239,7 +246,7 @@ BOOL VolumetricLightClass::BuildPSO() {
 		psoDesc.BlendState.RenderTarget[0] = blendDesc;
 		//psoDesc.BlendState.RenderTarget[1] = blendDesc;
 
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ApplyFog])));
+		CheckHRESULT(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ApplyFog])));
 	}
 
 	return TRUE;
@@ -300,11 +307,10 @@ void VolumetricLightClass::Run(
 	mCurrentFrame = ++mFrameCount % 2 != 0;
 }
 
-void VolumetricLightClass::BuildDescriptors(
+void VolumetricLightClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
-		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
-		UINT descSize, UINT rtvDescSize) {
+		UINT descSize) {
 	for (size_t i = 0; i < 2; ++i) {
 		mhFrustumVolumeMapCpuSrvs[i] = hCpu.Offset(1, descSize);
 		mhFrustumVolumeMapGpuSrvs[i] = hGpu.Offset(1, descSize);
@@ -312,13 +318,12 @@ void VolumetricLightClass::BuildDescriptors(
 		mhFrustumVolumeMapCpuUavs[i] = hCpu.Offset(1, descSize);
 		mhFrustumVolumeMapGpuUavs[i] = hGpu.Offset(1, descSize);
 	}
-
-	mhDebugMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
-
-	BuildDescriptors();
 }
 
-void VolumetricLightClass::BuildDescriptors() {
+BOOL VolumetricLightClass::BuildDescriptors() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -338,21 +343,18 @@ void VolumetricLightClass::BuildDescriptors() {
 		for (size_t i = 0; i < 2; ++i) {
 			const auto& frustum = mFrustumVolumeMaps[i]->Resource();
 
-			md3dDevice->CreateShaderResourceView(frustum, &srvDesc, mhFrustumVolumeMapCpuSrvs[i]);
-			md3dDevice->CreateUnorderedAccessView(frustum, nullptr, &uavDesc, mhFrustumVolumeMapCpuUavs[i]);
+			device->CreateShaderResourceView(frustum, &srvDesc, mhFrustumVolumeMapCpuSrvs[i]);
+			device->CreateUnorderedAccessView(frustum, nullptr, &uavDesc, mhFrustumVolumeMapCpuUavs[i]);
 		}
 	}
-	{
-		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rtvDesc.Format = DebugMapFormat;
-		rtvDesc.Texture2D.MipSlice = 0;
-		rtvDesc.Texture2D.PlaneSlice = 0;
-		md3dDevice->CreateRenderTargetView(mDebugMap->Resource(), &rtvDesc, mhDebugMapCpuRtv);
-	}
+
+	return TRUE;
 }
 
 BOOL VolumetricLightClass::BuildResources() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Alignment = 0;
@@ -377,7 +379,7 @@ BOOL VolumetricLightClass::BuildResources() {
 			name.append(std::to_wstring(i));
 
 			CheckReturn(volume->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&texDesc,
@@ -386,25 +388,6 @@ BOOL VolumetricLightClass::BuildResources() {
 				name.c_str()
 			));
 		}
-	}
-	// Bebug map
-	{
-		texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		texDesc.Width = mClientWidth;
-		texDesc.Height = mClientHeight;
-		texDesc.DepthOrArraySize = 1;
-		texDesc.Format = DebugMapFormat;
-		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-		CheckReturn(mDebugMap->Initialize(
-			md3dDevice,
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&texDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			L"VolumetricLight_DebugMap"
-		));
 	}
 
 	return TRUE;
@@ -497,7 +480,7 @@ void VolumetricLightClass::ApplyFog(
 		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_currFrustumVolume,
@@ -509,10 +492,8 @@ void VolumetricLightClass::ApplyFog(
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	mDebugMap->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = { ro_backBuffer, mhDebugMapCpuRtv };
-	cmdList->OMSetRenderTargets(_countof(rtvs), rtvs, FALSE, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ApplyFog::ECB_Pass, cb_pass);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ApplyFog::ESI_Position, si_position);
@@ -522,6 +503,4 @@ void VolumetricLightClass::ApplyFog(
 	cmdList->IASetIndexBuffer(nullptr);
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
-
-	mDebugMap->Transite(cmdList, D3D12_RESOURCE_STATE_GENERIC_READ);
 }

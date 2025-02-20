@@ -29,18 +29,9 @@ namespace IrradianceMap {
 		namespace ConvoluteDiffuseIrradiance {
 			enum {
 				ECB_ConvEquirectToConv = 0,
-				EC_Consts,
 				ESI_Cube,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_FaceID = 0,
-					E_SampDelta,
-					Count
-				};
-			}
 		}
 
 		namespace ConvoluteSpecularIrradiance {
@@ -50,14 +41,6 @@ namespace IrradianceMap {
 				ESI_Environment,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_MipLevel = 0,
-					E_Roughness,
-					Count
-				};
-			}
 		}
 
 		namespace IntegrateBRDF {
@@ -79,12 +62,12 @@ namespace IrradianceMap {
 
 	namespace PipelineState {
 		enum {
-			E_ConvEquirectToCube = 0,
-			E_ConvCubeToEquirect,
-			E_ConvoluteDiffuseIrradiance,
-			E_ConvolutePrefilteredIrradiance,
-			E_IntegrateBRDF,
-			E_DrawSkySphere,
+			EG_ConvEquirectToCube = 0,
+			EG_ConvCubeToEquirect,
+			EG_ConvoluteDiffuseIrradiance,
+			EG_ConvolutePrefilteredIrradiance,
+			EG_IntegrateBRDF,
+			EG_DrawSkySphere,
 			Count
 		};
 	}
@@ -133,16 +116,17 @@ namespace IrradianceMap {
 		UINT Size() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* const device, ID3D12GraphicsCommandList* const cmdList,ShaderManager* const manager);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
+		BOOL BuildDescriptors();
 
 		BOOL SetEquirectangularMap(ID3D12CommandQueue* const queue, const std::string& file);
 
@@ -167,8 +151,7 @@ namespace IrradianceMap {
 			RenderItem* const sphere);
 
 	private:
-		void BuildDescriptors();
-		BOOL BuildResources(ID3D12GraphicsCommandList* const cmdList);
+		BOOL BuildResources();
 
 		BOOL Check(const std::wstring& filepath);
 		BOOL Load(

@@ -1,7 +1,7 @@
 #include "FrameResource.h"
 #include "Logger.h"
 
-FrameResource::FrameResource(ID3D12Device* pDevice, UINT passCount, UINT shadowCount, UINT objectCount, UINT materialCount) :
+FrameResource::FrameResource(ID3D12Device* const pDevice, UINT passCount, UINT shadowCount, UINT objectCount, UINT materialCount) :
 	PassCount(passCount),
 	ShadowCount(shadowCount),
 	ObjectCount(objectCount),

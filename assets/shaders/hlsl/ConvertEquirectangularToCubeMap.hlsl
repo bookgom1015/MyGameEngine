@@ -15,9 +15,9 @@
 
 #include "Equirectangular.hlsli"
 
-ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
+ConstantBuffer<ConstantBuffer_Irradiance>	cb_Irrad			: register(b0);
 
-Texture2D<HDR_FORMAT> gi_Equirectangular : register(t0);
+Texture2D<HDR_FORMAT>						gi_Equirectangular	: register(t0);
 
 #include "HardCodedCubeVertices.hlsli"
 
@@ -31,7 +31,7 @@ struct GeoOut {
 	uint	ArrayIndex	: SV_RenderTargetArrayIndex;
 };
 
-static const float2 InvATan = float2(0.1591, 0.3183);
+static const float2 InvATan = float2(0.1591f, 0.3183f);
 
 VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
@@ -46,14 +46,14 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	GeoOut gout = (GeoOut)0;
 
 	[unroll]
-	for (int face = 0; face < 6; ++face) {
+	for (uint face = 0; face < 6; ++face) {
 		gout.ArrayIndex = face;
-		float4x4 view = cb_Irrad.View[face];
+		const float4x4 view = cb_Irrad.View[face];
 		[unroll]
-		for (int i = 0; i < 3; ++i) {
-			float3 posL = gin[i].PosL;
-			float4 posV = mul(float4(posL, 1), view);
-			float4 posH = mul(posV, cb_Irrad.Proj);
+		for (uint i = 0; i < 3; ++i) {
+			const float3 posL = gin[i].PosL;
+			const float4 posV = mul(float4(posL, 1), view);
+			const float4 posH = mul(posV, cb_Irrad.Proj);
 
 			gout.PosL = posL;
 			gout.PosH = posH.xyww;
@@ -65,9 +65,9 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 }
 
 HDR_FORMAT PS(GeoOut pin) : SV_Target{
-	float2 texc = Equirectangular::SampleSphericalMap(normalize(pin.PosL));
-	float3 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc).rgb;
-	return float4(samp, 1);
+	const float2 texc = Equirectangular::SampleSphericalMap(normalize(pin.PosL));
+	const float3 samp = gi_Equirectangular.Sample(gsamLinearClamp, texc).rgb;
+	return float4(samp, 1.f);
 }
 
 #endif // __CONVERTEQUIRECTANGULARTOCUBEMAP_HLSL__

@@ -35,9 +35,9 @@ BOOL MotionBlurClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL MotionBlurClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[3]; UINT index = 0;
+	CD3DX12_DESCRIPTOR_RANGE texTables[3] = {}; UINT index = 0;
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
@@ -77,11 +77,23 @@ BOOL MotionBlurClass::BuildPSO() {
 	return TRUE;
 }
 
-void MotionBlurClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,	CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void MotionBlurClass::AllocateDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,	CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	mhCopiedBackBufferCpuSrv = hCpu.Offset(1, descSize);
 	mhCopiedBackBufferGpuSrv = hGpu.Offset(1, descSize);
+}
 
-	BuildDescriptors();
+BOOL MotionBlurClass::BuildDescriptors() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Format = SDR_FORMAT;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
+
+	return TRUE;
 }
 
 BOOL MotionBlurClass::OnResize(UINT width, UINT height) {
@@ -140,18 +152,6 @@ void MotionBlurClass::Run(
 	cmdList->DrawInstanced(6, 1, 0, 0);
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-}
-
-void MotionBlurClass::BuildDescriptors() {
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = SDR_FORMAT;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	srvDesc.Texture2D.MipLevels = 1;
-
-	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 }
 
 BOOL MotionBlurClass::BuildResources(UINT width, UINT height) {

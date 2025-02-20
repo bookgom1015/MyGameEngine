@@ -17,10 +17,7 @@ ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 ConstantBuffer<ConstantBuffer_Material>	cb_Mat	: register(b2);
 
-cbuffer cbRootConstant : register(b3) {
-	float gMaxDistance;
-	float gMinDistance;
-}
+GBuffer_Default_RootConstants(b3)
 
 Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]			: register(t0);
 

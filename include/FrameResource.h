@@ -7,7 +7,7 @@
 struct FrameResource {
 public:
 	FrameResource(
-		ID3D12Device* pDevice,
+		ID3D12Device* const pDevice,
 		UINT passCount,
 		UINT shadowCount,
 		UINT objectCount,

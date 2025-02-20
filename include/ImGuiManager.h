@@ -8,13 +8,14 @@ public:
 	virtual ~ImGuiManager() = default;
 
 public:
-	BOOL Initialize(HWND hwnd, ID3D12Device*const device, ID3D12DescriptorHeap*const heap, INT bufferCount, DXGI_FORMAT format);
+	BOOL Initialize(HWND hwnd, ID3D12Device* const device, ID3D12DescriptorHeap* const heap, INT bufferCount, DXGI_FORMAT format);
 	void CleanUp();
 
-	BOOL BuildDescriptors(
+	void AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		UINT descSize);
+	BOOL BuildDescriptors();
 
 private:
 	ID3D12Device* md3dDevice;

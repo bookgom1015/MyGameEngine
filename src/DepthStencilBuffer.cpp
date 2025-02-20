@@ -8,13 +8,13 @@ DepthStencilBufferClass::DepthStencilBufferClass() {
 	mDepthStencilBuffer = std::make_unique<GpuResource>();
 }
 
-BOOL DepthStencilBufferClass::Initialize(ID3D12Device* device) {
+BOOL DepthStencilBufferClass::Initialize(ID3D12Device* const device) {
 	md3dDevice = device;
 
 	mWidth = 0;
 	mHeight = 0;
 
-	return true;
+	return TRUE;
 }
 
 void DepthStencilBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv, UINT dsvDescSize) {
@@ -32,7 +32,7 @@ BOOL DepthStencilBufferClass::LowOnResize(UINT width, UINT height) {
 		BuildDescriptors();
 	}
 
-	return true;
+	return TRUE;
 }
 
 void DepthStencilBufferClass::BuildDescriptors() {
@@ -57,14 +57,12 @@ BOOL DepthStencilBufferClass::BuildResources() {
 	
 	D3D12_CLEAR_VALUE optClear;
 	optClear.Format = BufferFormat;
-	optClear.DepthStencil.Depth = 1.0f;
+	optClear.DepthStencil.Depth = 1.f;
 	optClear.DepthStencil.Stencil = 0;
 	
-	auto defaultHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-
 	CheckReturn(mDepthStencilBuffer->Initialize(
 		md3dDevice,
-		&defaultHeapProp,
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&depthStencilDesc,
 		D3D12_RESOURCE_STATE_DEPTH_READ,
@@ -72,5 +70,5 @@ BOOL DepthStencilBufferClass::BuildResources() {
 		L"DepthStencilBuffer"
 	));
 
-	return true;
+	return TRUE;
 }

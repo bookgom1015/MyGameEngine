@@ -10,10 +10,10 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
-ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
+ConstantBuffer<ConstantBuffer_Pass>			 cb_Pass	: register(b0);
+ConstantBuffer<ConstantBuffer_Object>		 cb_Obj		: register(b1);
 
-TextureCube<IrradianceMap::EnvCubeMapFormat> gi_Cube : register(t0);
+TextureCube<IrradianceMap::EnvCubeMapFormat> gi_Cube	: register(t0);
 
 VERTEX_IN
 
@@ -29,7 +29,7 @@ VertexOut VS(VertexIn vin) {
 	vout.PosL = vin.PosL;
 
 	// Transform to world space.
-	float4 posW = mul(float4(vin.PosL, 1.0f), cb_Obj.World);
+	float4 posW = mul(float4(vin.PosL, 1.f), cb_Obj.World);
 	// Always center sky about camera.
 	posW.xyz += cb_Pass.EyePosW;
 
@@ -40,8 +40,7 @@ VertexOut VS(VertexIn vin) {
 }
 
 HDR_FORMAT PS(VertexOut pin) : SV_Target {
-	float4 cubeSample = gi_Cube.Sample(gsamLinearWrap, normalize(pin.PosL));
-	return cubeSample;
+	return gi_Cube.SampleLevel(gsamLinearWrap, normalize(pin.PosL), 0);
 }
 
 #endif // __SKYSPHERE_HLSL__

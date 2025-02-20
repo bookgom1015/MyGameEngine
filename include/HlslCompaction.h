@@ -6,8 +6,8 @@
 #include "./../../../include/Vertex.h"
 #else
 #include <DirectXMath.h>
-#include <Windows.h>
 #include <dxgiformat.h>
+#include <windef.h>
 #endif
 
 #ifndef NUM_TEXTURE_MAPS 

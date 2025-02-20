@@ -37,14 +37,14 @@ BOOL TemporalAAClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL TemporalAAClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_DESCRIPTOR_RANGE texTables[3]; UINT index = 0;
+	CD3DX12_DESCRIPTOR_RANGE texTables[3] = {}; UINT index = 0;
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
 
 	index = 0;
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
 	slotRootParameter[RootSignature::Default::ESI_Input].InitAsDescriptorTable(1, &texTables[index++]);
 	slotRootParameter[RootSignature::Default::ESI_History].InitAsDescriptorTable(1, &texTables[index++]);
 	slotRootParameter[RootSignature::Default::ESI_Velocity].InitAsDescriptorTable(1, &texTables[index++]);
@@ -128,7 +128,7 @@ void TemporalAAClass::Run(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void TemporalAAClass::BuildDescriptors(
+void TemporalAAClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		UINT descSize) {
@@ -137,18 +137,9 @@ void TemporalAAClass::BuildDescriptors(
 
 	mhHistoryMapCpuSrv = hCpu.Offset(1, descSize);
 	mhHistoryMapGpuSrv = hGpu.Offset(1, descSize);	
-
-	BuildDescriptors();
 }
 
-BOOL TemporalAAClass::OnResize(UINT width, UINT height) {
-	CheckReturn(BuildResources(width, height));
-	BuildDescriptors();
-
-	return TRUE;
-}
-
-void TemporalAAClass::BuildDescriptors() {
+BOOL TemporalAAClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -159,6 +150,15 @@ void TemporalAAClass::BuildDescriptors() {
 
 	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 	md3dDevice->CreateShaderResourceView(mHistoryMap->Resource(), &srvDesc, mhHistoryMapCpuSrv);
+
+	return TRUE;
+}
+
+BOOL TemporalAAClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
+
+	return TRUE;
 }
 
 BOOL TemporalAAClass::BuildResources(UINT width, UINT height) {

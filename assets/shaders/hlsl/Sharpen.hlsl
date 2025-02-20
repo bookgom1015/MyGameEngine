@@ -9,10 +9,7 @@
 #include "Samplers.hlsli"
 #include "CoordinatesFittedToScreen.hlsli"
 
-cbuffer cbRootConstants : register(b0) {
-	float2	gInvTexSize;
-	float	gAmount;
-}
+Sharpen_Default_RootConstants(b0)
 
 Texture2D<SDR_FORMAT> gi_BackBuffer : register(t0);
 
@@ -26,28 +23,28 @@ VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
 
 	vout.TexC = gTexCoords[vid];
 
-	float2 pos = float2(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y);
-	vout.PosH = float4(pos, 0, 1);
+	const float2 pos = float2(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y);
+	vout.PosH = float4(pos, 0.f, 1.f);
 
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target{
-	float neighbor = gAmount * -1;
-	float center = gAmount * 4 + 1;
+	const float neighbor = gAmount * -1.f;
+	const float center = gAmount * 4.f + 1.f;
 
-	float dx = gInvTexSize.x;
-	float dy = gInvTexSize.y;
+	const float dx = gInvTexSize.x;
+	const float dy = gInvTexSize.y;
 
-	float3 curr		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC, 0).rgb * center;
-	float3 up		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0,  dy), 0).rgb * neighbor;
-	float3 down		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0, -dy), 0).rgb * neighbor;
-	float3 left		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(-dx, 0), 0).rgb * neighbor;
-	float3 right	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2( dx, 0), 0).rgb * neighbor;
+	const float3 curr	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC,					  0.f).rgb * center;
+	const float3 up		= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0.f,  dy), 0.f).rgb * neighbor;
+	const float3 down	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(0.f, -dy), 0.f).rgb * neighbor;
+	const float3 left	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2(-dx, 0.f), 0.f).rgb * neighbor;
+	const float3 right	= gi_BackBuffer.SampleLevel(gsamLinearClamp, pin.TexC + float2( dx, 0.f), 0.f).rgb * neighbor;
 
-	float3 finalColor = curr + up + down + left + right;
+	const float3 finalColor = curr + up + down + left + right;
 
-	return float4(finalColor, 1);
+	return float4(finalColor, 1.f);
 }
 
 #endif // __SHARPEN_HLSL__

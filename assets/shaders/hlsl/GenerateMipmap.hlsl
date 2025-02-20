@@ -9,10 +9,7 @@
 #include "LightingUtil.hlsli"
 #include "ShadingHelpers.hlsli"
 
-cbuffer cbRootConstants : register(b0) {
-	float2 gInvTexSize;
-	float2 gInvMipmapTexSize;
-}
+MipmapGenerator_Default_RootConstants(b0)
 
 Texture2D<float4> gi_Input : register(t0);
 
@@ -27,32 +24,28 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
-
-	// Quad covering screen in NDC space.
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
 	return vout;
 }
 
 float4 PS_GenerateMipmap(VertexOut pin) : SV_Target {
-	float2 texc0 = pin.TexC;
-	float2 texc1 = pin.TexC + float2(gInvTexSize.x, 0);
-	float2 texc2 = pin.TexC + float2(0, gInvTexSize.y);
-	float2 texc3 = pin.TexC + float2(gInvTexSize.x, gInvTexSize.y);
+	const float2 texc0 = pin.TexC;
+	const float2 texc1 = pin.TexC + float2(gInvTexSize.x, 0.f);
+	const float2 texc2 = pin.TexC + float2(0.f, gInvTexSize.y);
+	const float2 texc3 = pin.TexC + float2(gInvTexSize.x, gInvTexSize.y);
 
-	float4 color0 = gi_Input.SampleLevel(gsamPointClamp, texc0, 0);
-	float4 color1 = gi_Input.SampleLevel(gsamPointClamp, texc1, 0);
-	float4 color2 = gi_Input.SampleLevel(gsamPointClamp, texc2, 0);
-	float4 color3 = gi_Input.SampleLevel(gsamPointClamp, texc3, 0);
+	const float4 color0 = gi_Input.SampleLevel(gsamPointClamp, texc0, 0);
+	const float4 color1 = gi_Input.SampleLevel(gsamPointClamp, texc1, 0);
+	const float4 color2 = gi_Input.SampleLevel(gsamPointClamp, texc2, 0);
+	const float4 color3 = gi_Input.SampleLevel(gsamPointClamp, texc3, 0);
 
-	float4 finalColor = (color0 + color1 + color2 + color3) * 0.25;
-
+	const float4 finalColor = (color0 + color1 + color2 + color3) * 0.25f;
 	return finalColor;
 }
 
 float4 PS_JustCopy(VertexOut pin) : SV_Target{
-	float4 color = gi_Input.SampleLevel(gsamPointClamp, pin.TexC, 0);
-	
+	const float4 color = gi_Input.SampleLevel(gsamPointClamp, pin.TexC, 0);	
 	return color;
 }
 

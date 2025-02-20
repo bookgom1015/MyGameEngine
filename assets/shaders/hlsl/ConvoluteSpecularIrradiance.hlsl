@@ -14,14 +14,11 @@
 
 #include "BRDF.hlsli"
 
-ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
+ConstantBuffer<ConstantBuffer_Irradiance>	cb_Irrad		: register(b0);
 
-cbuffer cbRootConstants : register(b1) {
-	uint	gMipLevel;
-	float	gRoughness;
-}
+IrradianceMap_ConvoluteSpecularIrradiance_RootConstants(b1)
 
-TextureCube<HDR_FORMAT> gi_Environment	: register(t0);
+TextureCube<HDR_FORMAT>						gi_Environment	: register(t0);
 
 #include "HardCodedCubeVertices.hlsli"
 
@@ -38,7 +35,7 @@ struct GeoOut {
 static const int SAMPLE_COUNT = 2048;
 
 VertexOut VS(uint vid : SV_VertexID) {
-	VertexOut vout;
+	VertexOut vout = (VertexOut)0;
 
 	vout.PosL = gVertices[vid];
 
@@ -50,13 +47,13 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	GeoOut gout = (GeoOut)0;
 
 	[unroll]
-	for (int face = 0; face < 6; ++face) {
-		float4x4 view = cb_Irrad.View[face];
+	for (uint face = 0; face < 6; ++face) {
+		const float4x4 view = cb_Irrad.View[face];
 		[unroll]
-		for (int i = 0; i < 3; ++i) {
-			float3 posL = gin[i].PosL;
-			float4 posV = mul(float4(posL, 1), view);
-			float4 posH = mul(posV, cb_Irrad.Proj);
+		for (uint i = 0; i < 3; ++i) {
+			const float3 posL = gin[i].PosL;
+			const float4 posV = mul(float4(posL, 1.f), view);
+			const float4 posH = mul(posV, cb_Irrad.Proj);
 
 			gout.PosL = posL;
 			gout.PosH = posH.xyww;
@@ -68,18 +65,17 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	}
 }
 
-float ChetanJagsMipLevel(float3 N, float3 V, float3 H, float roughness) {
-	float D = DistributionGGX(N, H, roughness);
-	float NdotH = max(dot(N, H), 0);
-	float HdotV = max(dot(H, V), 0);
-	float pdf = D * NdotH / (4 * HdotV) + 0.0001;
+float ChetanJagsMipLevel(in float3 N, in float3 V, in float3 H, in float roughness) {
+	const float D = DistributionGGX(N, H, roughness);
+	const float NdotH = max(dot(N, H), 0.f);
+	const float HdotV = max(dot(H, V), 0.f);
+	const float pdf = D * NdotH / (4.f * HdotV) + 0.0001f;
 
-	float resolution = 1024; // resolution of source cubemap (per face)
-	float saTexel = 4 * PI / (6 * resolution * resolution);
-	float saSample = 1 / (float(SAMPLE_COUNT) * pdf + 0.0001);
+	const float resolution2 = gResolution * gResolution;
+	const float saTexel = 4.f * PI / (6.f * resolution2);
+	const float saSample = 1.f / ((float)SAMPLE_COUNT * pdf + 0.0001f);
 
-	float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
-
+	const float mipLevel = roughness == 0.f ? 0.f : 0.5f * log2(saSample / saTexel);
 	return mipLevel;
 }
 
@@ -88,16 +84,16 @@ HDR_FORMAT PS(GeoOut pin) : SV_Target{
 	const float3 R = N;
 	const float3 V = R;
 
-	float totalWeight = 0;
-	float3 prefilteredColor = 0;
+	float totalWeight = 0.f;
+	float3 prefilteredColor = 0.f;
 
 	for (uint i = 0; i < SAMPLE_COUNT; ++i) {
 		const float2 Xi = Hammersley(i, SAMPLE_COUNT);
 		const float3 H = ImportanceSampleGGX(Xi, N, gRoughness);
-		const float3 L = normalize(2 * dot(V, H) * H - V);
+		const float3 L = normalize(2.f * dot(V, H) * H - V);
 
-		float NdotL = max(dot(N, L), 0);
-		if (NdotL > 0) {			
+		const float NdotL = max(dot(N, L), 0.f);
+		if (NdotL > 0.f) {			
 			const float mipLevel = ChetanJagsMipLevel(N, V, H, gRoughness);
 
 			prefilteredColor += gi_Environment.SampleLevel(gsamLinearClamp, L, mipLevel).rgb * NdotL;
@@ -106,7 +102,7 @@ HDR_FORMAT PS(GeoOut pin) : SV_Target{
 	}
 	prefilteredColor = prefilteredColor / totalWeight;
 
-	return float4(prefilteredColor, 1);
+	return float4(prefilteredColor, 1.f);
 }
 
 #endif // __CONVOLUTESPECULARIRRADIANCE_HLSL__

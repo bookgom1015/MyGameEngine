@@ -4,11 +4,11 @@
 
 BOOL GpuResource::Initialize(
 		ID3D12Device* const device,
-		const D3D12_HEAP_PROPERTIES* heapProp,
+		const D3D12_HEAP_PROPERTIES* const heapProp,
 		D3D12_HEAP_FLAGS heapFlag,
-		const D3D12_RESOURCE_DESC* rscDesc,
+		const D3D12_RESOURCE_DESC* const rscDesc,
 		D3D12_RESOURCE_STATES initialState,
-		const D3D12_CLEAR_VALUE* optClear,
+		const D3D12_CLEAR_VALUE* const optClear,
 		LPCWSTR name) {
 	CheckHRESULT(device->CreateCommittedResource(
 		heapProp,
@@ -22,7 +22,7 @@ BOOL GpuResource::Initialize(
 
 	mCurrState = initialState;
 
-	return true;
+	return TRUE;
 }
 
 BOOL GpuResource::OnResize(IDXGISwapChain* const swapChain, UINT index) {
@@ -30,7 +30,7 @@ BOOL GpuResource::OnResize(IDXGISwapChain* const swapChain, UINT index) {
 
 	mCurrState = D3D12_RESOURCE_STATE_PRESENT;
 
-	return true;
+	return TRUE;
 }
 
 void GpuResource::Swap(Microsoft::WRL::ComPtr<ID3D12Resource>& srcResource, D3D12_RESOURCE_STATES initialState) {

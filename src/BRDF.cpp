@@ -28,7 +28,7 @@ BRDFClass::BRDFClass() {
 	mCopiedBackBuffer = std::make_unique<GpuResource>();
 }
 
-BOOL BRDFClass::Initialize(ID3D12Device* device, ShaderManager*const manager, UINT width, UINT height) {
+BOOL BRDFClass::Initialize(Locker<ID3D12Device5>* const device, ShaderManager*const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -46,8 +46,8 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 				{ L"BLINN_PHONG", L"1" }
 			};
 
-			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
-			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_BlinnPhong));
 			CheckReturn(mShaderManager->CompileShader(psInfo, PS_BlinnPhong));
 		}
@@ -57,8 +57,8 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 				{ L"DXR", L"1" }
 			};
 
-			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
-			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DXR_BlinnPhong));
 			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DXR_BlinnPhong));
 		}
@@ -71,8 +71,8 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 				{ L"COOK_TORRANCE", L"1" }
 			};
 
-			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
-			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_CookTorrance));
 			CheckReturn(mShaderManager->CompileShader(psInfo, PS_CookTorrance));
 		}
@@ -82,16 +82,16 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 				{ L"DXR", L"1" }
 			};
 
-			auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
-			auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+			const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3", defines, _countof(defines));
+			const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 			CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DXR_CookTorrance));
 			CheckReturn(mShaderManager->CompileShader(psInfo, PS_DXR_CookTorrance));
 		}
 	}
 	{
 		const auto fullPath = filePath + L"IntegrateSpecular.hlsl";
-		auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+		const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_IntegrateSpecular));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_IntegrateSpecular));
 	}
@@ -100,31 +100,33 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// Intetrate diffuse
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcReflectanceEquation::Count];
+		CD3DX12_DESCRIPTOR_RANGE texTables[8] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1);
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[8];
-		// space0
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
-		// space1
-		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1);
-		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1);
+		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::CalcReflectanceEquation::Count] = {};
 		slotRootParameter[RootSignature::CalcReflectanceEquation::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Albedo].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Position].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Shadow].InitAsDescriptorTable(1, &texTables[7]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Albedo].InitAsDescriptorTable(	  1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Normal].InitAsDescriptorTable(	  1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Depth].InitAsDescriptorTable(		  1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_RMS].InitAsDescriptorTable(		  1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Position].InitAsDescriptorTable(	  1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_DiffuseIrrad].InitAsDescriptorTable(1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_AOCoeiff].InitAsDescriptorTable(	  1, &texTables[index++]);
+		slotRootParameter[RootSignature::CalcReflectanceEquation::ESI_Shadow].InitAsDescriptorTable(	  1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -132,35 +134,36 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_CalcReflectanceEquation]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_CalcReflectanceEquation]));
 	}
 	// Integrate specular
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::IntegrateSpecular::Count];
+		CD3DX12_DESCRIPTOR_RANGE texTables[10] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0);
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[10];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0);
-		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0);
-		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7, 0);
-		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8, 0);
-		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9, 0);
+		index = 0;
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::IntegrateSpecular::Count] = {};
 		slotRootParameter[RootSignature::IntegrateSpecular::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Albedo].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Normal].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Depth].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_RMS].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Position].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_AOCoeiff].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[8]);
-		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Reflection].InitAsDescriptorTable(1, &texTables[9]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BackBuffer].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Albedo].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Normal].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Depth].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_RMS].InitAsDescriptorTable(			1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Position].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_AOCoeiff].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Prefiltered].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_BrdfLUT].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::IntegrateSpecular::ESI_Reflection].InitAsDescriptorTable(	1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -168,28 +171,31 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_IntegrateSpecular]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_IntegrateSpecular]));
 	}
 
 	return TRUE;
 }
 
 BOOL BRDFClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	const auto& diffuseRootSig = mRootSignatures[RootSignature::E_CalcReflectanceEquation].Get();
 	{
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(VS_BlinnPhong);
-				auto ps = mShaderManager->GetDxcShader(PS_BlinnPhong);
+				const auto vs = mShaderManager->GetDxcShader(VS_BlinnPhong);
+				const auto ps = mShaderManager->GetDxcShader(PS_BlinnPhong);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+			CheckHRESULT(device->CreateGraphicsPipelineState(
 				&psoDesc, 
 				IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::Type::E_BlinnPhong]))
 			);
@@ -198,15 +204,15 @@ BOOL BRDFClass::BuildPSO() {
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(VS_CookTorrance);
-				auto ps = mShaderManager->GetDxcShader(PS_CookTorrance);
+				const auto vs = mShaderManager->GetDxcShader(VS_CookTorrance);
+				const auto ps = mShaderManager->GetDxcShader(PS_CookTorrance);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+			CheckHRESULT(device->CreateGraphicsPipelineState(
 				&psoDesc, 
 				IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::Type::E_CookTorrance]))
 			);
@@ -217,15 +223,15 @@ BOOL BRDFClass::BuildPSO() {
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(VS_DXR_BlinnPhong);
-				auto ps = mShaderManager->GetDxcShader(PS_DXR_BlinnPhong);
+				const auto vs = mShaderManager->GetDxcShader(VS_DXR_BlinnPhong);
+				const auto ps = mShaderManager->GetDxcShader(PS_DXR_BlinnPhong);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+			CheckHRESULT(device->CreateGraphicsPipelineState(
 				&psoDesc, 
 				IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::Type::E_BlinnPhong]))
 			);
@@ -234,15 +240,15 @@ BOOL BRDFClass::BuildPSO() {
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 			psoDesc.pRootSignature = diffuseRootSig;
 			{
-				auto vs = mShaderManager->GetDxcShader(VS_DXR_CookTorrance);
-				auto ps = mShaderManager->GetDxcShader(PS_DXR_CookTorrance);
+				const auto vs = mShaderManager->GetDxcShader(VS_DXR_CookTorrance);
+				const auto ps = mShaderManager->GetDxcShader(PS_DXR_CookTorrance);
 				psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+			CheckHRESULT(device->CreateGraphicsPipelineState(
 				&psoDesc, 
 				IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::Type::E_CookTorrance]))
 			);
@@ -252,15 +258,15 @@ BOOL BRDFClass::BuildPSO() {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 		psoDesc.pRootSignature = mRootSignatures[RootSignature::E_IntegrateSpecular].Get();
 		{
-			auto vs = mShaderManager->GetDxcShader(VS_IntegrateSpecular);
-			auto ps = mShaderManager->GetDxcShader(PS_IntegrateSpecular);
+			const auto vs = mShaderManager->GetDxcShader(VS_IntegrateSpecular);
+			const auto ps = mShaderManager->GetDxcShader(PS_IntegrateSpecular);
 			psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 			psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 		}
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(
+		CheckHRESULT(device->CreateGraphicsPipelineState(
 			&psoDesc,
 			IID_PPV_ARGS(&mIntegrateSpecularPSO))
 		);
@@ -269,14 +275,29 @@ BOOL BRDFClass::BuildPSO() {
 	return TRUE;
 }
 
-void BRDFClass::BuildDescriptors(
+void BRDFClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		UINT descSize) {
 	mhCopiedBackBufferSrvCpu = hCpu.Offset(1, descSize);
 	mhCopiedBackBufferSrvGpu = hGpu.Offset(1, descSize);
+}
 
-	BuildDescriptors();
+BOOL BRDFClass::BuildDescriptors() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Format = HDR_FORMAT;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	device->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferSrvCpu);
+
+	return TRUE;
 }
 
 BOOL BRDFClass::OnResize(UINT width, UINT height) {
@@ -287,10 +308,10 @@ BOOL BRDFClass::OnResize(UINT width, UINT height) {
 }
 
 void BRDFClass::CalcReflectanceWithoutSpecIrrad(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
@@ -332,7 +353,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
@@ -358,7 +379,7 @@ void BRDFClass::IntegrateSpecularIrrad(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	mCopiedBackBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::IntegrateSpecular::ECB_Pass, cb_pass);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::IntegrateSpecular::ESI_BackBuffer, mhCopiedBackBufferSrvGpu);
@@ -378,19 +399,10 @@ void BRDFClass::IntegrateSpecularIrrad(
 	cmdList->DrawInstanced(6, 1, 0, 0);
 }
 
-void BRDFClass::BuildDescriptors() {
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Format = HDR_FORMAT;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	srvDesc.Texture2D.MipLevels = 1;
-
-	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferSrvCpu);
-}
-
 BOOL BRDFClass::BuildResources(UINT width, UINT height) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Width = width;
@@ -405,7 +417,7 @@ BOOL BRDFClass::BuildResources(UINT width, UINT height) {
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
 	CheckReturn(mCopiedBackBuffer->Initialize(
-		md3dDevice,
+		device,
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&rscDesc,

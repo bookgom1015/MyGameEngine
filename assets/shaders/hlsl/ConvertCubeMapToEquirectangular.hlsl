@@ -17,9 +17,7 @@
 
 TextureCube<float3> gi_Cube : register(t0);
 
-cbuffer cbRootConstants : register(b0) {
-	uint gMipLevel;
-}
+EquirectangularConverter_ConvCubeToEquirect_RootConstants(b0)
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -32,18 +30,15 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
-
-	// Quad covering screen in NDC space.
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
 	return vout;
 }
 
-float4 PS(VertexOut pin) : SV_Target{
-	float3 sampVec = Equirectangular::SphericalToCartesian(pin.TexC);
-	float3 samp = gi_Cube.SampleLevel(gsamLinearClamp, sampVec, gMipLevel);
-
-	return float4(samp, 1);
+HDR_FORMAT PS(VertexOut pin) : SV_Target{
+	const float3 sampVec = Equirectangular::SphericalToCartesian(pin.TexC);
+	const float3 samp = gi_Cube.SampleLevel(gsamLinearClamp, sampVec, gMipLevel);
+	return float4(samp, 1.f);
 }
 
 #endif // __CONVERTECUBEMAPEQUIRECTANGULAR_HLSL__

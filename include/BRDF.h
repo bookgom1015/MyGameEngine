@@ -6,6 +6,7 @@
 #include <wrl.h>
 
 #include "Samplers.h"
+#include "Locker.h"
 
 class ShaderManager;
 class GpuResource;
@@ -78,21 +79,22 @@ namespace BRDF {
 		virtual ~BRDFClass() = default;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
+		BOOL Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			UINT descSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 		void CalcReflectanceWithoutSpecIrrad(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			GpuResource* backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
@@ -109,7 +111,7 @@ namespace BRDF {
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
-			GpuResource* backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_albedo,
@@ -123,14 +125,13 @@ namespace BRDF {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_ssr);
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 	public:
 		Model::Type ModelType = Model::E_CookTorrance;
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;

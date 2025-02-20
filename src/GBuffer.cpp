@@ -29,8 +29,8 @@ GBufferClass::GBufferClass() {
 	mPositionMap = std::make_unique<GpuResource>();
 }
 
-BOOL GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height, 
-		ShaderManager*const manager, GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv) {
+BOOL GBufferClass::Initialize(Locker<ID3D12Device5>* const device, UINT width, UINT height,
+		ShaderManager* const manager, GpuResource* const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -44,8 +44,8 @@ BOOL GBufferClass::Initialize(ID3D12Device*const device, UINT width, UINT height
 
 BOOL GBufferClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"GBuffer.hlsl";
-	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+	const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+	const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
 	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_GBuffer));
 	CheckReturn(mShaderManager->CompileShader(psInfo, PS_GBuffer));
 
@@ -53,16 +53,20 @@ BOOL GBufferClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignatureLayout::Count];
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[1];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0);
+	CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0);
 
-	slotRootParameter[RootSignatureLayout::ECB_Pass].InitAsConstantBufferView(0);
-	slotRootParameter[RootSignatureLayout::ECB_Obj].InitAsConstantBufferView(1);
-	slotRootParameter[RootSignatureLayout::ECB_Mat].InitAsConstantBufferView(2);
-	slotRootParameter[RootSignatureLayout::EC_Consts].InitAsConstants(RootSignatureLayout::RootConstant::Count, 3);
-	slotRootParameter[RootSignatureLayout::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[0]);
+	index = 0;
+
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
+	slotRootParameter[RootSignature::Default::ECB_Pass].InitAsConstantBufferView(0);
+	slotRootParameter[RootSignature::Default::ECB_Obj].InitAsConstantBufferView(1);
+	slotRootParameter[RootSignature::Default::ECB_Mat].InitAsConstantBufferView(2);
+	slotRootParameter[RootSignature::Default::EC_Consts].InitAsConstants(RootConstant::Default::Count, 3);
+	slotRootParameter[RootSignature::Default::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[index++]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -70,18 +74,21 @@ BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
 
-	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
+	CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature));
 
 	return TRUE;
 }
 
 BOOL GBufferClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = Vertex::InputLayoutDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_GBuffer);
-		auto ps = mShaderManager->GetDxcShader(PS_GBuffer);
+		const auto vs = mShaderManager->GetDxcShader(VS_GBuffer);
+		const auto ps = mShaderManager->GetDxcShader(PS_GBuffer);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
@@ -102,13 +109,13 @@ BOOL GBufferClass::BuildPSO() {
 	psoDesc.RTVFormats[6] = PositionMapFormat;
 	psoDesc.DSVFormat = DepthStencilBuffer::BufferFormat;
 
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+	CheckHRESULT(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
 
 	return TRUE;
 }
 
 void GBufferClass::Run(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
@@ -148,14 +155,19 @@ void GBufferClass::Run(
 	};
 	
 	cmdList->OMSetRenderTargets(static_cast<UINT>(renderTargets.size()), renderTargets.data(), TRUE, &mhDepthMapCpuDsv);
-	cmdList->ClearDepthStencilView(mhDepthMapCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	cmdList->ClearDepthStencilView(mhDepthMapCpuDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.f, 0, 0, nullptr);
 	
-	cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Pass, cb_pass);
+	cmdList->SetGraphicsRootConstantBufferView(RootSignature::Default::ECB_Pass, cb_pass);
 
-	float values[RootSignatureLayout::RootConstant::Count] = { maxDist, minDist };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignatureLayout::EC_Consts, _countof(values), values, 0);
+	RootConstant::Default::Struct rc;
+	rc.gMaxDistance = maxDist;
+	rc.gMinDistance = minDist;
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignatureLayout::ESI_TexMaps, si_texMaps);
+	std::array<std::uint32_t, RootConstant::Default::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::Default::Struct));
+
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::Default::EC_Consts, RootConstant::Default::Count, consts.data(), 0);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_TexMaps, si_texMaps);
 	
 	DrawRenderItems(cmdList, ritems, cb_obj, cb_mat, objCBByteSize, matCBByteSize);
 	
@@ -170,7 +182,7 @@ void GBufferClass::Run(
 }
 
 
-void GBufferClass::BuildDescriptors(
+void GBufferClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
@@ -207,24 +219,18 @@ void GBufferClass::BuildDescriptors(
 
 	mhPositionMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhPositionMapGpuSrv = hGpuSrv.Offset(1, descSize);
-	mhPositionMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);	
-
-	BuildDescriptors();
+	mhPositionMapCpuRtv = hCpuRtv.Offset(1, rtvDescSize);
 }
 
-BOOL GBufferClass::OnResize(UINT width, UINT height) {
-	CheckReturn(BuildResources(width, height));
-	BuildDescriptors();
+BOOL GBufferClass::BuildDescriptors() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
 
-	return TRUE;
-}
-
-void GBufferClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	srvDesc.Texture2D.MipLevels = 1;
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -235,56 +241,68 @@ void GBufferClass::BuildDescriptors() {
 	{
 		srvDesc.Format = AlbedoMapFormat;
 		rtvDesc.Format = AlbedoMapFormat;
-		md3dDevice->CreateShaderResourceView(mAlbedoMap->Resource(), &srvDesc, mhAlbedoMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mAlbedoMap->Resource(), &rtvDesc, mhAlbedoMapCpuRtv);
+		device->CreateShaderResourceView(mAlbedoMap->Resource(), &srvDesc, mhAlbedoMapCpuSrv);
+		device->CreateRenderTargetView(mAlbedoMap->Resource(), &rtvDesc, mhAlbedoMapCpuRtv);
 	}
 	{
 		srvDesc.Format = NormalMapFormat;
 		rtvDesc.Format = NormalMapFormat;
-		md3dDevice->CreateShaderResourceView(mNormalMap->Resource(), &srvDesc, mhNormalMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mNormalMap->Resource(), &rtvDesc, mhNormalMapCpuRtv);
+		device->CreateShaderResourceView(mNormalMap->Resource(), &srvDesc, mhNormalMapCpuSrv);
+		device->CreateRenderTargetView(mNormalMap->Resource(), &rtvDesc, mhNormalMapCpuRtv);
 	}
 	{
 		srvDesc.Format = NormalDepthMapFormat;
 		rtvDesc.Format = NormalDepthMapFormat;
-		md3dDevice->CreateShaderResourceView(mNormalDepthMap->Resource(), &srvDesc, mhNormalDepthMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mNormalDepthMap->Resource(), &rtvDesc, mhNormalDepthMapCpuRtv);
+		device->CreateShaderResourceView(mNormalDepthMap->Resource(), &srvDesc, mhNormalDepthMapCpuSrv);
+		device->CreateRenderTargetView(mNormalDepthMap->Resource(), &rtvDesc, mhNormalDepthMapCpuRtv);
 
-		md3dDevice->CreateShaderResourceView(mReprojNormalDepthMap->Resource(), &srvDesc, mhReprojNormalDepthMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mReprojNormalDepthMap->Resource(), &rtvDesc, mhReprojNormalDepthMapCpuRtv);
+		device->CreateShaderResourceView(mReprojNormalDepthMap->Resource(), &srvDesc, mhReprojNormalDepthMapCpuSrv);
+		device->CreateRenderTargetView(mReprojNormalDepthMap->Resource(), &rtvDesc, mhReprojNormalDepthMapCpuRtv);
 
-		md3dDevice->CreateShaderResourceView(mPrevNormalDepthMap->Resource(), &srvDesc, mhPrevNormalDepthMapCpuSrv);
+		device->CreateShaderResourceView(mPrevNormalDepthMap->Resource(), &srvDesc, mhPrevNormalDepthMapCpuSrv);
 	}
 	{
 		srvDesc.Format = DepthMapFormat;
-		md3dDevice->CreateShaderResourceView(mDepthMap->Resource(), &srvDesc, mhDepthMapCpuSrv);
+		device->CreateShaderResourceView(mDepthMap->Resource(), &srvDesc, mhDepthMapCpuSrv);
 	}
 	{
 		srvDesc.Format = RMSMapFormat;
 		rtvDesc.Format = RMSMapFormat;
-		md3dDevice->CreateShaderResourceView(mRMSMap->Resource(), &srvDesc, mhRMSMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mRMSMap->Resource(), &rtvDesc, mhRMSMapCpuRtv);
+		device->CreateShaderResourceView(mRMSMap->Resource(), &srvDesc, mhRMSMapCpuSrv);
+		device->CreateRenderTargetView(mRMSMap->Resource(), &rtvDesc, mhRMSMapCpuRtv);
 	}
 	{
 		srvDesc.Format = VelocityMapFormat;
 		rtvDesc.Format = VelocityMapFormat;
-		md3dDevice->CreateShaderResourceView(mVelocityMap->Resource(), &srvDesc, mhVelocityMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mVelocityMap->Resource(), &rtvDesc, mhVelocityMapCpuRtv);
+		device->CreateShaderResourceView(mVelocityMap->Resource(), &srvDesc, mhVelocityMapCpuSrv);
+		device->CreateRenderTargetView(mVelocityMap->Resource(), &rtvDesc, mhVelocityMapCpuRtv);
 	}
 	{
 		srvDesc.Format = PositionMapFormat;
 		rtvDesc.Format = PositionMapFormat;
-		md3dDevice->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
+		device->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
+		device->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
 	}
 	{
 		srvDesc.Format = PositionMapFormat;
-		md3dDevice->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
-		md3dDevice->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
+		device->CreateShaderResourceView(mPositionMap->Resource(), &srvDesc, mhPositionMapCpuSrv);
+		device->CreateRenderTargetView(mPositionMap->Resource(), &rtvDesc, mhPositionMapCpuRtv);
 	}
+
+	return TRUE;
+}
+
+BOOL GBufferClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
+
+	return TRUE;
 }
 
 BOOL GBufferClass::BuildResources(UINT width, UINT height) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;
@@ -302,10 +320,10 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		{
 			rscDesc.Format = AlbedoMapFormat;
 
-			CD3DX12_CLEAR_VALUE optClear(AlbedoMapFormat, AlbedoMapClearValues);
+			const CD3DX12_CLEAR_VALUE optClear(AlbedoMapFormat, AlbedoMapClearValues);
 
 			CheckReturn(mAlbedoMap->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,
@@ -317,10 +335,10 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		{
 			rscDesc.Format = NormalMapFormat;
 
-			CD3DX12_CLEAR_VALUE optClear(NormalMapFormat, NormalMapClearValues);
+			const CD3DX12_CLEAR_VALUE optClear(NormalMapFormat, NormalMapClearValues);
 
 			CheckReturn(mNormalMap->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,
@@ -333,10 +351,10 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 			rscDesc.Format = NormalDepthMapFormat;
 
 			{
-				CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, NormalDepthMapClearValues);
+				const CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, NormalDepthMapClearValues);
 
 				CheckReturn(mNormalDepthMap->Initialize(
-					md3dDevice,
+					device,
 					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 					D3D12_HEAP_FLAG_NONE,
 					&rscDesc,
@@ -349,7 +367,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 				CD3DX12_CLEAR_VALUE optClear(NormalDepthMapFormat, ReprojNormalDepthMapClearValues);
 
 				CheckReturn(mReprojNormalDepthMap->Initialize(
-					md3dDevice,
+					device,
 					&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 					D3D12_HEAP_FLAG_NONE,
 					&rscDesc,
@@ -362,10 +380,10 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		{
 			rscDesc.Format = RMSMapFormat;
 
-			CD3DX12_CLEAR_VALUE optClear(RMSMapFormat, RMSMapClearValues);
+			const CD3DX12_CLEAR_VALUE optClear(RMSMapFormat, RMSMapClearValues);
 
 			CheckReturn(mRMSMap->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,
@@ -377,10 +395,10 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		{
 			rscDesc.Format = VelocityMapFormat;
 
-			CD3DX12_CLEAR_VALUE optClear(VelocityMapFormat, VelocityMapClearValues);
+			const CD3DX12_CLEAR_VALUE optClear(VelocityMapFormat, VelocityMapClearValues);
 
 			CheckReturn(mVelocityMap->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,
@@ -392,10 +410,10 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		{
 			rscDesc.Format = PositionMapFormat;
 
-			CD3DX12_CLEAR_VALUE optClear(PositionMapFormat, PositionMapClearValues);
+			const CD3DX12_CLEAR_VALUE optClear(PositionMapFormat, PositionMapClearValues);
 
 			CheckReturn(mPositionMap->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,
@@ -410,7 +428,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 		rscDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
 		CheckReturn(mPrevNormalDepthMap->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
@@ -424,7 +442,7 @@ BOOL GBufferClass::BuildResources(UINT width, UINT height) {
 }
 
 void GBufferClass::DrawRenderItems(
-		ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
+		ID3D12GraphicsCommandList* const cmdList, const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_obj, D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 		UINT objCBByteSize, UINT matCBByteSize) {
 	
@@ -435,12 +453,12 @@ void GBufferClass::DrawRenderItems(
 		cmdList->IASetIndexBuffer(&ri->Geometry->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + ri->ObjCBIndex * objCBByteSize;
-		cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Obj, currRitemObjCBAddress);
+		const D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + static_cast<UINT64>(ri->ObjCBIndex) * static_cast<UINT64>(objCBByteSize);
+		cmdList->SetGraphicsRootConstantBufferView(RootSignature::Default::ECB_Obj, currRitemObjCBAddress);
 
 		if (ri->Material != nullptr) {
-			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = cb_mat + ri->Material->MatCBIndex * matCBByteSize;
-			cmdList->SetGraphicsRootConstantBufferView(RootSignatureLayout::ECB_Mat, currRitemMatCBAddress);
+			const D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = cb_mat + static_cast<UINT64>(ri->Material->MatCBIndex) * static_cast<UINT64>(matCBByteSize);
+			cmdList->SetGraphicsRootConstantBufferView(RootSignature::Default::ECB_Mat, currRitemMatCBAddress);
 		}
 
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);

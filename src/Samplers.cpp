@@ -39,7 +39,7 @@ StaticSamplers Samplers::GetStaticSamplers() {
 		D3D12_TEXTURE_ADDRESS_MODE_WRAP,	// addressU
 		D3D12_TEXTURE_ADDRESS_MODE_WRAP,	// addressV
 		D3D12_TEXTURE_ADDRESS_MODE_WRAP,	// addressW
-		0.0f,								// mipLODBias
+		0.f,								// mipLODBias
 		8									// maxAnisotropy
 	);
 
@@ -49,7 +49,7 @@ StaticSamplers Samplers::GetStaticSamplers() {
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,	// addressU
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,	// addressV
 		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,	// addressW
-		0.0f,								// mipLODBias
+		0.f,								// mipLODBias
 		8									// maxAnisotropy
 	);
 
@@ -59,7 +59,7 @@ StaticSamplers Samplers::GetStaticSamplers() {
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,	// addressU
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,	// addressV
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,	// addressW
-		0.0f,								// mipLODBias
+		0.f,								// mipLODBias
 		8,									// maxAnisotropy
 		D3D12_COMPARISON_FUNC_ALWAYS,
 		D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK
@@ -71,7 +71,7 @@ StaticSamplers Samplers::GetStaticSamplers() {
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,	// addressU
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,	// addressV
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,	// addressW
-		0.0f,								// mipLODBias
+		0.f,								// mipLODBias
 		0,									// maxAnisotropy
 		D3D12_COMPARISON_FUNC_LESS_EQUAL,
 		D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE
@@ -83,7 +83,7 @@ StaticSamplers Samplers::GetStaticSamplers() {
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,					// addressU
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,					// addressV
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,					// addressW
-		0.0f,												// mipLODBias
+		0.f,												// mipLODBias
 		16,													// maxAnisotropy
 		D3D12_COMPARISON_FUNC_LESS_EQUAL,
 		D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE

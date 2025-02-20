@@ -35,6 +35,9 @@
 #include "SVGF.h"
 #include "EquirectangularConverter.h"
 #include "VolumetricLight.h"
+#include "TaskQueue.h"
+#include "HWInfo.h"
+#include "ShaderArgument.h"
 
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_win32.h>
@@ -48,172 +51,13 @@ using namespace DirectX::PackedVector;
 
 namespace {
 	const std::wstring ShaderFilePath = L".\\..\\..\\assets\\shaders\\hlsl\\";
-}
 
-namespace ShaderArgs {
-	namespace GBuffer {
-		namespace Dither {
-			FLOAT MaxDistance = 0.5f;
-			FLOAT MinDistance = 0.1f;
-		}
-	}
-
-	namespace Bloom {
-		FLOAT HighlightThreshold = 0.99f;
-		INT BlurCount = 3;
-	}
-
-	namespace DepthOfField {
-		FLOAT FocusRange = 8.f;
-		FLOAT FocusingSpeed = 8.f;
-		FLOAT BokehRadius = 2.f;
-		FLOAT CoCMaxDevTolerance = 0.8f;
-		FLOAT HighlightPower = 4.f;
-		INT   SampleCount = 4;
-		UINT  BlurCount = 1;
-	}
-
-	namespace SSR {
-		FLOAT MaxDistance = 32.f;
-		INT BlurCount = 3;
-
-		namespace View {
-			FLOAT RayLength = 0.5f;
-			FLOAT NoiseIntensity = 0.01f;
-			INT StepCount = 16;
-			INT BackStepCount = 8;
-			FLOAT DepthThreshold = 1.f;
-		}
-		
-		namespace Screen {
-			FLOAT Resolution = 0.25f;
-			FLOAT Thickness = 0.5f;
-		}
-	}
-
-	namespace MotionBlur {
-		FLOAT Intensity = 0.01f;
-		FLOAT Limit = 0.005f;
-		FLOAT DepthBias = 0.05f;
-		INT SampleCount = 10;
-	}
-
-	namespace TemporalAA {
-		FLOAT ModulationFactor = 0.8f;
-	}
-
-	namespace SSAO {
-		INT SampleCount = 14;
-		INT BlurCount = 3;
-	}
-
-	namespace ToneMapping {
-		FLOAT Exposure = 1.4f;
-	}
-
-	namespace GammaCorrection {
-		FLOAT Gamma = 2.2f;
-	}
-
-	namespace DxrShadowMap {
-		INT BlurCount = 3;
-	}
-
-	namespace Debug {
-		BOOL ShowCollisionBox = FALSE;
-	}
-
-	namespace IrradianceMap {
-		BOOL ShowIrradianceCubeMap = FALSE;
-		FLOAT MipLevel = 0.f;
-	}
-
-	namespace Pixelization {
-		FLOAT PixelSize = 5.f;
-	}
-
-	namespace Sharpen {
-		FLOAT Amount = 0.8f;
-	}
-
-	namespace SVGF {
-		BOOL QuarterResolutionAO = FALSE;
-
-		BOOL CheckerboardGenerateRaysForEvenPixels = FALSE;
-		BOOL CheckerboardSamplingEnabled = FALSE;
-
-		namespace TemporalSupersampling {
-			UINT MaxTspp = 33;
-
-			namespace ClampCachedValues {
-				BOOL UseClamping = TRUE;
-				FLOAT StdDevGamma = 0.6f;
-				FLOAT MinStdDevTolerance = 0.05f;
-				FLOAT DepthSigma = 1.f;
-			}
-
-			FLOAT ClampDifferenceToTsppScale = 4.f;
-			UINT MinTsppToUseTemporalVariance = 4;
-			UINT LowTsppMaxTspp = 12;
-			FLOAT LowTsppDecayConstant = 1.f;
-		}
-
-		namespace AtrousWaveletTransformFilter {
-			FLOAT ValueSigma = 1.f;
-			FLOAT DepthSigma = 1.f;
-			FLOAT DepthWeightCutoff = 0.2f;
-			FLOAT NormalSigma = 64.f;
-			FLOAT MinVarianceToDenoise = 0.f;
-			BOOL UseSmoothedVariance = FALSE;
-			BOOL PerspectiveCorrectDepthInterpolation = TRUE;
-			BOOL UseAdaptiveKernelSize = TRUE;
-			BOOL KernelRadiusRotateKernelEnabled = TRUE;
-			INT KernelRadiusRotateKernelNumCycles = 3;
-			INT FilterMinKernelWidth = 3;
-			FLOAT FilterMaxKernelWidthPercentage = 1.5f;
-			FLOAT AdaptiveKernelSizeRayHitDistanceScaleFactor = 0.02f;
-			FLOAT AdaptiveKernelSizeRayHitDistanceScaleExponent = 2.f;
-
-		}
-	}
-
-	namespace RTAO {
-		FLOAT OcclusionRadius = 22.f;
-		FLOAT OcclusionFadeStart = 1.f;
-		FLOAT OcclusionFadeEnd = 22.f;
-		FLOAT OcclusionEpsilon = 0.05f;
-		UINT SampleCount = 2;
-
-		namespace Denoiser {
-			BOOL UseSmoothingVariance = TRUE;
-			BOOL FullscreenBlur = TRUE;
-			BOOL DisocclusionBlur = TRUE;
-			UINT LowTsppBlurPasses = 3;
-		}
-	}
-
-	namespace RaytracedReflection {
-		BOOL CheckerboardSamplingEnabled = FALSE;
-
-		FLOAT ReflectionRadius = 22.f;
-
-		namespace Denoiser {
-			BOOL UseSmoothingVariance = TRUE;
-			BOOL FullscreenBlur = TRUE;
-			BOOL DisocclusionBlur = TRUE;
-			UINT LowTsppBlurPasses = 4;
-		}
-	}
-
-	namespace VolumetricLight {
-		FLOAT DepthExponent = 4.f;
-		FLOAT UniformDensity = 0.1f;
-		FLOAT AnisotropicCoefficient = 0.f;
-		FLOAT DensityScale = 0.01f;
-	}
+	HWInfo::Processor ProcessorInfo;
 }
 
 DxRenderer::DxRenderer() {
+	mLocker = std::make_unique<Locker<ID3D12Device5>>();
+
 	mMainPassCB = std::make_unique<ConstantBuffer_Pass>();
 	mShaderManager = std::make_unique<ShaderManager>();
 	mImGui = std::make_unique<ImGuiManager>();
@@ -250,11 +94,6 @@ DxRenderer::DxRenderer() {
 	const FLOAT widthSquared = 32.f * 32.f;
 	mSceneBounds.Radius = sqrtf(widthSquared + widthSquared);
 
-	auto blurWeights = BlurFilter::CalcGaussWeights(2.5f);
-	mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
-	mBlurWeights[1] = XMFLOAT4(&blurWeights[4]);
-	mBlurWeights[2] = XMFLOAT4(&blurWeights[8]);
-
 	mHaltonSequence = {
 		XMFLOAT2(0.5f, 0.333333f),
 		XMFLOAT2(0.25f, 0.666667f),
@@ -285,62 +124,62 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 
 	CheckReturn(LowInitialize(hwnd, width, height));
 
-	const auto device = md3dDevice.Get();
-	mGraphicsMemory = std::make_unique<GraphicsMemory>(device);
+	HWInfo::GetProcessorInfo(ProcessorInfo);
 
-	const auto cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+	auto device = md3dDevice.Get();
+	mGraphicsMemory = std::make_unique<GraphicsMemory>(device);
+	mLocker->PutIn(device);
 
 	const auto shaderManager = mShaderManager.get();
-		
-	CheckReturn(mShaderManager->Initialize());
-	CheckReturn(mImGui->Initialize(mhMainWnd, device, mCbvSrvUavHeap.Get(), SwapChainBufferCount, SwapChainBuffer::BackBufferFormat));
-	
+	const auto locker = mLocker.get();
+
 #ifdef _DEBUG
 	WLogln(L"Initializing shading components...");
 #endif
-	CheckReturn(mBRDF->Initialize(device, shaderManager, width, height));
-	CheckReturn(mGBuffer->Initialize(device, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()));
-	CheckReturn(mShadow->Initialize(device, shaderManager, width, height, 2048, 2048));
-	CheckReturn(mZDepth->Initialize(device, 2048, 2048));
-	CheckReturn(mSSAO->Initialize(device, cmdList, shaderManager, width, height, SSAO::Resolution::E_Quarter));
-	CheckReturn(mBlurFilter->Initialize(device, shaderManager));
-	CheckReturn(mBloom->Initialize(device, shaderManager, width, height, Bloom::Resolution::E_OneSixteenth));
-	CheckReturn(mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter));
-	CheckReturn(mDoF->Initialize(device, shaderManager, cmdList, width, height));
-	CheckReturn(mMotionBlur->Initialize(device, shaderManager, width, height));
-	CheckReturn(mTAA->Initialize(device, shaderManager, width, height));
-	CheckReturn(mDebug->Initialize(device, shaderManager));
-	CheckReturn(mBlurFilterCS->Initialize(device, shaderManager));
-	CheckReturn(mDebugCollision->Initialize(device, shaderManager));
-	CheckReturn(mGammaCorrection->Initialize(device, shaderManager, width, height));
-	CheckReturn(mToneMapping->Initialize(device, shaderManager, width, height));
-	CheckReturn(mIrradianceMap->Initialize(device, cmdList, shaderManager));
-	CheckReturn(mMipmapGenerator->Initialize(device, cmdList, shaderManager));
-	CheckReturn(mPixelation->Initialize(device, shaderManager, width, height));
-	CheckReturn(mSharpen->Initialize(device, shaderManager, width, height));
-	CheckReturn(mGaussianFilter->Initialize(device, shaderManager));
-	CheckReturn(mDxrShadow->Initialize(device, cmdList, shaderManager, width, height));
-	CheckReturn(mRTAO->Initialize(device, shaderManager, width, height));
-	CheckReturn(mRR->Initialize(device, cmdList, shaderManager, width, height));
-	CheckReturn(mSVGF->Initialize(device, shaderManager, width, height));
-	CheckReturn(mEquirectangularConverter->Initialize(device, shaderManager));
-	CheckReturn(mVolumetricLight->Initialize(device, shaderManager, width, height, 160, 90, 128));
+
+	CheckReturn(mShaderManager->Initialize());
+	CheckReturn(mImGui->Initialize(mhMainWnd, device, mCbvSrvUavHeap.Get(), SwapChainBufferCount, SwapChainBuffer::BackBufferFormat));
+
+	TaskQueue taskQueue;
+	taskQueue.AddTask([&] { return mBRDF->Initialize(locker, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mGBuffer->Initialize(locker, width, height, shaderManager, mDepthStencilBuffer->Resource(), mDepthStencilBuffer->Dsv()); });
+	taskQueue.AddTask([&] { return mShadow->Initialize(locker, shaderManager, width, height, 2048, 2048); });
+	taskQueue.AddTask([&] { return mZDepth->Initialize(locker, 2048, 2048); });
+	taskQueue.AddTask([&] { return mSSAO->Initialize(locker, shaderManager, width, height, SSAO::Resolution::E_Quarter); });
+	taskQueue.AddTask([&] { return mBlurFilter->Initialize(locker, shaderManager); });
+	taskQueue.AddTask([&] { return mBlurFilterCS->Initialize(locker, shaderManager); });
+	taskQueue.AddTask([&] { return mBloom->Initialize(locker, shaderManager, width, height, Bloom::Resolution::E_OneSixteenth); });
+	taskQueue.AddTask([&] { return mSSR->Initialize(device, shaderManager, width, height, SSR::Resolution::E_Quarter); });
+	taskQueue.AddTask([&] { return mDoF->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mMotionBlur->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mTAA->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mDebug->Initialize(device, shaderManager); });
+	taskQueue.AddTask([&] { return mDebugCollision->Initialize(device, shaderManager); });
+	taskQueue.AddTask([&] { return mGammaCorrection->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mToneMapping->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mIrradianceMap->Initialize(device, shaderManager); });
+	taskQueue.AddTask([&] { return mMipmapGenerator->Initialize(device, shaderManager); });
+	taskQueue.AddTask([&] { return mPixelation->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mSharpen->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mGaussianFilter->Initialize(device, shaderManager); });
+	taskQueue.AddTask([&] { return mDxrShadow->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mRTAO->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mRR->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mSVGF->Initialize(device, shaderManager, width, height); });
+	taskQueue.AddTask([&] { return mEquirectangularConverter->Initialize(device, shaderManager); });	
+	taskQueue.AddTask([&] { return mVolumetricLight->Initialize(locker, shaderManager, width, height, 160, 90, 128); });
+	CheckReturn(taskQueue.Run(1));
 
 #ifdef _DEBUG
 	WLogln(L"Finished initializing shading components \n");
 #endif
-	
-	CheckHRESULT(cmdList->Close());
-	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
-	CheckReturn(FlushCommandQueue());
 
 	CheckReturn(CompileShaders());
 	CheckReturn(BuildGeometries());
 
 	CheckReturn(BuildFrameResources());
 
-	BuildDescriptors();
+	CheckReturn(BuildDescriptors());
 
 	CheckReturn(BuildRootSignatures());
 	CheckReturn(BuildPSOs());
@@ -350,6 +189,15 @@ BOOL DxRenderer::Initialize(HWND hwnd, void* glfwWnd, UINT width, UINT height) {
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
 		mFittedToBakcBufferHaltonSequence[i] = XMFLOAT2(((offset.x - 0.5f) / width) * 2.f, ((offset.y - 0.5f) / height) * 2.f);
+	}
+	{
+		const auto blurSize = BlurFilter::CalcSize(2.5f);
+		std::vector<FLOAT> blurWeights(blurSize, 0.f);
+
+		CheckReturn(BlurFilter::CalcGaussWeights(2.5f, blurWeights.data()));
+		mBlurWeights[0] = XMFLOAT4(&blurWeights[0]);
+		mBlurWeights[1] = XMFLOAT4(&blurWeights[4]);
+		mBlurWeights[2] = XMFLOAT4(&blurWeights[8]);
 	}
 
 	bInitialized = TRUE;
@@ -397,6 +245,8 @@ BOOL DxRenderer::PrepareUpdate() {
 	const auto cmdList = mCommandList.Get();
 	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
+	CheckReturn(mSSAO->PrepareUpdate(cmdList));
+	CheckReturn(mDoF->PrepareUpdate(cmdList));
 	CheckReturn(mVolumetricLight->PrepareUpdate(cmdList));
 
 	CheckHRESULT(cmdList->Close());
@@ -413,7 +263,9 @@ BOOL DxRenderer::Update(FLOAT delta) {
 	// Has the GPU finished processing the commands of the current frame resource?
 	// If not, wait until the GPU has completed commands up to this fence point.
 	if (mCurrFrameResource->Fence != 0 && mFence->GetCompletedValue() < mCurrFrameResource->Fence) {
-		HANDLE eventHandle = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
+		const HANDLE eventHandle = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
+		if (eventHandle == NULL) return FALSE;
+
 		CheckHRESULT(mFence->SetEventOnCompletion(mCurrFrameResource->Fence, eventHandle));
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
@@ -445,48 +297,11 @@ BOOL DxRenderer::Draw() {
 	CheckHRESULT(mCurrFrameResource->CmdListAlloc->Reset());
 	
 	// Pre-pass
-	{
-		CheckReturn(DrawGBuffer());
-		if (bRaytracing) {
-			CheckReturn(DrawDXRShadow());
-			CheckReturn(DrawRTAO());
-		}
-		else {
-			CheckReturn(DrawShadow());
-			CheckReturn(DrawSSAO());
-		}
-	}
+	CheckReturn(PrePass());
 	// Main-pass
-	{
-		if (bRaytracing) {
-			CheckReturn(DrawDXRBackBuffer());
-			CheckReturn(CalcDepthPartialDerivative());
-		}
-		else {
-			CheckReturn(DrawBackBuffer());
-		}
-	}
+	CheckReturn(MainPass());
 	// Post-pass
-	{
-		CheckReturn(DrawSkySphere());
-	
-		if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
-		else { CheckReturn(ApplySSR()); }
-	
-		CheckReturn(IntegrateSpecIrrad());
-
-		CheckReturn(ApplyVolumetricLight());
-		if (bBloomEnabled) CheckReturn(ApplyBloom());
-		if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
-		
-		CheckReturn(ResolveToneMapping());
-		if (bGammaCorrectionEnabled) CheckReturn(ApplyGammaCorrection());
-	
-		if (bTaaEnabled) CheckReturn(ApplyTAA());
-		if (bSharpenEnabled) CheckReturn(ApplySharpen());
-		if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
-		if (bPixelationEnabled) CheckReturn(ApplyPixelation());
-	}
+	CheckReturn(PostPass());
 	
 	CheckReturn(DrawDebuggingInfo());
 	if (bShowImGui) CheckReturn(DrawImGui());
@@ -507,20 +322,18 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 	mClientHeight = height;
 	
 	CheckReturn(LowOnResize(width, height));
-	
-	const auto cmdList = mCommandList.Get();
-	CheckHRESULT(cmdList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	std::array<ID3D12Resource*, SwapChainBufferCount> backBuffers;
 	for (UINT i = 0; i < SwapChainBufferCount; ++i) {
 		backBuffers[i] = mSwapChainBuffer->BackBuffer(i)->Resource();
 	}
 
+
 	CheckReturn(mSwapChainBuffer->OnResize());
 	if (bNeedToReszie) {
 		CheckReturn(mBRDF->OnResize(width, height));
 		CheckReturn(mGBuffer->OnResize(width, height));
-		CheckReturn(mDoF->OnResize(cmdList, width, height));
+		CheckReturn(mDoF->OnResize(width, height));
 		CheckReturn(mMotionBlur->OnResize(width, height));
 		CheckReturn(mTAA->OnResize(width, height));
 		CheckReturn(mGammaCorrection->OnResize(width, height));
@@ -528,20 +341,13 @@ BOOL DxRenderer::OnResize(UINT width, UINT height) {
 		CheckReturn(mPixelation->OnResize(width, height));
 		CheckReturn(mSharpen->OnResize(width, height));
 		CheckReturn(mSSR->OnResize(width, height));
-
-		CheckReturn(mDxrShadow->OnResize(cmdList, width, height));
+		CheckReturn(mDxrShadow->OnResize(width, height));
 		CheckReturn(mRTAO->OnResize(width, height));
-		CheckReturn(mRR->OnResize(cmdList, width, height));
+		CheckReturn(mRR->OnResize(width, height));
 		CheckReturn(mSVGF->OnResize(width , height))
 	}
 	CheckReturn(mSSAO->OnResize(width, height));
 	CheckReturn(mBloom->OnResize(width, height));
-
-
-	CheckHRESULT(cmdList->Close());
-	ID3D12CommandList* cmdsLists[] = { cmdList };
-	mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList* const*>(&cmdList));
-	CheckReturn(FlushCommandQueue());
 
 	for (size_t i = 0, end = mHaltonSequence.size(); i < end; ++i) {
 		auto offset = mHaltonSequence[i];
@@ -655,8 +461,7 @@ BOOL DxRenderer::CreateRtvAndDsvDescriptorHeaps() {
 		+ Bloom::NumRenderTargets
 		+ SSR::NumRenderTargets
 		+ ToneMapping::NumRenderTargets
-		+ IrradianceMap::NumRenderTargets
-		+ VolumetricLight::NumRenderTargets;
+		+ IrradianceMap::NumRenderTargets;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -684,32 +489,34 @@ BOOL DxRenderer::CompileShaders() {
 	WLogln(L"Compiling shaders...");
 #endif 
 
-	CheckReturn(mBRDF->CompileShaders(ShaderFilePath));
-	CheckReturn(mGBuffer->CompileShaders(ShaderFilePath));
-	CheckReturn(mShadow->CompileShaders(ShaderFilePath));
-	CheckReturn(mSSAO->CompileShaders(ShaderFilePath));
-	CheckReturn(mBlurFilter->CompileShaders(ShaderFilePath));
-	CheckReturn(mBloom->CompileShaders(ShaderFilePath));
-	CheckReturn(mSSR->CompileShaders(ShaderFilePath));
-	CheckReturn(mDoF->CompileShaders(ShaderFilePath));
-	CheckReturn(mMotionBlur->CompileShaders(ShaderFilePath));
-	CheckReturn(mTAA->CompileShaders(ShaderFilePath));
-	CheckReturn(mDebug->CompileShaders(ShaderFilePath));
-	CheckReturn(mDebugCollision->CompileShaders(ShaderFilePath));
-	CheckReturn(mGammaCorrection->CompileShaders(ShaderFilePath));
-	CheckReturn(mToneMapping->CompileShaders(ShaderFilePath));
-	CheckReturn(mIrradianceMap->CompileShaders(ShaderFilePath));
-	CheckReturn(mMipmapGenerator->CompileShaders(ShaderFilePath));
-	CheckReturn(mPixelation->CompileShaders(ShaderFilePath));
-	CheckReturn(mSharpen->CompileShaders(ShaderFilePath));
-	CheckReturn(mGaussianFilter->CompileShaders(ShaderFilePath));
-	CheckReturn(mDxrShadow->CompileShaders(ShaderFilePath));
-	CheckReturn(mBlurFilterCS->CompileShaders(ShaderFilePath));
-	CheckReturn(mRTAO->CompileShaders(ShaderFilePath));
-	CheckReturn(mRR->CompileShaders(ShaderFilePath));
-	CheckReturn(mSVGF->CompileShaders(ShaderFilePath));
-	CheckReturn(mEquirectangularConverter->CompileShaders(ShaderFilePath));
-	CheckReturn(mVolumetricLight->CompileShaders(ShaderFilePath));
+	TaskQueue taskQueue;
+	taskQueue.AddTask([&] { return mBRDF->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mGBuffer->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mShadow->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mSSAO->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mBlurFilter->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mBloom->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mSSR->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mDoF->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mMotionBlur->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mTAA->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mDebug->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mDebugCollision->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mGammaCorrection->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mToneMapping->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mIrradianceMap->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mMipmapGenerator->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mPixelation->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mSharpen->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mGaussianFilter->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mDxrShadow->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mBlurFilterCS->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mRTAO->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mRR->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mSVGF->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mEquirectangularConverter->CompileShaders(ShaderFilePath); });
+	taskQueue.AddTask([&] { return mVolumetricLight->CompileShaders(ShaderFilePath); });
+	CheckReturn(taskQueue.Run(ProcessorInfo.Logical));
 
 #ifdef _DEBUG
 	WLogln(L"Finished compiling shaders \n");
@@ -852,7 +659,7 @@ BOOL DxRenderer::BuildFrameResources() {
 	return TRUE;
 }
 
-void DxRenderer::BuildDescriptors() {
+BOOL DxRenderer::BuildDescriptors() {
 	auto& hCpu = mhCpuCbvSrvUav;
 	auto& hGpu = mhGpuCbvSrvUav;
 	auto& hCpuDsv = mhCpuDsv;
@@ -872,31 +679,57 @@ void DxRenderer::BuildDescriptors() {
 	hCpuDsv.Offset(-1, dsvDescSize);
 	hCpuRtv.Offset(-1, rtvDescSize);
 
-	mImGui->BuildDescriptors(hCpu, hGpu, descSize);
-	mSwapChainBuffer->BuildDescriptors(hCpu, hGpu, descSize);
-	mBRDF->BuildDescriptors(hCpu, hGpu, descSize);
-	mGBuffer->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mShadow->BuildDescriptors(hCpu, hGpu, hCpuDsv, hCpuRtv, descSize, dsvDescSize, rtvDescSize);
-	mZDepth->BuildDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
-	mSSAO->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mBloom->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mSSR->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mDoF->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mMotionBlur->BuildDescriptors(hCpu, hGpu, descSize);
-	mTAA->BuildDescriptors(hCpu, hGpu, descSize);
-	mGammaCorrection->BuildDescriptors(hCpu, hGpu, descSize);
-	mToneMapping->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mIrradianceMap->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
-	mPixelation->BuildDescriptors(hCpu, hGpu, descSize);
-	mSharpen->BuildDescriptors(hCpu, hGpu, descSize);
-	mDxrShadow->BuildDescriptors(hCpu, hGpu, descSize);
-	mRTAO->BuildDescriptors(hCpu, hGpu, descSize);
-	mRR->BuildDesscriptors(hCpu, hGpu, descSize);
-	mSVGF->BuildDescriptors(hCpu, hGpu, descSize);
-	mVolumetricLight->BuildDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mImGui->AllocateDescriptors(hCpu, hGpu, descSize);
+	mSwapChainBuffer->AllocateDescriptors(hCpu, hGpu, descSize);
+	mBRDF->AllocateDescriptors(hCpu, hGpu, descSize);
+	mGBuffer->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mShadow->AllocateDescriptors(hCpu, hGpu, hCpuDsv, hCpuRtv, descSize, dsvDescSize, rtvDescSize);
+	mZDepth->AllocateDescriptors(hCpu, hGpu, hCpuDsv, descSize, dsvDescSize);
+	mSSAO->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mBloom->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mSSR->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mDoF->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mMotionBlur->AllocateDescriptors(hCpu, hGpu, descSize);
+	mTAA->AllocateDescriptors(hCpu, hGpu, descSize);
+	mGammaCorrection->AllocateDescriptors(hCpu, hGpu, descSize);
+	mToneMapping->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mIrradianceMap->AllocateDescriptors(hCpu, hGpu, hCpuRtv, descSize, rtvDescSize);
+	mPixelation->AllocateDescriptors(hCpu, hGpu, descSize);
+	mSharpen->AllocateDescriptors(hCpu, hGpu, descSize);
+	mDxrShadow->AllocateDescriptors(hCpu, hGpu, descSize);
+	mRTAO->AllocateDescriptors(hCpu, hGpu, descSize);
+	mRR->AllocateDesscriptors(hCpu, hGpu, descSize);
+	mSVGF->AllocateDescriptors(hCpu, hGpu, descSize);
+	mVolumetricLight->AllocateDescriptors(hCpu, hGpu, descSize);
+
+	TaskQueue taskQueue;
+	taskQueue.AddTask([&] { return mImGui->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mSwapChainBuffer->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mBRDF->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mGBuffer->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mShadow->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mSSAO->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mBloom->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mSSR->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mDoF->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mMotionBlur->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mTAA->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mGammaCorrection->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mToneMapping->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mIrradianceMap->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mPixelation->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mSharpen->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mDxrShadow->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mRTAO->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mRR->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mSVGF->BuildDescriptors(); });
+	taskQueue.AddTask([&] { return mVolumetricLight->BuildDescriptors(); });
+	CheckReturn(taskQueue.Run(1));
 
 	mhCpuDescForTexMaps = hCpu.Offset(1, descSize);
 	mhGpuDescForTexMaps = hGpu.Offset(1, descSize);
+
+	return TRUE;
 }
 
 BOOL DxRenderer::BuildRootSignatures() {
@@ -905,32 +738,35 @@ BOOL DxRenderer::BuildRootSignatures() {
 #endif
 
 	auto staticSamplers = Samplers::GetStaticSamplers();
-	CheckReturn(mBRDF->BuildRootSignature(staticSamplers));
-	CheckReturn(mGBuffer->BuildRootSignature(staticSamplers));
-	CheckReturn(mShadow->BuildRootSignature(staticSamplers));
-	CheckReturn(mSSAO->BuildRootSignature(staticSamplers));
-	CheckReturn(mBlurFilter->BuildRootSignature(staticSamplers));
-	CheckReturn(mBloom->BuildRootSignature(staticSamplers));
-	CheckReturn(mSSR->BuildRootSignature(staticSamplers));
-	CheckReturn(mDoF->BuildRootSignature(staticSamplers));
-	CheckReturn(mMotionBlur->BuildRootSignature(staticSamplers));
-	CheckReturn(mTAA->BuildRootSignature(staticSamplers));
-	CheckReturn(mDebug->BuildRootSignature(staticSamplers));
-	CheckReturn(mDebugCollision->BuildRootSignature());
-	CheckReturn(mGammaCorrection->BuildRootSignature(staticSamplers));
-	CheckReturn(mToneMapping->BuildRootSignature(staticSamplers));
-	CheckReturn(mIrradianceMap->BuildRootSignature(staticSamplers));
-	CheckReturn(mMipmapGenerator->BuildRootSignature(staticSamplers));
-	CheckReturn(mPixelation->BuildRootSignature(staticSamplers));
-	CheckReturn(mSharpen->BuildRootSignature(staticSamplers));
-	CheckReturn(mGaussianFilter->BuildRootSignature(staticSamplers));
-	CheckReturn(mDxrShadow->BuildRootSignatures(staticSamplers, DXR_GeometryBuffer::GeometryBufferCount));
-	CheckReturn(mBlurFilterCS->BuildRootSignature(staticSamplers));
-	CheckReturn(mRTAO->BuildRootSignatures(staticSamplers));
-	CheckReturn(mRR->BuildRootSignatures(staticSamplers));
-	CheckReturn(mSVGF->BuildRootSignatures(staticSamplers));
-	CheckReturn(mEquirectangularConverter->BuildRootSignature(staticSamplers));
-	CheckReturn(mVolumetricLight->BuildRootSignature(staticSamplers));
+
+	TaskQueue taskQueue;
+	taskQueue.AddTask([&] { return mBRDF->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mGBuffer->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mShadow->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mSSAO->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mBlurFilter->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mBloom->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mSSR->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mDoF->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mMotionBlur->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mTAA->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mDebug->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mDebugCollision->BuildRootSignature(); });
+	taskQueue.AddTask([&] { return mGammaCorrection->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mToneMapping->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mIrradianceMap->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mMipmapGenerator->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mPixelation->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mSharpen->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mGaussianFilter->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mDxrShadow->BuildRootSignatures(staticSamplers, DXR_GeometryBuffer::GeometryBufferCount); });
+	taskQueue.AddTask([&] { return mBlurFilterCS->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mRTAO->BuildRootSignatures(staticSamplers); });
+	taskQueue.AddTask([&] { return mRR->BuildRootSignatures(staticSamplers); });
+	taskQueue.AddTask([&] { return mSVGF->BuildRootSignatures(staticSamplers); });
+	taskQueue.AddTask([&] { return mEquirectangularConverter->BuildRootSignature(staticSamplers); });
+	taskQueue.AddTask([&] { return mVolumetricLight->BuildRootSignature(staticSamplers); });
+	CheckReturn(taskQueue.Run(1));
 
 #if _DEBUG
 	WLogln(L"Finished building root-signatures \n");
@@ -944,32 +780,34 @@ BOOL DxRenderer::BuildPSOs() {
 	WLogln(L"Building pipeline state objects...");
 #endif
 
-	CheckReturn(mBRDF->BuildPSO());
-	CheckReturn(mGBuffer->BuildPSO());
-	CheckReturn(mShadow->BuildPSO());
-	CheckReturn(mSSAO->BuildPSO());
-	CheckReturn(mBloom->BuildPSO());
-	CheckReturn(mBlurFilter->BuildPSO());
-	CheckReturn(mSSR->BuildPSO());
-	CheckReturn(mDoF->BuildPSO());
-	CheckReturn(mMotionBlur->BuildPSO());
-	CheckReturn(mTAA->BuildPSO());
-	CheckReturn(mDebug->BuildPSO());
-	CheckReturn(mDebugCollision->BuildPSO());
-	CheckReturn(mGammaCorrection->BuildPSO());
-	CheckReturn(mToneMapping->BuildPSO());
-	CheckReturn(mIrradianceMap->BuildPSO());
-	CheckReturn(mMipmapGenerator->BuildPSO());
-	CheckReturn(mPixelation->BuildPSO());
-	CheckReturn(mSharpen->BuildPSO());
-	CheckReturn(mGaussianFilter->BuildPSO());	
-	CheckReturn(mDxrShadow->BuildPSO());
-	CheckReturn(mBlurFilterCS->BuildPSO());
-	CheckReturn(mRTAO->BuildPSO());
-	CheckReturn(mRR->BuildPSO());
-	CheckReturn(mSVGF->BuildPSO());
-	CheckReturn(mEquirectangularConverter->BuildPSO());
-	CheckReturn(mVolumetricLight->BuildPSO());
+	TaskQueue taskQueue;
+	taskQueue.AddTask([&] { return mBRDF->BuildPSO(); });
+	taskQueue.AddTask([&] { return mGBuffer->BuildPSO(); });
+	taskQueue.AddTask([&] { return mShadow->BuildPSO(); });
+	taskQueue.AddTask([&] { return mSSAO->BuildPSO(); });
+	taskQueue.AddTask([&] { return mBloom->BuildPSO(); });
+	taskQueue.AddTask([&] { return mBlurFilter->BuildPSO(); });
+	taskQueue.AddTask([&] { return mSSR->BuildPSO(); });
+	taskQueue.AddTask([&] { return mDoF->BuildPSO(); });
+	taskQueue.AddTask([&] { return mMotionBlur->BuildPSO(); });
+	taskQueue.AddTask([&] { return mTAA->BuildPSO(); });
+	taskQueue.AddTask([&] { return mDebug->BuildPSO(); });
+	taskQueue.AddTask([&] { return mDebugCollision->BuildPSO(); });
+	taskQueue.AddTask([&] { return mGammaCorrection->BuildPSO(); });
+	taskQueue.AddTask([&] { return mToneMapping->BuildPSO(); });
+	taskQueue.AddTask([&] { return mIrradianceMap->BuildPSO(); });
+	taskQueue.AddTask([&] { return mMipmapGenerator->BuildPSO(); });
+	taskQueue.AddTask([&] { return mPixelation->BuildPSO(); });
+	taskQueue.AddTask([&] { return mSharpen->BuildPSO(); });
+	taskQueue.AddTask([&] { return mGaussianFilter->BuildPSO(); });
+	taskQueue.AddTask([&] { return mDxrShadow->BuildPSO(); });
+	taskQueue.AddTask([&] { return mBlurFilterCS->BuildPSO(); });
+	taskQueue.AddTask([&] { return mRTAO->BuildPSO(); });
+	taskQueue.AddTask([&] { return mRR->BuildPSO(); });
+	taskQueue.AddTask([&] { return mSVGF->BuildPSO(); });
+	taskQueue.AddTask([&] { return mEquirectangularConverter->BuildPSO(); });
+	taskQueue.AddTask([&] { return mVolumetricLight->BuildPSO(); });
+	CheckReturn(taskQueue.Run(1));
 
 #ifdef _DEBUG
 	WLogln(L"Finished building pipeline state objects \n");
@@ -1390,7 +1228,7 @@ BOOL DxRenderer::UpdateCB_SSAO(FLOAT delta) {
 	ssaoCB.OcclusionFadeEnd = 2.f;
 	ssaoCB.SurfaceEpsilon = 0.05f;
 
-	ssaoCB.SampleCount = ShaderArgs::SSAO::SampleCount;
+	ssaoCB.SampleCount = ShaderArgument::SSAO::SampleCount;
 
 	auto& currCB = mCurrFrameResource->CB_SSAO;
 	currCB.CopyData(0, ssaoCB);
@@ -1416,8 +1254,8 @@ BOOL DxRenderer::UpdateCB_DoF(FLOAT delta) {
 	ConstantBuffer_DoF dofCB;
 	dofCB.Proj = mMainPassCB->Proj;
 	dofCB.InvProj = mMainPassCB->InvProj;
-	dofCB.FocusRange = ShaderArgs::DepthOfField::FocusRange;
-	dofCB.FocusingSpeed = ShaderArgs::DepthOfField::FocusingSpeed;
+	dofCB.FocusRange = ShaderArgument::DepthOfField::FocusRange;
+	dofCB.FocusingSpeed = ShaderArgument::DepthOfField::FocusingSpeed;
 	dofCB.DeltaTime = delta;
 
 	auto& currCB = mCurrFrameResource->CB_DoF;
@@ -1433,14 +1271,14 @@ BOOL DxRenderer::UpdateCB_SSR(FLOAT delta) {
 	ssrCB.Proj = mMainPassCB->Proj;
 	ssrCB.InvProj = mMainPassCB->InvProj;
 	XMStoreFloat3(&ssrCB.EyePosW, mCamera->Position());
-	ssrCB.MaxDistance = ShaderArgs::SSR::MaxDistance;
-	ssrCB.RayLength = ShaderArgs::SSR::View::RayLength;
-	ssrCB.NoiseIntensity = ShaderArgs::SSR::View::NoiseIntensity;
-	ssrCB.StepCount = ShaderArgs::SSR::View::StepCount;
-	ssrCB.BackStepCount = ShaderArgs::SSR::View::BackStepCount;
-	ssrCB.DepthThreshold = ShaderArgs::SSR::View::DepthThreshold;
-	ssrCB.Thickness = ShaderArgs::SSR::Screen::Thickness;
-	ssrCB.Resolution = ShaderArgs::SSR::Screen::Resolution;
+	ssrCB.MaxDistance = ShaderArgument::SSR::MaxDistance;
+	ssrCB.RayLength = ShaderArgument::SSR::View::RayLength;
+	ssrCB.NoiseIntensity = ShaderArgument::SSR::View::NoiseIntensity;
+	ssrCB.StepCount = ShaderArgument::SSR::View::StepCount;
+	ssrCB.BackStepCount = ShaderArgument::SSR::View::BackStepCount;
+	ssrCB.DepthThreshold = ShaderArgument::SSR::View::DepthThreshold;
+	ssrCB.Thickness = ShaderArgument::SSR::Screen::Thickness;
+	ssrCB.Resolution = ShaderArgument::SSR::Screen::Resolution;
 
 	auto& currCB = mCurrFrameResource->CB_SSR;
 	currCB.CopyData(0, ssrCB);
@@ -1578,15 +1416,15 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 	{
 		ConstantBuffer_CalcLocalMeanVariance calcLocalMeanVarCB;
 
-		ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels = !ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels;
+		ShaderArgument::SVGF::CheckerboardGenerateRaysForEvenPixels = !ShaderArgument::SVGF::CheckerboardGenerateRaysForEvenPixels;
 
 		calcLocalMeanVarCB.TextureDim = { mClientWidth, mClientHeight };
 		calcLocalMeanVarCB.KernelWidth = 9;
 		calcLocalMeanVarCB.KernelRadius = 9 >> 1;
 
-		calcLocalMeanVarCB.CheckerboardSamplingEnabled = ShaderArgs::SVGF::CheckerboardSamplingEnabled;
-		calcLocalMeanVarCB.EvenPixelActivated = ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels;
-		calcLocalMeanVarCB.PixelStepY = ShaderArgs::SVGF::CheckerboardSamplingEnabled ? 2 : 1;
+		calcLocalMeanVarCB.CheckerboardSamplingEnabled = ShaderArgument::SVGF::CheckerboardSamplingEnabled;
+		calcLocalMeanVarCB.EvenPixelActivated = ShaderArgument::SVGF::CheckerboardGenerateRaysForEvenPixels;
+		calcLocalMeanVarCB.PixelStepY = ShaderArgument::SVGF::CheckerboardSamplingEnabled ? 2 : 1;
 
 		auto& currCB = mCurrFrameResource->CB_CalcLocalMeanVar;
 		currCB.CopyData(0, calcLocalMeanVarCB);
@@ -1603,19 +1441,19 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 	// Temporal supersampling blend with current frame
 	{
 		ConstantBuffer_TemporalSupersamplingBlendWithCurrentFrame tsppBlendCB;
-		tsppBlendCB.StdDevGamma = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::StdDevGamma;
-		tsppBlendCB.ClampCachedValues = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping;
-		tsppBlendCB.ClampingMinStdDevTolerance = ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::MinStdDevTolerance;
+		tsppBlendCB.StdDevGamma = ShaderArgument::SVGF::TemporalSupersampling::ClampCachedValues::StdDevGamma;
+		tsppBlendCB.ClampCachedValues = ShaderArgument::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping;
+		tsppBlendCB.ClampingMinStdDevTolerance = ShaderArgument::SVGF::TemporalSupersampling::ClampCachedValues::MinStdDevTolerance;
 
-		tsppBlendCB.ClampDifferenceToTsppScale = ShaderArgs::SVGF::TemporalSupersampling::ClampDifferenceToTsppScale;
+		tsppBlendCB.ClampDifferenceToTsppScale = ShaderArgument::SVGF::TemporalSupersampling::ClampDifferenceToTsppScale;
 		tsppBlendCB.ForceUseMinSmoothingFactor = FALSE;
-		tsppBlendCB.MinSmoothingFactor = 1.f / ShaderArgs::SVGF::TemporalSupersampling::MaxTspp;
-		tsppBlendCB.MinTsppToUseTemporalVariance = ShaderArgs::SVGF::TemporalSupersampling::MinTsppToUseTemporalVariance;
+		tsppBlendCB.MinSmoothingFactor = 1.f / ShaderArgument::SVGF::TemporalSupersampling::MaxTspp;
+		tsppBlendCB.MinTsppToUseTemporalVariance = ShaderArgument::SVGF::TemporalSupersampling::MinTsppToUseTemporalVariance;
 
-		tsppBlendCB.BlurStrengthMaxTspp = ShaderArgs::SVGF::TemporalSupersampling::LowTsppMaxTspp;
-		tsppBlendCB.BlurDecayStrength = ShaderArgs::SVGF::TemporalSupersampling::LowTsppDecayConstant;
-		tsppBlendCB.CheckerboardEnabled = ShaderArgs::SVGF::CheckerboardSamplingEnabled;
-		tsppBlendCB.CheckerboardEvenPixelActivated = ShaderArgs::SVGF::CheckerboardGenerateRaysForEvenPixels;
+		tsppBlendCB.BlurStrengthMaxTspp = ShaderArgument::SVGF::TemporalSupersampling::LowTsppMaxTspp;
+		tsppBlendCB.BlurDecayStrength = ShaderArgument::SVGF::TemporalSupersampling::LowTsppDecayConstant;
+		tsppBlendCB.CheckerboardEnabled = ShaderArgument::SVGF::CheckerboardSamplingEnabled;
+		tsppBlendCB.CheckerboardEvenPixelActivated = ShaderArgument::SVGF::CheckerboardGenerateRaysForEvenPixels;
 
 		auto& currCB = mCurrFrameResource->CB_TSPPBlend;
 		currCB.CopyData(0, tsppBlendCB);
@@ -1626,27 +1464,27 @@ BOOL DxRenderer::UpdateCB_SVGF(FLOAT delta) {
 
 		// Adaptive kernel radius rotation.
 		FLOAT kernelRadiusLerfCoef = 0;
-		if (ShaderArgs::SVGF::AtrousWaveletTransformFilter::KernelRadiusRotateKernelEnabled) {
+		if (ShaderArgument::SVGF::AtrousWaveletTransformFilter::KernelRadiusRotateKernelEnabled) {
 			static UINT frameID = 0;
-			UINT i = frameID++ % ShaderArgs::SVGF::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles;
-			kernelRadiusLerfCoef = i / static_cast<FLOAT>(ShaderArgs::SVGF::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles);
+			UINT i = frameID++ % ShaderArgument::SVGF::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles;
+			kernelRadiusLerfCoef = i / static_cast<FLOAT>(ShaderArgument::SVGF::AtrousWaveletTransformFilter::KernelRadiusRotateKernelNumCycles);
 		}
 
 		atrousFilterCB.TextureDim = XMUINT2(mClientWidth, mClientHeight);
-		atrousFilterCB.DepthWeightCutoff = ShaderArgs::SVGF::AtrousWaveletTransformFilter::DepthWeightCutoff;
-		atrousFilterCB.UsingBilateralDownsamplingBuffers = ShaderArgs::SVGF::QuarterResolutionAO;
+		atrousFilterCB.DepthWeightCutoff = ShaderArgument::SVGF::AtrousWaveletTransformFilter::DepthWeightCutoff;
+		atrousFilterCB.UsingBilateralDownsamplingBuffers = ShaderArgument::SVGF::QuarterResolutionAO;
 
-		atrousFilterCB.UseAdaptiveKernelSize = ShaderArgs::SVGF::AtrousWaveletTransformFilter::UseAdaptiveKernelSize;
+		atrousFilterCB.UseAdaptiveKernelSize = ShaderArgument::SVGF::AtrousWaveletTransformFilter::UseAdaptiveKernelSize;
 		atrousFilterCB.KernelRadiusLerfCoef = kernelRadiusLerfCoef;
-		atrousFilterCB.MinKernelWidth = ShaderArgs::SVGF::AtrousWaveletTransformFilter::FilterMinKernelWidth;
-		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgs::SVGF::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100.f) * mClientWidth);
+		atrousFilterCB.MinKernelWidth = ShaderArgument::SVGF::AtrousWaveletTransformFilter::FilterMinKernelWidth;
+		atrousFilterCB.MaxKernelWidth = static_cast<UINT>((ShaderArgument::SVGF::AtrousWaveletTransformFilter::FilterMaxKernelWidthPercentage / 100.f) * mClientWidth);
 
-		atrousFilterCB.PerspectiveCorrectDepthInterpolation = ShaderArgs::SVGF::AtrousWaveletTransformFilter::PerspectiveCorrectDepthInterpolation;
-		atrousFilterCB.MinVarianceToDenoise = ShaderArgs::SVGF::AtrousWaveletTransformFilter::MinVarianceToDenoise;
+		atrousFilterCB.PerspectiveCorrectDepthInterpolation = ShaderArgument::SVGF::AtrousWaveletTransformFilter::PerspectiveCorrectDepthInterpolation;
+		atrousFilterCB.MinVarianceToDenoise = ShaderArgument::SVGF::AtrousWaveletTransformFilter::MinVarianceToDenoise;
 
-		atrousFilterCB.ValueSigma = ShaderArgs::SVGF::AtrousWaveletTransformFilter::ValueSigma;
-		atrousFilterCB.DepthSigma = ShaderArgs::SVGF::AtrousWaveletTransformFilter::DepthSigma;
-		atrousFilterCB.NormalSigma = ShaderArgs::SVGF::AtrousWaveletTransformFilter::NormalSigma;
+		atrousFilterCB.ValueSigma = ShaderArgument::SVGF::AtrousWaveletTransformFilter::ValueSigma;
+		atrousFilterCB.DepthSigma = ShaderArgument::SVGF::AtrousWaveletTransformFilter::DepthSigma;
+		atrousFilterCB.NormalSigma = ShaderArgument::SVGF::AtrousWaveletTransformFilter::NormalSigma;
 		atrousFilterCB.FovY = mCamera->FovY();
 
 		atrousFilterCB.DepthNumMantissaBits = D3D12Util::NumMantissaBitsInFloatFormat(16);
@@ -1669,13 +1507,13 @@ BOOL DxRenderer::UpdateCB_RTAO(FLOAT delta) {
 	rtaoCB.InvProj = mMainPassCB->InvProj;
 
 	// Coordinates given in view space.
-	rtaoCB.OcclusionRadius = ShaderArgs::RTAO::OcclusionRadius;
-	rtaoCB.OcclusionFadeStart = ShaderArgs::RTAO::OcclusionFadeStart;
-	rtaoCB.OcclusionFadeEnd = ShaderArgs::RTAO::OcclusionFadeEnd;
-	rtaoCB.SurfaceEpsilon = ShaderArgs::RTAO::OcclusionEpsilon;
+	rtaoCB.OcclusionRadius = ShaderArgument::RTAO::OcclusionRadius;
+	rtaoCB.OcclusionFadeStart = ShaderArgument::RTAO::OcclusionFadeStart;
+	rtaoCB.OcclusionFadeEnd = ShaderArgument::RTAO::OcclusionFadeEnd;
+	rtaoCB.SurfaceEpsilon = ShaderArgument::RTAO::OcclusionEpsilon;
 
 	rtaoCB.FrameCount = count++;
-	rtaoCB.SampleCount = ShaderArgs::RTAO::SampleCount;
+	rtaoCB.SampleCount = ShaderArgument::RTAO::SampleCount;
 
 	prev = mMainPassCB->View;
 
@@ -1792,6 +1630,55 @@ BOOL DxRenderer::BuildShaderTables() {
 	return TRUE;
 }
 
+BOOL DxRenderer::PrePass() {
+	CheckReturn(DrawGBuffer());
+	if (bRaytracing) {
+		CheckReturn(DrawDXRShadow());
+		CheckReturn(DrawRTAO());
+	}
+	else {
+		CheckReturn(DrawShadow());
+		CheckReturn(DrawSSAO());
+	}
+
+	return TRUE;
+}
+
+BOOL DxRenderer::MainPass() {
+	if (bRaytracing) {
+		CheckReturn(DrawDXRBackBuffer());
+		CheckReturn(CalcDepthPartialDerivative());
+	}
+	else {
+		CheckReturn(DrawBackBuffer());
+	}
+
+	return TRUE;
+}
+
+BOOL DxRenderer::PostPass() {
+	CheckReturn(DrawSkySphere());
+
+	if (bRaytracing) { CheckReturn(BuildRaytracedReflection()); }
+	else { CheckReturn(ApplySSR()); }
+
+	CheckReturn(IntegrateSpecIrrad());
+
+	CheckReturn(ApplyVolumetricLight());
+	if (bBloomEnabled) CheckReturn(ApplyBloom());
+	if (bDepthOfFieldEnabled) CheckReturn(ApplyDepthOfField());
+
+	CheckReturn(ResolveToneMapping());
+	if (bGammaCorrectionEnabled) CheckReturn(ApplyGammaCorrection());
+
+	if (bTaaEnabled) CheckReturn(ApplyTAA());
+	if (bSharpenEnabled) CheckReturn(ApplySharpen());
+	if (bMotionBlurEnabled) CheckReturn(ApplyMotionBlur());
+	if (bPixelationEnabled) CheckReturn(ApplyPixelation());
+
+	return TRUE;
+}
+
 BOOL DxRenderer::DrawShadow() {
 	const auto cmdList = mCommandList.Get();
 
@@ -1865,8 +1752,8 @@ BOOL DxRenderer::DrawGBuffer() {
 		D3D12Util::CalcConstantBufferByteSize(sizeof(ConstantBuffer_Material)),
 		mhGpuDescForTexMaps,
 		mRitemRefs[RenderType::E_Opaque],
-		ShaderArgs::GBuffer::Dither::MaxDistance,
-		ShaderArgs::GBuffer::Dither::MinDistance
+		ShaderArgument::GBuffer::Dither::MaxDistance,
+		ShaderArgument::GBuffer::Dither::MinDistance
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2040,7 +1927,7 @@ BOOL DxRenderer::ApplyTAA() {
 		mSwapChainBuffer->CurrentBackBufferRtv(),
 		mSwapChainBuffer->CurrentBackBufferSrv(),
 		mGBuffer->VelocityMapSrv(),
-		ShaderArgs::TemporalAA::ModulationFactor
+		ShaderArgument::TemporalAA::ModulationFactor
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2084,7 +1971,7 @@ BOOL DxRenderer::ApplySSR() {
 			mSSR->SSRMapRtv(1),
 			mSSR->SSRMapSrv(1),
 			BlurFilter::FilterType::R16G16B16A16,
-			ShaderArgs::SSR::BlurCount
+			ShaderArgument::SSR::BlurCount
 		);
 
 		CheckHRESULT(cmdList->Close());
@@ -2094,7 +1981,7 @@ BOOL DxRenderer::ApplySSR() {
 		if (!bSsrMapCleanedUp) {
 			CheckHRESULT(cmdList->Reset(mCurrFrameResource->CmdListAlloc.Get(), nullptr));
 
-			cmdList->ClearRenderTargetView(mSSR->SSRMapRtv(0), SSR::ClearValues, 0, nullptr);
+			cmdList->ClearRenderTargetView(mSSR->SSRMapRtv(0), SSR::SSRMapClearValues, 0, nullptr);
 
 			CheckHRESULT(cmdList->Close());
 			mCommandQueue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList*const*>(&cmdList));
@@ -2124,7 +2011,7 @@ BOOL DxRenderer::ApplyBloom() {
 	mBloom->ExtractHighlight(
 		cmdList,
 		backBufferSrv,
-		ShaderArgs::Bloom::HighlightThreshold
+		ShaderArgument::Bloom::HighlightThreshold
 	);
 	
 	const auto blurPassCBAddress = mCurrFrameResource->CB_Blur.Resource()->GetGPUVirtualAddress();
@@ -2138,7 +2025,7 @@ BOOL DxRenderer::ApplyBloom() {
 		mBloom->BloomMapRtv(1),
 		mBloom->BloomMapSrv(1),
 		BlurFilter::FilterType::R16G16B16A16,
-		ShaderArgs::Bloom::BlurCount
+		ShaderArgument::Bloom::BlurCount
 	);
 	
 	mBloom->ApplyBloom(
@@ -2189,10 +2076,10 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		mScissorRect,
 		backBuffer,
 		backBufferRtv,
-		ShaderArgs::DepthOfField::BokehRadius,
-		ShaderArgs::DepthOfField::CoCMaxDevTolerance,
-		ShaderArgs::DepthOfField::HighlightPower,
-		ShaderArgs::DepthOfField::SampleCount
+		ShaderArgument::DepthOfField::BokehRadius,
+		ShaderArgument::DepthOfField::CoCMaxDevTolerance,
+		ShaderArgument::DepthOfField::HighlightPower,
+		ShaderArgument::DepthOfField::SampleCount
 	);
 
 	mDoF->BlurDoF(
@@ -2203,7 +2090,7 @@ BOOL DxRenderer::ApplyDepthOfField() {
 		backBuffer,
 		backBufferRtv,
 		backBufferSrv,
-		ShaderArgs::DepthOfField::BlurCount
+		ShaderArgument::DepthOfField::BlurCount
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2228,10 +2115,10 @@ BOOL DxRenderer::ApplyMotionBlur() {
 		mSwapChainBuffer->CurrentBackBufferSrv(),
 		mGBuffer->DepthMapSrv(),
 		mGBuffer->VelocityMapSrv(),
-		ShaderArgs::MotionBlur::Intensity,
-		ShaderArgs::MotionBlur::Limit,
-		ShaderArgs::MotionBlur::DepthBias,
-		ShaderArgs::MotionBlur::SampleCount
+		ShaderArgument::MotionBlur::Intensity,
+		ShaderArgument::MotionBlur::Limit,
+		ShaderArgument::MotionBlur::DepthBias,
+		ShaderArgument::MotionBlur::SampleCount
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2254,7 +2141,7 @@ BOOL DxRenderer::ResolveToneMapping() {
 			mScissorRect,
 			mSwapChainBuffer->CurrentBackBuffer(),
 			mSwapChainBuffer->CurrentBackBufferRtv(),
-			ShaderArgs::ToneMapping::Exposure
+			ShaderArgument::ToneMapping::Exposure
 		);
 	}
 	else {
@@ -2286,7 +2173,7 @@ BOOL DxRenderer::ApplyGammaCorrection() {
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
-		ShaderArgs::GammaCorrection::Gamma
+		ShaderArgument::GammaCorrection::Gamma
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2308,7 +2195,7 @@ BOOL DxRenderer::ApplySharpen() {
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
-		ShaderArgs::Sharpen::Amount
+		ShaderArgument::Sharpen::Amount
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2330,7 +2217,7 @@ BOOL DxRenderer::ApplyPixelation() {
 		mScissorRect,
 		mSwapChainBuffer->CurrentBackBuffer(),
 		mSwapChainBuffer->CurrentBackBufferRtv(),
-		ShaderArgs::Pixelization::PixelSize
+		ShaderArgument::Pixelization::PixelSize
 	);
 
 	CheckHRESULT(cmdList->Close());
@@ -2359,10 +2246,10 @@ BOOL DxRenderer::ApplyVolumetricLight() {
 		mGBuffer->PositionMapSrv(),
 		mCamera->NearZ(),
 		mCamera->FarZ(),
-		ShaderArgs::VolumetricLight::DepthExponent,
-		ShaderArgs::VolumetricLight::UniformDensity,
-		ShaderArgs::VolumetricLight::AnisotropicCoefficient,
-		ShaderArgs::VolumetricLight::DensityScale
+		ShaderArgument::VolumetricLight::DepthExponent,
+		ShaderArgument::VolumetricLight::UniformDensity,
+		ShaderArgument::VolumetricLight::AnisotropicCoefficient,
+		ShaderArgument::VolumetricLight::DensityScale
 	);
 	
 	CheckHRESULT(cmdList->Close());
@@ -2516,10 +2403,10 @@ BOOL DxRenderer::DrawRTAO() {
 					mCurrFrameResource->CB_CalcLocalMeanVar.Resource()->GetGPUVirtualAddress(),
 					aoResourcesGpuDescriptors[RTAO::Descriptor::AO::ES_AmbientCoefficient],
 					mClientWidth, mClientHeight,
-					ShaderArgs::SVGF::CheckerboardSamplingEnabled
+					ShaderArgument::SVGF::CheckerboardSamplingEnabled
 				);
 				// Interpolate the variance for the inactive cells from the valid checkerboard cells.
-				if (ShaderArgs::SVGF::CheckerboardSamplingEnabled) {
+				if (ShaderArgument::SVGF::CheckerboardSamplingEnabled) {
 					mSVGF->FillInCheckerboard(
 						cmdList,
 						mCurrFrameResource->CB_CalcLocalMeanVar.Resource()->GetGPUVirtualAddress(),
@@ -2571,7 +2458,7 @@ BOOL DxRenderer::DrawRTAO() {
 					D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 				}
 
-				if (ShaderArgs::RTAO::Denoiser::UseSmoothingVariance) {
+				if (ShaderArgument::RTAO::Denoiser::UseSmoothingVariance) {
 					const auto& varianceResources = mSVGF->VarianceResources();
 					const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
 
@@ -2596,7 +2483,7 @@ BOOL DxRenderer::DrawRTAO() {
 		// Filtering
 		{
 			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
-			if (ShaderArgs::RTAO::Denoiser::FullscreenBlur) {
+			if (ShaderArgument::RTAO::Denoiser::FullscreenBlur) {
 				const UINT temporalCurrentFrameResourceIndex = mRTAO->TemporalCurrentFrameResourceIndex();
 				const UINT inputAOCoefficientIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 				const UINT outputAOCoefficientIndex = mRTAO->MoveToNextFrameTemporalAOCoefficient();
@@ -2606,12 +2493,12 @@ BOOL DxRenderer::DrawRTAO() {
 				outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
 
-				const FLOAT rayHitDistToKernelWidthScale = 22 / ShaderArgs::RTAO::OcclusionRadius *
-					ShaderArgs::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
+				const FLOAT rayHitDistToKernelWidthScale = 22 / ShaderArgument::RTAO::OcclusionRadius *
+					ShaderArgument::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
 				const FLOAT rayHitDistToKernelSizeScaleExp = D3D12Util::Lerp(
 					1,
-					ShaderArgs::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleExponent,
-					D3D12Util::RelativeCoef(ShaderArgs::RTAO::OcclusionRadius, 4, 22)
+					ShaderArgument::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleExponent,
+					D3D12Util::RelativeCoef(ShaderArgument::RTAO::OcclusionRadius, 4, 22)
 				);
 
 				mSVGF->ApplyAtrousWaveletTransformFilter(
@@ -2626,14 +2513,14 @@ BOOL DxRenderer::DrawRTAO() {
 					rayHitDistToKernelWidthScale,
 					rayHitDistToKernelSizeScaleExp,
 					SVGF::Value::E_Contrast,
-					ShaderArgs::RTAO::Denoiser::UseSmoothingVariance
+					ShaderArgument::RTAO::Denoiser::UseSmoothingVariance
 				);
 
 				outputAOCoefficient->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				D3D12Util::UavBarrier(cmdList, outputAOCoefficient);
 			}
 			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
-			if (ShaderArgs::RTAO::Denoiser::DisocclusionBlur) {
+			if (ShaderArgument::RTAO::Denoiser::DisocclusionBlur) {
 				const UINT temporalCurrentFrameTemporalAOCoefficientResourceIndex = mRTAO->TemporalCurrentFrameTemporalAOCoefficientResourceIndex();
 
 				const auto aoCoefficient = temporalAOCoefficients[temporalCurrentFrameTemporalAOCoefficientResourceIndex].get();
@@ -2648,7 +2535,7 @@ BOOL DxRenderer::DrawRTAO() {
 					mGBuffer->RMSMapSrv(),
 					temporalAOCoefficientsGpuDescriptors[temporalCurrentFrameTemporalAOCoefficientResourceIndex][RTAO::Descriptor::TemporalAOCoefficient::Uav],
 					mClientWidth, mClientHeight,
-					ShaderArgs::RTAO::Denoiser::LowTsppBlurPasses,
+					ShaderArgument::RTAO::Denoiser::LowTsppBlurPasses,
 					SVGF::Value::E_Contrast
 				);
 
@@ -2687,7 +2574,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 			mIrradianceMap->IntegratedBrdfMapSrv(),
 			mhGpuDescForTexMaps,
 			mClientWidth, mClientHeight,
-			ShaderArgs::RaytracedReflection::ReflectionRadius
+			ShaderArgument::RaytracedReflection::ReflectionRadius
 		);
 	}
 	// Denosing(Spatio-Temporal Variance Guided Filtering)
@@ -2742,7 +2629,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 					mCurrFrameResource->CB_CalcLocalMeanVar.Resource()->GetGPUVirtualAddress(),
 					reflectionGpuDescriptors[RaytracedReflection::Descriptor::Reflection::ES_Reflection],
 					mClientWidth, mClientHeight,
-					ShaderArgs::RaytracedReflection::CheckerboardSamplingEnabled
+					ShaderArgument::RaytracedReflection::CheckerboardSamplingEnabled
 				);
 
 				// Blends reprojected values with current frame values.
@@ -2788,7 +2675,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 					currRayHitDistance->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 					D3D12Util::UavBarriers(cmdList, resources.data(), resources.size());
 				}
-				if (ShaderArgs::RaytracedReflection::Denoiser::UseSmoothingVariance) {
+				if (ShaderArgument::RaytracedReflection::Denoiser::UseSmoothingVariance) {
 					const auto& varianceResources = mSVGF->VarianceResources();
 					const auto& varianceResourcesGpuDescriptors = mSVGF->VarianceResourcesGpuDescriptors();
 
@@ -2813,7 +2700,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 		// Filtering
 		{
 			// Stage 1: Applies a single pass of a Atrous wavelet transform filter.
-			if (ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur) {
+			if (ShaderArgument::RaytracedReflection::Denoiser::FullscreenBlur) {
 				const UINT temporalCurrentFrameResourceIndex = mRR->TemporalCurrentFrameResourceIndex();
 				const UINT inputReflectionIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
 				const UINT outputReflectionIndex = mRR->MoveToNextFrameTemporalReflection();
@@ -2823,12 +2710,12 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 				outputReflection->Transite(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 				D3D12Util::UavBarrier(cmdList, outputReflection);
 
-				const FLOAT rayHitDistToKernelWidthScale = 22 / ShaderArgs::RaytracedReflection::ReflectionRadius *
-					ShaderArgs::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
+				const FLOAT rayHitDistToKernelWidthScale = 22 / ShaderArgument::RaytracedReflection::ReflectionRadius *
+					ShaderArgument::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleFactor;
 				const FLOAT rayHitDistToKernelSizeScaleExp = D3D12Util::Lerp(
 					1,
-					ShaderArgs::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleExponent,
-					D3D12Util::RelativeCoef(ShaderArgs::RaytracedReflection::ReflectionRadius, 4, 22)
+					ShaderArgument::SVGF::AtrousWaveletTransformFilter::AdaptiveKernelSizeRayHitDistanceScaleExponent,
+					D3D12Util::RelativeCoef(ShaderArgument::RaytracedReflection::ReflectionRadius, 4, 22)
 				);
 
 				mSVGF->ApplyAtrousWaveletTransformFilter(
@@ -2843,14 +2730,14 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 					rayHitDistToKernelWidthScale,
 					rayHitDistToKernelSizeScaleExp,
 					SVGF::Value::E_Color_HDR,
-					ShaderArgs::RaytracedReflection::Denoiser::UseSmoothingVariance
+					ShaderArgument::RaytracedReflection::Denoiser::UseSmoothingVariance
 				);
 
 				outputReflection->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				D3D12Util::UavBarrier(cmdList, outputReflection);
 			}
 			// Stage 2: 3x3 multi-pass disocclusion blur (with more relaxed depth-aware constraints for such pixels).
-			if (ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur) {
+			if (ShaderArgument::RaytracedReflection::Denoiser::DisocclusionBlur) {
 				const UINT temporalCurrentFrameTemporalReflectionResourceIndex = mRR->TemporalCurrentFrameTemporalReflectionResourceIndex();
 
 				const auto reflections = temporalReflections[temporalCurrentFrameTemporalReflectionResourceIndex].get();
@@ -2865,7 +2752,7 @@ BOOL DxRenderer::BuildRaytracedReflection() {
 					mGBuffer->RMSMapSrv(),
 					temporalReflectionGpuDescriptors[temporalCurrentFrameTemporalReflectionResourceIndex][RaytracedReflection::Descriptor::TemporalReflection::E_Uav],
 					mClientWidth, mClientHeight,
-					ShaderArgs::RaytracedReflection::Denoiser::LowTsppBlurPasses,
+					ShaderArgument::RaytracedReflection::Denoiser::LowTsppBlurPasses,
 					SVGF::Value::E_Color_HDR
 				);
 
@@ -2898,7 +2785,7 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 		DepthStencilView()
 	);
 
-	if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
+	if (ShaderArgument::IrradianceMap::ShowIrradianceCubeMap) {
 		D3D12_GPU_DESCRIPTOR_HANDLE si_input = {};
 
 		switch (mDebug->DebugCubeMapType) {
@@ -2924,11 +2811,11 @@ BOOL DxRenderer::DrawDebuggingInfo() {
 			mSwapChainBuffer->CurrentBackBufferRtv(),
 			mCurrFrameResource->CB_Pass.Resource()->GetGPUVirtualAddress(),
 			si_input,
-			ShaderArgs::IrradianceMap::MipLevel
+			ShaderArgument::IrradianceMap::MipLevel
 		);
 	}
 
-	if (ShaderArgs::Debug::ShowCollisionBox) {
+	if (ShaderArgument::Debug::ShowCollisionBox) {
 		mDebugCollision->Run(
 			cmdList,
 			mScreenViewport,
@@ -3116,7 +3003,7 @@ BOOL DxRenderer::DrawImGui() {
 							DebugSampleDesc desc;
 							desc.MinColor = { 15.f / 255.f, 18.f / 255.f, 153.f / 255.f, 1.f };
 							desc.MaxColor = { 170.f / 255.f, 220.f / 255.f, 200.f / 255.f, 1.f };
-							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
+							desc.Denominator = ShaderArgument::RTAO::OcclusionRadius;
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_RayHitDist],
@@ -3129,7 +3016,7 @@ BOOL DxRenderer::DrawImGui() {
 							DebugSampleDesc desc;
 							desc.MinColor = { 12.f / 255.f, 64.f / 255.f, 18.f / 255.f, 1.f };
 							desc.MaxColor = { 180.f / 255.f, 197.f / 255.f, 231.f / 255.f, 1.f };
-							desc.Denominator = ShaderArgs::RTAO::OcclusionRadius;
+							desc.Denominator = ShaderArgument::RTAO::OcclusionRadius;
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_TemporalRayHitDist],
@@ -3171,7 +3058,7 @@ BOOL DxRenderer::DrawImGui() {
 							DebugSampleDesc desc;
 							desc.MinColor = { 15.f / 255.f, 18.f / 255.f, 153.f / 255.f, 1.f };
 							desc.MaxColor = { 170.f / 255.f, 220.f / 255.f, 200.f / 255.f, 1.f };
-							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
+							desc.Denominator = ShaderArgument::RaytracedReflection::ReflectionRadius;
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_RR_RayHitDist],
@@ -3184,7 +3071,7 @@ BOOL DxRenderer::DrawImGui() {
 							DebugSampleDesc desc;
 							desc.MinColor = { 12.f / 255.f, 64.f / 255.f, 18.f / 255.f, 1.f };
 							desc.MaxColor = { 180.f / 255.f, 197.f / 255.f, 231.f / 255.f, 1.f };
-							desc.Denominator = ShaderArgs::RaytracedReflection::ReflectionRadius;
+							desc.Denominator = ShaderArgument::RaytracedReflection::ReflectionRadius;
 
 							BuildDebugMapWithSampleDesc(
 								mDebugMapStates[DebugMapLayout::E_RR_TemporalRayHitDist],
@@ -3202,7 +3089,7 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::TreePop(); // ImGui::TreeNode("Texture Maps")
 			}
 
-			ImGui::Checkbox("Show Collision Box", reinterpret_cast<bool*>(&ShaderArgs::Debug::ShowCollisionBox));
+			ImGui::Checkbox("Show Collision Box", reinterpret_cast<bool*>(&ShaderArgument::Debug::ShowCollisionBox));
 		}
 		if (ImGui::CollapsingHeader("Effects")) {
 			ImGui::Checkbox("TAA", reinterpret_cast<bool*>(&bTaaEnabled));
@@ -3233,8 +3120,8 @@ BOOL DxRenderer::DrawImGui() {
 
 		}
 		if (ImGui::CollapsingHeader("Environment")) {
-			ImGui::Checkbox("Show Irradiance CubeMap", reinterpret_cast<bool*>(&ShaderArgs::IrradianceMap::ShowIrradianceCubeMap));
-			if (ShaderArgs::IrradianceMap::ShowIrradianceCubeMap) {
+			ImGui::Checkbox("Show Irradiance CubeMap", reinterpret_cast<bool*>(&ShaderArgument::IrradianceMap::ShowIrradianceCubeMap));
+			if (ShaderArgument::IrradianceMap::ShowIrradianceCubeMap) {
 				ImGui::RadioButton(
 					"Environment CubeMap",
 					reinterpret_cast<INT*>(&mDebug->DebugCubeMapType),
@@ -3251,7 +3138,7 @@ BOOL DxRenderer::DrawImGui() {
 					"Prefiltered Irradiance CubeMap",
 					reinterpret_cast<INT*>(&mDebug->DebugCubeMapType),
 					IrradianceMap::CubeMap::E_PrefilteredIrradianceCube);
-				ImGui::SliderFloat("Mip Level", &ShaderArgs::IrradianceMap::MipLevel, 0.f, IrradianceMap::MaxMipLevel - 1);
+				ImGui::SliderFloat("Mip Level", &ShaderArgument::IrradianceMap::MipLevel, 0.f, IrradianceMap::MaxMipLevel - 1);
 			}
 		}
 
@@ -3264,62 +3151,62 @@ BOOL DxRenderer::DrawImGui() {
 
 		if (ImGui::CollapsingHeader("Pre Pass")) {
 			if (ImGui::TreeNode("SSAO")) {
-				ImGui::SliderInt("Sample Count", &ShaderArgs::SSAO::SampleCount, 1, 32);
-				ImGui::SliderInt("Number of Blurs", &ShaderArgs::SSAO::BlurCount, 0, 8);
+				ImGui::SliderInt("Sample Count", &ShaderArgument::SSAO::SampleCount, 1, 32);
+				ImGui::SliderInt("Number of Blurs", &ShaderArgument::SSAO::BlurCount, 0, 8);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("SVGF")) {
-				ImGui::Checkbox("Clamp Cached Values", reinterpret_cast<bool*>(&ShaderArgs::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping));
+				ImGui::Checkbox("Clamp Cached Values", reinterpret_cast<bool*>(&ShaderArgument::SVGF::TemporalSupersampling::ClampCachedValues::UseClamping));
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("RTAO")) {
-				ImGui::SliderInt("Sample Count", reinterpret_cast<int*>(&ShaderArgs::RTAO::SampleCount), 1, 4);
-				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::UseSmoothingVariance));
-				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::DisocclusionBlur));
-				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RTAO::Denoiser::FullscreenBlur));
-				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RTAO::Denoiser::LowTsppBlurPasses), 1, 8);
+				ImGui::SliderInt("Sample Count", reinterpret_cast<int*>(&ShaderArgument::RTAO::SampleCount), 1, 4);
+				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgument::RTAO::Denoiser::UseSmoothingVariance));
+				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgument::RTAO::Denoiser::DisocclusionBlur));
+				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgument::RTAO::Denoiser::FullscreenBlur));
+				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgument::RTAO::Denoiser::LowTsppBlurPasses), 1, 8);
 
 				ImGui::TreePop();
 			}
 		}
 		if (ImGui::CollapsingHeader("Main Pass")) {
 			if (ImGui::TreeNode("Dithering Transparency")) {
-				ImGui::SliderFloat("Max Distance", &ShaderArgs::GBuffer::Dither::MaxDistance, 0.1f, 10.f);
-				ImGui::SliderFloat("Min Distance", &ShaderArgs::GBuffer::Dither::MinDistance, 0.01f, 1.f);
+				ImGui::SliderFloat("Max Distance", &ShaderArgument::GBuffer::Dither::MaxDistance, 0.1f, 10.f);
+				ImGui::SliderFloat("Min Distance", &ShaderArgument::GBuffer::Dither::MinDistance, 0.01f, 1.f);
 
 				ImGui::TreePop();
 			}
 		}
 		if (ImGui::CollapsingHeader("Post Pass")) {
 			if (ImGui::TreeNode("TAA")) {
-				ImGui::SliderFloat("Modulation Factor", &ShaderArgs::TemporalAA::ModulationFactor, 0.01f, 0.99f);
+				ImGui::SliderFloat("Modulation Factor", &ShaderArgument::TemporalAA::ModulationFactor, 0.01f, 0.99f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Motion Blur")) {
-				ImGui::SliderFloat("Intensity", &ShaderArgs::MotionBlur::Intensity, 0.01f, 0.1f);
-				ImGui::SliderFloat("Limit", &ShaderArgs::MotionBlur::Limit, 0.001f, 0.01f);
-				ImGui::SliderFloat("Depth Bias", &ShaderArgs::MotionBlur::DepthBias, 0.001f, 0.01f);
-				ImGui::SliderInt("Sample Count", &ShaderArgs::MotionBlur::SampleCount, 1, 32);
+				ImGui::SliderFloat("Intensity", &ShaderArgument::MotionBlur::Intensity, 0.01f, 0.1f);
+				ImGui::SliderFloat("Limit", &ShaderArgument::MotionBlur::Limit, 0.001f, 0.01f);
+				ImGui::SliderFloat("Depth Bias", &ShaderArgument::MotionBlur::DepthBias, 0.001f, 0.01f);
+				ImGui::SliderInt("Sample Count", &ShaderArgument::MotionBlur::SampleCount, 1, 32);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Depth of Field")) {
-				ImGui::SliderFloat("Focus Range", &ShaderArgs::DepthOfField::FocusRange, 0.1f, 100.f);
-				ImGui::SliderFloat("Focusing Speed", &ShaderArgs::DepthOfField::FocusingSpeed, 1.f, 10.f);
-				ImGui::SliderFloat("Bokeh Radius", &ShaderArgs::DepthOfField::BokehRadius, 1.f, 8.f);
-				ImGui::SliderFloat("CoC Max Deviation Tolerance", &ShaderArgs::DepthOfField::CoCMaxDevTolerance, 0.1f, 0.9f);
-				ImGui::SliderFloat("Highlight Power", &ShaderArgs::DepthOfField::HighlightPower, 1.f, 32.f);
-				ImGui::SliderInt("Sample Count", &ShaderArgs::DepthOfField::SampleCount, 1, 8);
-				ImGui::SliderInt("Blur Count", reinterpret_cast<INT*>(&ShaderArgs::DepthOfField::BlurCount), 0, 8);
+				ImGui::SliderFloat("Focus Range", &ShaderArgument::DepthOfField::FocusRange, 0.1f, 100.f);
+				ImGui::SliderFloat("Focusing Speed", &ShaderArgument::DepthOfField::FocusingSpeed, 1.f, 10.f);
+				ImGui::SliderFloat("Bokeh Radius", &ShaderArgument::DepthOfField::BokehRadius, 1.f, 8.f);
+				ImGui::SliderFloat("CoC Max Deviation Tolerance", &ShaderArgument::DepthOfField::CoCMaxDevTolerance, 0.1f, 0.9f);
+				ImGui::SliderFloat("Highlight Power", &ShaderArgument::DepthOfField::HighlightPower, 1.f, 32.f);
+				ImGui::SliderInt("Sample Count", &ShaderArgument::DepthOfField::SampleCount, 1, 8);
+				ImGui::SliderInt("Blur Count", reinterpret_cast<INT*>(&ShaderArgument::DepthOfField::BlurCount), 0, 8);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Bloom")) {
-				ImGui::SliderInt("Blur Count", &ShaderArgs::Bloom::BlurCount, 0, 8);
-				ImGui::SliderFloat("Highlight Threshold", &ShaderArgs::Bloom::HighlightThreshold, 0.1f, 0.99f);
+				ImGui::SliderInt("Blur Count", &ShaderArgument::Bloom::BlurCount, 0, 8);
+				ImGui::SliderFloat("Highlight Threshold", &ShaderArgument::Bloom::HighlightThreshold, 0.1f, 0.99f);
 
 				ImGui::TreePop();
 			}
@@ -3327,55 +3214,55 @@ BOOL DxRenderer::DrawImGui() {
 				ImGui::RadioButton("Screen Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ScreenSpace); ImGui::SameLine();
 				ImGui::RadioButton("View Space", reinterpret_cast<INT*>(&mSSR->StateType), SSR::PipelineState::E_ViewSpace);
 
-				ImGui::SliderFloat("Max Distance", &ShaderArgs::SSR::MaxDistance, 1.f, 100.f);
-				ImGui::SliderInt("Blur Count", &ShaderArgs::SSR::BlurCount, 0, 8);
+				ImGui::SliderFloat("Max Distance", &ShaderArgument::SSR::MaxDistance, 1.f, 100.f);
+				ImGui::SliderInt("Blur Count", &ShaderArgument::SSR::BlurCount, 0, 8);
 
 				ImGui::Text("View");
-				ImGui::SliderFloat("Ray Length", &ShaderArgs::SSR::View::RayLength, 1.f, 64.f);
-				ImGui::SliderFloat("Noise Intensity", &ShaderArgs::SSR::View::NoiseIntensity, 0.1f, 0.001f);
-				ImGui::SliderInt("Step Count", &ShaderArgs::SSR::View::StepCount, 1, 32);
-				ImGui::SliderInt("Back Step Count", &ShaderArgs::SSR::View::BackStepCount, 1, 16);
-				ImGui::SliderFloat("Depth Threshold", &ShaderArgs::SSR::View::DepthThreshold, 0.1f, 10.f);
+				ImGui::SliderFloat("Ray Length", &ShaderArgument::SSR::View::RayLength, 1.f, 64.f);
+				ImGui::SliderFloat("Noise Intensity", &ShaderArgument::SSR::View::NoiseIntensity, 0.1f, 0.001f);
+				ImGui::SliderInt("Step Count", &ShaderArgument::SSR::View::StepCount, 1, 32);
+				ImGui::SliderInt("Back Step Count", &ShaderArgument::SSR::View::BackStepCount, 1, 16);
+				ImGui::SliderFloat("Depth Threshold", &ShaderArgument::SSR::View::DepthThreshold, 0.1f, 10.f);
 
 				ImGui::Text("Screen");
-				ImGui::SliderFloat("Thickness", &ShaderArgs::SSR::Screen::Thickness, 0.01f, 1.f);
-				ImGui::SliderFloat("Resolution", &ShaderArgs::SSR::Screen::Resolution, 0.f, 1.f);
+				ImGui::SliderFloat("Thickness", &ShaderArgument::SSR::Screen::Thickness, 0.01f, 1.f);
+				ImGui::SliderFloat("Resolution", &ShaderArgument::SSR::Screen::Resolution, 0.f, 1.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Tone Mapping")) {
-				ImGui::SliderFloat("Exposure", &ShaderArgs::ToneMapping::Exposure, 0.1f, 10.f);
+				ImGui::SliderFloat("Exposure", &ShaderArgument::ToneMapping::Exposure, 0.1f, 10.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Gamma Correction")) {
-				ImGui::SliderFloat("Gamma", &ShaderArgs::GammaCorrection::Gamma, 0.1f, 10.f);
+				ImGui::SliderFloat("Gamma", &ShaderArgument::GammaCorrection::Gamma, 0.1f, 10.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Pixelization")) {
-				ImGui::SliderFloat("Pixel Size", &ShaderArgs::Pixelization::PixelSize, 1.f, 20.f);
+				ImGui::SliderFloat("Pixel Size", &ShaderArgument::Pixelization::PixelSize, 1.f, 20.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Sharpen")) {
-				ImGui::SliderFloat("Amount", &ShaderArgs::Sharpen::Amount, 0.f, 10.f);
+				ImGui::SliderFloat("Amount", &ShaderArgument::Sharpen::Amount, 0.f, 10.f);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Raytraced Reflection")) {
-				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::UseSmoothingVariance));
-				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::FullscreenBlur));
-				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgs::RaytracedReflection::Denoiser::DisocclusionBlur));
-				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgs::RaytracedReflection::Denoiser::LowTsppBlurPasses), 1, 8);
+				ImGui::Checkbox("Use Smoothing Variance", reinterpret_cast<bool*>(&ShaderArgument::RaytracedReflection::Denoiser::UseSmoothingVariance));
+				ImGui::Checkbox("Fullscreen Blur", reinterpret_cast<bool*>(&ShaderArgument::RaytracedReflection::Denoiser::FullscreenBlur));
+				ImGui::Checkbox("Disocclusion Blur", reinterpret_cast<bool*>(&ShaderArgument::RaytracedReflection::Denoiser::DisocclusionBlur));
+				ImGui::SliderInt("Low Tspp Blur Passes", reinterpret_cast<int*>(&ShaderArgument::RaytracedReflection::Denoiser::LowTsppBlurPasses), 1, 8);
 
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Volumetric Light")) {
-				ImGui::SliderFloat("Depth Exponent", &ShaderArgs::VolumetricLight::DepthExponent, 1.f, 16.f);
-				ImGui::SliderFloat("Uniform Density", &ShaderArgs::VolumetricLight::UniformDensity, 0.f, 1.f);
-				ImGui::SliderFloat("Anisotropic Coefficient", &ShaderArgs::VolumetricLight::AnisotropicCoefficient, -0.5f, 0.5f);
-				ImGui::SliderFloat("Density Scale", &ShaderArgs::VolumetricLight::DensityScale, 0.01f, 1.f);
+				ImGui::SliderFloat("Depth Exponent", &ShaderArgument::VolumetricLight::DepthExponent, 1.f, 16.f);
+				ImGui::SliderFloat("Uniform Density", &ShaderArgument::VolumetricLight::UniformDensity, 0.f, 1.f);
+				ImGui::SliderFloat("Anisotropic Coefficient", &ShaderArgument::VolumetricLight::AnisotropicCoefficient, -0.5f, 0.5f);
+				ImGui::SliderFloat("Density Scale", &ShaderArgument::VolumetricLight::DensityScale, 0.01f, 1.f);
 
 				ImGui::TreePop();
 			}
@@ -3517,11 +3404,11 @@ BOOL DxRenderer::DrawImGui() {
 				light.Intensity = 1.f;
 				light.AttenuationRadius = 50.f;
 				light.Center = { 0.f,  2.f,  0.f };
-				light.Position  = { -0.5f, 2.f, -0.5f };
-				light.Position1 = {  0.5f, 2.f, -0.5f };
-				light.Position2 = {  0.5f, 2.f,  0.5f };
+				light.Position = { -0.5f, 2.f, -0.5f };
+				light.Position1 = { 0.5f, 2.f, -0.5f };
+				light.Position2 = { 0.5f, 2.f,  0.5f };
 				light.Position3 = { -0.5f, 2.f,  0.5f };
-				light.Direction = {  0.f, -1.f,  0.f };
+				light.Direction = { 0.f, -1.f,  0.f };
 				light.Size = { 1.f, 1.f };
 
 				mZDepth->AddLight(light.Type, mLightCount++);

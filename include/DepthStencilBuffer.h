@@ -17,7 +17,7 @@ namespace DepthStencilBuffer {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* device);
+		BOOL Initialize(ID3D12Device* const device);
 		BOOL LowOnResize(UINT width, UINT height);
 
 		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv, UINT dsvDescSize);
@@ -38,10 +38,4 @@ namespace DepthStencilBuffer {
 	};
 }
 
-GpuResource* DepthStencilBuffer::DepthStencilBufferClass::Resource() {
-	return mDepthStencilBuffer.get();
-}
-
-constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE DepthStencilBuffer::DepthStencilBufferClass::Dsv() const {
-	return mhCpuDsv;
-}
+#include "DepthStencilBuffer.inl"

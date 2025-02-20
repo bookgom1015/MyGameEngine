@@ -18,7 +18,7 @@ ToneMappingClass::ToneMappingClass() {
 	mIntermediateMap = std::make_unique<GpuResource>();
 }
 
-BOOL ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height) {
+BOOL ToneMappingClass::Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -30,17 +30,17 @@ BOOL ToneMappingClass::Initialize(ID3D12Device* device, ShaderManager* const man
 BOOL ToneMappingClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"ToneMapping.hlsl";
 
-	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+	const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
 	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ToneMapping));
 	{		
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+		const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ToneMapping));
 	}
 	{
 		DxcDefine defines[] = {
 			{ L"NON_HDR", L"1" }
 		};
-		auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
+		const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3", defines, _countof(defines));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_JustResolving));
 	}
 
@@ -48,13 +48,14 @@ BOOL ToneMappingClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL ToneMappingClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
+	CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
+	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[1];
-	texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+	index = 0;
 
-	slotRootParameter[RootSignature::EC_Cosnts].InitAsConstants(RootSignature::RootConstant::Count, 0);
-	slotRootParameter[RootSignature::ESI_Intermediate].InitAsDescriptorTable(1, &texTables[0]);
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
+	slotRootParameter[RootSignature::Default::EC_Cosnts].InitAsConstants(RootConstant::Default::Count, 0);
+	slotRootParameter[RootSignature::Default::ESI_Intermediate].InitAsDescriptorTable(1, &texTables[index++]);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		_countof(slotRootParameter), slotRootParameter,
@@ -71,19 +72,19 @@ BOOL ToneMappingClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
 	psoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_ToneMapping);
+		const auto vs = mShaderManager->GetDxcShader(VS_ToneMapping);
 		psoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 	}
 	psoDesc.RTVFormats[0] = SDR_FORMAT;
 
 	{
-		auto ps = mShaderManager->GetDxcShader(PS_ToneMapping);
+		const auto ps = mShaderManager->GetDxcShader(PS_ToneMapping);
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_ToneMapping])));
 
 	{
-		auto ps = mShaderManager->GetDxcShader(PS_JustResolving);
+		const auto ps = mShaderManager->GetDxcShader(PS_JustResolving);
 		psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_JustResolving])));
@@ -95,7 +96,7 @@ void ToneMappingClass::Resolve(
 		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_JustResolving].Get());
 	cmdList->SetGraphicsRootSignature(mRootSignature.Get());
@@ -105,9 +106,9 @@ void ToneMappingClass::Resolve(
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Intermediate, mhIntermediateMapGpuSrv);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_Intermediate, mhIntermediateMapGpuSrv);
 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -121,7 +122,7 @@ void ToneMappingClass::Resolve(
 		ID3D12GraphicsCommandList* const cmdList,
 		const D3D12_VIEWPORT& viewport,
 		const D3D12_RECT& scissorRect,
-		GpuResource* backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		FLOAT exposure) {
 	cmdList->SetPipelineState(mPSOs[PipelineState::E_ToneMapping].Get());
@@ -132,11 +133,16 @@ void ToneMappingClass::Resolve(
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 	
-	FLOAT values[RootSignature::RootConstant::Count] = { exposure };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignature::EC_Cosnts, _countof(values), values, 0);
-	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ESI_Intermediate, mhIntermediateMapGpuSrv);
+	RootConstant::Default::Struct rc;
+	rc.gExposure = exposure;
+
+	std::array<std::uint32_t, RootConstant::Default::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::Default::Struct));
+
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::Default::EC_Cosnts, RootConstant::Default::Count, consts.data(), 0);
+	cmdList->SetGraphicsRootDescriptorTable(RootSignature::Default::ESI_Intermediate, mhIntermediateMapGpuSrv);
 	
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
 	cmdList->IASetIndexBuffer(nullptr);
@@ -146,7 +152,7 @@ void ToneMappingClass::Resolve(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void ToneMappingClass::BuildDescriptors(
+void ToneMappingClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
@@ -154,23 +160,14 @@ void ToneMappingClass::BuildDescriptors(
 	mhIntermediateMapCpuSrv = hCpuSrv.Offset(1, descSize);
 	mhIntermediateMapGpuSrv = hGpuSrv.Offset(1, descSize);
 	mhIntermediateMapCpuRtv = hCpuRtv.Offset(1, descSize);
-
-	BuildDescriptors();
 }
 
-BOOL ToneMappingClass::OnResize(UINT width, UINT height) {
-	CheckReturn(BuildResources(width, height));
-	BuildDescriptors();
-
-	return TRUE;
-}
-
-void ToneMappingClass::BuildDescriptors() {
+BOOL ToneMappingClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Format = ToneMapping::IntermediateMapFormat;
 
@@ -182,6 +179,15 @@ void ToneMappingClass::BuildDescriptors() {
 
 	md3dDevice->CreateShaderResourceView(mIntermediateMap->Resource(), &srvDesc, mhIntermediateMapCpuSrv);
 	md3dDevice->CreateRenderTargetView(mIntermediateMap->Resource(), &rtvDesc, mhIntermediateMapCpuRtv);
+
+	return TRUE;
+}
+
+BOOL ToneMappingClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
+
+	return TRUE;
 }
 
 BOOL ToneMappingClass::BuildResources(UINT width, UINT height) {
@@ -198,7 +204,7 @@ BOOL ToneMappingClass::BuildResources(UINT width, UINT height) {
 	rscDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	rscDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	CD3DX12_CLEAR_VALUE optClear(ToneMapping::IntermediateMapFormat, ClearValues);
+	const CD3DX12_CLEAR_VALUE optClear(ToneMapping::IntermediateMapFormat, IntermediateMapClearValues);
 
 	CheckReturn(mIntermediateMap->Initialize(
 		md3dDevice,

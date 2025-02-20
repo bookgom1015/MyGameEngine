@@ -14,7 +14,7 @@
 
 #include "Random.hlsli"
 
-ConstantBuffer<ConstantBuffer_SSR> cb_SSR	: register(b0);
+ConstantBuffer<ConstantBuffer_SSR>			cb_SSR			: register(b0);
 
 Texture2D<SDR_FORMAT>						gi_BackBuffer	: register(t0);
 Texture2D<GBuffer::PositionMapFormat>		gi_Position		: register(t1);
@@ -34,10 +34,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
-
-	float4 ph = mul(vout.PosH, cb_SSR.InvProj);
+	const float4 ph = mul(vout.PosH, cb_SSR.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -46,12 +45,12 @@ VertexOut VS(uint vid : SV_VertexID) {
 SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
 
 	float depth = gi_Depth.SampleLevel(gsamDepthMap, pin.TexC, 0);
-	if (GBuffer::IsInvalidDepth(depth)) return 0;
+	if (GBuffer::IsInvalidDepth(depth)) return 0.f;
 
 	depth = NdcDepthToViewDepth(depth, cb_SSR.Proj);
 
 	const float3 posV = (depth / pin.PosV.z) * pin.PosV;
-	if (posV.z > cb_SSR.MaxDistance) return 0;
+	if (posV.z > cb_SSR.MaxDistance) return 0.f;
 
 	const float3 normalW = normalize(gi_Normal.Sample(gsamLinearClamp, pin.TexC).xyz);
 	const float3 normalV = normalize(mul(normalW, (float3x3)cb_SSR.View));
@@ -61,16 +60,16 @@ SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
 	const float3 lightPosV = posV + toLightV * cb_SSR.RayLength;
 
 	const float3 roughnessMetalicSpecular = gi_RMS.Sample(gsamLinearClamp, pin.TexC).rgb;
-	const float shiness = 1 - roughnessMetalicSpecular.r;
+	const float shiness = 1.f - roughnessMetalicSpecular.r;
 
 	[loop]
 	for (uint i = 0; i < cb_SSR.StepCount; ++i) {
-		float3 dpv = posV + toLightV * (i + 1);
-		float4 ph = mul(float4(dpv, 1), cb_SSR.Proj);
+		float3 dpv = posV + toLightV * (i + 1.f);
+		float4 ph = mul(float4(dpv, 1.f), cb_SSR.Proj);
 		ph /= ph.w;
-		if (abs(ph.y) > 1) return (float4)0;
+		if (abs(ph.y) > 1.f) return 0.f;
 
-		float2 tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
+		float2 tex = float2(ph.x, -ph.y) * 0.5f + (float2)0.5;
 		float d = gi_Depth.SampleLevel(gsamDepthMap, tex, 0);
 		float dv = NdcDepthToViewDepth(d, cb_SSR.Proj);
 
@@ -81,12 +80,12 @@ SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
 
 			[loop]
 			for (uint j = 0; j < cb_SSR.BackStepCount; ++j) {
-				half_r *= 0.5;
+				half_r *= 0.5f;
 				dpv -= half_r;
-				ph = mul(float4(dpv, 1), cb_SSR.Proj);
+				ph = mul(float4(dpv, 1.f), cb_SSR.Proj);
 				ph /= ph.w;
 
-				tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
+				tex = float2(ph.x, -ph.y) * 0.5f + (float2)0.5f;
 				d = gi_Depth.SampleLevel(gsamDepthMap, tex, 0);
 				dv = NdcDepthToViewDepth(d, cb_SSR.Proj);
 				if (abs(dpv.z - dv) > cb_SSR.DepthThreshold) return (float4)0;
@@ -94,17 +93,17 @@ SSR::SSRMapFormat PS(VertexOut pin) : SV_Target {
 				if (ph.z < d) dpv += half_r;
 			}
 
-			ph = mul(float4(dpv, 1), cb_SSR.Proj);
+			ph = mul(float4(dpv, 1.f), cb_SSR.Proj);
 			ph /= ph.w;
 
-			tex = float2(ph.x, -ph.y) * 0.5 + (float2)0.5;
+			tex = float2(ph.x, -ph.y) * 0.5f + (float2)0.5f;
 
 			const float3 color = gi_BackBuffer.Sample(gsamLinearClamp, tex).rgb;
 			return float4(color, shiness);
 		}
 	}
 
-	return (float4)0;
+	return 0.f;
 }
 
 #endif // __SSR_VIEW_HLSL__

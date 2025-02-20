@@ -5,26 +5,21 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "Locker.h"
 
 class ShaderManager;
 
 struct RenderItem;
 
 namespace GBuffer {
-	namespace RootSignatureLayout {
-		enum {
-			ECB_Pass = 0,
-			ECB_Obj,
-			ECB_Mat,
-			EC_Consts,
-			ESI_TexMaps,
-			Count
-		};
-
-		namespace RootConstant {
+	namespace RootSignature {
+		namespace Default {
 			enum {
-				EC_MaxDistance = 0,
-				EC_MinDistance,
+				ECB_Pass = 0,
+				ECB_Obj,
+				ECB_Mat,
+				EC_Consts,
+				ESI_TexMaps,
 				Count
 			};
 		}
@@ -72,13 +67,13 @@ namespace GBuffer {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE PositionMapRtv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device*const device, UINT width, UINT height, ShaderManager*const manager,
-			GpuResource*const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv);
+		BOOL Initialize(Locker<ID3D12Device5>* const device, UINT width, UINT height,
+			ShaderManager* const manager, GpuResource* const depth, D3D12_CPU_DESCRIPTOR_HANDLE dsv);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
@@ -91,24 +86,24 @@ namespace GBuffer {
 			FLOAT maxDist,
 			FLOAT minDist);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 		void DrawRenderItems(
-			ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems,
+			ID3D12GraphicsCommandList* const cmdList, const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_obj, D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 			UINT objCBByteSize, UINT matCBByteSize);
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;

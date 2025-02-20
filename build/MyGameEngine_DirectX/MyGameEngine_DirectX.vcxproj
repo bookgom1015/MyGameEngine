@@ -92,6 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <DisableSpecificWarnings>26812;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -106,6 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <DisableSpecificWarnings>26812;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,10 +120,11 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_DirectX;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_DirectX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)externals;$(SolutionDir)externals\imgui;$(SolutionDir)externals\dxc-artifacts\include;$(SolutionDir)externals\DirectXTK12-feb2024\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -135,10 +138,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_DirectX;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_DirectX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)externals;$(SolutionDir)externals\imgui;$(SolutionDir)externals\dxc-artifacts\include;$(SolutionDir)externals\DirectXTK12-feb2024\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>26812;26495;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -175,7 +179,6 @@
     <ClCompile Include="..\..\src\DxRenderer.cpp" />
     <ClCompile Include="..\..\src\DXR_GeometryBuffer.cpp" />
     <ClCompile Include="..\..\src\DXR_Shadow.cpp" />
-    <ClCompile Include="..\..\src\EnvironmentMap.cpp" />
     <ClCompile Include="..\..\src\EquirectangularConverter.cpp" />
     <ClCompile Include="..\..\src\FrameResource.cpp" />
     <ClCompile Include="..\..\src\FreeLookActor.cpp" />
@@ -187,10 +190,12 @@
     <ClCompile Include="..\..\src\GeometryGenerator.cpp" />
     <ClCompile Include="..\..\src\GpuResource.cpp" />
     <ClCompile Include="..\..\src\HashUtil.cpp" />
+    <ClCompile Include="..\..\src\HWInfo.cpp" />
     <ClCompile Include="..\..\src\ImGuiManager.cpp" />
     <ClCompile Include="..\..\src\InputManager.cpp" />
     <ClCompile Include="..\..\src\IrradianceMap.cpp" />
     <ClCompile Include="..\..\src\Light.cpp" />
+    <ClCompile Include="..\..\src\Locker.cpp" />
     <ClCompile Include="..\..\src\Logger.cpp" />
     <ClCompile Include="..\..\src\MathHelper.cpp" />
     <ClCompile Include="..\..\src\Mesh.cpp" />
@@ -206,6 +211,7 @@
     <ClCompile Include="..\..\src\RotatingMonkey.cpp" />
     <ClCompile Include="..\..\src\RTAO.cpp" />
     <ClCompile Include="..\..\src\Samplers.cpp" />
+    <ClCompile Include="..\..\src\ShaderArgument.cpp" />
     <ClCompile Include="..\..\src\ShaderManager.cpp" />
     <ClCompile Include="..\..\src\ShaderTable.cpp" />
     <ClCompile Include="..\..\src\Shadow.cpp" />
@@ -215,6 +221,7 @@
     <ClCompile Include="..\..\src\SSR.cpp" />
     <ClCompile Include="..\..\src\SVGF.cpp" />
     <ClCompile Include="..\..\src\SwapChainBuffer.cpp" />
+    <ClCompile Include="..\..\src\TaskQueue.cpp" />
     <ClCompile Include="..\..\src\TemporalAA.cpp" />
     <ClCompile Include="..\..\src\ToneMapping.cpp" />
     <ClCompile Include="..\..\src\Transform.cpp" />
@@ -247,7 +254,6 @@
     <ClInclude Include="..\..\include\DxRenderer.h" />
     <ClInclude Include="..\..\include\DXR_GeometryBuffer.h" />
     <ClInclude Include="..\..\include\DXR_Shadow.h" />
-    <ClInclude Include="..\..\include\EnvironmentMap.h" />
     <ClInclude Include="..\..\include\EquirectangularConverter.h" />
     <ClInclude Include="..\..\include\FrameResource.h" />
     <ClInclude Include="..\..\include\FreeLookActor.h" />
@@ -260,11 +266,13 @@
     <ClInclude Include="..\..\include\GpuResource.h" />
     <ClInclude Include="..\..\include\HashUtil.h" />
     <ClInclude Include="..\..\include\HlslCompaction.h" />
+    <ClInclude Include="..\..\include\HWInfo.h" />
     <ClInclude Include="..\..\include\ImGuiManager.h" />
     <ClInclude Include="..\..\include\InputManager.h" />
     <ClInclude Include="..\..\include\IrradianceMap.h" />
     <ClInclude Include="..\..\include\KeyCodes.h" />
     <ClInclude Include="..\..\include\Light.h" />
+    <ClInclude Include="..\..\include\Locker.h" />
     <ClInclude Include="..\..\include\Logger.h" />
     <ClInclude Include="..\..\include\MathHelper.h" />
     <ClInclude Include="..\..\include\Mesh.h" />
@@ -282,6 +290,7 @@
     <ClInclude Include="..\..\include\RotatingMonkey.h" />
     <ClInclude Include="..\..\include\RTAO.h" />
     <ClInclude Include="..\..\include\Samplers.h" />
+    <ClInclude Include="..\..\include\ShaderArgument.h" />
     <ClInclude Include="..\..\include\ShadingConvention.h" />
     <ClInclude Include="..\..\include\ShaderManager.h" />
     <ClInclude Include="..\..\include\ShaderTable.h" />
@@ -292,6 +301,7 @@
     <ClInclude Include="..\..\include\SSR.h" />
     <ClInclude Include="..\..\include\SVGF.h" />
     <ClInclude Include="..\..\include\SwapChainBuffer.h" />
+    <ClInclude Include="..\..\include\TaskQueue.h" />
     <ClInclude Include="..\..\include\TemporalAA.h" />
     <ClInclude Include="..\..\include\ToneMapping.h" />
     <ClInclude Include="..\..\include\Transform.h" />
@@ -332,9 +342,11 @@
     <None Include="..\..\include\D3D12Util.inl" />
     <None Include="..\..\include\Debug.inl" />
     <None Include="..\..\include\DepthOfField.inl" />
+    <None Include="..\..\include\DepthStencilBuffer.inl" />
     <None Include="..\..\include\DxLowRenderer.inl" />
     <None Include="..\..\include\DXR_Shadow.inl" />
     <None Include="..\..\include\GBuffer.inl" />
+    <None Include="..\..\include\GpuResource.inl" />
     <None Include="..\..\include\IrradianceMap.inl" />
     <None Include="..\..\include\MathHelper.inl" />
     <None Include="..\..\include\RaytracedReflection.inl" />
@@ -345,8 +357,11 @@
     <None Include="..\..\include\SSAO.inl" />
     <None Include="..\..\include\SSR.inl" />
     <None Include="..\..\include\SVGF.inl" />
+    <None Include="..\..\include\SwapChainBuffer.inl" />
     <None Include="..\..\include\TemporalAA.inl" />
+    <None Include="..\..\include\ToneMapping.inl" />
     <None Include="..\..\include\UploadBuffer.inl" />
+    <None Include="..\..\include\ZDepth.inl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\assets\shaders\hlsl\Bloom.hlsl">

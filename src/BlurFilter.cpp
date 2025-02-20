@@ -24,7 +24,7 @@ namespace {
 	const CHAR* const CS_R16_V		= "CS_R16_V";
 }
 
-BOOL BlurFilterClass::Initialize(ID3D12Device*const device, ShaderManager*const manager) {
+BOOL BlurFilterClass::Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -75,9 +75,12 @@ BOOL BlurFilterClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count];
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[6]; UINT index = 0;
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
+
+	CD3DX12_DESCRIPTOR_RANGE texTables[6] = {}; UINT index = 0;
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
@@ -102,12 +105,15 @@ BOOL BlurFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
 
-	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
+	CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature));
 
 	return TRUE;
 }
 
 BOOL BlurFilterClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc;
 	ZeroMemory(&quadPsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	quadPsoDesc.InputLayout = { nullptr, 0 };
@@ -165,14 +171,14 @@ BOOL BlurFilterClass::BuildPSO() {
 		default:
 			ReturnFalse(L"Unknown FilterType");
 		}
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[(FilterType)i])));
+		CheckHRESULT(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[(FilterType)i])));
 	}
 
 	return TRUE;
 }
 
 void BlurFilterClass::Run(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 		GpuResource* const primary,
 		GpuResource* const secondary,
@@ -198,7 +204,7 @@ void BlurFilterClass::Run(
 }
 
 void BlurFilterClass::Run(
-		ID3D12GraphicsCommandList*const cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_blur,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_normal,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
@@ -229,7 +235,7 @@ void BlurFilterClass::Run(
 }
 
 void BlurFilterClass::Blur(
-		ID3D12GraphicsCommandList* cmdList,
+		ID3D12GraphicsCommandList* const cmdList,
 		GpuResource* const output,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_output,
 		D3D12_GPU_DESCRIPTOR_HANDLE si_input,
@@ -267,7 +273,7 @@ void BlurFilterClass::Blur(
 	output->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-BOOL CS::BlurFilterCSClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
+BOOL CS::BlurFilterCSClass::Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -297,9 +303,12 @@ BOOL CS::BlurFilterCSClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL CS::BlurFilterCSClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
 
-	CD3DX12_DESCRIPTOR_RANGE texTables[4]; UINT index = 0;
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count] = {};
+
+	CD3DX12_DESCRIPTOR_RANGE texTables[4] = {}; UINT index = 0;
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
@@ -319,12 +328,15 @@ BOOL CS::BlurFilterCSClass::BuildRootSignature(const StaticSamplers& samplers) {
 		static_cast<UINT>(samplers.size()), samplers.data(),
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
-	CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignature));
+	CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature));
 
 	return TRUE;
 }
 
 BOOL CS::BlurFilterCSClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.pRootSignature = mRootSignature.Get();
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
@@ -333,7 +345,7 @@ BOOL CS::BlurFilterCSClass::BuildPSO() {
 		for (UINT j = 0; j < Direction::Count; ++j) {
 			const auto cs = GetShader((Filter::Type)i, (Direction::Type)j);
 			psoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
-			CheckHRESULT(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[(Filter::Type)i][(Direction::Type)j])));
+			CheckHRESULT(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[(Filter::Type)i][(Direction::Type)j])));
 		}
 	}
 

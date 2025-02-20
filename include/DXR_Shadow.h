@@ -38,13 +38,13 @@ namespace DXR_Shadow {
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE Descriptor() const;
 
 	public:
-		BOOL Initialize(ID3D12Device5*const device, ID3D12GraphicsCommandList*const cmdList, ShaderManager*const manager, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignatures(const StaticSamplers& samplers, UINT geometryBufferCount);
 		BOOL BuildPSO();
 		BOOL BuildShaderTables(UINT numRitems);
 		void Run(
-			ID3D12GraphicsCommandList4*const cmdList,
+			ID3D12GraphicsCommandList4* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS as_bvh,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_pos,
@@ -52,13 +52,12 @@ namespace DXR_Shadow {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_depth,
 			UINT width, UINT height);
 
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
-
-		BOOL OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height);
+		void AllocateDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
+		BOOL BuildDescriptors();
+		BOOL OnResize(UINT width, UINT height);
 
 	private:
-		void BuildDescriptors();
-		BOOL BuildResource(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
+		BOOL BuildResource(UINT width, UINT height);
 
 	private:
 		ID3D12Device5* md3dDevice;

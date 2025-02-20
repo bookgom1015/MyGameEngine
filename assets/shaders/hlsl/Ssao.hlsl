@@ -9,7 +9,7 @@
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 
-ConstantBuffer<ConstantBuffer_SSAO> cb_SSAO : register(b0);
+ConstantBuffer<ConstantBuffer_SSAO>			cb_SSAO				: register(b0);
 
 // Nonnumeric values cannot be added to a cbuffer.
 Texture2D<GBuffer::NormalMapFormat>			gi_Normal			: register(t0);
@@ -28,9 +28,9 @@ VertexOut VS(uint vid : SV_VertexID) {
 	VertexOut vout;
 
 	vout.TexC = gTexCoords[vid];
-	vout.PosH = float4(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y, 0, 1);
+	vout.PosH = float4(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y, 0.f, 1.f);
 
-	float4 ph = mul(vout.PosH, cb_SSAO.InvProj);
+	const float4 ph = mul(vout.PosH, cb_SSAO.InvProj);
 	vout.PosV = ph.xyz / ph.w;
 
 	return vout;
@@ -56,9 +56,9 @@ SSAO::AOCoefficientMapFormat PS(VertexOut pin) : SV_Target{
 	const float3 p = (pz / pin.PosV.z) * pin.PosV;
 
 	// Extract random vector and map from [0,1] --> [-1, +1].
-	const float3 randVec = 2 * gi_RandomVector.SampleLevel(gsamLinearWrap, 4 * pin.TexC, 0) - 1;
+	const float3 randVec = 2.f * gi_RandomVector.SampleLevel(gsamLinearWrap, 4.f * pin.TexC, 0) - 1.f;
 
-	float occlusionSum = 0;
+	float occlusionSum = 0.f;
 
 	// Sample neighboring points about p in the hemisphere oriented by n.
 	[loop]
@@ -102,7 +102,7 @@ SSAO::AOCoefficientMapFormat PS(VertexOut pin) : SV_Target{
 		//     from p, then it does not occlude it.
 		// 
 		const float distZ = p.z - r.z;
-		const float dp = max(dot(n, normalize(r - p)), 0);
+		const float dp = max(dot(n, normalize(r - p)), 0.f);
 
 		const float occlusion = dp * OcclusionFunction(distZ, cb_SSAO.SurfaceEpsilon, cb_SSAO.OcclusionFadeStart, cb_SSAO.OcclusionFadeEnd);
 
@@ -111,10 +111,10 @@ SSAO::AOCoefficientMapFormat PS(VertexOut pin) : SV_Target{
 
 	occlusionSum /= cb_SSAO.SampleCount;
 
-	const float access = 1 - occlusionSum;
+	const float access = 1.f - occlusionSum;
 
 	// Sharpen the contrast of the SSAO map to make the SSAO affect more dramatic.
-	return saturate(pow(access, 6));
+	return saturate(pow(access, 6.f));
 }
 
 #endif // __SSAO_HLSL__

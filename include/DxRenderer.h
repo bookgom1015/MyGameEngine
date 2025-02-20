@@ -9,6 +9,7 @@ const INT gNumFrameResources = 3;
 #include "HlslCompaction.h"
 #include "RenderItem.h"
 #include "DxMesh.h"
+#include "Locker.h"
 
 struct FrameResource;
 
@@ -91,16 +92,12 @@ public:
 	void* AddRenderItem(const std::string& file, const Transform& trans, RenderType::Type type);
 
 	UINT AddTexture(const std::string& file, const Material& material);
-
-private:
-
-
 private:
 	BOOL CompileShaders();
 	BOOL BuildGeometries();
 
 	BOOL BuildFrameResources();
-	void BuildDescriptors();
+	BOOL BuildDescriptors();
 	BOOL BuildRootSignatures();
 	BOOL BuildPSOs();
 	void BuildRenderItems();
@@ -123,6 +120,10 @@ private:
 	BOOL UpdateTLAS(ID3D12GraphicsCommandList4* const cmdList);
 
 	BOOL BuildShaderTables();
+
+	BOOL PrePass();
+	BOOL MainPass();
+	BOOL PostPass();
 	
 	BOOL DrawShadow();
 	BOOL DrawGBuffer();
@@ -152,6 +153,8 @@ private:
 
 private:
 	BOOL bIsCleanedUp = FALSE;
+
+	std::unique_ptr<Locker<ID3D12Device5>> mLocker;
 
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 	FrameResource* mCurrFrameResource;

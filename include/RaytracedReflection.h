@@ -151,7 +151,7 @@ namespace RaytracedReflection {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE ResolvedReflectionSrv() const;
 
 	public:
-		BOOL Initialize(ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignatures(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -161,8 +161,9 @@ namespace RaytracedReflection {
 			D3D12_GPU_VIRTUAL_ADDRESS cb_mat,
 			UINT objCBByteSize,
 			UINT matCBByteSize);
-		void BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
-		BOOL OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height);
+		void AllocateDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
+		BOOL BuildDescriptors();
+		BOOL OnResize(UINT width, UINT height);
 
 		void CalcReflection(
 			ID3D12GraphicsCommandList4* const  cmdList,
@@ -184,8 +185,7 @@ namespace RaytracedReflection {
 		UINT MoveToNextFrameTemporalReflection();
 
 	private:
-		void BuildDescriptors();
-		BOOL BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height);
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device5* md3dDevice;

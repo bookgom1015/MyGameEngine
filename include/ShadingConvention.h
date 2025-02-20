@@ -47,6 +47,13 @@ namespace GBuffer {
 	static const FLOAT InvalidNormDepthValue = 0.f;
 	static const FLOAT InvalidVelocityValue = 1000.f;	
 
+#ifndef GBuffer_Default_RCSTRUCT
+	#define GBuffer_Default_RCSTRUCT {	\
+		FLOAT gMaxDistance;				\
+		FLOAT gMinDistance;				\
+	};
+#endif
+
 #ifdef HLSL
 	typedef float4								AlbedoMapFormat;
 	typedef float4								NormalMapFormat;
@@ -68,6 +75,10 @@ namespace GBuffer {
 
 	bool IsInvalidPosition(float4 val);
 	bool IsValidPosition(float4 val);
+
+	#ifndef GBuffer_Default_RootConstants
+		#define GBuffer_Default_RootConstants(reg) cbuffer cbRootConstant : register(reg) GBuffer_Default_RCSTRUCT
+	#endif
 #else 
 	static const DXGI_FORMAT AlbedoMapFormat			= DXGI_FORMAT_R8G8B8A8_UNORM;
 	static const DXGI_FORMAT NormalMapFormat			= DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -84,10 +95,32 @@ namespace GBuffer {
 	const FLOAT VelocityMapClearValues[2]				= { InvalidVelocityValue, InvalidVelocityValue };
 	const FLOAT ReprojNormalDepthMapClearValues[4]		= { 0.f, 0.f, 0.f,  0.f };
 	const FLOAT PositionMapClearValues[4]				= { 0.f, 0.f, 0.f, -1.f };
+
+	namespace RootConstant {
+		namespace Default {
+			struct Struct GBuffer_Default_RCSTRUCT
+			enum {
+				EC_MaxDistance = 0,
+				EC_MinDistance,
+				Count
+			};
+		}
+	}
 #endif 
 }
 
 namespace Shadow {
+#ifndef Shadow_ZDepth_RCSTRUCT
+	#define Shadow_ZDepth_RCSTRUCT {	\
+		UINT gLightIndex;				\
+	};
+#endif
+#ifndef Shadow_Shadow_RCSTRUCT			
+	#define Shadow_Shadow_RCSTRUCT {	\
+		UINT gLightIndex;				\
+	};
+#endif
+
 #ifdef HLSL
 	typedef float	ZDepthMapFormat;
 	typedef uint	ShadowMapFormat;
@@ -105,6 +138,13 @@ namespace Shadow {
 	bool IsInvalidFaceID(uint faceID) {
 		return faceID == InvalidFaceID;
 	}
+
+	#ifndef Shadow_ZDepth_RootConstants
+		#define Shadow_ZDepth_RootConstants(reg) cbuffer cbRootConstants : register(reg) Shadow_ZDepth_RCSTRUCT
+	#endif
+	#ifndef Shadow_Shadow_RootConstants
+		#define Shadow_Shadow_RootConstants(reg) cbuffer cbRootConstants : register(reg) Shadow_Shadow_RCSTRUCT
+	#endif
 #else 
 	static const DXGI_FORMAT ZDepthMapFormat		= DXGI_FORMAT_D32_FLOAT;
 	static const DXGI_FORMAT ShadowMapFormat		= DXGI_FORMAT_R16_UINT;
@@ -115,15 +155,33 @@ namespace Shadow {
 	const FLOAT VSDepthCubeMapFormatClearValues[4]	= { -1.f, 0.f, 0.f, 0.f };
 	const FLOAT FaceIDCubeMapClearValues[4]			= { 255.f, 0.f, 0.f, 0.f };
 #endif 
+	namespace RootConstant {
+		namespace ZDepth {
+			struct Struct Shadow_ZDepth_RCSTRUCT
+			enum {
+				E_LightIndex = 0,
+				Count
+			};
+		}
+
+		namespace Shadow {
+			struct Struct Shadow_Shadow_RCSTRUCT
+			enum {
+				E_LightIndex = 0,
+				Count
+			};
+		}
+	}
+
 	namespace Default {
 		namespace ThreadGroup {
 			enum {
 				Width = 8,
 				Height = 8,
 				Size = Width * Height
-		};
+			};
+		}
 	}
-}
 }
 
 namespace DXR_Shadow {
@@ -170,10 +228,32 @@ namespace TemporalAA {
 }
 
 namespace ToneMapping {
+#ifndef ToneMapping_Default_RCSTRUCT
+	#define ToneMapping_Default_RCSTRUCT {	\
+		FLOAT gExposure;					\
+	};
+#endif
+
 #ifdef HLSL
 	typedef HDR_FORMAT IntermediateMapFormat;
+
+	#ifndef ToneMapping_Default_RootConstants
+		#define ToneMapping_Default_RootConstants(reg) cbuffer gRootConstants : register(reg) ToneMapping_Default_RCSTRUCT
+	#endif
 #else
 	const DXGI_FORMAT IntermediateMapFormat = HDR_FORMAT;
+
+	const FLOAT IntermediateMapClearValues[4] = { 0.f, 0.f, 0.f, 0.f };
+
+	namespace RootConstant {
+		namespace Default {
+			struct Struct ToneMapping_Default_RCSTRUCT
+			enum {
+				E_Exposure = 0,
+				Count
+			};
+		}
+	}
 #endif
 }
 
@@ -192,6 +272,8 @@ namespace SSR {
 	typedef HDR_FORMAT SSRMapFormat;
 #else
 	static const DXGI_FORMAT SSRMapFormat = HDR_FORMAT;
+
+	const FLOAT SSRMapClearValues[4] = { 0.f, 0.f, 0.f, 0.f };
 #endif
 }
 
@@ -288,7 +370,69 @@ namespace DepthOfField {
 #endif
 }
 
+namespace Sharpen {
+#ifndef Sharpen_Default_RCSTRUCT
+	#define Sharpen_Default_RCSTRUCT {		\
+		DirectX::XMFLOAT2	gInvTexSize;	\
+		FLOAT				gAmount;		\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef Sharpen_Default_RootConstants
+		#define Sharpen_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) Sharpen_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct Sharpen_Default_RCSTRUCT
+			enum {
+				E_InvTexSizeX = 0,
+				E_InvTexSizeY,
+				E_Amount,
+				Count
+			};
+		}
+	}
+#endif
+}
+
+namespace Pixelation {
+#ifndef Pixelation_Default_RCSTRUCT
+	#define Pixelation_Default_RCSTRUCT	{	\
+		DirectX::XMFLOAT2 gTexSize;			\
+		FLOAT			  gPixelSize;		\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef Pixelation_Default_RootConstants
+		#define Pixelation_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) Pixelation_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct Pixelation_Default_RCSTRUCT
+			enum {
+				E_TexSize_X = 0,
+				E_TexSize_Y,
+				E_PixelSize,
+				Count
+			};
+		}
+	}
+#endif
+}
+
 namespace IrradianceMap {
+#ifndef IrradianceMap_ConvoluteSpecularIrradiance_RCSTRUCT
+	#define IrradianceMap_ConvoluteSpecularIrradiance_RCSTRUCT {	\
+		UINT	gMipLevel;											\
+		FLOAT	gRoughness;											\
+		FLOAT	gResolution;										\
+	};
+#endif
+
 #ifdef HLSL
 	typedef HDR_FORMAT	DiffuseIrradCubeMapFormat;
 	typedef HDR_FORMAT	DiffuseIrradEquirectMapFormat;
@@ -297,6 +441,10 @@ namespace IrradianceMap {
 	typedef HDR_FORMAT	PrefilteredEnvEquirectMapFormat;
 	typedef HDR_FORMAT	EquirectMapFormat;
 	typedef float2		IntegratedBrdfMapFormat;
+
+	#ifndef IrradianceMap_ConvoluteSpecularIrradiance_RootConstants
+		#define IrradianceMap_ConvoluteSpecularIrradiance_RootConstants(reg) cbuffer cbRootConstants : register(reg) IrradianceMap_ConvoluteSpecularIrradiance_RCSTRUCT
+	#endif
 #else
 	static const DXGI_FORMAT DiffuseIrradCubeMapFormat			= HDR_FORMAT;
 	static const DXGI_FORMAT DiffuseIrradEquirectMapFormat		= HDR_FORMAT;
@@ -314,6 +462,66 @@ namespace IrradianceMap {
 			E_PrefilteredIrradianceCube,
 			Count
 		};
+	}
+
+	namespace RootConstant {
+		namespace ConvoluteSpecularIrradiance {
+			struct Struct IrradianceMap_ConvoluteSpecularIrradiance_RCSTRUCT
+			enum {
+				E_MipLevel = 0,
+				E_Roughness,
+				E_Resolution,
+				Count
+			};
+		}
+	}
+#endif
+}
+
+namespace EquirectangularConverter {
+#ifndef EquirectangularConverter_ConvCubeToEquirect_RCSTRUCT
+	#define EquirectangularConverter_ConvCubeToEquirect_RCSTRUCT {	\
+		UINT gMipLevel;												\
+	};
+#endif
+	
+#ifdef HLSL
+	#ifndef EquirectangularConverter_ConvCubeToEquirect_RootConstants
+		#define EquirectangularConverter_ConvCubeToEquirect_RootConstants(reg) cbuffer cbRootConstants : register(reg) EquirectangularConverter_ConvCubeToEquirect_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace ConvCubeToEquirect {
+			struct Struct EquirectangularConverter_ConvCubeToEquirect_RCSTRUCT
+			enum {
+				E_MipLevel = 0,
+				Count
+			};
+		}
+	}
+#endif
+}
+
+namespace GammaCorrection {
+#ifndef GammaCorrection_Default_RCSTRUCT
+	#define GammaCorrection_Default_RCSTRUCT {	\
+		FLOAT gGamma;							\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef GammaCorrection_Default_RootConstants
+		#define GammaCorrection_Default_RootConstants(reg) cbuffer gRootConstants : register(reg) GammaCorrection_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct GammaCorrection_Default_RCSTRUCT
+			enum {
+				E_Gamma = 0,
+				Count
+			};
+		}
 	}
 #endif
 }
@@ -712,6 +920,32 @@ namespace VolumetricLight {
 }
 
 namespace MipmapGenerator {
+#ifndef MipmapGenerator_Default_RCSTRUCT
+	#define MipmapGenerator_Default_RCSTRUCT {	\
+		DirectX::XMFLOAT2 gInvTexSize;			\
+		DirectX::XMFLOAT2 gInvMipmapTexSize;	\
+	};
+#endif
+
+#ifdef HLSL
+	#ifndef MipmapGenerator_Default_RootConstants
+		#define MipmapGenerator_Default_RootConstants(reg) cbuffer cbRootConstants : register(reg) MipmapGenerator_Default_RCSTRUCT
+	#endif
+#else
+	namespace RootConstant {
+		namespace Default {
+			struct Struct MipmapGenerator_Default_RCSTRUCT
+			enum {
+				E_InvTexSizeW = 0,
+				E_InvTexSizeH,
+				E_InvMipmapTexSizeW,
+				E_InvMipmapTexSizeH,
+				Count
+			};
+		}
+	}
+#endif
+
 	namespace ThreadGroup {
 		enum {
 			Width	= 8,

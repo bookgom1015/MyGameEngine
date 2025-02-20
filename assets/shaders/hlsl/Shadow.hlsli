@@ -6,12 +6,12 @@ float CalcShadowFactorPCF(
 		in SamplerComparisonState sampComp, 
 		in float4 shadowPosH) {
 	shadowPosH.xyz /= shadowPosH.w;
-	float depth = shadowPosH.z;
+	const float depth = shadowPosH.z;
 
 	uint2 dims;
 	depthMap.GetDimensions(dims.x, dims.y);
 
-	float dx = 1.f / (float)dims.x;
+	const float dx = 1.f / (float)dims.x;
 
 	float percentLit = 0.f;
 	const float2 offsets[9] = {
@@ -90,8 +90,8 @@ uint CalcShiftedShadowValueF(
 		in float percent, 
 		in uint value, 
 		in uint index) {
-	uint shadowFactor = percent < 0.5f ? 0 : 1;
-	uint shifted = shadowFactor << index;
+	const uint shadowFactor = percent < 0.5f ? 0 : 1;
+	const uint shifted = shadowFactor << index;
 
 	return value | shifted;
 }
@@ -100,8 +100,8 @@ uint CalcShiftedShadowValueB(
 		in bool isHit, 
 		in uint value, 
 		in uint index) {
-	uint shadowFactor = isHit ? 0 : 1;
-	uint shifted = shadowFactor << index;
+	const uint shadowFactor = isHit ? 0 : 1;
+	const uint shifted = shadowFactor << index;
 
 	return value | shifted;
 }

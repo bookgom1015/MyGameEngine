@@ -150,6 +150,7 @@ BOOL DxLowRenderer::FlushCommandQueue() {
 	// Wait until the GPU has compledted commands up to this fence point.
 	if (mFence->GetCompletedValue() < mCurrentFence) {
 		HANDLE eventHandle = CreateEventEx(nullptr, FALSE, FALSE, EVENT_ALL_ACCESS);
+		if (eventHandle == NULL) return FALSE;
 
 		// Fire event when GPU hits current fence.
 		CheckHRESULT(mFence->SetEventOnCompletion(mCurrentFence, eventHandle));

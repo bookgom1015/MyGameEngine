@@ -23,7 +23,7 @@ namespace DebugCollision {
 		virtual ~DebugCollisionClass() = default;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature();
 		BOOL BuildPSO();
@@ -40,7 +40,7 @@ namespace DebugCollision {
 
 	private:
 		void DrawRenderItems(
-			ID3D12GraphicsCommandList* cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			const std::vector<RenderItem*>& ritems,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
 			UINT objCBByteSize);

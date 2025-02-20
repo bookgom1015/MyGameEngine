@@ -49,14 +49,14 @@ namespace TemporalAA {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_velocity,
 			FLOAT factor);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			UINT descSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 	public:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 	private:

@@ -10,15 +10,10 @@ class GpuResource;
 
 namespace GammaCorrection {
 	namespace RootSignature {
-		enum {
-			EC_Consts = 0,
-			ESI_BackBuffer,
-			Count
-		};
-
-		namespace RootConstant {
+		namespace Default {
 			enum {
-				E_Gamma = 0,
+				EC_Consts = 0,
+				ESI_BackBuffer,
 				Count
 			};
 		}
@@ -30,7 +25,7 @@ namespace GammaCorrection {
 		virtual ~GammaCorrectionClass() = default;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -38,15 +33,15 @@ namespace GammaCorrection {
 			ID3D12GraphicsCommandList* const cmdList,
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			GpuResource* backBuffer,
+			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			FLOAT gamma);
 
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,UINT descSize);
+		void AllocateDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,UINT descSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 	private:

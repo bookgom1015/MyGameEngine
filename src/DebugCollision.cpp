@@ -14,7 +14,7 @@ namespace {
 	const CHAR* const PS_DebugCollision = "PS_DebugCollision";
 }
 
-BOOL DebugCollisionClass::Initialize(ID3D12Device* device, ShaderManager* const manager) {
+BOOL DebugCollisionClass::Initialize(ID3D12Device* const device, ShaderManager* const manager) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -23,9 +23,9 @@ BOOL DebugCollisionClass::Initialize(ID3D12Device* device, ShaderManager* const 
 
 BOOL DebugCollisionClass::CompileShaders(const std::wstring& filePath) {
 	const std::wstring fullPath = filePath + L"DebugCollision.hlsl";
-	auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
-	auto gsInfo = D3D12ShaderInfo(fullPath.c_str(), L"GS", L"gs_6_3");
-	auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
+	const auto vsInfo = D3D12ShaderInfo(fullPath.c_str(), L"VS", L"vs_6_3");
+	const auto gsInfo = D3D12ShaderInfo(fullPath.c_str(), L"GS", L"gs_6_3");
+	const auto psInfo = D3D12ShaderInfo(fullPath.c_str(), L"PS", L"ps_6_3");
 	CheckReturn(mShaderManager->CompileShader(vsInfo, VS_DebugCollision));
 	CheckReturn(mShaderManager->CompileShader(gsInfo, GS_DebugCollision));
 	CheckReturn(mShaderManager->CompileShader(psInfo, PS_DebugCollision));
@@ -34,7 +34,7 @@ BOOL DebugCollisionClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL DebugCollisionClass::BuildRootSignature() {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Count] = {};
 
 	slotRootParameter[RootSignature::ECB_Pass].InitAsConstantBufferView(0);
 	slotRootParameter[RootSignature::ECB_Obj].InitAsConstantBufferView(1);
@@ -54,9 +54,9 @@ BOOL DebugCollisionClass::BuildPSO() {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC debugPsoDesc = D3D12Util::DefaultPsoDesc({ nullptr, 0 }, DXGI_FORMAT_UNKNOWN);
 	debugPsoDesc.pRootSignature = mRootSignature.Get();
 	{
-		auto vs = mShaderManager->GetDxcShader(VS_DebugCollision);
-		auto gs = mShaderManager->GetDxcShader(GS_DebugCollision);
-		auto ps = mShaderManager->GetDxcShader(PS_DebugCollision);
+		const auto vs = mShaderManager->GetDxcShader(VS_DebugCollision);
+		const auto gs = mShaderManager->GetDxcShader(GS_DebugCollision);
+		const auto ps = mShaderManager->GetDxcShader(PS_DebugCollision);
 		debugPsoDesc.VS = { reinterpret_cast<BYTE*>(vs->GetBufferPointer()), vs->GetBufferSize() };
 		debugPsoDesc.GS = { reinterpret_cast<BYTE*>(gs->GetBufferPointer()), gs->GetBufferSize() };
 		debugPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
@@ -76,7 +76,7 @@ void DebugCollisionClass::Run(
 		ID3D12GraphicsCommandList* const cmdList,
 		D3D12_VIEWPORT viewport,
 		D3D12_RECT scissorRect,
-		GpuResource*const backBuffer,
+		GpuResource* const backBuffer,
 		D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
@@ -90,7 +90,7 @@ void DebugCollisionClass::Run(
 
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-	cmdList->OMSetRenderTargets(1, &ro_backBuffer, true, nullptr);
+	cmdList->OMSetRenderTargets(1, &ro_backBuffer, TRUE, nullptr);
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_Pass, cb_pass);
 
@@ -100,15 +100,15 @@ void DebugCollisionClass::Run(
 }
 
 void DebugCollisionClass::DrawRenderItems(
-		ID3D12GraphicsCommandList* cmdList, 
+		ID3D12GraphicsCommandList* const cmdList, 
 		const std::vector<RenderItem*>& ritems,
 		D3D12_GPU_VIRTUAL_ADDRESS cb_obj,
 		UINT objCBByteSize) {
 
 	for (UINT i = 0; i < ritems.size(); ++i) {
-		auto& ri = ritems[i];
+		const auto& ri = ritems[i];
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + ri->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + static_cast<UINT64>(ri->ObjCBIndex) * static_cast<UINT64>(objCBByteSize);
 		cmdList->SetGraphicsRootConstantBufferView(RootSignature::ECB_Obj, currRitemObjCBAddress);
 
 		cmdList->IASetVertexBuffers(0, 0, nullptr);

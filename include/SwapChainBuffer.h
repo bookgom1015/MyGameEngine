@@ -16,26 +16,26 @@ namespace SwapChainBuffer {
 		virtual ~SwapChainBufferClass() = default;
 
 	public:
-		__forceinline GpuResource* BackBuffer(INT index) const;
+		__forceinline GpuResource* BackBuffer(UINT index) const;
 		__forceinline GpuResource* CurrentBackBuffer() const;
 		__forceinline D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferRtv() const;
 		__forceinline D3D12_GPU_DESCRIPTOR_HANDLE CurrentBackBufferSrv() const;
 		__forceinline constexpr UINT CurrentBackBufferIndex() const;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, UINT count, UINT descSize);
-		BOOL LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height, BOOL tearing = FALSE);
+		BOOL Initialize(ID3D12Device* const device, ID3D12DescriptorHeap* const rtvHeap, UINT count, UINT descSize);
+		BOOL LowOnResize(IDXGISwapChain* const swapChain, UINT width, UINT height, BOOL tearing = FALSE);
 		BOOL OnResize();
 
 		void NextBackBuffer();
 
-		void BuildDescriptors(
-			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv, 
+		void AllocateDescriptors(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 			UINT descSize);
+		BOOL BuildDescriptors();
 
 	private:
-		void BuildDescriptors();
 
 	private:
 		ID3D12Device* md3dDevice;
@@ -52,22 +52,4 @@ namespace SwapChainBuffer {
 	};
 }
 
-GpuResource* SwapChainBuffer::SwapChainBufferClass::BackBuffer(INT index) const {
-	return mSwapChainBuffer[index].get();
-}
-
-GpuResource* SwapChainBuffer::SwapChainBufferClass::CurrentBackBuffer() const {
-	return mSwapChainBuffer[mCurrBackBuffer].get(); 
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferRtv() const {
-	return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mCurrBackBuffer, mRtvDescriptorSize);
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferSrv() const {
-	return mhBackBufferGpuSrvs[mCurrBackBuffer];
-}
-
-constexpr UINT SwapChainBuffer::SwapChainBufferClass::CurrentBackBufferIndex() const {
-	return mCurrBackBuffer;
-}
+#include "SwapChainBuffer.inl"

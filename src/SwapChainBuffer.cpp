@@ -4,7 +4,7 @@
 
 using namespace SwapChainBuffer;
 
-BOOL SwapChainBufferClass::Initialize(ID3D12Device* device, ID3D12DescriptorHeap* rtvHeap, UINT count, UINT descSize) {
+BOOL SwapChainBufferClass::Initialize(ID3D12Device* const device, ID3D12DescriptorHeap* const rtvHeap, UINT count, UINT descSize) {
 	md3dDevice = device;
 
 	mSwapChainBuffer.resize(count);
@@ -20,10 +20,10 @@ BOOL SwapChainBufferClass::Initialize(ID3D12Device* device, ID3D12DescriptorHeap
 	for (UINT i = 0; i < count; ++i) 
 		mSwapChainBuffer[i] = std::make_unique<GpuResource>();
 
-	return true;
+	return TRUE;
 }
 
-BOOL SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT width, UINT height, BOOL tearing) {
+BOOL SwapChainBufferClass::LowOnResize(IDXGISwapChain* const swapChain, UINT width, UINT height, BOOL tearing) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	// Resize the previous resources we will be creating.
@@ -41,7 +41,7 @@ BOOL SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT widt
 	));
 
 	for (UINT i = 0; i < mSwapChainBufferCount; ++i) {
-		auto buffer = mSwapChainBuffer[i].get();
+		const auto buffer = mSwapChainBuffer[i].get();
 		buffer->OnResize(swapChain, i);
 
 		md3dDevice->CreateRenderTargetView(buffer->Resource(), nullptr, rtvHeapHandle);
@@ -50,20 +50,20 @@ BOOL SwapChainBufferClass::LowOnResize(IDXGISwapChain*const swapChain, UINT widt
 
 	mCurrBackBuffer = 0;
 
-	return true;
+	return TRUE;
 }
 
 BOOL SwapChainBufferClass::OnResize() {
 	BuildDescriptors();
 
-	return true;
+	return TRUE;
 }
 
 void SwapChainBufferClass::NextBackBuffer() {
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % mSwapChainBufferCount;
 }
 
-void SwapChainBufferClass::BuildDescriptors(
+void SwapChainBufferClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuSrv,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpuSrv,
 		UINT descSize) {
@@ -71,20 +71,20 @@ void SwapChainBufferClass::BuildDescriptors(
 		mhBackBufferCpuSrvs[i] = hCpuSrv.Offset(1, descSize);
 		mhBackBufferGpuSrvs[i] = hGpuSrv.Offset(1, descSize);
 	}
-
-	BuildDescriptors();
 }
 
-void SwapChainBufferClass::BuildDescriptors() {
+BOOL SwapChainBufferClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Format = BackBufferFormat;
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 	srvDesc.Texture2D.MipLevels = 1;
 
 	for (UINT i = 0; i < mSwapChainBufferCount; ++i) {
 		md3dDevice->CreateShaderResourceView(mSwapChainBuffer[i]->Resource(), &srvDesc, mhBackBufferCpuSrvs[i]);
 	}
+
+	return TRUE;
 }

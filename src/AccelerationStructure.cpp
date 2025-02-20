@@ -63,7 +63,7 @@ BOOL AccelerationStructureBuffer::BuildBLAS(
 
 	D3D12Util::UavBarrier(cmdList, Result.Get());
 
-	return true;
+	return TRUE;
 }
 
 BOOL AccelerationStructureBuffer::BuildTLAS(
@@ -120,7 +120,7 @@ BOOL AccelerationStructureBuffer::BuildTLAS(
 	// Wait for the TLAS build to complete
 	D3D12Util::UavBarrier(cmdList, Result.Get());
 
-	return true;
+	return TRUE;
 }
 
 void AccelerationStructureBuffer::UpdateTLAS(

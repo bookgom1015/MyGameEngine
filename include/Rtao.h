@@ -115,7 +115,8 @@ namespace RTAO {
 		BOOL BuildRootSignatures(const StaticSamplers& samplers);
 		BOOL BuildPSO();
 		BOOL BuildShaderTables(UINT numRitems);
-		void BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
+		void AllocateDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 		void RunCalculatingAmbientOcclusion(
@@ -131,7 +132,6 @@ namespace RTAO {
 		UINT MoveToNextFrameTemporalAOCoefficient();
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 	private:

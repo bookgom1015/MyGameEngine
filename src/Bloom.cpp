@@ -21,11 +21,10 @@ BloomClass::BloomClass() {
 }
 
 BOOL BloomClass::Initialize(
-		ID3D12Device* const device, ShaderManager* const manager, 
+		Locker<ID3D12Device5>* const device, ShaderManager* const manager,
 		UINT width, UINT height, Resolution::Type type) {
 	md3dDevice = device;
 	mShaderManager = manager;
-
 	mResolutionType = type;
 
 	CheckReturn(BuildResources(width, height));
@@ -53,13 +52,15 @@ BOOL BloomClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// ExtractHighlight
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ExtractHighlight::Count];
-
 		CD3DX12_DESCRIPTOR_RANGE texTable0;
 		texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ExtractHighlight::Count] = {};
 		slotRootParameter[RootSignature::ExtractHighlight::ESI_BackBuffer].InitAsDescriptorTable(1, &texTable0);
 		slotRootParameter[RootSignature::ExtractHighlight::EC_Consts].InitAsConstants(RootConstant::ExtractHighlight::Count, 0);
 
@@ -69,18 +70,17 @@ BOOL BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Extract]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[PipelineState::E_Extract]));
 	}
 	// ApplyBloom
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyBloom::Count];
-
 		CD3DX12_DESCRIPTOR_RANGE texTable0;
 		texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 
 		CD3DX12_DESCRIPTOR_RANGE texTable1;
 		texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
 
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ApplyBloom::Count] = {};
 		slotRootParameter[RootSignature::ApplyBloom::ESI_BackBuffer].InitAsDescriptorTable(1, &texTable0);
 		slotRootParameter[RootSignature::ApplyBloom::ESI_Bloom].InitAsDescriptorTable(1, &texTable1);
 
@@ -90,13 +90,16 @@ BOOL BloomClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[PipelineState::E_Bloom]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[PipelineState::E_Bloom]));
 	}
 
 	return TRUE;
 }
 
 BOOL BloomClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC quadPsoDesc = D3D12Util::QuadPsoDesc();
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC extHlightsPsoDesc = quadPsoDesc;
@@ -108,7 +111,7 @@ BOOL BloomClass::BuildPSO() {
 		extHlightsPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	extHlightsPsoDesc.RTVFormats[0] = HDR_FORMAT;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&extHlightsPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Extract])));
+	CheckHRESULT(device->CreateGraphicsPipelineState(&extHlightsPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Extract])));
 	
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC bloomPsoDesc = quadPsoDesc;
 	bloomPsoDesc.pRootSignature = mRootSignatures[PipelineState::E_Bloom].Get();
@@ -119,7 +122,7 @@ BOOL BloomClass::BuildPSO() {
 		bloomPsoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 	}
 	bloomPsoDesc.RTVFormats[0] = HDR_FORMAT;
-	CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&bloomPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Bloom])));
+	CheckHRESULT(device->CreateGraphicsPipelineState(&bloomPsoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::E_Bloom])));
 
 	return TRUE;
 }
@@ -187,7 +190,7 @@ void BloomClass::ApplyBloom(
 	backBuffer->Transite(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 }
 
-void BloomClass::BuildDescriptors(
+void BloomClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
@@ -202,18 +205,12 @@ void BloomClass::BuildDescriptors(
 	mhBloomMapCpuSrvs[1] = hCpu.Offset(1, descSize);
 	mhBloomMapGpuSrvs[1] = hGpu.Offset(1, descSize);
 	mhBloomMapCpuRtvs[1] = hCpuRtv.Offset(1, rtvDescSize);
-
-	BuildDescriptors();
 }
 
-BOOL BloomClass::OnResize(UINT width, UINT height) {
-	CheckReturn(BuildResources(width, height));
-	BuildDescriptors();
+BOOL BloomClass::BuildDescriptors() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
 
-	return TRUE;
-}
-
-void BloomClass::BuildDescriptors() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -228,16 +225,28 @@ void BloomClass::BuildDescriptors() {
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
 
-	md3dDevice->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
+	device->CreateShaderResourceView(mCopiedBackBuffer->Resource(), &srvDesc, mhCopiedBackBufferCpuSrv);
 
-	for (INT i = 0; i < 2; ++i) {
-		auto bloomMap = mBloomMaps[i]->Resource();
-		md3dDevice->CreateShaderResourceView(bloomMap, &srvDesc, mhBloomMapCpuSrvs[i]);
-		md3dDevice->CreateRenderTargetView(bloomMap, &rtvDesc, mhBloomMapCpuRtvs[i]);
+	for (UINT i = 0; i < 2; ++i) {
+		const auto bloomMap = mBloomMaps[i]->Resource();
+		device->CreateShaderResourceView(bloomMap, &srvDesc, mhBloomMapCpuSrvs[i]);
+		device->CreateRenderTargetView(bloomMap, &rtvDesc, mhBloomMapCpuRtvs[i]);
 	}
+
+	return TRUE;
+}
+
+BOOL BloomClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
+	BuildDescriptors();
+
+	return TRUE;
 }
 
 BOOL BloomClass::BuildResources(UINT width, UINT height) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	UINT actWidth;
 	UINT actHeight;
 	if (mResolutionType == Resolution::E_Fullscreen) {
@@ -271,7 +280,7 @@ BOOL BloomClass::BuildResources(UINT width, UINT height) {
 		rscDesc.Width = width;
 		rscDesc.Height = height;
 		CheckReturn(mCopiedBackBuffer->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&rscDesc,
@@ -290,7 +299,7 @@ BOOL BloomClass::BuildResources(UINT width, UINT height) {
 			std::wstringstream wsstream;
 			wsstream << "Bloom_BloomMap_" << i;
 			CheckReturn(mBloomMaps[i]->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&rscDesc,

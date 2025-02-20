@@ -5,6 +5,7 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "Locker.h"
 
 class ShaderManager;
 class GpuResource;
@@ -58,8 +59,6 @@ namespace VolumetricLight {
 		};
 	}
 
-	static const UINT NumRenderTargets = 1;
-
 	class VolumetricLightClass {
 	public:
 		VolumetricLightClass();
@@ -67,7 +66,7 @@ namespace VolumetricLight {
 
 	public:
 		BOOL Initialize(
-			ID3D12Device* device, ShaderManager* const manager,
+			Locker<ID3D12Device5>* const device, ShaderManager* const manager,
 			UINT clientW, UINT clientH,
 			UINT texW, UINT texH, UINT texD);
 		BOOL PrepareUpdate(ID3D12GraphicsCommandList* const cmdList);
@@ -90,14 +89,13 @@ namespace VolumetricLight {
 			FLOAT anisotropicCoeiff,
 			FLOAT densityScale);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
-			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
-			UINT descSize, UINT rtvDescSize);
+			UINT descSize);
+		BOOL BuildDescriptors();
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources();
 
 		void CalculateScatteringAndDensity(
@@ -122,14 +120,14 @@ namespace VolumetricLight {
 			ID3D12GraphicsCommandList* const cmdList, 
 			const D3D12_VIEWPORT& viewport,
 			const D3D12_RECT& scissorRect,
-			GpuResource* backBuffer, 
+			GpuResource* const backBuffer, 
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer,
 			D3D12_GPU_VIRTUAL_ADDRESS cb_pass,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_currFrustumVolume,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_position);
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignatures[RootSignature::Count];
@@ -142,9 +140,6 @@ namespace VolumetricLight {
 		std::array<CD3DX12_GPU_DESCRIPTOR_HANDLE, 2> mhFrustumVolumeMapGpuUavs;
 
 		std::unique_ptr<GpuResource> mFrustumVolumeUploadBuffer;
-
-		std::unique_ptr<GpuResource> mDebugMap;
-		CD3DX12_CPU_DESCRIPTOR_HANDLE mhDebugMapCpuRtv;
 
 		UINT mClientWidth;
 		UINT mClientHeight;

@@ -82,8 +82,8 @@ namespace DepthOfField {
 		__forceinline constexpr CD3DX12_GPU_DESCRIPTOR_HANDLE FocalDistanceBufferUav() const;
 
 	public:
-		BOOL Initialize(
-			ID3D12Device* const device, ShaderManager* const manager, ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT width, UINT height);
+		BOOL PrepareUpdate(ID3D12GraphicsCommandList* const cmdList);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -120,16 +120,16 @@ namespace DepthOfField {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
 			UINT blurCount);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
-		BOOL OnResize(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height);
+		BOOL BuildDescriptors();
+		BOOL OnResize(UINT width, UINT height);
 
 	public:
-		void BuildDescriptors();
-		BOOL BuildResources(ID3D12GraphicsCommandList* const cmdList, UINT width, UINT height);
+		BOOL BuildResources(UINT width, UINT height);
 
 	private:
 		ID3D12Device* md3dDevice;

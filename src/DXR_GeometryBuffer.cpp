@@ -9,7 +9,7 @@ BOOL DXR_GeometryBufferClass::Initialize(ID3D12Device5* const device) {
 	
 	mNumGeometries = 0;
 
-	return true;
+	return TRUE;
 }
 
 void DXR_GeometryBufferClass::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {

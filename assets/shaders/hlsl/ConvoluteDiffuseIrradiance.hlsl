@@ -14,29 +14,24 @@
 
 #include "BRDF.hlsli"
 
-ConstantBuffer<ConstantBuffer_Irradiance> cb_Irrad	: register(b0);
+ConstantBuffer<ConstantBuffer_Irradiance>	cb_Irrad	: register(b0);
 
-cbuffer cbRootConstants : register(b1) {
-	uint	gFaceID;
-	float	gSampleDelta;
-}
-
-TextureCube<HDR_FORMAT> gi_Cube : register(t0);
+TextureCube<HDR_FORMAT>						gi_Cube		: register(t0);
 
 #include "HardCodedCubeVertices.hlsli"
 
 struct VertexOut {
-	float3 PosL		: POSITION;
+	float3 PosL			: POSITION;
 };
 
 struct GeoOut {
-	float4	PosH		: SV_POSITION;
-	float3	PosL		: POSITION;
-	uint	ArrayIndex	: SV_RenderTargetArrayIndex;
+	float4 PosH			: SV_POSITION;
+	float3 PosL			: POSITION;
+	uint   ArrayIndex	: SV_RenderTargetArrayIndex;
 };
 
 VertexOut VS(uint vid : SV_VertexID) {
-	VertexOut vout;
+	VertexOut vout = (VertexOut)0;
 
 	vout.PosL = gVertices[vid];
 
@@ -48,13 +43,13 @@ void GS(triangle VertexOut gin[3], inout TriangleStream<GeoOut> triStream) {
 	GeoOut gout = (GeoOut)0;
 
 	[unroll]
-	for (int face = 0; face < 6; ++face) {
-		float4x4 view = cb_Irrad.View[face];
+	for (uint face = 0; face < 6; ++face) {
+		const float4x4 view = cb_Irrad.View[face];
 		[unroll]
-		for (int i = 0; i < 3; ++i) {
-			float3 posL = gin[i].PosL;
-			float4 posV = mul(float4(posL, 1), view);
-			float4 posH = mul(posV, cb_Irrad.Proj);
+		for (uint i = 0; i < 3; ++i) {
+			const float3 posL = gin[i].PosL;
+			const float4 posV = mul(float4(posL, 1.f), view);
+			const float4 posH = mul(posV, cb_Irrad.Proj);
 
 			gout.PosL = posL;
 			gout.PosH = posH.xyww;
@@ -74,16 +69,16 @@ float3 ConvoluteIrradiance(float3 pos) {
 	// we use in the PBR shader to sample irradiance.
 	const float3 N = normalize(pos);
 
-	float3 irradiance = 0;
+	float3 irradiance = (float3)0.f;
 
-	float3 up = float3(0, 1, 0);
+	float3 up = float3(0.f, 1.f, 0.f);
 	const float3 right = normalize(cross(up, N));
 	up = normalize(cross(N, right));
 
 	uint numSamples = 0;
-	float sampDelta = 0.0125;
-	for (float phi = 0; phi < 2 * PI; phi += sampDelta) {
-		for (float theta = 0; theta < 0.5 * PI; theta += sampDelta) {
+	float sampDelta = 0.0125f;
+	for (float phi = 0.f, phi_end = 2.f * PI; phi < phi_end; phi += sampDelta) {
+		for (float theta = 0.f, theta_end = 0.5f * PI; theta < theta_end; theta += sampDelta) {
 			const float cosTheta = cos(theta);
 			const float sinTheta = sin(theta);
 
@@ -97,15 +92,14 @@ float3 ConvoluteIrradiance(float3 pos) {
 			++numSamples;
 		}
 	}
-	irradiance = PI * irradiance * (1 / float(numSamples));
+	irradiance = PI * irradiance * (1.f / (float)numSamples);
 
 	return irradiance;
 }
 
 HDR_FORMAT PS(GeoOut pin) : SV_Target{
-	float3 irradiance = ConvoluteIrradiance(pin.PosL);
-	
-	return float4(irradiance, 1);
+	const float3 irradiance = ConvoluteIrradiance(pin.PosL);	
+	return float4(irradiance, 1.f);
 }
 
 #endif // __CONVOLUTEDIFFUSEIRRADIANCE_HLSL__

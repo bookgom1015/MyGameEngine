@@ -45,12 +45,11 @@ RaytracedReflectionClass::RaytracedReflectionClass() {
 	}
 }
 
-BOOL RaytracedReflectionClass::Initialize(
-		ID3D12Device5* const device, ID3D12GraphicsCommandList* const cmdList, ShaderManager* const manager, UINT width, UINT height) {
+BOOL RaytracedReflectionClass::Initialize(ID3D12Device5* const device, ShaderManager* const manager, UINT width, UINT height) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
-	CheckReturn(BuildResources(cmdList, width, height));
+	CheckReturn(BuildResources(width, height));
 
 	return TRUE;
 }
@@ -62,7 +61,7 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 		};
 
 		const auto path = filePath + L"RaytracedReflection.hlsl";
-		auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3", defines, _countof(defines));
+		const auto shaderInfo = D3D12ShaderInfo(path.c_str(), L"", L"lib_6_3", defines, _countof(defines));
 		CheckReturn(mShaderManager->CompileShader(shaderInfo, CS_ReflectionRay));
 	}
 
@@ -72,34 +71,36 @@ BOOL RaytracedReflectionClass::CompileShaders(const std::wstring& filePath) {
 BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& samplers) {
 	// Global
 	{
-		CD3DX12_DESCRIPTOR_RANGE texTables[11];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
-		texTables[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
-		texTables[7].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8);
-		texTables[8].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 9);
-		texTables[9].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		texTables[10].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		CD3DX12_DESCRIPTOR_RANGE texTables[11] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 7);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 9);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
 
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count];
+		index = 0;
+
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Global::Count] = {};
 		slotRootParameter[RootSignature::Global::EC_Rr].InitAsConstants(RootSignature::Global::RootConstantsLayout::Count, 0);
 		slotRootParameter[RootSignature::Global::ECB_Pass].InitAsConstantBufferView(1);
 		slotRootParameter[RootSignature::Global::EAS_BVH].InitAsShaderResourceView(0);
-		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::Global::ESI_Normal].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::Global::ESI_RMS].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::Global::ESI_Position].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::Global::ESI_DiffIrrad].InitAsDescriptorTable(1, &texTables[5]);
-		slotRootParameter[RootSignature::Global::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[6]);
-		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(1, &texTables[7]);
-		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[8]);
-		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(1, &texTables[9]);
-		slotRootParameter[RootSignature::Global::EUO_RayHitDist].InitAsDescriptorTable(1, &texTables[10]);
+		slotRootParameter[RootSignature::Global::ESI_BackBuffer].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_Normal].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_Depth].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_RMS].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_Position].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_DiffIrrad].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_Prefiltered].InitAsDescriptorTable(1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_BrdfLUT].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::ESI_TexMaps].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::EUO_Reflection].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Global::EUO_RayHitDist].InitAsDescriptorTable(	1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -111,7 +112,7 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 	}
 	// Local
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Local::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Local::Count] = {};
 		slotRootParameter[RootSignature::Local::ECB_Obj].InitAsConstantBufferView(0, 1);
 		slotRootParameter[RootSignature::Local::ECB_Mat].InitAsConstantBufferView(1, 1);
 		slotRootParameter[RootSignature::Local::ESB_Vertices].InitAsShaderResourceView(0, 1);
@@ -132,37 +133,37 @@ BOOL RaytracedReflectionClass::BuildRootSignatures(const StaticSamplers& sampler
 BOOL RaytracedReflectionClass::BuildPSO() {
 	CD3DX12_STATE_OBJECT_DESC reflectionDxrPso = { D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
 
-	auto reflectionLib = reflectionDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-	auto reflectionShader = mShaderManager->GetDxcShader(CS_ReflectionRay);
-	D3D12_SHADER_BYTECODE reflectionLibDxil = CD3DX12_SHADER_BYTECODE(reflectionShader->GetBufferPointer(), reflectionShader->GetBufferSize());
+	const auto reflectionLib = reflectionDxrPso.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+	const auto reflectionShader = mShaderManager->GetDxcShader(CS_ReflectionRay);
+	const D3D12_SHADER_BYTECODE reflectionLibDxil = CD3DX12_SHADER_BYTECODE(reflectionShader->GetBufferPointer(), reflectionShader->GetBufferSize());
 	reflectionLib->SetDXILLibrary(&reflectionLibDxil);
 	LPCWSTR exports[] = { RadianceRayGenName, RadianceClosestHitName, RadianceMissName, ShadowClosestHitName, ShadowMissName };
 	reflectionLib->DefineExports(exports);
 
 	for (UINT i = 0; i < Ray::Count; ++i) {
-		auto hitGroup = reflectionDxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+		const auto hitGroup = reflectionDxrPso.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
 		hitGroup->SetClosestHitShaderImport(ClosestHitNames[i]);
 		hitGroup->SetHitGroupExport(HitGroupNames[i]);
 		hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 	}
 
-	auto shaderConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-	UINT payloadSize = sizeof(XMFLOAT4) + 4 + 4; // Color(float4) + tHit(float) + IsHit(BOOL)
-	UINT attribSize = sizeof(XMFLOAT2);
+	const auto shaderConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+	const UINT payloadSize = sizeof(XMFLOAT4) + 4 + 4; // Color(float4) + tHit(float) + IsHit(BOOL)
+	const UINT attribSize = sizeof(XMFLOAT2);
 	shaderConfig->Config(payloadSize, attribSize);
 
-	auto glbalRootSig = reflectionDxrPso.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+	const auto glbalRootSig = reflectionDxrPso.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
 	glbalRootSig->SetRootSignature(mRootSignatures[RootSignature::E_Global].Get());
 
-	auto localRootSig = reflectionDxrPso.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+	const auto localRootSig = reflectionDxrPso.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
 	localRootSig->SetRootSignature(mRootSignatures[RootSignature::E_Local].Get());
 
-	auto rootSigAssociation = reflectionDxrPso.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+	const auto rootSigAssociation = reflectionDxrPso.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 	rootSigAssociation->SetSubobjectToAssociate(*localRootSig);
 	rootSigAssociation->AddExports(HitGroupNames);
 
-	auto pipelineConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-	UINT maxRecursionDepth = 2;
+	const auto pipelineConfig = reflectionDxrPso.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+	const UINT maxRecursionDepth = 2;
 	pipelineConfig->Config(maxRecursionDepth);
 
 	CheckHRESULT(md3dDevice->CreateStateObject(reflectionDxrPso, IID_PPV_ARGS(&mDxrPso)));
@@ -182,10 +183,10 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 	std::unordered_map<void*, std::wstring> shaderIdToStringMap;
 #endif
 
-	UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+	const UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
 	{
-		void* radianceRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RadianceRayGenName);
+		void* const radianceRayGenShaderIdentifier = mDxrPsoProp->GetShaderIdentifier(RadianceRayGenName);
 		ShaderTable rayGenShaderTable(md3dDevice, 1, shaderIdentifierSize);
 		CheckReturn(rayGenShaderTable.Initialze());
 		rayGenShaderTable.push_back(ShaderRecord(radianceRayGenShaderIdentifier, shaderIdentifierSize));
@@ -229,7 +230,7 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 
 		UINT shaderRecordSize = shaderIdentifierSize + sizeof(RootSignature::Local::RootArguments);
 
-		auto ritemsSize =  static_cast<UINT>(ritems.size());
+		const auto ritemsSize =  static_cast<UINT>(ritems.size());
 
 		ShaderTable hitGroupTable(md3dDevice, ritemsSize * Ray::Count, shaderRecordSize);
 		CheckReturn(hitGroupTable.Initialze());
@@ -239,8 +240,8 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 		for (auto shaderId : hitGroupShaderIds) {
 			for (const auto ritem : ritems) {
 				RootSignature::Local::RootArguments rootArgs;
-				rootArgs.CB_Object = cb_obj + ritem->ObjCBIndex * objCBByteSize;
-				rootArgs.CB_Material = cb_mat + ritem->Material->MatCBIndex * matCBByteSize;
+				rootArgs.CB_Object = cb_obj + static_cast<UINT64>(ritem->ObjCBIndex) * static_cast<UINT64>(objCBByteSize);
+				rootArgs.CB_Material = cb_mat + static_cast<UINT64>(ritem->Material->MatCBIndex) * static_cast<UINT64>(matCBByteSize);
 				rootArgs.SB_Vertices = ritem->Geometry->VertexBufferGPU->GetGPUVirtualAddress();
 				rootArgs.AB_Indices = ritem->Geometry->IndexBufferGPU->GetGPUVirtualAddress();
 
@@ -265,7 +266,7 @@ BOOL RaytracedReflectionClass::BuildShaderTables(
 	return TRUE;
 }
 
-void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
+void RaytracedReflectionClass::AllocateDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu, UINT descSize) {
 	for (UINT type = 0; type < Descriptor::Reflection::Count; ++type) {
 		mhReflectionMapCpus[type] = hCpu.Offset(1, descSize);
 		mhReflectionMapGpus[type] = hGpu.Offset(1, descSize);
@@ -280,12 +281,85 @@ void RaytracedReflectionClass::BuildDesscriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE& 
 			mhTemporalReflectionMapGpus[i][type] = hGpu.Offset(1, descSize);
 		}
 	}
-
-	BuildDescriptors();	
 }
 
-BOOL RaytracedReflectionClass::OnResize(ID3D12GraphicsCommandList*const cmdList, UINT width, UINT height) {
-	CheckReturn(BuildResources(cmdList, width, height));
+BOOL RaytracedReflectionClass::BuildDescriptors() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+	// Reflection
+	{
+		{
+			srvDesc.Format = ReflectionMapFormat;
+			uavDesc.Format = ReflectionMapFormat;
+			const auto resource = mReflectionMaps[Resource::Reflection::E_Reflection]->Resource();
+			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::ES_Reflection]);
+			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::EU_Reflection]);
+		}
+		{
+			srvDesc.Format = RayHitDistanceFormat;
+			uavDesc.Format = RayHitDistanceFormat;
+			const auto resource = mReflectionMaps[Resource::Reflection::E_RayHitDistance]->Resource();
+			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::ES_RayHitDistance]);
+			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::EU_RayHitDistance]);
+		}
+	}
+	// Temporal Cache
+	{
+		{
+			srvDesc.Format = TsppMapFormat;
+			uavDesc.Format = TsppMapFormat;
+			for (size_t i = 0; i < 2; ++i) {
+				const auto resource = mTemporalCaches[i][Resource::TemporalCache::E_Tspp]->Resource();
+				const auto& cpus = mhTemporalCachesCpus[i];
+				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_Tspp]);
+				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_Tspp]);
+			}
+		}
+		{
+			srvDesc.Format = RayHitDistanceFormat;
+			uavDesc.Format = RayHitDistanceFormat;
+			for (size_t i = 0; i < 2; ++i) {
+				const auto resource = mTemporalCaches[i][Resource::TemporalCache::E_RayHitDistance]->Resource();
+				const auto& cpus = mhTemporalCachesCpus[i];
+				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_RayHitDistance]);
+				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_RayHitDistance]);
+			}
+		}
+		{
+			srvDesc.Format = ReflectionSquaredMeanMapFormat;
+			uavDesc.Format = ReflectionSquaredMeanMapFormat;
+			for (size_t i = 0; i < 2; ++i) {
+				const auto resource = mTemporalCaches[i][Resource::TemporalCache::E_ReflectionSquaredMean]->Resource();
+				const auto& cpus = mhTemporalCachesCpus[i];
+				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_ReflectionSquaredMean]);
+				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_ReflectionSquaredMean]);
+			}
+		}
+	}
+	// Temporal Reflection
+	{
+		srvDesc.Format = ReflectionMapFormat;
+		uavDesc.Format = ReflectionMapFormat;
+		for (UINT i = 0; i < 2; ++i) {
+			const auto resource = mTemporalReflectionMaps[i]->Resource();
+			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhTemporalReflectionMapCpus[i][Descriptor::TemporalReflection::E_Srv]);
+			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhTemporalReflectionMapCpus[i][Descriptor::TemporalReflection::E_Uav]);
+		}
+	}
+
+	return TRUE;
+}
+
+BOOL RaytracedReflectionClass::OnResize(UINT width, UINT height) {
+	CheckReturn(BuildResources(width, height));
 	BuildDescriptors();
 
 	return TRUE;
@@ -372,80 +446,7 @@ UINT RaytracedReflectionClass::MoveToNextFrameTemporalReflection() {
 	return mTemporalCurrentFrameTemporalReflectionResourceIndex;
 }
 
-void RaytracedReflectionClass::BuildDescriptors() {
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	srvDesc.Texture2D.MipLevels = 1;
-
-	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-
-	// Reflection
-	{
-		{
-			srvDesc.Format = ReflectionMapFormat;
-			uavDesc.Format = ReflectionMapFormat;
-			const auto resource = mReflectionMaps[Resource::Reflection::E_Reflection]->Resource();
-			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::ES_Reflection]);
-			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::EU_Reflection]);
-		}
-		{
-			srvDesc.Format = RayHitDistanceFormat;
-			uavDesc.Format = RayHitDistanceFormat;
-			const auto resource = mReflectionMaps[Resource::Reflection::E_RayHitDistance]->Resource();
-			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhReflectionMapCpus[Descriptor::Reflection::ES_RayHitDistance]);
-			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhReflectionMapCpus[Descriptor::Reflection::EU_RayHitDistance]);
-		}
-	}
-	// Temporal Cache
-	{
-		{
-			srvDesc.Format = TsppMapFormat;
-			uavDesc.Format = TsppMapFormat;
-			for (size_t i = 0; i < 2; ++i) {
-				auto resource = mTemporalCaches[i][Resource::TemporalCache::E_Tspp]->Resource();
-				auto& cpus = mhTemporalCachesCpus[i];
-				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_Tspp]);
-				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_Tspp]);
-			}
-		}
-		{
-			srvDesc.Format = RayHitDistanceFormat;
-			uavDesc.Format = RayHitDistanceFormat;
-			for (size_t i = 0; i < 2; ++i) {
-				auto resource = mTemporalCaches[i][Resource::TemporalCache::E_RayHitDistance]->Resource();
-				auto& cpus = mhTemporalCachesCpus[i];
-				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_RayHitDistance]);
-				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_RayHitDistance]);
-			}
-		}
-		{
-			srvDesc.Format = ReflectionSquaredMeanMapFormat;
-			uavDesc.Format = ReflectionSquaredMeanMapFormat;
-			for (size_t i = 0; i < 2; ++i) {
-				auto resource = mTemporalCaches[i][Resource::TemporalCache::E_ReflectionSquaredMean]->Resource();
-				auto& cpus = mhTemporalCachesCpus[i];
-				md3dDevice->CreateShaderResourceView(resource, &srvDesc, cpus[Descriptor::TemporalCache::ES_ReflectionSquaredMean]);
-				md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpus[Descriptor::TemporalCache::EU_ReflectionSquaredMean]);
-			}
-		}
-	}
-	// Temporal Reflection
-	{
-		srvDesc.Format = ReflectionMapFormat;
-		uavDesc.Format = ReflectionMapFormat;
-		for (UINT i = 0; i < 2; ++i) {
-			const auto resource = mTemporalReflectionMaps[i]->Resource();
-			md3dDevice->CreateShaderResourceView(resource, &srvDesc, mhTemporalReflectionMapCpus[i][Descriptor::TemporalReflection::E_Srv]);
-			md3dDevice->CreateUnorderedAccessView(resource, nullptr, &uavDesc, mhTemporalReflectionMapCpus[i][Descriptor::TemporalReflection::E_Uav]);
-		}
-	}
-}
-
-BOOL RaytracedReflectionClass::BuildResources(ID3D12GraphicsCommandList* cmdList, UINT width, UINT height) {
+BOOL RaytracedReflectionClass::BuildResources(UINT width, UINT height) {
 	D3D12_RESOURCE_DESC rscDesc = {};
 	rscDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	rscDesc.Alignment = 0;

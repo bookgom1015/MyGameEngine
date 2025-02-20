@@ -17,11 +17,9 @@ ConstantBuffer<ConstantBuffer_Pass>		cb_Pass	: register(b0);
 ConstantBuffer<ConstantBuffer_Object>	cb_Obj	: register(b1);
 ConstantBuffer<ConstantBuffer_Material>	cb_Mat	: register(b2);
 
-cbuffer cbRootConstants : register(b3) {
-	uint gLightIndex;
-}
+Shadow_ZDepth_RootConstants(b3)
 
-Texture2D gi_TexMaps[NUM_TEXTURE_MAPS]	: register(t0);
+Texture2D gi_TexMaps[NUM_TEXTURE_MAPS] : register(t0);
 
 VERTEX_IN
 
@@ -41,13 +39,13 @@ VertexOut VS(VertexIn vin) {
 
 	vout.PosW = mul(float4(vin.PosL, 1.f), cb_Obj.World);
 
-	float4 texC = mul(float4(vin.TexC, 0.f, 1.f), cb_Obj.TexTransform);
+	const float4 texC = mul(float4(vin.TexC, 0.f, 1.f), cb_Obj.TexTransform);
 	vout.TexC = mul(texC, cb_Mat.MatTransform).xy;
 
 	return vout;
 }
 
-float4x4 GetViewProjMatrix(Light light, uint face) {
+float4x4 GetViewProjMatrix(in Light light, in uint face) {
 	switch (face) {
 	case 0: return light.Mat0;
 	case 1: return light.Mat1;
@@ -55,7 +53,7 @@ float4x4 GetViewProjMatrix(Light light, uint face) {
 	case 3: return light.Mat3;
 	case 4: return light.Mat4;
 	case 5: return light.Mat5;
-	default: return (float4x4)0;
+	default: return (float4x4)0.f;
 	}
 }
 

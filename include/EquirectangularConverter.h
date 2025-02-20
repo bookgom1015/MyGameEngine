@@ -16,7 +16,7 @@ struct RenderItem;
 
 namespace EquirectangularConverter {
 	namespace RootSignature {
-		enum Type {
+		enum {
 			E_ConvEquirectToCube = 0,
 			E_ConvCubeToEquirect,
 			Count
@@ -32,24 +32,17 @@ namespace EquirectangularConverter {
 
 		namespace ConvCubeToEquirect {
 			enum {
-				ESI_Cube = 0,
-				EC_Consts,
+				EC_Consts = 0,
+				ESI_Cube,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_MipLevel = 0,
-					Count
-				};
-			}
 		}
 	}
 
 	namespace PipelineState {
-		enum Type {
-			E_ConvEquirectToCube = 0,
-			E_ConvCubeToEquirect,
+		enum {
+			EG_ConvEquirectToCube = 0,
+			EG_ConvCubeToEquirect,
 			Count
 		};
 	}
@@ -60,7 +53,7 @@ namespace EquirectangularConverter {
 		virtual ~EquirectangularConverterClass() = default;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager* const manager);
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -69,14 +62,14 @@ namespace EquirectangularConverter {
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
-			GpuResource* resource,
+			GpuResource* const resource,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_output);
 		void ConvertEquirectangularToCube(
 			ID3D12GraphicsCommandList* const cmdList,
 			UINT width, UINT height,
-			GpuResource* resource,
+			GpuResource* const resource,
 			D3D12_GPU_VIRTUAL_ADDRESS cbConvEquirectToCube,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_equirectangular,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE ro_outputs[],
@@ -85,7 +78,7 @@ namespace EquirectangularConverter {
 			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_VIEWPORT viewport,
 			D3D12_RECT scissorRect,
-			GpuResource* equirectResource,
+			GpuResource* const equirectResource,
 			D3D12_CPU_DESCRIPTOR_HANDLE equirectRtv,
 			D3D12_GPU_DESCRIPTOR_HANDLE cubeSrv,
 			UINT mipLevel = 0);
@@ -94,7 +87,7 @@ namespace EquirectangularConverter {
 		ID3D12Device* md3dDevice;
 		ShaderManager* mShaderManager;
 
-		std::unordered_map<RootSignature::Type, Microsoft::WRL::ComPtr<ID3D12RootSignature>> mRootSignatures;
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignature::Count> mRootSignatures;
+		std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, PipelineState::Count> mPSOs;
 	};
 };

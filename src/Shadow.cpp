@@ -23,7 +23,7 @@ ShadowClass::ShadowClass() {
 		mShadowMaps[i] = std::make_unique<GpuResource>();
 }
 
-BOOL ShadowClass::Initialize(ID3D12Device* const device, ShaderManager* const manager, UINT clientW, UINT clientH, UINT texW, UINT texH) {
+BOOL ShadowClass::Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager, UINT clientW, UINT clientH, UINT texW, UINT texH) {
 	md3dDevice = device;
 	mShaderManager = manager;
 
@@ -44,16 +44,16 @@ BOOL ShadowClass::Initialize(ID3D12Device* const device, ShaderManager* const ma
 BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 	{
 		const std::wstring actualPath = filePath + L"ZDepth.hlsl";
-		auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
-		auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
-		auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
+		const auto vsInfo = D3D12ShaderInfo(actualPath.c_str(), L"VS", L"vs_6_3");
+		const auto gsInfo = D3D12ShaderInfo(actualPath.c_str(), L"GS", L"gs_6_3");
+		const auto psInfo = D3D12ShaderInfo(actualPath.c_str(), L"PS", L"ps_6_3");
 		CheckReturn(mShaderManager->CompileShader(vsInfo, VS_ZDepth));
 		CheckReturn(mShaderManager->CompileShader(gsInfo, GS_ZDepth));
 		CheckReturn(mShaderManager->CompileShader(psInfo, PS_ZDepth));
 	}
 	{
 		const std::wstring actualPath = filePath + L"ShadowCS.hlsl";
-		auto csInfo = D3D12ShaderInfo(actualPath.c_str(), L"CS", L"cs_6_3");
+		const auto csInfo = D3D12ShaderInfo(actualPath.c_str(), L"CS", L"cs_6_3");
 		CheckReturn(mShaderManager->CompileShader(csInfo, CS_Shadow));
 	}
 
@@ -61,18 +61,23 @@ BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// Draw z-depth
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ZDepth::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::ZDepth::Count] = {};
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[1];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0, 0);
+
+		index = 0;
 
 		slotRootParameter[RootSignature::ZDepth::ECB_Pass].InitAsConstantBufferView(0);
 		slotRootParameter[RootSignature::ZDepth::ECB_Obj].InitAsConstantBufferView(1);
 		slotRootParameter[RootSignature::ZDepth::ECB_Mat].InitAsConstantBufferView(2);
-		slotRootParameter[RootSignature::ZDepth::EC_Consts].InitAsConstants(RootSignature::ZDepth::RootConstant::Count, 3);
-		slotRootParameter[RootSignature::ZDepth::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[0]);
+		slotRootParameter[RootSignature::ZDepth::EC_Consts].InitAsConstants(RootConstant::ZDepth::Count, 3);
+		slotRootParameter[RootSignature::ZDepth::ESI_TexMaps].InitAsDescriptorTable(1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -80,28 +85,30 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_ZDepth]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_ZDepth]));
 	}
 	// Draw shadow
 	{
-		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Shadow::Count];
+		CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Shadow::Count] = {};
 
-		CD3DX12_DESCRIPTOR_RANGE texTables[6];
-		texTables[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
-		texTables[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
-		texTables[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
-		texTables[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
-		texTables[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
-		texTables[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0);
+		CD3DX12_DESCRIPTOR_RANGE texTables[6] = {}; UINT index = 0;
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
+		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1, 0);
+
+		index = 0;
 
 		slotRootParameter[RootSignature::Shadow::ECB_Pass].InitAsConstantBufferView(0);
-		slotRootParameter[RootSignature::Shadow::EC_Consts].InitAsConstants(RootSignature::Shadow::RootConstant::Count, 1);
-		slotRootParameter[RootSignature::Shadow::ESI_Position].InitAsDescriptorTable(1, &texTables[0]);
-		slotRootParameter[RootSignature::Shadow::ESI_ZDepth].InitAsDescriptorTable(1, &texTables[1]);
-		slotRootParameter[RootSignature::Shadow::ESI_ZDepthCube].InitAsDescriptorTable(1, &texTables[2]);
-		slotRootParameter[RootSignature::Shadow::ESI_FaceIDCube].InitAsDescriptorTable(1, &texTables[3]);
-		slotRootParameter[RootSignature::Shadow::EUO_Shadow].InitAsDescriptorTable(1, &texTables[4]);
-		slotRootParameter[RootSignature::Shadow::EUO_Debug].InitAsDescriptorTable(1, &texTables[5]);
+		slotRootParameter[RootSignature::Shadow::EC_Consts].InitAsConstants(RootConstant::Shadow::Count, 1);
+		slotRootParameter[RootSignature::Shadow::ESI_Position].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Shadow::ESI_ZDepth].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::Shadow::ESI_ZDepthCube].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Shadow::ESI_FaceIDCube].InitAsDescriptorTable(	1, &texTables[index++]);
+		slotRootParameter[RootSignature::Shadow::EUO_Shadow].InitAsDescriptorTable(		1, &texTables[index++]);
+		slotRootParameter[RootSignature::Shadow::EUO_Debug].InitAsDescriptorTable(		1, &texTables[index++]);
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 			_countof(slotRootParameter), slotRootParameter,
@@ -109,13 +116,16 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		CheckReturn(D3D12Util::CreateRootSignature(md3dDevice, rootSigDesc, &mRootSignatures[RootSignature::E_Shadow]));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignatures[RootSignature::E_Shadow]));
 	}
 
 	return TRUE;
 }
 
 BOOL ShadowClass::BuildPSO() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// Draw z-depth
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::DefaultPsoDesc(Vertex::InputLayoutDesc(), Shadow::ZDepthMapFormat);
@@ -133,7 +143,7 @@ BOOL ShadowClass::BuildPSO() {
 		psoDesc.RasterizerState.DepthBias = 100000;
 		psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 		psoDesc.RasterizerState.DepthBiasClamp = 0.1f;
-		CheckHRESULT(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ZDepth])));
+		CheckHRESULT(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ZDepth])));
 	}
 	// Draw shadow on compute shader
 	{
@@ -144,7 +154,7 @@ BOOL ShadowClass::BuildPSO() {
 			auto cs = mShaderManager->GetDxcShader(CS_Shadow);
 			psoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
-		CheckHRESULT(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_Shadow])));
+		CheckHRESULT(device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_Shadow])));
 	}
 
 	return TRUE;
@@ -173,7 +183,7 @@ void ShadowClass::Run(
 	DrawShadow(cmdList, cb_pass, si_pos, index);
 }
 
-void ShadowClass::BuildDescriptors(
+void ShadowClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu, 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
@@ -200,11 +210,12 @@ void ShadowClass::BuildDescriptors(
 	mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube]	= hCpuDsv.Offset(1, dsvDescSize);
 
 	mhCpuRtvs[Descriptor::RTV::ERT_FaceIDCube] = hCpuRtv.Offset(1, rtvDescSize);
-
-	BuildDescriptors();
 }
 
-void ShadowClass::BuildDescriptors() {
+BOOL ShadowClass::BuildDescriptors() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	// Z-depth & Z-depth cube
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -226,8 +237,8 @@ void ShadowClass::BuildDescriptors() {
 
 			const auto& depth = mShadowMaps[Resource::E_ZDepth]->Resource();
 
-			md3dDevice->CreateDepthStencilView(depth, &dsvDesc, mhCpuDsvs[Descriptor::DSV::EDS_ZDepth]);
-			md3dDevice->CreateShaderResourceView(depth, &srvDesc, mhCpuDescs[Descriptor::ESI_ZDepth]);
+			device->CreateDepthStencilView(depth, &dsvDesc, mhCpuDsvs[Descriptor::DSV::EDS_ZDepth]);
+			device->CreateShaderResourceView(depth, &srvDesc, mhCpuDescs[Descriptor::ESI_ZDepth]);
 		}
 		{
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
@@ -248,8 +259,8 @@ void ShadowClass::BuildDescriptors() {
 
 			const auto& depthCube = mShadowMaps[Resource::E_ZDepthCube]->Resource();
 
-			md3dDevice->CreateDepthStencilView(depthCube, &dsvDesc, mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube]);
-			md3dDevice->CreateShaderResourceView(depthCube, &srvDesc, mhCpuDescs[Descriptor::ESI_ZDepthCube]);
+			device->CreateDepthStencilView(depthCube, &dsvDesc, mhCpuDsvs[Descriptor::DSV::EDS_ZDepthCube]);
+			device->CreateShaderResourceView(depthCube, &srvDesc, mhCpuDescs[Descriptor::ESI_ZDepthCube]);
 		}
 	}
 	// Shadow
@@ -269,8 +280,8 @@ void ShadowClass::BuildDescriptors() {
 
 		const auto& shadow = mShadowMaps[Resource::E_Shadow]->Resource();
 
-		md3dDevice->CreateUnorderedAccessView(shadow, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Shadow]);
-		md3dDevice->CreateShaderResourceView(shadow, &srvDesc, mhCpuDescs[Descriptor::ESI_Shadow]);
+		device->CreateUnorderedAccessView(shadow, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Shadow]);
+		device->CreateShaderResourceView(shadow, &srvDesc, mhCpuDescs[Descriptor::ESI_Shadow]);
 	}
 	// Debug
 	{
@@ -280,7 +291,7 @@ void ShadowClass::BuildDescriptors() {
 
 		const auto& debug = mShadowMaps[Resource::E_Debug]->Resource();
 
-		md3dDevice->CreateUnorderedAccessView(debug, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Debug]);
+		device->CreateUnorderedAccessView(debug, nullptr, &uavDesc, mhCpuDescs[Descriptor::EUO_Debug]);
 	}
 	// Face id cube
 	{
@@ -305,12 +316,17 @@ void ShadowClass::BuildDescriptors() {
 
 		const auto& faceIDCube = mShadowMaps[Resource::E_FaceIDCube]->Resource();
 
-		md3dDevice->CreateRenderTargetView(faceIDCube, &rtvDesc, mhCpuRtvs[Descriptor::RTV::ERT_FaceIDCube]);
-		md3dDevice->CreateShaderResourceView(faceIDCube, &srvDesc, mhCpuDescs[Descriptor::ESI_FaceIDCube]);
+		device->CreateRenderTargetView(faceIDCube, &rtvDesc, mhCpuRtvs[Descriptor::RTV::ERT_FaceIDCube]);
+		device->CreateShaderResourceView(faceIDCube, &srvDesc, mhCpuDescs[Descriptor::ESI_FaceIDCube]);
 	}
+
+	return TRUE;
 }
 
 BOOL ShadowClass::BuildResources() {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
 	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -329,7 +345,7 @@ BOOL ShadowClass::BuildResources() {
 		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
 		CheckReturn(mShadowMaps[Resource::E_Shadow]->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
@@ -346,7 +362,7 @@ BOOL ShadowClass::BuildResources() {
 		texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
 		CheckReturn(mShadowMaps[Resource::E_Debug]->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
@@ -368,7 +384,7 @@ BOOL ShadowClass::BuildResources() {
 		optClear.DepthStencil.Stencil = 0;
 
 		CheckReturn(mShadowMaps[Resource::E_ZDepth]->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
@@ -391,7 +407,7 @@ BOOL ShadowClass::BuildResources() {
 		optClear.DepthStencil.Stencil = 0;
 
 		CheckReturn(mShadowMaps[Resource::E_ZDepthCube]->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
@@ -411,7 +427,7 @@ BOOL ShadowClass::BuildResources() {
 		CD3DX12_CLEAR_VALUE optClear(FaceIDCubeMapFormat, FaceIDCubeMapClearValues);
 
 		CheckReturn(mShadowMaps[Resource::E_FaceIDCube]->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
@@ -465,23 +481,27 @@ void ShadowClass::DrawZDepth(
 
 	cmdList->SetGraphicsRootConstantBufferView(RootSignature::ZDepth::ECB_Pass, cb_pass);
 
-	UINT values[RootSignature::ZDepth::RootConstant::Count] = { index };
-	cmdList->SetGraphicsRoot32BitConstants(RootSignature::ZDepth::EC_Consts, _countof(values), values, 0);
+	RootConstant::ZDepth::Struct rc;
+	rc.gLightIndex = index;
 
+	std::array<std::uint32_t, RootConstant::ZDepth::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::ZDepth::Struct));
+
+	cmdList->SetGraphicsRoot32BitConstants(RootSignature::ZDepth::EC_Consts, RootConstant::ZDepth::Count, consts.data(), 0);
 	cmdList->SetGraphicsRootDescriptorTable(RootSignature::ZDepth::ESI_TexMaps, si_texMaps);
 
-	for (size_t i = 0; i < ritems.size(); ++i) {
+	for (UINT i = 0; i < ritems.size(); ++i) {
 		auto& ri = ritems[i];
 
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geometry->VertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geometry->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
-		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + ri->ObjCBIndex * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS currRitemObjCBAddress = cb_obj + static_cast<UINT64>(ri->ObjCBIndex) * static_cast<UINT64>(objCBByteSize);
 		cmdList->SetGraphicsRootConstantBufferView(RootSignature::ZDepth::ECB_Obj, currRitemObjCBAddress);
 
 		if (ri->Material != nullptr) {
-			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = cb_mat + ri->Material->MatCBIndex * matCBByteSize;
+			D3D12_GPU_VIRTUAL_ADDRESS currRitemMatCBAddress = cb_mat + static_cast<UINT64>(ri->Material->MatCBIndex) * static_cast<UINT64>(matCBByteSize);
 			cmdList->SetGraphicsRootConstantBufferView(RootSignature::ZDepth::ECB_Mat, currRitemMatCBAddress);
 		}
 
@@ -542,9 +562,13 @@ void ShadowClass::DrawShadow(
 
 	cmdList->SetComputeRootConstantBufferView(RootSignature::Shadow::ECB_Pass, cb_pass);
 
-	UINT values[RootSignature::Shadow::RootConstant::Count] = { index };
-	cmdList->SetComputeRoot32BitConstants(RootSignature::Shadow::EC_Consts, _countof(values), values, 0);
+	RootConstant::Shadow::Struct rc;
+	rc.gLightIndex = index;
 
+	std::array<std::uint32_t, RootConstant::Shadow::Count> consts;
+	std::memcpy(consts.data(), &rc, sizeof(RootConstant::Shadow::Struct));
+	
+	cmdList->SetComputeRoot32BitConstants(RootSignature::Shadow::EC_Consts, RootConstant::Shadow::Count, consts.data(), 0);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_Position, si_pos);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_ZDepth, mhGpuDescs[Descriptor::ESI_ZDepth]);
 	cmdList->SetComputeRootDescriptorTable(RootSignature::Shadow::ESI_ZDepthCube, mhGpuDescs[Descriptor::ESI_ZDepthCube]);

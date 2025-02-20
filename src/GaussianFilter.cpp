@@ -1,3 +1,5 @@
+#pragma warning(disable: 26495)
+
 #include "GaussianFilter.h"
 #include "Logger.h"
 #include "D3D12Util.h"
@@ -34,13 +36,13 @@ BOOL GaussianFilterClass::CompileShaders(const std::wstring& filePath) {
 }
 
 BOOL GaussianFilterClass::BuildRootSignature(const StaticSamplers& samplers) {
-	CD3DX12_DESCRIPTOR_RANGE texTables[2]; UINT index = 0;
+	CD3DX12_DESCRIPTOR_RANGE texTables[2] = {}; UINT index = 0;
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
 	texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 0);
 
 	index = 0;
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[RootSignature::Default::Count] = {};
 	slotRootParameter[RootSignature::Default::EC_Consts].InitAsConstants(RootConstant::Default::Count, 0, 0);
 	slotRootParameter[RootSignature::Default::ESI_Input].InitAsDescriptorTable(1, &texTables[index++]);
 	slotRootParameter[RootSignature::Default::EUO_Output].InitAsDescriptorTable(1, &texTables[index++]);

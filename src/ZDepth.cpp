@@ -10,7 +10,7 @@ ZDepthClass::ZDepthClass() {
 	}
 }
 
-BOOL ZDepthClass::Initialize(ID3D12Device* const device, UINT texW, UINT texH) {
+BOOL ZDepthClass::Initialize(Locker<ID3D12Device5>* const device, UINT texW, UINT texH) {
 	md3dDevice = device;
 
 	mTexWidth = texW;
@@ -19,7 +19,7 @@ BOOL ZDepthClass::Initialize(ID3D12Device* const device, UINT texW, UINT texH) {
 	return TRUE;
 }
 
-void ZDepthClass::BuildDescriptors(
+void ZDepthClass::AllocateDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 		CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
@@ -39,6 +39,9 @@ void ZDepthClass::BuildDescriptors(
 }
 
 BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
+	ID3D12Device5* device;
+	auto lock = md3dDevice->TakeOut(device);
+
 	if (lightType == LightType::E_Tube || lightType == LightType::E_Rect) return TRUE;
 
 	D3D12_RESOURCE_DESC texDesc;
@@ -55,10 +58,10 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 
 	//D3D12_CLEAR_VALUE optClear;
 	//optClear.Format = Shadow::ZDepthMapFormat;
-	//optClear.DepthStencil.Depth = 1.0f;
+	//optClear.DepthStencil.Depth = 1.f;
 	//optClear.DepthStencil.Stencil = 0;
 
-	BOOL needCubemap = lightType == LightType::E_Point || lightType == LightType::E_Spot;
+	const BOOL needCubemap = lightType == LightType::E_Point || lightType == LightType::E_Spot;
 
 	if (needCubemap) {
 		texDesc.DepthOrArraySize = 6;
@@ -70,7 +73,7 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 			name.append(std::to_wstring(index));
 
 			CheckReturn(mZDepthMaps[index]->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&texDesc,
@@ -86,7 +89,7 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 			name.append(std::to_wstring(index));
 
 			CheckReturn(mFaceIDCubeMaps[index]->Initialize(
-				md3dDevice,
+				device,
 				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 				D3D12_HEAP_FLAG_NONE,
 				&texDesc,
@@ -104,7 +107,7 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 		name.append(std::to_wstring(index));
 
 		CheckReturn(mZDepthMaps[index]->Initialize(
-			md3dDevice,
+			device,
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,
@@ -114,12 +117,12 @@ BOOL ZDepthClass::AddLight(UINT lightType, UINT index) {
 		));
 	}
 
-	BuildDescriptor(index, needCubemap);
+	BuildDescriptor(device, index, needCubemap);
 
 	return TRUE;
 }
 
-void ZDepthClass::BuildDescriptor(UINT index, BOOL needCubemap) {
+BOOL ZDepthClass::BuildDescriptor(ID3D12Device5* const device, UINT index, BOOL needCubemap) {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
@@ -130,7 +133,7 @@ void ZDepthClass::BuildDescriptor(UINT index, BOOL needCubemap) {
 		srvDesc.Texture2DArray.MipLevels = 1;
 		srvDesc.Texture2DArray.MostDetailedMip = 0;
 		srvDesc.Texture2DArray.PlaneSlice = 0;
-		srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+		srvDesc.Texture2DArray.ResourceMinLODClamp = 0.f;
 
 		//D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
 		//dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
@@ -142,17 +145,17 @@ void ZDepthClass::BuildDescriptor(UINT index, BOOL needCubemap) {
 
 		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 		const auto& zdepthCube = mZDepthMaps[index]->Resource();
-		md3dDevice->CreateShaderResourceView(zdepthCube, &srvDesc, mhZDepthCubeCpuDescs[index]);
+		device->CreateShaderResourceView(zdepthCube, &srvDesc, mhZDepthCubeCpuDescs[index]);
 
 		srvDesc.Format = Shadow::FaceIDCubeMapFormat;
 		const auto& faceIDCube = mFaceIDCubeMaps[index]->Resource();
-		md3dDevice->CreateShaderResourceView(faceIDCube, &srvDesc, mhFaceIDCubeCpuDescs[index]);
+		device->CreateShaderResourceView(faceIDCube, &srvDesc, mhFaceIDCubeCpuDescs[index]);
 	}
 	else {
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = 1;
-		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+		srvDesc.Texture2D.ResourceMinLODClamp = 0.f;
 		srvDesc.Texture2D.PlaneSlice = 0;
 
 		//D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
@@ -163,6 +166,8 @@ void ZDepthClass::BuildDescriptor(UINT index, BOOL needCubemap) {
 
 		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 		const auto& zdepth = mZDepthMaps[index]->Resource();
-		md3dDevice->CreateShaderResourceView(zdepth, &srvDesc, mhZDepthCpuDescs[index]);
+		device->CreateShaderResourceView(zdepth, &srvDesc, mhZDepthCpuDescs[index]);
 	}
+
+	return TRUE;
 }

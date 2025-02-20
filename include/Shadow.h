@@ -5,6 +5,7 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "Locker.h"
 
 class ShaderManager;
 
@@ -27,13 +28,6 @@ namespace Shadow {
 				ESI_TexMaps,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_LightIndex = 0,
-					Count
-				};
-			}
 		}
 
 		namespace Shadow {
@@ -48,13 +42,6 @@ namespace Shadow {
 				EUO_Debug,
 				Count
 			};
-
-			namespace RootConstant {
-				enum {
-					E_LightIndex = 0,
-					Count
-				};
-			}
 		}
 	}
 
@@ -128,9 +115,8 @@ namespace Shadow {
 
 	public:
 		BOOL Initialize(
-			ID3D12Device* const device, ShaderManager* const manager, 
-			UINT clientW, UINT clientH,
-			UINT texW, UINT texH);
+			Locker<ID3D12Device5>* const device, ShaderManager* const manager,
+			UINT clientW, UINT clientH, UINT texW, UINT texH);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
@@ -149,15 +135,15 @@ namespace Shadow {
 			UINT lightType,
 			UINT index);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuDsv,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT dsvDescSize, UINT rtvDescSize);
+		BOOL BuildDescriptors();
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources();
 
 		void DrawZDepth(
@@ -171,7 +157,7 @@ namespace Shadow {
 			const std::vector<RenderItem*>& ritems);
 		void CopyZDepth(
 			ID3D12GraphicsCommandList* const cmdList,
-			GpuResource*const dst_zdepth, 
+			GpuResource* const dst_zdepth, 
 			GpuResource* const dst_faceIDCube,
 			BOOL needCubemap);
 		void DrawShadow(
@@ -181,7 +167,7 @@ namespace Shadow {
 			UINT index);
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignatures[RootSignature::Count];

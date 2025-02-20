@@ -7,6 +7,7 @@
 
 #include "Samplers.h"
 #include "GpuResource.h"
+#include "Locker.h"
 
 class ShaderManager;
 class GpuResource;
@@ -70,7 +71,7 @@ namespace Bloom {
 
 	public:
 		BOOL Initialize(
-			ID3D12Device* const device, ShaderManager* const manager, 
+			Locker<ID3D12Device5>* const device, ShaderManager* const manager,
 			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
@@ -86,19 +87,19 @@ namespace Bloom {
 			GpuResource* const backBuffer,
 			D3D12_CPU_DESCRIPTOR_HANDLE ro_backBuffer);
 
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 	public:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 	private:
-		ID3D12Device* md3dDevice;
+		Locker<ID3D12Device5>* md3dDevice;
 		ShaderManager* mShaderManager;
 
 		std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, RootSignature::Count> mRootSignatures;

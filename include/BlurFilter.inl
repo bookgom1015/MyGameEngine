@@ -1,18 +1,22 @@
 #ifndef __BLURFILTER_INL__
 #define __BLURFILTER_INL__
 
-FLOAT* BlurFilter::CalcGaussWeights(FLOAT sigma) {
-	FLOAT twoSigma2 = 2.0f * sigma * sigma;
+INT BlurFilter::CalcSize(FLOAT sigma) {
+	const INT blurRadius = static_cast<INT>(ceil(2.f * sigma));
+	if (blurRadius > MaxBlurRadius) return -1;
+
+	return 2 * blurRadius + 1;
+}
+
+BOOL BlurFilter::CalcGaussWeights(FLOAT sigma, FLOAT weights[]) {
+	FLOAT twoSigma2 = 2.f * sigma * sigma;
 
 	// Estimate the blur radius based on sigma since sigma controls the "width" of the bell curve.
-	INT blurRadius = static_cast<INT>(ceil(2.0f * sigma));
+	const INT blurRadius = static_cast<INT>(ceil(2.f * sigma));
+	if (blurRadius > MaxBlurRadius) return FALSE;
 
-	if (blurRadius > MaxBlurRadius) return nullptr;
-
-	INT size = 2 * blurRadius + 1;
-	FLOAT* weights = new FLOAT[size];
-
-	FLOAT weightSum = 0.0f;
+	const INT size = 2 * blurRadius + 1;
+	FLOAT weightSum = 0.f;
 
 	for (INT i = -blurRadius; i <= blurRadius; ++i) {
 		FLOAT x = static_cast<FLOAT>(i);
@@ -26,7 +30,7 @@ FLOAT* BlurFilter::CalcGaussWeights(FLOAT sigma) {
 	for (INT i = 0; i < size; ++i)
 		weights[i] /= weightSum;
 
-	return weights;
+	return TRUE;
 }
 
 #endif // __BLURFILTER_INL__

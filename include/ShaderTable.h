@@ -14,7 +14,7 @@ public:
 	Microsoft::WRL::ComPtr<ID3D12Resource> GetResource();
 
 protected:
-	BOOL Allocate(ID3D12Device* pDevice, UINT bufferSize, LPCWSTR resourceName = nullptr);
+	BOOL Allocate(ID3D12Device* const pDevice, UINT bufferSize, LPCWSTR resourceName = nullptr);
 	BOOL MapCpuWriteOnly(std::uint8_t*& pData);
 
 protected:
@@ -24,18 +24,18 @@ protected:
 // Shader record = {{Shader ID}, {RootArguments}}
 class ShaderRecord {
 public:
-	ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize);
-	ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize, void* pLocalRootArguments, UINT localRootArgumentsSize);
+	ShaderRecord(void* const pShaderIdentifier, UINT shaderIdentifierSize);
+	ShaderRecord(void* const pShaderIdentifier, UINT shaderIdentifierSize, void* const pLocalRootArguments, UINT localRootArgumentsSize);
 
 public:
-	void CopyTo(void* dest) const;
+	void CopyTo(void* const dest) const;
 
 	struct PointerWithSize {
 		void* Ptr;
 		UINT Size;
 
 		PointerWithSize();
-		PointerWithSize(void* ptr, UINT size);
+		PointerWithSize(void* const ptr, UINT size);
 	};
 
 public:
@@ -46,7 +46,7 @@ public:
 // Shader table = {{ ShaderRecord 1}, {ShaderRecord 2}, ...}
 class ShaderTable : public GpuUploadBuffer {
 public:
-	ShaderTable(ID3D12Device* device, UINT numShaderRecords, UINT shaderRecordSize, LPCWSTR resourceName = nullptr);
+	ShaderTable(ID3D12Device* const device, UINT numShaderRecords, UINT shaderRecordSize, LPCWSTR resourceName = nullptr);
 
 public:
 	BOOL Initialze();

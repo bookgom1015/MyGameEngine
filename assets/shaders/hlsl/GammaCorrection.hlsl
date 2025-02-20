@@ -11,9 +11,7 @@
 #include "./../../../include/HlslCompaction.h"
 #include "Samplers.hlsli"
 
-cbuffer gRootConstants : register(b0) {
-	float gGamma;
-}
+GammaCorrection_Default_RootConstants(b0)
 
 #include "CoordinatesFittedToScreen.hlsli"
 
@@ -25,24 +23,21 @@ struct VertexOut {
 };
 
 VertexOut VS(uint vid : SV_VertexID, uint instanceID : SV_InstanceID) {
-	VertexOut vout = (VertexOut)0.0f;
+	VertexOut vout = (VertexOut)0;
 
 	vout.TexC = gTexCoords[vid];
 
-	float2 pos = float2(2 * vout.TexC.x - 1, 1 - 2 * vout.TexC.y);
-	vout.PosH = float4(pos, 0, 1);
+	const float2 pos = float2(2.f * vout.TexC.x - 1.f, 1.f - 2.f * vout.TexC.y);
+	vout.PosH = float4(pos, 0.f, 1.f);
 
 	return vout;
 }
 
 SDR_FORMAT PS(VertexOut pin) : SV_Target{
-	float2 tex = pin.TexC;
-
-	float3 color = gi_BackBuffer.SampleLevel(gsamPointClamp, tex, 0).rgb;
-
-	float3 corrColor = pow(color, 1 / gGamma);
-
-	return float4(corrColor, 1);
+	const float2 tex = pin.TexC;
+	const float3 color = gi_BackBuffer.SampleLevel(gsamPointClamp, tex, 0).rgb;
+	const float3 corrColor = pow(color, 1.f / gGamma);
+	return float4(corrColor, 1.f);
 }
 
 #endif // __GAMMACORRECTION_HLSL__

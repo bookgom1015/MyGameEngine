@@ -241,6 +241,24 @@
     <Filter Include="Header Files\Shading\Rasterization\TemporalAA">
       <UniqueIdentifier>{0e45b78e-e95c-47fa-8379-919e602b699c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\ToneMapping">
+      <UniqueIdentifier>{69be6111-63ad-4a48-924e-d85e3dba536b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Infrastructure\DepthStencilBuffer">
+      <UniqueIdentifier>{fc8d0275-1c39-46e5-ad29-90de1a4e3dc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Infrastructure\GpuResource">
+      <UniqueIdentifier>{b7e7f3e4-2644-4088-bbb9-9dad3902a2d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Infrastructure\ShadingConvention">
+      <UniqueIdentifier>{b4672c22-1cbd-4893-8a1b-0a7dd9912198}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Infrastructure\SwapChainBuffer">
+      <UniqueIdentifier>{80af998f-caf9-4c7a-ac04-0a051981169b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Infrastructure\UploadBuffer">
+      <UniqueIdentifier>{21be28f3-681a-4b7d-8ec5-2666930718d2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\externals\imgui\imgui.cpp">
@@ -384,9 +402,6 @@
     <ClCompile Include="..\..\src\EquirectangularConverter.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\EnvironmentMap.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\GammaCorrection.cpp">
       <Filter>Source Files\Shading\Rasterization</Filter>
     </ClCompile>
@@ -461,6 +476,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\ZDepth.cpp">
       <Filter>Source Files\Shading\Rasterization\Shadow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TaskQueue.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\HWInfo.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ShaderArgument.cpp">
+      <Filter>Source Files\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Locker.cpp">
+      <Filter>Source Files\Util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -560,9 +587,6 @@
     <ClInclude Include="..\..\include\DXR_GeometryBuffer.h">
       <Filter>Header Files\Raytracing</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\EnvironmentMap.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\GammaCorrection.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
@@ -587,16 +611,7 @@
     <ClInclude Include="..\..\include\DxLowRenderer.h">
       <Filter>Header Files\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\UploadBuffer.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\SwapChainBuffer.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\HlslCompaction.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GpuResource.h">
       <Filter>Header Files\Infrastructure</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\FrameResource.h">
@@ -623,9 +638,6 @@
     <ClInclude Include="..\..\include\D3D12Util.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ShadingConvention.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\Samplers.h">
       <Filter>Header Files\Infrastructure</Filter>
     </ClInclude>
@@ -637,9 +649,6 @@
     </ClInclude>
     <ClInclude Include="..\..\include\ImGuiManager.h">
       <Filter>Header Files\Debug</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DepthStencilBuffer.h">
-      <Filter>Header Files\Infrastructure</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\VolumetricLight.h">
       <Filter>Header Files\Shading\Rasterization</Filter>
@@ -668,9 +677,6 @@
     <ClInclude Include="..\..\include\RTAO.h">
       <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ToneMapping.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\Bloom.h">
       <Filter>Header Files\Shading\Rasterization\Bloom</Filter>
     </ClInclude>
@@ -689,6 +695,36 @@
     <ClInclude Include="..\..\include\TemporalAA.h">
       <Filter>Header Files\Shading\Rasterization\TemporalAA</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\ToneMapping.h">
+      <Filter>Header Files\Shading\Rasterization\ToneMapping</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DepthStencilBuffer.h">
+      <Filter>Header Files\Infrastructure\DepthStencilBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\GpuResource.h">
+      <Filter>Header Files\Infrastructure\GpuResource</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ShadingConvention.h">
+      <Filter>Header Files\Infrastructure\ShadingConvention</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\SwapChainBuffer.h">
+      <Filter>Header Files\Infrastructure\SwapChainBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\UploadBuffer.h">
+      <Filter>Header Files\Infrastructure\UploadBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\TaskQueue.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\HWInfo.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\ShaderArgument.h">
+      <Filter>Header Files\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Locker.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\include\Actor.inl">
@@ -705,12 +741,6 @@
     </None>
     <None Include="..\..\include\DxLowRenderer.inl">
       <Filter>Header Files\Renderer</Filter>
-    </None>
-    <None Include="..\..\include\UploadBuffer.inl">
-      <Filter>Header Files\Infrastructure</Filter>
-    </None>
-    <None Include="..\..\include\ShadingConvention.inl">
-      <Filter>Header Files\Infrastructure</Filter>
     </None>
     <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
       <Filter>Shader Files</Filter>
@@ -981,6 +1011,27 @@
     </None>
     <None Include="..\..\include\IrradianceMap.inl">
       <Filter>Header Files\Shading\Rasterization</Filter>
+    </None>
+    <None Include="..\..\include\ToneMapping.inl">
+      <Filter>Header Files\Shading\Rasterization\ToneMapping</Filter>
+    </None>
+    <None Include="..\..\include\DepthStencilBuffer.inl">
+      <Filter>Header Files\Infrastructure\DepthStencilBuffer</Filter>
+    </None>
+    <None Include="..\..\include\GpuResource.inl">
+      <Filter>Header Files\Infrastructure\GpuResource</Filter>
+    </None>
+    <None Include="..\..\include\ShadingConvention.inl">
+      <Filter>Header Files\Infrastructure\ShadingConvention</Filter>
+    </None>
+    <None Include="..\..\include\SwapChainBuffer.inl">
+      <Filter>Header Files\Infrastructure\SwapChainBuffer</Filter>
+    </None>
+    <None Include="..\..\include\UploadBuffer.inl">
+      <Filter>Header Files\Infrastructure\UploadBuffer</Filter>
+    </None>
+    <None Include="..\..\include\ZDepth.inl">
+      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
     </None>
   </ItemGroup>
 </Project>

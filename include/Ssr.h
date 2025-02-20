@@ -12,15 +12,17 @@ class GpuResource;
 
 namespace SSR {
 	namespace RootSignature {
-		enum {
-			ECB_SSR = 0,
-			ESI_BackBuffer,
-			ESI_Position,
-			ESI_Normal,
-			ESI_Depth,
-			ESI_RMS,
-			Count
-		};
+		namespace Default {
+			enum {
+				ECB_SSR = 0,
+				ESI_BackBuffer,
+				ESI_Position,
+				ESI_Normal,
+				ESI_Depth,
+				ESI_RMS,
+				Count
+			};
+		}
 	}
 
 	namespace PipelineState {
@@ -40,8 +42,6 @@ namespace SSR {
 	}
 
 	static const UINT NumRenderTargets = 2;
-	
-	const FLOAT ClearValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	class SSRClass {
 	public:
@@ -55,20 +55,21 @@ namespace SSR {
 		__forceinline constexpr CD3DX12_CPU_DESCRIPTOR_HANDLE SSRMapRtv(UINT index) const;
 
 	public:
-		BOOL Initialize(ID3D12Device* device, ShaderManager*const manager,
+		BOOL Initialize(ID3D12Device* const device, ShaderManager* const manager,
 			UINT width, UINT height, Resolution::Type type);
 		BOOL CompileShaders(const std::wstring& filePath);
 		BOOL BuildRootSignature(const StaticSamplers& samplers);
 		BOOL BuildPSO();
-		void BuildDescriptors(
+		void AllocateDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpu,
 			CD3DX12_GPU_DESCRIPTOR_HANDLE& hGpu,
 			CD3DX12_CPU_DESCRIPTOR_HANDLE& hCpuRtv,
 			UINT descSize, UINT rtvDescSize);
+		BOOL BuildDescriptors();
 		BOOL OnResize(UINT width, UINT height);
 
 		void Run(
-			ID3D12GraphicsCommandList*const cmdList,
+			ID3D12GraphicsCommandList* const cmdList,
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress,
 			GpuResource* const backBuffer,
 			D3D12_GPU_DESCRIPTOR_HANDLE si_backBuffer,
@@ -78,7 +79,6 @@ namespace SSR {
 			D3D12_GPU_DESCRIPTOR_HANDLE si_rms);
 
 	private:
-		void BuildDescriptors();
 		BOOL BuildResources(UINT width, UINT height);
 
 	public:
@@ -89,7 +89,7 @@ namespace SSR {
 		ShaderManager* mShaderManager;
 
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
-		std::unordered_map<PipelineState::Type, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
+		std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, PipelineState::Count> mPSOs;
 
 		Resolution::Type mResolutionType;
 
