@@ -31,9 +31,6 @@
     <Filter Include="Common Files\Source Files\Helper">
       <UniqueIdentifier>{fbda6e5b-21c6-499c-b343-7e9dcdf95653}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common Files\Source Files\Manager">
-      <UniqueIdentifier>{4570dcfc-146e-48f8-95ee-8a5b6ecc406f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common Files\Source Files\Mesh">
       <UniqueIdentifier>{c94349f7-b490-4b7e-ac45-cb0796454800}</UniqueIdentifier>
     </Filter>
@@ -45,9 +42,6 @@
     </Filter>
     <Filter Include="Common Files\Header Files\Helper">
       <UniqueIdentifier>{9ee61d97-ceab-4c18-88b3-dc2399553f8b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common Files\Header Files\Manager">
-      <UniqueIdentifier>{12daaec9-eece-4333-8b84-0b7e640cd647}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common Files\Header Files\Mesh">
       <UniqueIdentifier>{6e8b7a18-e0fa-4570-bd2b-70f2a3e1bcd1}</UniqueIdentifier>
@@ -94,44 +88,29 @@
     <Filter Include="Common Files\Source Files\Camera">
       <UniqueIdentifier>{224f5894-f908-4a8f-a222-83e0e5ff0500}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common Files\Header Files\Input">
+      <UniqueIdentifier>{03888cdc-4c42-4e9b-8a2d-3b20b1084994}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Source Files\Input">
+      <UniqueIdentifier>{b8027828-c182-4a2b-9cd5-eb7c4e4a0599}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Helper">
+      <UniqueIdentifier>{8618e845-40fc-418d-a2e1-69f0553b356d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render">
+      <UniqueIdentifier>{f68f50c1-f3a9-40bc-a5c4-94c470b53660}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render">
+      <UniqueIdentifier>{bf6277de-c6e9-4797-a3a6-73157148e743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Helper">
+      <UniqueIdentifier>{fe4bd2cc-3e88-4f4b-a18a-fe6c287367e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader Files">
+      <UniqueIdentifier>{03b530ed-5526-445f-ad13-0a450159f73b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\GameWorld.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Actor.cpp">
-      <Filter>Common Files\Source Files\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CameraComponent.cpp">
-      <Filter>Common Files\Source Files\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Component.cpp">
-      <Filter>Common Files\Source Files\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\MeshComponent.cpp">
-      <Filter>Common Files\Source Files\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\MathHelper.cpp">
-      <Filter>Common Files\Source Files\Helper</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ActorManager.cpp">
-      <Filter>Common Files\Source Files\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\InputManager.cpp">
-      <Filter>Common Files\Source Files\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Mesh.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Transform.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GameTimer.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\HashUtil.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\BoxActor.cpp">
       <Filter>Prefab Files\Source Files</Filter>
     </ClCompile>
@@ -149,15 +128,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\SphereActor.cpp">
       <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Renderer.cpp">
-      <Filter>Common Files\Source Files\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\VkLowRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\VkRenderer.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\externals\imgui\imgui.cpp">
       <Filter>External Files\Source Files\ImGui</Filter>
@@ -177,68 +147,74 @@
     <ClCompile Include="..\..\externals\imgui\backends\imgui_impl_win32.cpp">
       <Filter>External Files\Source Files\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\VulkanHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\src\Common\Actor\Actor.cpp">
+      <Filter>Common Files\Source Files\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\RenderItem.cpp">
-      <Filter>Common Files\Source Files\Render</Filter>
+    <ClCompile Include="..\..\src\Common\Actor\ActorManager.cpp">
+      <Filter>Common Files\Source Files\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\MeshImporter.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Logger.cpp">
-      <Filter>Common Files\Source Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Vertex.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Camera.cpp">
+    <ClCompile Include="..\..\src\Common\Camera\Camera.cpp">
       <Filter>Common Files\Source Files\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Light.cpp">
+    <ClCompile Include="..\..\src\Common\Component\CameraComponent.cpp">
+      <Filter>Common Files\Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Component\Component.cpp">
+      <Filter>Common Files\Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Component\MeshComponent.cpp">
+      <Filter>Common Files\Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Debug\Logger.cpp">
+      <Filter>Common Files\Source Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Helper\MathHelper.cpp">
+      <Filter>Common Files\Source Files\Helper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Light\Light.cpp">
       <Filter>Common Files\Source Files\Light</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Mesh\Mesh.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Mesh\MeshImporter.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Mesh\Transform.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Mesh\Vertex.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Render\Renderer.cpp">
+      <Filter>Common Files\Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Render\RenderItem.cpp">
+      <Filter>Common Files\Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\GameTimer.cpp">
+      <Filter>Common Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\GameWorld.cpp">
+      <Filter>Common Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\HashUtil.cpp">
+      <Filter>Common Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Input\InputManager.cpp">
+      <Filter>Common Files\Source Files\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Vulkan\Render\VkLowRenderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Vulkan\Render\VkRenderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Vulkan\Helper\VulkanHelper.cpp">
+      <Filter>Source Files\Helper</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\Actor.h">
-      <Filter>Common Files\Header Files\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\CameraComponent.h">
-      <Filter>Common Files\Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Component.h">
-      <Filter>Common Files\Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MeshComponent.h">
-      <Filter>Common Files\Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MathHelper.h">
-      <Filter>Common Files\Header Files\Helper</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ActorManager.h">
-      <Filter>Common Files\Header Files\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\InputManager.h">
-      <Filter>Common Files\Header Files\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Mesh.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Transform.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GameTimer.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GameWorld.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\HashUtil.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\KeyCodes.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\BoxActor.h">
       <Filter>Prefab Files\Header Files</Filter>
     </ClInclude>
@@ -257,52 +233,118 @@
     <ClInclude Include="..\..\include\SphereActor.h">
       <Filter>Prefab Files\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Renderer.h">
-      <Filter>Common Files\Header Files\Render</Filter>
+    <ClInclude Include="..\..\include\Common\Actor\Actor.h">
+      <Filter>Common Files\Header Files\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\RenderType.h">
-      <Filter>Common Files\Header Files\Render</Filter>
+    <ClInclude Include="..\..\include\Common\Actor\ActorManager.h">
+      <Filter>Common Files\Header Files\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\VkLowRenderer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\Common\Camera\Camera.h">
+      <Filter>Common Files\Header Files\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\VkRenderer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\Common\Component\CameraComponent.h">
+      <Filter>Common Files\Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\VulkanHelper.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\include\Common\Component\Component.h">
+      <Filter>Common Files\Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\RenderItem.h">
-      <Filter>Common Files\Header Files\Render</Filter>
+    <ClInclude Include="..\..\include\Common\Component\MeshComponent.h">
+      <Filter>Common Files\Header Files\Component</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\MeshImporter.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Logger.h">
+    <ClInclude Include="..\..\include\Common\Debug\Logger.h">
       <Filter>Common Files\Header Files\Debug</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Vertex.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
+    <ClInclude Include="..\..\include\Common\Helper\MathHelper.h">
+      <Filter>Common Files\Header Files\Helper</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Light.h">
+    <ClInclude Include="..\..\include\Common\Light\Light.h">
       <Filter>Common Files\Header Files\Light</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Camera.h">
-      <Filter>Common Files\Header Files\Camera</Filter>
+    <ClInclude Include="..\..\include\Common\Input\InputManager.h">
+      <Filter>Common Files\Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\Mesh.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\MeshImporter.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\Transform.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\Vertex.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Render\Renderer.h">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Render\RenderItem.h">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Render\RenderType.h">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\GameTimer.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\GameWorld.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\HashUtil.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\KeyCodes.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Vulkan\Render\VkLowRenderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Vulkan\Render\VkRenderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Vulkan\Helper\VulkanHelper.h">
+      <Filter>Header Files\Helper</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\include\Actor.inl">
+    <None Include="..\..\include\Common\Actor\Actor.inl">
       <Filter>Common Files\Header Files\Actor</Filter>
     </None>
-    <None Include="..\..\include\MathHelper.inl">
+    <None Include="..\..\include\Common\Camera\Camera.inl">
+      <Filter>Common Files\Header Files\Camera</Filter>
+    </None>
+    <None Include="..\..\include\Common\Helper\MathHelper.inl">
       <Filter>Common Files\Header Files\Helper</Filter>
     </None>
-    <None Include="..\..\include\Renderer.inl">
+    <None Include="..\..\include\Common\Render\Renderer.inl">
       <Filter>Common Files\Header Files\Render</Filter>
     </None>
-    <None Include="..\..\include\VkLowRenderer.inl">
-      <Filter>Header Files</Filter>
+    <None Include="..\..\include\Vulkan\Render\VkLowRenderer.inl">
+      <Filter>Header Files\Render</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Common.glsli">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Debug.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Debug.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Default.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Default.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\LightingUtil.glsli">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Shadow.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\glsl\Shadow.vert">
+      <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
 </Project>

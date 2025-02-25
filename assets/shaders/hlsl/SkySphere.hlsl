@@ -6,7 +6,6 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "./../../../include/Vertex.h"
 #include "ShadingHelpers.hlsli"
 #include "Samplers.hlsli"
 

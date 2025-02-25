@@ -1,14 +1,14 @@
 #pragma once
 
-#include "MathHelper.h"
+#include "Common/Helper/MathHelper.h"
 
-#include <d3d12.h>
-#include <DirectXMath.h>
-#include <DirectXCollision.h>
 #include <string>
 #include <unordered_map>
 #include <wrl.h>
 #include <Windows.h>
+
+#include <d3d12.h>
+#include <DirectXCollision.h>
 
 extern const INT gNumFrameResources;
 
@@ -17,9 +17,9 @@ extern const INT gNumFrameResources;
 // and data needed to draw a subset of geometry stores in the vertex and index 
 // buffers so that we can implement the technique described by Figure 6.3.
 struct SubmeshGeometry {
-	UINT IndexCount = 0;
-	UINT StartIndexLocation = 0;
-	INT BaseVertexLocation = 0;
+	UINT IndexCount			= 0;
+	UINT StartIndexLocation	= 0;
+	INT BaseVertexLocation	= 0;
 
 	// Bounding box of the geometry defined by this submesh. 
 	// This is used in later chapters of the book.
@@ -42,10 +42,10 @@ struct MeshGeometry {
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
 
 	// Data about the buffers.
-	UINT VertexByteStride = 0;
-	UINT VertexBufferByteSize = 0;
-	DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
-	UINT IndexBufferByteSize = 0;
+	UINT VertexByteStride		= 0;
+	UINT VertexBufferByteSize	= 0;
+	DXGI_FORMAT IndexFormat		= DXGI_FORMAT_R16_UINT;
+	UINT IndexBufferByteSize	= 0;
 
 	// A MeshGeometry may store multiple geometries in one vertex/index buffer.
 	// Use this container to define the Submesh geometries so we can draw
@@ -73,14 +73,14 @@ struct MeshGeometry {
 	// We can free this memory after we finish upload to the GPU.
 	void DisposeUploaders() {
 		VertexBufferUploader = nullptr;
-		IndexBufferUploader = nullptr;
+		IndexBufferUploader  = nullptr;
 	}
 };
 
 struct Texture {
 	UINT DescriptorIndex = 0;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> Resource = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> Resource   = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> UploadHeap = nullptr;
 };
 
@@ -104,9 +104,9 @@ struct MaterialData {
 	INT NumFramesDirty = gNumFrameResources;
 
 	// Material constant buffer data used for shading.
-	DirectX::XMFLOAT4 Albedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT4 Albedo = { 1.f, 1.f, 1.f, 1.f };
 	FLOAT Roughness = 0.5f;
-	FLOAT Metailic;
-	FLOAT Specular = 0.5f;
+	FLOAT Metailic	= 0.f;
+	FLOAT Specular  = 0.5f;
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };

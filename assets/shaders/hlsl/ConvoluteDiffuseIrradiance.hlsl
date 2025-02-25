@@ -9,7 +9,6 @@
 #endif
 
 #include "./../../../include/HlslCompaction.h"
-#include "./../../../include/Vertex.h"
 #include "Samplers.hlsli"
 
 #include "BRDF.hlsli"

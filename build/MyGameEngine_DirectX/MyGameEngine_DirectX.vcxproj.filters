@@ -40,9 +40,6 @@
     <Filter Include="Common Files\Header Files\Helper">
       <UniqueIdentifier>{dcd03c06-2c50-4505-87d7-5124b8124ee9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common Files\Header Files\Manager">
-      <UniqueIdentifier>{f4391a9b-1adb-4176-afb5-a539988b9f05}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common Files\Header Files\Mesh">
       <UniqueIdentifier>{0cdf9a75-aa2b-45ea-b8f1-003a61aa3cd8}</UniqueIdentifier>
     </Filter>
@@ -57,9 +54,6 @@
     </Filter>
     <Filter Include="Common Files\Source Files\Helper">
       <UniqueIdentifier>{83a83f8b-460a-42ef-abc2-3c47bb500431}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common Files\Source Files\Manager">
-      <UniqueIdentifier>{b9ca3b39-0e4f-48aa-bb80-f1131fba9cc6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common Files\Source Files\Mesh">
       <UniqueIdentifier>{c97f1d38-c55b-472e-b75d-cadc655b979a}</UniqueIdentifier>
@@ -103,9 +97,6 @@
     <Filter Include="Common Files\Source Files\Debug">
       <UniqueIdentifier>{2e3002f2-7e90-4306-bff6-b20a8882deda}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Raytracing">
-      <UniqueIdentifier>{23a6c3fb-fb4b-431c-bca5-b9bf33675fe0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Shading">
       <UniqueIdentifier>{f3a74619-9858-4f6c-872d-dfd37e7ebae3}</UniqueIdentifier>
     </Filter>
@@ -114,9 +105,6 @@
     </Filter>
     <Filter Include="Header Files\Shading\Rasterization">
       <UniqueIdentifier>{fb0c66db-9a14-4ede-9cbd-193e80772b5a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\Renderer">
-      <UniqueIdentifier>{78a486d1-7244-4df5-8436-3aea188f2754}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\Infrastructure">
       <UniqueIdentifier>{5a1caf07-d402-4eee-bed7-ab7a8b2dd2a4}</UniqueIdentifier>
@@ -135,12 +123,6 @@
     </Filter>
     <Filter Include="Source Files\Infrastructure">
       <UniqueIdentifier>{26c652cc-7c9c-4616-937a-db8eb29e5bd1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Renderer">
-      <UniqueIdentifier>{ba8b4939-5bed-4a6e-b565-e9a03766db35}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Raytracing">
-      <UniqueIdentifier>{83647e7b-c19a-49a2-ba1c-b8db5aeb1a07}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shader Files">
       <UniqueIdentifier>{28d4dd9d-4c82-4514-a964-975f4a5b56b0}</UniqueIdentifier>
@@ -208,9 +190,6 @@
     <Filter Include="Header Files\Shading\Rasterization\Shadow">
       <UniqueIdentifier>{68d03efd-b721-4d11-b5fb-278578789278}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Shading\Rasterization\Shadow">
-      <UniqueIdentifier>{539520c6-2a90-45d1-9a7e-5998f9133d00}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Shading\Raytracing\Shadow">
       <UniqueIdentifier>{b2ab3553-3d14-4e81-864f-4b018919e40d}</UniqueIdentifier>
     </Filter>
@@ -259,6 +238,45 @@
     <Filter Include="Header Files\Infrastructure\UploadBuffer">
       <UniqueIdentifier>{21be28f3-681a-4b7d-8ec5-2666930718d2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common Files\Header Files\UI">
+      <UniqueIdentifier>{9da35c11-6fcd-479d-a30b-89a1f22bfe85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Source Files\UI">
+      <UniqueIdentifier>{18e17bbe-2f38-45a2-aea2-8b06944ea4a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Source Files\Input">
+      <UniqueIdentifier>{ba680f8d-b57d-4414-86ad-d396b7900aba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Header Files\Input">
+      <UniqueIdentifier>{9d06f350-c955-49fe-b47f-aab3e1c9c151}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Header Files\Util">
+      <UniqueIdentifier>{1398f9b5-1224-4ab7-8fb1-af1bed958c88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Source Files\Util">
+      <UniqueIdentifier>{d5a5b723-f70b-4064-9d2b-90b279a98f21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Infrastructure\Raytracing">
+      <UniqueIdentifier>{83647e7b-c19a-49a2-ba1c-b8db5aeb1a07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Infrastructure\Raytracing">
+      <UniqueIdentifier>{23a6c3fb-fb4b-431c-bca5-b9bf33675fe0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render">
+      <UniqueIdentifier>{78a486d1-7244-4df5-8436-3aea188f2754}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render">
+      <UniqueIdentifier>{ba8b4939-5bed-4a6e-b565-e9a03766db35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Header Files\Shading">
+      <UniqueIdentifier>{b14ca63b-b28d-4ecc-86c9-c15754f9b40e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common Files\Source Files\Shading">
+      <UniqueIdentifier>{398e8025-32a5-47aa-8335-40cb248930b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Shading\Rasterization\ZDepth">
+      <UniqueIdentifier>{33cbea0d-8dd7-475c-954d-4b9b2797c77d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\externals\imgui\imgui.cpp">
@@ -279,469 +297,448 @@
     <ClCompile Include="..\..\externals\imgui\backends\imgui_impl_win32.cpp">
       <Filter>External Files\Source Files\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Actor.cpp">
+    <ClCompile Include="..\..\src\Common\Actor\Actor.cpp">
       <Filter>Common Files\Source Files\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CameraComponent.cpp">
-      <Filter>Common Files\Source Files\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Component.cpp">
-      <Filter>Common Files\Source Files\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\MeshComponent.cpp">
-      <Filter>Common Files\Source Files\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\MathHelper.cpp">
-      <Filter>Common Files\Source Files\Helper</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ActorManager.cpp">
-      <Filter>Common Files\Source Files\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\InputManager.cpp">
-      <Filter>Common Files\Source Files\Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Mesh.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Transform.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Renderer.cpp">
-      <Filter>Common Files\Source Files\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GameTimer.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GameWorld.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\HashUtil.cpp">
-      <Filter>Common Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\BoxActor.cpp">
-      <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CastleActor.cpp">
-      <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\FreeLookActor.cpp">
-      <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\PlaneActor.cpp">
-      <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\RotatingMonkey.cpp">
-      <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\SphereActor.cpp">
-      <Filter>Prefab Files\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\RenderItem.cpp">
-      <Filter>Common Files\Source Files\Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\DebugCollision.cpp">
-      <Filter>Source Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Debug.cpp">
-      <Filter>Source Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Vertex.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Light.cpp">
-      <Filter>Common Files\Source Files\Light</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Camera.cpp">
+    <ClCompile Include="..\..\src\Common\Camera\Camera.cpp">
       <Filter>Common Files\Source Files\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\MeshImporter.cpp">
-      <Filter>Common Files\Source Files\Mesh</Filter>
+    <ClCompile Include="..\..\src\Common\Component\CameraComponent.cpp">
+      <Filter>Common Files\Source Files\Component</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Logger.cpp">
+    <ClCompile Include="..\..\src\Common\Component\Component.cpp">
+      <Filter>Common Files\Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Component\MeshComponent.cpp">
+      <Filter>Common Files\Source Files\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Debug\Logger.cpp">
       <Filter>Common Files\Source Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\SVGF.cpp">
-      <Filter>Source Files\Shading\Raytracing</Filter>
+    <ClCompile Include="..\..\src\Common\Helper\MathHelper.cpp">
+      <Filter>Common Files\Source Files\Helper</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\RTAO.cpp">
-      <Filter>Source Files\Shading\Raytracing</Filter>
+    <ClCompile Include="..\..\src\Common\Light\Light.cpp">
+      <Filter>Common Files\Source Files\Light</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\RaytracedReflection.cpp">
-      <Filter>Source Files\Shading\Raytracing</Filter>
+    <ClCompile Include="..\..\src\Common\Actor\ActorManager.cpp">
+      <Filter>Common Files\Source Files\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DXR_Shadow.cpp">
-      <Filter>Source Files\Shading\Raytracing</Filter>
+    <ClCompile Include="..\..\src\Common\Input\InputManager.cpp">
+      <Filter>Common Files\Source Files\Input</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DXR_GeometryBuffer.cpp">
-      <Filter>Source Files\Raytracing</Filter>
+    <ClCompile Include="..\..\src\Common\Render\Renderer.cpp">
+      <Filter>Common Files\Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\AccelerationStructure.cpp">
-      <Filter>Source Files\Raytracing</Filter>
+    <ClCompile Include="..\..\src\Common\Render\RenderItem.cpp">
+      <Filter>Common Files\Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Bloom.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
+    <ClCompile Include="..\..\src\Common\GameTimer.cpp">
+      <Filter>Common Files\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\BRDF.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
+    <ClCompile Include="..\..\src\Common\GameWorld.cpp">
+      <Filter>Common Files\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DepthOfField.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
+    <ClCompile Include="..\..\src\Common\HashUtil.cpp">
+      <Filter>Common Files\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DepthStencilBuffer.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
+    <ClCompile Include="..\..\src\Common\Mesh\Mesh.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DxRenderer.cpp">
-      <Filter>Source Files\Renderer</Filter>
+    <ClCompile Include="..\..\src\Common\Mesh\MeshImporter.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\DxLowRenderer.cpp">
-      <Filter>Source Files\Renderer</Filter>
+    <ClCompile Include="..\..\src\Common\Mesh\Transform.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\D3D12Util.cpp">
-      <Filter>Source Files\Util</Filter>
+    <ClCompile Include="..\..\src\Common\Mesh\Vertex.cpp">
+      <Filter>Common Files\Source Files\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\EquirectangularConverter.cpp">
-      <Filter>Source Files\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GammaCorrection.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GBuffer.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GeometryGenerator.cpp">
-      <Filter>Source Files\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\FrameResource.cpp">
-      <Filter>Source Files\Infrastructure</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\SSAO.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\SSR.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TemporalAA.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ToneMapping.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\MotionBlur.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Pixelation.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\IrradianceMap.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Sharpen.cpp">
-      <Filter>Source Files\Shading\Rasterization</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ShaderTable.cpp">
-      <Filter>Source Files\Raytracing</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\SwapChainBuffer.cpp">
-      <Filter>Source Files\Infrastructure</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\UploadBuffer.cpp">
-      <Filter>Source Files\Infrastructure</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GpuResource.cpp">
-      <Filter>Source Files\Infrastructure</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ImGuiManager.cpp">
+    <ClCompile Include="..\..\src\DirectX\Debug\Debug.cpp">
       <Filter>Source Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Samplers.cpp">
-      <Filter>Source Files\Infrastructure</Filter>
+    <ClCompile Include="..\..\src\DirectX\Debug\ImGuiManager.cpp">
+      <Filter>Source Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\MipmapGenerator.cpp">
+    <ClCompile Include="..\..\src\DirectX\Util\D3D12Util.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\ShaderManager.cpp">
+    <ClCompile Include="..\..\src\Common\Util\HWInfo.cpp">
+      <Filter>Common Files\Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Util\Locker.cpp">
+      <Filter>Common Files\Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Util\TaskQueue.cpp">
+      <Filter>Common Files\Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Util\EquirectangularConverter.cpp">
       <Filter>Source Files\Util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\VolumetricLight.cpp">
+    <ClCompile Include="..\..\src\DirectX\Util\GeometryGenerator.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Util\MipmapGenerator.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Util\ShaderManager.cpp">
+      <Filter>Source Files\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Render\DxLowRenderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Render\DxRenderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\BlurFilter.cpp">
+      <Filter>Source Files\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\GaussianFilter.cpp">
+      <Filter>Source Files\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Shading\ShaderArgument.cpp">
+      <Filter>Common Files\Source Files\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\Bloom.cpp">
       <Filter>Source Files\Shading\Rasterization</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\BlurFilter.cpp">
+    <ClCompile Include="..\..\src\DirectX\Shading\DepthOfField.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\GBuffer.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\MotionBlur.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\Pixelation.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\Shadow.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\Sharpen.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\SSAO.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\SSR.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\TemporalAA.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\ToneMapping.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\VolumetricLight.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\ZDepth.cpp">
+      <Filter>Source Files\Shading\Rasterization</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\BRDF.cpp">
       <Filter>Source Files\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\GaussianFilter.cpp">
+    <ClCompile Include="..\..\src\DirectX\Shading\GammaCorrection.cpp">
       <Filter>Source Files\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Shadow.cpp">
-      <Filter>Source Files\Shading\Rasterization\Shadow</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ZDepth.cpp">
-      <Filter>Source Files\Shading\Rasterization\Shadow</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TaskQueue.cpp">
-      <Filter>Source Files\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\HWInfo.cpp">
-      <Filter>Source Files\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\ShaderArgument.cpp">
+    <ClCompile Include="..\..\src\DirectX\Shading\IrradianceMap.cpp">
       <Filter>Source Files\Shading</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Locker.cpp">
-      <Filter>Source Files\Util</Filter>
+    <ClCompile Include="..\..\src\DirectX\Shading\DXR_Shadow.cpp">
+      <Filter>Source Files\Shading\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\RaytracedReflection.cpp">
+      <Filter>Source Files\Shading\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\RTAO.cpp">
+      <Filter>Source Files\Shading\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\SVGF.cpp">
+      <Filter>Source Files\Shading\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Shading\Samplers.cpp">
+      <Filter>Source Files\Shading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\DepthStencilBuffer.cpp">
+      <Filter>Source Files\Infrastructure</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\GpuResource.cpp">
+      <Filter>Source Files\Infrastructure</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\SwapChainBuffer.cpp">
+      <Filter>Source Files\Infrastructure</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\UploadBuffer.cpp">
+      <Filter>Source Files\Infrastructure</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\FrameResource.cpp">
+      <Filter>Source Files\Infrastructure</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\AccelerationStructure.cpp">
+      <Filter>Source Files\Infrastructure\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\DXR_GeometryBuffer.cpp">
+      <Filter>Source Files\Infrastructure\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DirectX\Infrastructure\ShaderTable.cpp">
+      <Filter>Source Files\Infrastructure\Raytracing</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Prefab\BoxActor.cpp">
+      <Filter>Prefab Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Prefab\CastleActor.cpp">
+      <Filter>Prefab Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Prefab\FreeLookActor.cpp">
+      <Filter>Prefab Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Prefab\PlaneActor.cpp">
+      <Filter>Prefab Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Prefab\RotatingMonkey.cpp">
+      <Filter>Prefab Files\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Prefab\SphereActor.cpp">
+      <Filter>Prefab Files\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\include\Actor.h">
-      <Filter>Common Files\Header Files\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\CameraComponent.h">
-      <Filter>Common Files\Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Component.h">
-      <Filter>Common Files\Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MeshComponent.h">
-      <Filter>Common Files\Header Files\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MathHelper.h">
-      <Filter>Common Files\Header Files\Helper</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ActorManager.h">
-      <Filter>Common Files\Header Files\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\InputManager.h">
-      <Filter>Common Files\Header Files\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Mesh.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Transform.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Renderer.h">
-      <Filter>Common Files\Header Files\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RenderType.h">
-      <Filter>Common Files\Header Files\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GameTimer.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GameWorld.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\HashUtil.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\KeyCodes.h">
-      <Filter>Common Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\BoxActor.h">
-      <Filter>Prefab Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\CastleActor.h">
-      <Filter>Prefab Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\FreeLookActor.h">
-      <Filter>Prefab Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\PlaneActor.h">
-      <Filter>Prefab Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RotatingMonkey.h">
-      <Filter>Prefab Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\SphereActor.h">
-      <Filter>Prefab Files\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DebugCollision.h">
-      <Filter>Header Files\Debug</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Debug.h">
-      <Filter>Header Files\Debug</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RenderItem.h">
-      <Filter>Common Files\Header Files\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Vertex.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MeshImporter.h">
-      <Filter>Common Files\Header Files\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Light.h">
-      <Filter>Common Files\Header Files\Light</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Camera.h">
-      <Filter>Common Files\Header Files\Camera</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Logger.h">
-      <Filter>Common Files\Header Files\Debug</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\AccelerationStructure.h">
-      <Filter>Header Files\Raytracing</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\BRDF.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DXR_GeometryBuffer.h">
-      <Filter>Header Files\Raytracing</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GammaCorrection.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\IrradianceMap.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MotionBlur.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Pixelation.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Sharpen.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ShaderTable.h">
-      <Filter>Header Files\Raytracing</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DxRenderer.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DxLowRenderer.h">
-      <Filter>Header Files\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\HlslCompaction.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\FrameResource.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ConstantsBufferDeclarations.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DxForwardDeclarations.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\EquirectangularConverter.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\GeometryGenerator.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\MipmapGenerator.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ShaderManager.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\D3D12Util.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Samplers.h">
-      <Filter>Header Files\Infrastructure</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RenderMacros.h">
       <Filter>Header Files\Infrastructure</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\DxMesh.h">
       <Filter>Header Files\Infrastructure</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ImGuiManager.h">
+    <ClInclude Include="..\..\include\Common\Actor\Actor.h">
+      <Filter>Common Files\Header Files\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Camera\Camera.h">
+      <Filter>Common Files\Header Files\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Component\CameraComponent.h">
+      <Filter>Common Files\Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Component\Component.h">
+      <Filter>Common Files\Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Component\MeshComponent.h">
+      <Filter>Common Files\Header Files\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Debug\Logger.h">
+      <Filter>Common Files\Header Files\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Helper\MathHelper.h">
+      <Filter>Common Files\Header Files\Helper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Light\Light.h">
+      <Filter>Common Files\Header Files\Light</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Actor\ActorManager.h">
+      <Filter>Common Files\Header Files\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\Mesh.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\MeshImporter.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\Transform.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Mesh\Vertex.h">
+      <Filter>Common Files\Header Files\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\UI\Layer.h">
+      <Filter>Common Files\Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\UI\Widget.h">
+      <Filter>Common Files\Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Render\Renderer.h">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Render\RenderItem.h">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Render\RenderType.h">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\GameTimer.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\GameWorld.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\HashUtil.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\KeyCodes.h">
+      <Filter>Common Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Input\InputManager.h">
+      <Filter>Common Files\Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Debug\Debug.h">
       <Filter>Header Files\Debug</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\VolumetricLight.h">
-      <Filter>Header Files\Shading\Rasterization</Filter>
+    <ClInclude Include="..\..\include\DirectX\Debug\ImGuiManager.h">
+      <Filter>Header Files\Debug</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\BlurFilter.h">
+    <ClInclude Include="..\..\include\DirectX\Util\D3D12Util.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Util\HWInfo.h">
+      <Filter>Common Files\Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Util\Locker.h">
+      <Filter>Common Files\Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Common\Util\TaskQueue.h">
+      <Filter>Common Files\Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Util\EquirectangularConverter.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Util\GeometryGenerator.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Util\MipmapGenerator.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Util\ShaderManager.h">
+      <Filter>Header Files\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Render\DxLowRenderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Render\DxRenderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\BlurFilter.h">
       <Filter>Header Files\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\GaussianFilter.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\GaussianFilter.h">
       <Filter>Header Files\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Shadow.h">
-      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
+    <ClInclude Include="..\..\include\Common\Shading\ShaderArgument.h">
+      <Filter>Common Files\Header Files\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ZDepth.h">
-      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\DXR_Shadow.h">
-      <Filter>Header Files\Shading\Raytracing\Shadow</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\SVGF.h">
-      <Filter>Header Files\Shading\Raytracing\SVGF</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RaytracedReflection.h">
-      <Filter>Header Files\Shading\Raytracing\Raytraced-Reflection</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\RTAO.h">
-      <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\Bloom.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\Bloom.h">
       <Filter>Header Files\Shading\Rasterization\Bloom</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\DepthOfField.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\DepthOfField.h">
       <Filter>Header Files\Shading\Rasterization\Dof</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\GBuffer.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\GBuffer.h">
       <Filter>Header Files\Shading\Rasterization\GBuffer</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\SSAO.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\Shadow.h">
+      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\SSAO.h">
       <Filter>Header Files\Shading\Rasterization\SSAO</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\SSR.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\SSR.h">
       <Filter>Header Files\Shading\Rasterization\SSR</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\TemporalAA.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\TemporalAA.h">
       <Filter>Header Files\Shading\Rasterization\TemporalAA</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ToneMapping.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\ToneMapping.h">
       <Filter>Header Files\Shading\Rasterization\ToneMapping</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\DepthStencilBuffer.h">
-      <Filter>Header Files\Infrastructure\DepthStencilBuffer</Filter>
+    <ClInclude Include="..\..\include\DirectX\Shading\MotionBlur.h">
+      <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\GpuResource.h">
-      <Filter>Header Files\Infrastructure\GpuResource</Filter>
+    <ClInclude Include="..\..\include\DirectX\Shading\Pixelation.h">
+      <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\ShadingConvention.h">
-      <Filter>Header Files\Infrastructure\ShadingConvention</Filter>
+    <ClInclude Include="..\..\include\DirectX\Shading\Sharpen.h">
+      <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\SwapChainBuffer.h">
-      <Filter>Header Files\Infrastructure\SwapChainBuffer</Filter>
+    <ClInclude Include="..\..\include\DirectX\Shading\VolumetricLight.h">
+      <Filter>Header Files\Shading\Rasterization</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\UploadBuffer.h">
-      <Filter>Header Files\Infrastructure\UploadBuffer</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\TaskQueue.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\HWInfo.h">
-      <Filter>Header Files\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\ShaderArgument.h">
+    <ClInclude Include="..\..\include\DirectX\Shading\BRDF.h">
       <Filter>Header Files\Shading</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\Locker.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="..\..\include\DirectX\Shading\GammaCorrection.h">
+      <Filter>Header Files\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\IrradianceMap.h">
+      <Filter>Header Files\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\ZDepth.h">
+      <Filter>Header Files\Shading\Rasterization\ZDepth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\RaytracedReflection.h">
+      <Filter>Header Files\Shading\Raytracing\Raytraced-Reflection</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\RTAO.h">
+      <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\DXR_Shadow.h">
+      <Filter>Header Files\Shading\Raytracing\Shadow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\SVGF.h">
+      <Filter>Header Files\Shading\Raytracing\SVGF</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Shading\Samplers.h">
+      <Filter>Header Files\Shading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\DepthStencilBuffer.h">
+      <Filter>Header Files\Infrastructure\DepthStencilBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\GpuResource.h">
+      <Filter>Header Files\Infrastructure\GpuResource</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\ShadingConvention.h">
+      <Filter>Header Files\Infrastructure\ShadingConvention</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\SwapChainBuffer.h">
+      <Filter>Header Files\Infrastructure\SwapChainBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\UploadBuffer.h">
+      <Filter>Header Files\Infrastructure\UploadBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\FrameResource.h">
+      <Filter>Header Files\Infrastructure</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\ConstantsBufferDeclarations.h">
+      <Filter>Header Files\Infrastructure</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\AccelerationStructure.h">
+      <Filter>Header Files\Infrastructure\Raytracing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\DXR_GeometryBuffer.h">
+      <Filter>Header Files\Infrastructure\Raytracing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\DirectX\Infrastructure\ShaderTable.h">
+      <Filter>Header Files\Infrastructure\Raytracing</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Prefab\BoxActor.h">
+      <Filter>Prefab Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Prefab\CastleActor.h">
+      <Filter>Prefab Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Prefab\FreeLookActor.h">
+      <Filter>Prefab Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Prefab\PlaneActor.h">
+      <Filter>Prefab Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Prefab\RotatingMonkey.h">
+      <Filter>Prefab Files\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\Prefab\SphereActor.h">
+      <Filter>Prefab Files\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\include\Actor.inl">
-      <Filter>Common Files\Header Files\Actor</Filter>
-    </None>
-    <None Include="..\..\include\MathHelper.inl">
-      <Filter>Common Files\Header Files\Helper</Filter>
-    </None>
-    <None Include="..\..\include\Renderer.inl">
-      <Filter>Common Files\Header Files\Render</Filter>
-    </None>
-    <None Include="..\..\include\Debug.inl">
-      <Filter>Header Files\Debug</Filter>
-    </None>
-    <None Include="..\..\include\DxLowRenderer.inl">
-      <Filter>Header Files\Renderer</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\GammaCorrection.hlsl">
       <Filter>Shader Files</Filter>
     </None>
@@ -943,9 +940,6 @@
     <None Include="..\..\assets\shaders\hlsl\VolumetricLight.hlsli">
       <Filter>Shader Files\Volumetric-Light</Filter>
     </None>
-    <None Include="..\..\include\BlurFilter.inl">
-      <Filter>Header Files\Shading</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\ShadingConstants.hlsli">
       <Filter>Shader Files\Util</Filter>
     </None>
@@ -958,15 +952,6 @@
     <None Include="..\..\assets\shaders\hlsl\CalculateScatteringAndDensityCS.hlsl">
       <Filter>Shader Files\Volumetric-Light</Filter>
     </None>
-    <None Include="..\..\include\Shadow.inl">
-      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
-    </None>
-    <None Include="..\..\include\D3D12Util.inl">
-      <Filter>Header Files\Util</Filter>
-    </None>
-    <None Include="..\..\include\Camera.inl">
-      <Filter>Common Files\Header Files\Camera</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\AccumulateScattering.hlsl">
       <Filter>Shader Files\Volumetric-Light</Filter>
     </None>
@@ -976,62 +961,95 @@
     <None Include="..\..\assets\shaders\hlsl\DebugCubeMap.hlsl">
       <Filter>Shader Files\Debug</Filter>
     </None>
-    <None Include="..\..\include\DXR_Shadow.inl">
-      <Filter>Header Files\Shading\Raytracing\Shadow</Filter>
-    </None>
-    <None Include="..\..\include\SVGF.inl">
-      <Filter>Header Files\Shading\Raytracing\SVGF</Filter>
-    </None>
-    <None Include="..\..\include\RaytracedReflection.inl">
-      <Filter>Header Files\Shading\Raytracing\Raytraced-Reflection</Filter>
-    </None>
-    <None Include="..\..\include\RTAO.inl">
-      <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
-    </None>
-    <None Include="..\..\include\Bloom.inl">
-      <Filter>Header Files\Shading\Rasterization\Bloom</Filter>
-    </None>
-    <None Include="..\..\include\DepthOfField.inl">
-      <Filter>Header Files\Shading\Rasterization\Dof</Filter>
-    </None>
-    <None Include="..\..\include\GBuffer.inl">
-      <Filter>Header Files\Shading\Rasterization\GBuffer</Filter>
-    </None>
-    <None Include="..\..\include\SSAO.inl">
-      <Filter>Header Files\Shading\Rasterization\SSAO</Filter>
-    </None>
-    <None Include="..\..\include\SSR.inl">
-      <Filter>Header Files\Shading\Rasterization\SSR</Filter>
-    </None>
-    <None Include="..\..\include\TemporalAA.inl">
-      <Filter>Header Files\Shading\Rasterization\TemporalAA</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\ApplyFog.hlsl">
       <Filter>Shader Files\Volumetric-Light</Filter>
     </None>
-    <None Include="..\..\include\IrradianceMap.inl">
-      <Filter>Header Files\Shading\Rasterization</Filter>
+    <None Include="..\..\include\Common\Actor\Actor.inl">
+      <Filter>Common Files\Header Files\Actor</Filter>
     </None>
-    <None Include="..\..\include\ToneMapping.inl">
+    <None Include="..\..\include\Common\Camera\Camera.inl">
+      <Filter>Common Files\Header Files\Camera</Filter>
+    </None>
+    <None Include="..\..\include\Common\Helper\MathHelper.inl">
+      <Filter>Common Files\Header Files\Helper</Filter>
+    </None>
+    <None Include="..\..\include\Common\Render\Renderer.inl">
+      <Filter>Common Files\Header Files\Render</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Debug\Debug.inl">
+      <Filter>Header Files\Debug</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Util\D3D12Util.inl">
+      <Filter>Header Files\Util</Filter>
+    </None>
+    <None Include="..\..\include\Common\Util\Locker.inl">
+      <Filter>Common Files\Header Files\Util</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Render\DxLowRenderer.inl">
+      <Filter>Header Files\Render</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\BlurFilter.inl">
+      <Filter>Header Files\Shading</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\Bloom.inl">
+      <Filter>Header Files\Shading\Rasterization\Bloom</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\DepthOfField.inl">
+      <Filter>Header Files\Shading\Rasterization\Dof</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\GBuffer.inl">
+      <Filter>Header Files\Shading\Rasterization\GBuffer</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\Shadow.inl">
+      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\SSAO.inl">
+      <Filter>Header Files\Shading\Rasterization\SSAO</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\SSR.inl">
+      <Filter>Header Files\Shading\Rasterization\SSR</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\TemporalAA.inl">
+      <Filter>Header Files\Shading\Rasterization\TemporalAA</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\ToneMapping.inl">
       <Filter>Header Files\Shading\Rasterization\ToneMapping</Filter>
     </None>
-    <None Include="..\..\include\DepthStencilBuffer.inl">
+    <None Include="..\..\include\DirectX\Shading\IrradianceMap.inl">
+      <Filter>Header Files\Shading</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\ZDepth.inl">
+      <Filter>Header Files\Shading\Rasterization\ZDepth</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\RaytracedReflection.inl">
+      <Filter>Header Files\Shading\Raytracing\Raytraced-Reflection</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\RTAO.inl">
+      <Filter>Header Files\Shading\Raytracing\RTAO</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\DXR_Shadow.inl">
+      <Filter>Header Files\Shading\Raytracing\Shadow</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Shading\SVGF.inl">
+      <Filter>Header Files\Shading\Raytracing\SVGF</Filter>
+    </None>
+    <None Include="..\..\include\DirectX\Infrastructure\DepthStencilBuffer.inl">
       <Filter>Header Files\Infrastructure\DepthStencilBuffer</Filter>
     </None>
-    <None Include="..\..\include\GpuResource.inl">
+    <None Include="..\..\include\DirectX\Infrastructure\GpuResource.inl">
       <Filter>Header Files\Infrastructure\GpuResource</Filter>
     </None>
-    <None Include="..\..\include\ShadingConvention.inl">
+    <None Include="..\..\include\DirectX\Infrastructure\ShadingConvention.inl">
       <Filter>Header Files\Infrastructure\ShadingConvention</Filter>
     </None>
-    <None Include="..\..\include\SwapChainBuffer.inl">
+    <None Include="..\..\include\DirectX\Infrastructure\SwapChainBuffer.inl">
       <Filter>Header Files\Infrastructure\SwapChainBuffer</Filter>
     </None>
-    <None Include="..\..\include\UploadBuffer.inl">
+    <None Include="..\..\include\DirectX\Infrastructure\UploadBuffer.inl">
       <Filter>Header Files\Infrastructure\UploadBuffer</Filter>
     </None>
-    <None Include="..\..\include\ZDepth.inl">
-      <Filter>Header Files\Shading\Rasterization\Shadow</Filter>
+    <None Include="..\..\include\DirectX\Infrastructure\DXR_GeometryBuffer.inl">
+      <Filter>Header Files\Infrastructure\Raytracing</Filter>
     </None>
   </ItemGroup>
 </Project>

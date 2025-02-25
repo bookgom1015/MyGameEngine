@@ -3,7 +3,7 @@
 
 #ifdef HLSL
 #include "HlslCompaction.hlsli"
-#include "./../../../include/Vertex.h"
+#include "./../../../include/Common/Mesh/Vertex.h"
 #else
 #include <DirectXMath.h>
 #include <dxgiformat.h>
@@ -27,7 +27,7 @@ struct Material {
 };
 #endif
 
-#include "ShadingConvention.h"
-#include "ConstantsBufferDeclarations.h"
+#include "DirectX/Infrastructure/ShadingConvention.h"
+#include "DirectX/Infrastructure/ConstantsBufferDeclarations.h"
 
 #endif // __HLSLCOMPACTION_HLSL__
