@@ -868,9 +868,6 @@
     <None Include="..\..\assets\shaders\hlsl\CookTorrance.hlsli">
       <Filter>Shader Files\BRDF</Filter>
     </None>
-    <None Include="..\..\assets\shaders\hlsl\IntegrateBRDF.hlsl">
-      <Filter>Shader Files\BRDF</Filter>
-    </None>
     <None Include="..\..\assets\shaders\hlsl\IntegrateSpecular.hlsl">
       <Filter>Shader Files\BRDF</Filter>
     </None>
@@ -1050,6 +1047,9 @@
     </None>
     <None Include="..\..\include\DirectX\Infrastructure\DXR_GeometryBuffer.inl">
       <Filter>Header Files\Infrastructure\Raytracing</Filter>
+    </None>
+    <None Include="..\..\assets\shaders\hlsl\IntegrateBRDF.hlsl">
+      <Filter>Shader Files\Irradiance</Filter>
     </None>
   </ItemGroup>
 </Project>

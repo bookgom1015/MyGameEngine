@@ -74,7 +74,7 @@ BOOL GBufferClass::BuildRootSignature(const StaticSamplers& samplers) {
 		ID3D12Device5* device;
 		auto lock = md3dDevice->TakeOut(device);
 
-		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature, L"GBuffer_RS_Default"));
 	}
 
 	return TRUE;
@@ -111,7 +111,7 @@ BOOL GBufferClass::BuildPSO() {
 		ID3D12Device5* device;
 		auto lock = md3dDevice->TakeOut(device);
 
-		CheckHRESULT(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+		CheckHRESULT(D3D12Util::CreateGraphicsPipelineState(device, psoDesc, IID_PPV_ARGS(&mPSO), L"GBuffer_GPS_Default"));
 	}
 
 	return TRUE;

@@ -101,7 +101,7 @@ BOOL BRDFClass::CompileShaders(const std::wstring& filePath) {
 
 BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 	D3D12Util::Descriptor::RootSignature::Builder builder;
-	// Intetrate diffuse
+	// Integrate diffuse
 	{
 		CD3DX12_DESCRIPTOR_RANGE texTables[8] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
@@ -132,7 +132,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_CalcReflectanceEquation]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_CalcReflectanceEquation]), L"BRDF_RS_IntegrateDiffuse");
 	}
 	// Integrate specular
 	{
@@ -169,7 +169,7 @@ BOOL BRDFClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_IntegrateSpecular]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_IntegrateSpecular]), L"BRDF_RS_IntegrateSpecular");
 	}
 
 	{
@@ -200,7 +200,7 @@ BOOL BRDFClass::BuildPSO() {
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::E_BlinnPhong]));
+			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::E_BlinnPhong]), L"BRDF_GPS_RasterBlinnPhong");
 		}
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
@@ -214,7 +214,7 @@ BOOL BRDFClass::BuildPSO() {
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::E_CookTorrance]));
+			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raster][Model::E_CookTorrance]), L"BRDF_GPS_RasterCookTorrance");
 		}
 	}
 	// Raytrace
@@ -231,7 +231,7 @@ BOOL BRDFClass::BuildPSO() {
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::E_BlinnPhong]));
+			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::E_BlinnPhong]), L"BRDF_GPS_RaytraceBlinnPhong");
 		}
 		{
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = D3D12Util::QuadPsoDesc();
@@ -245,7 +245,7 @@ BOOL BRDFClass::BuildPSO() {
 			psoDesc.NumRenderTargets = 1;
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::E_CookTorrance]));
+			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[Render::E_Raytrace][Model::E_CookTorrance]), L"BRDF_GPS_RaytracedCookTorrance");
 		}
 	}
 	// IntegrateSpecular
@@ -261,7 +261,7 @@ BOOL BRDFClass::BuildPSO() {
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = HDR_FORMAT;
 
-		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mIntegrateSpecularPSO));
+		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mIntegrateSpecularPSO), L"BRDF_GPS_IntegrateSpecular");
 	}
 
 	{

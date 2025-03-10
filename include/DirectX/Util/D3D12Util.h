@@ -55,8 +55,28 @@ namespace D3D12Util {
 		Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer,
 		Microsoft::WRL::ComPtr<ID3D12Resource>& defaultBuffer);
 
-	BOOL CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, ID3D12RootSignature** const rootSignature);
-	BOOL CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, const IID& riid, void** const rootSignature);
+	BOOL CreateRootSignature(ID3D12Device* const device, 
+		const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, 
+		ID3D12RootSignature** const rootSignature, 
+		LPCWSTR name = nullptr);
+	BOOL CreateRootSignature(ID3D12Device* const device, 
+		const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, 
+		const IID& riid, 
+		void** const rootSignature, 
+		LPCWSTR name = nullptr);
+
+	BOOL CreateComputePipelineState(
+		ID3D12Device* const device,
+		const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc,
+		const IID& riid,
+		void** const pipelineState,
+		LPCWSTR name = nullptr);
+	BOOL CreateGraphicsPipelineState(
+		ID3D12Device* const device,
+		const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc,
+		const IID& riid,
+		void** const pipelineState,
+		LPCWSTR name = nullptr);
 
 	BOOL CreateBuffer(ID3D12Device* const device, D3D12BufferCreateInfo& info, ID3D12Resource** resource, ID3D12InfoQueue* infoQueue = nullptr);
 	BOOL CreateConstantBuffer(ID3D12Device* const device, ID3D12Resource** resource, UINT64 size);
@@ -177,11 +197,12 @@ namespace D3D12Util {
 		namespace RootSignature {
 			struct Struct {
 				Struct() = default;
-				Struct(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr);
+				Struct(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name = nullptr);
 
 				D3D12_ROOT_SIGNATURE_DESC Desc;
 				IID RIID;
 				void** Ptr;
+				std::wstring Name;
 			};
 
 			class Builder {
@@ -191,7 +212,7 @@ namespace D3D12Util {
 
 			public:
 				void Enqueue(const Struct& desc);
-				void Enqueue(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr);
+				void Enqueue(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name = nullptr);
 
 				BOOL Build(ID3D12Device5* const device);
 
@@ -209,8 +230,8 @@ namespace D3D12Util {
 
 			struct Struct {
 				Struct() = default;
-				Struct(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr);
-				Struct(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr);
+				Struct(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name = nullptr);
+				Struct(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name = nullptr);
 
 				union {
 					D3D12_GRAPHICS_PIPELINE_STATE_DESC Graphics;
@@ -219,6 +240,7 @@ namespace D3D12Util {
 				IID RIID;
 				void** Ptr;
 				Type Type;
+				std::wstring Name;
 			};
 
 			class Builder {
@@ -228,8 +250,8 @@ namespace D3D12Util {
 
 			public:
 				void Enqueue(const Struct& desc);
-				void Enqueue(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr);
-				void Enqueue(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr);
+				void Enqueue(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name = nullptr);
+				void Enqueue(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name = nullptr);
 
 				BOOL Build(ID3D12Device5* const device);
 

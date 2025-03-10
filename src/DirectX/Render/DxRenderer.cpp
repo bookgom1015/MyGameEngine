@@ -3431,7 +3431,7 @@ BOOL DxRenderer::DrawImGui() {
 				mat->Albedo.z = albedo[2];
 				mat->Albedo.w = albedo[3];
 			}
-			ImGui::SliderFloat("Roughness", &mat->Roughness, 0.001f, 0.999f);
+			ImGui::SliderFloat("Roughness", &mat->Roughness, 0.f, 1.f);
 			ImGui::SliderFloat("Metalic", &mat->Metailic, 0.f, 1.f);
 			ImGui::SliderFloat("Specular", &mat->Specular, 0.f, 1.f);
 		}

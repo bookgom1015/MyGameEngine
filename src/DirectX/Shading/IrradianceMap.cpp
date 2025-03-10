@@ -141,7 +141,7 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 		
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_ConvoluteDiffuseIrradiance]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_ConvoluteDiffuseIrradiance]), L"Irradiance_RS_ConvoluteDiffuseIrradiance");
 	}
 	// ConvoluteSpecularIrradiance
 	{
@@ -161,7 +161,7 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 		
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_ConvolutePrefilteredIrradiance]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_ConvolutePrefilteredIrradiance]), L"Irradiance_RS_ConvolutePrefilteredIrradiance");
 	}
 	// IntegrateBRDF
 	{
@@ -174,7 +174,7 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 		
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_IntegrateBRDF]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_IntegrateBRDF]), L"Irradiance_RS_IntegrateBRDF");
 	}
 	// DrawSkySphere
 	{
@@ -194,7 +194,7 @@ BOOL IrradianceMapClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_DrawSkySphere]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_DrawSkySphere]), L"Irradiance_RS_DrawSkySphere");
 	}
 
 	{
@@ -229,7 +229,7 @@ BOOL IrradianceMapClass::BuildPSO() {
 			psoDesc.RTVFormats[0] = HDR_FORMAT;
 			psoDesc.DepthStencilState.DepthEnable = FALSE;
 			
-			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ConvoluteDiffuseIrradiance]));
+			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ConvoluteDiffuseIrradiance]), L"Irradiance_GPS_ConvoluteDiffuseIrradiance");
 		}
 		{
 			psoDesc.pRootSignature = mRootSignatures[RootSignature::E_ConvolutePrefilteredIrradiance].Get();
@@ -242,7 +242,7 @@ BOOL IrradianceMapClass::BuildPSO() {
 				psoDesc.PS = { reinterpret_cast<BYTE*>(ps->GetBufferPointer()), ps->GetBufferSize() };
 			}
 
-			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ConvolutePrefilteredIrradiance]));
+			builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ConvolutePrefilteredIrradiance]), L"Irradiance_GPS_ConvolutePrefilteredIrradiance");
 		}
 	}
 	// IntegrateBRDF
@@ -258,7 +258,7 @@ BOOL IrradianceMapClass::BuildPSO() {
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = IntegratedBrdfMapFormat;
 
-		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_IntegrateBRDF]));
+		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_IntegrateBRDF]), L"Irradiance_GPS_");
 	}
 	// DrawSkySphere
 	{
@@ -277,7 +277,7 @@ BOOL IrradianceMapClass::BuildPSO() {
 		psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 		psoDesc.DepthStencilState.StencilEnable = FALSE;
 
-		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_DrawSkySphere]));
+		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_DrawSkySphere]), L"Irradiance_GPS_DrawSkySphere");
 	}
 
 	{

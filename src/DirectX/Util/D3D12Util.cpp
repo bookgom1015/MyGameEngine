@@ -88,7 +88,11 @@ BOOL D3D12Util::CreateDefaultBuffer(
 	return TRUE;
 }
 
-BOOL D3D12Util::CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, ID3D12RootSignature** const rootSignature) {
+BOOL D3D12Util::CreateRootSignature(
+		ID3D12Device* const device, 
+		const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, 
+		ID3D12RootSignature** const rootSignature, 
+		LPCWSTR name) {
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 	HRESULT hr = D3D12SerializeRootSignature(
@@ -111,11 +115,17 @@ BOOL D3D12Util::CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT
 		serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(rootSignature)
 	));
+	if (name != nullptr) (*rootSignature)->SetName(name);
 
 	return TRUE;
 }
 
-BOOL D3D12Util::CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, const IID& riid, void** const rootSignature) {
+BOOL D3D12Util::CreateRootSignature(
+		ID3D12Device* const device, 
+		const D3D12_ROOT_SIGNATURE_DESC& rootSignatureDesc, 
+		const IID& riid, 
+		void** const rootSignature, 
+		LPCWSTR name) {
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
 	HRESULT hr = D3D12SerializeRootSignature(
@@ -139,7 +149,39 @@ BOOL D3D12Util::CreateRootSignature(ID3D12Device* const device, const D3D12_ROOT
 		riid,
 		rootSignature
 	));
+	if (name != nullptr) {
+		auto rootSig = reinterpret_cast<ID3D12RootSignature*>(*rootSignature);
+		rootSig->SetName(name);
+	}
 
+	return TRUE;
+}
+
+BOOL D3D12Util::CreateComputePipelineState(
+		ID3D12Device* const device,
+		const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc,
+		const IID& riid,
+		void** const pipelineState,
+		LPCWSTR name) {
+	CheckHRESULT(device->CreateComputePipelineState(&desc, riid, pipelineState));
+	if (name != nullptr) {
+		auto pso = reinterpret_cast<ID3D12PipelineState*>(*pipelineState);
+		pso->SetName(name);
+	}
+	return TRUE;
+}
+
+BOOL D3D12Util::CreateGraphicsPipelineState(
+		ID3D12Device* const device,
+		const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc,
+		const IID& riid,
+		void** const pipelineState,
+		LPCWSTR name) {
+	CheckHRESULT(device->CreateGraphicsPipelineState(&desc, riid, pipelineState));
+	if (name != nullptr) {
+		auto pso = reinterpret_cast<ID3D12PipelineState*>(*pipelineState);
+		pso->SetName(name);
+	}
 	return TRUE;
 }
 
@@ -347,25 +389,27 @@ BOOL Resource::Builder::Build(ID3D12Device5* const device) {
 	return TRUE;
 }
 
-RootSignature::Struct::Struct(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr) {
+RootSignature::Struct::Struct(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name) {
 	Desc = desc;
 	RIID = riid;
 	Ptr = ptr;
+	Name = name != nullptr ? std::wstring(name) : std::wstring();
 }
 
 void RootSignature::Builder::Enqueue(const Struct& desc) {
 	mDescriptors.push(desc);
 }
 
-void RootSignature::Builder::Enqueue(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr) {
-	mDescriptors.emplace(desc, riid, ptr);
+void RootSignature::Builder::Enqueue(const D3D12_ROOT_SIGNATURE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name) {
+	mDescriptors.emplace(desc, riid, ptr, name);
 }
 
 BOOL RootSignature::Builder::Build(ID3D12Device5* const device) {
 	while (!mDescriptors.empty()) {
 		auto desc = mDescriptors.front();
+		LPCWSTR name = desc.Name.empty() ? nullptr : desc.Name.c_str();
 
-		CheckReturn(D3D12Util::CreateRootSignature(device, desc.Desc, desc.RIID, desc.Ptr));
+		CheckReturn(D3D12Util::CreateRootSignature(device, desc.Desc, desc.RIID, desc.Ptr, name));
 
 		mDescriptors.pop();
 	}
@@ -374,40 +418,44 @@ BOOL RootSignature::Builder::Build(ID3D12Device5* const device) {
 }
 
 
-PipelineState::Struct::Struct(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr) {
+PipelineState::Struct::Struct(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name) {
 	Graphics = desc;
 	RIID = riid;
 	Ptr = ptr;
 	Type = Type::E_Grapchis;
+	Name = name != nullptr ? std::wstring(name) : std::wstring();
 }
 
-PipelineState::Struct::Struct(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr) {
+PipelineState::Struct::Struct(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name) {
 	Compute = desc;
 	RIID = riid;
 	Ptr = ptr;
 	Type = Type::E_Compute;
+	Name = name != nullptr ? std::wstring(name) : std::wstring();
 }
 
 void PipelineState::Builder::Enqueue(const Struct& desc) {
 	mDescriptors.push(desc);
 }
 
-void PipelineState::Builder::Enqueue(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr) {
-	mDescriptors.emplace(desc, riid, ptr);
+void PipelineState::Builder::Enqueue(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name) {
+	mDescriptors.emplace(desc, riid, ptr, name);
 }
 
-void PipelineState::Builder::Enqueue(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr) {
-	mDescriptors.emplace(desc, riid, ptr);
+void PipelineState::Builder::Enqueue(const D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const IID& riid, void** ptr, LPCWSTR name) {
+	mDescriptors.emplace(desc, riid, ptr, name);
 }
 
 BOOL PipelineState::Builder::Build(ID3D12Device5* const device) {
 	while (!mDescriptors.empty()) {
 		auto& desc = mDescriptors.front();
+		LPCWSTR name = desc.Name.empty() ? nullptr : desc.Name.c_str();
+
 		if (desc.Type == Type::E_Compute) {
-			CheckHRESULT(device->CreateComputePipelineState(&desc.Compute, desc.RIID, desc.Ptr));
+			CheckReturn(D3D12Util::CreateComputePipelineState(device, desc.Compute, desc.RIID, desc.Ptr, name));
 		}
 		else {
-			CheckHRESULT(device->CreateGraphicsPipelineState(&desc.Graphics, desc.RIID, desc.Ptr));
+			CheckReturn(D3D12Util::CreateGraphicsPipelineState(device, desc.Graphics, desc.RIID, desc.Ptr, name));
 		}
 
 		mDescriptors.pop();

@@ -34,6 +34,8 @@ VertexOut VS(uint vid : SV_VertexID) {
 }
 
 float2 IntegrateBRDF(float NdotV, float roughness) {
+	roughness = max(roughness, 0.04f);
+
 	float3 V;
 	V.x = sqrt(1.f - NdotV * NdotV);
 	V.y = 0.f;
@@ -44,6 +46,7 @@ float2 IntegrateBRDF(float NdotV, float roughness) {
 
 	float3 N = float3(0.f, 0.f, 1.f);
 
+	[loop]
 	for (uint i = 0; i < SAMPLE_COUNT; ++i)
 	{
 		const float2 Xi = Hammersley(i, SAMPLE_COUNT);

@@ -26,10 +26,10 @@ SSAOClass::SSAOClass() {
 BOOL SSAOClass::Initialize(Locker<ID3D12Device5>* const device, ShaderManager* const manager, UINT width, UINT height, Resolution::Type type) {
 	md3dDevice = device;
 	mShaderManager = manager;
-
 	mResolutionType = type;
 
 	CheckReturn(BuildResources(width, height));
+
 	BuildOffsetVectors();
 
 	return TRUE;
@@ -70,12 +70,12 @@ BOOL SSAOClass::BuildRootSignature(const StaticSamplers& samplers) {
 		static_cast<UINT>(samplers.size()), samplers.data(),
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
-
+	
 	{
 		ID3D12Device5* device;
 		auto lock = md3dDevice->TakeOut(device);
 
-		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature));
+		CheckReturn(D3D12Util::CreateRootSignature(device, rootSigDesc, &mRootSignature, L"SSAO_RS_Default"));
 	}
 
 	return TRUE;
@@ -96,7 +96,7 @@ BOOL SSAOClass::BuildPSO() {
 		ID3D12Device5* device;
 		auto lock = md3dDevice->TakeOut(device);
 
-		CheckHRESULT(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+		CheckReturn(D3D12Util::CreateGraphicsPipelineState(device, psoDesc, IID_PPV_ARGS(&mPSO), L"SSAO_GPS_Default"));
 	}
 
 	return TRUE;
@@ -134,7 +134,6 @@ void SSAOClass::Run(
 
 	aoCeffMap->Transite(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
-
 
 void SSAOClass::GetOffsetVectors(DirectX::XMFLOAT4 offsets[14]) {
 	std::copy(&mOffsets[0], &mOffsets[14], &offsets[0]);

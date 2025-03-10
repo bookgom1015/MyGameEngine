@@ -61,7 +61,7 @@ BOOL ShadowClass::CompileShaders(const std::wstring& filePath) {
 
 BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 	D3D12Util::Descriptor::RootSignature::Builder builder;
-	// Draw z-depth
+	// Z-depth
 	{
 		CD3DX12_DESCRIPTOR_RANGE texTables[1] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, NUM_TEXTURE_MAPS, 0, 0);
@@ -81,9 +81,9 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_ZDepth]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_ZDepth]), L"Shadow_RS_ZDepth");
 	}
-	// Draw shadow
+	// Shadow
 	{
 		CD3DX12_DESCRIPTOR_RANGE texTables[6] = {}; UINT index = 0;
 		texTables[index++].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0);
@@ -111,7 +111,7 @@ BOOL ShadowClass::BuildRootSignature(const StaticSamplers& samplers) {
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 		);
 
-		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_Shadow]));
+		builder.Enqueue(rootSigDesc, IID_PPV_ARGS(&mRootSignatures[RootSignature::E_Shadow]), L"Shadow_RS_Shadow");
 	}
 
 	{
@@ -144,7 +144,7 @@ BOOL ShadowClass::BuildPSO() {
 		psoDesc.RasterizerState.SlopeScaledDepthBias = 1.f;
 		psoDesc.RasterizerState.DepthBiasClamp = 0.1f;
 
-		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ZDepth]));
+		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EG_ZDepth]), L"Shadow_GPS_ZDepth");
 	}
 	// Draw shadow on compute shader
 	{
@@ -156,7 +156,7 @@ BOOL ShadowClass::BuildPSO() {
 			psoDesc.CS = { reinterpret_cast<BYTE*>(cs->GetBufferPointer()), cs->GetBufferSize() };
 		}
 
-		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_Shadow]));
+		builder.Enqueue(psoDesc, IID_PPV_ARGS(&mPSOs[PipelineState::EC_Shadow]), L"Shadow_CPS_Shadow");
 	}
 
 	{
